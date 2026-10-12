@@ -1,14 +1,16 @@
 package org.usvm.machine.call.intrinsic
 
+import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
-import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsLocal
-import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
+import org.usvm.UBoolExpr
 import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.api.typeStreamOf
 import org.usvm.machine.call.TsEtsIrUnknownCallModel
 import org.usvm.machine.call.TsEtsIrUnknownCallModelArtifact
@@ -17,9 +19,13 @@ import org.usvm.machine.call.TsEtsIrUnknownCallModelInputAdapter
 import org.usvm.machine.call.TsUnknownCall
 import org.usvm.machine.call.TsUnknownCallModel
 import org.usvm.machine.call.TsUnknownCallTarget
+import org.usvm.machine.call.isBuiltinDateGlobalType
 import org.usvm.machine.call.loadBundledEtsIrUnknownCallModelArtifact
+import org.usvm.machine.expr.dateModelTimestampLValue
+import org.usvm.machine.expr.mkIsNullOrUndefined
 import org.usvm.machine.state.TsState
 import org.usvm.types.singleOrNull
+import org.usvm.util.boolToFp
 
 /** Numeric `Date` API family implemented by an ordinary TypeScript source body. */
 internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
@@ -99,7 +105,6 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     idSuffix = "set-full-year",
                     methodName = "setFullYear",
                     entryPointName = "setFullYear",
-                    minArgs = 1,
                     maxArgs = 3,
                 )
             )
@@ -108,7 +113,6 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     idSuffix = "set-hours",
                     methodName = "setHours",
                     entryPointName = "setHours",
-                    minArgs = 1,
                     maxArgs = 4,
                 )
             )
@@ -124,7 +128,6 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     idSuffix = "set-minutes",
                     methodName = "setMinutes",
                     entryPointName = "setMinutes",
-                    minArgs = 1,
                     maxArgs = 3,
                 )
             )
@@ -133,7 +136,6 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     idSuffix = "set-month",
                     methodName = "setMonth",
                     entryPointName = "setMonth",
-                    minArgs = 1,
                     maxArgs = 2,
                 )
             )
@@ -142,7 +144,6 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     idSuffix = "set-seconds",
                     methodName = "setSeconds",
                     entryPointName = "setSeconds",
-                    minArgs = 1,
                     maxArgs = 2,
                 )
             )
@@ -153,7 +154,6 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     idSuffix = "set-utc-full-year",
                     methodName = "setUTCFullYear",
                     entryPointName = "setUTCFullYear",
-                    minArgs = 1,
                     maxArgs = 3,
                 )
             )
@@ -162,7 +162,6 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     idSuffix = "set-utc-hours",
                     methodName = "setUTCHours",
                     entryPointName = "setUTCHours",
-                    minArgs = 1,
                     maxArgs = 4,
                 )
             )
@@ -178,7 +177,6 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     idSuffix = "set-utc-minutes",
                     methodName = "setUTCMinutes",
                     entryPointName = "setUTCMinutes",
-                    minArgs = 1,
                     maxArgs = 3,
                 )
             )
@@ -187,7 +185,6 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     idSuffix = "set-utc-month",
                     methodName = "setUTCMonth",
                     entryPointName = "setUTCMonth",
-                    minArgs = 1,
                     maxArgs = 2,
                 )
             )
@@ -196,7 +193,6 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     idSuffix = "set-utc-seconds",
                     methodName = "setUTCSeconds",
                     entryPointName = "setUTCSeconds",
-                    minArgs = 1,
                     maxArgs = 2,
                 )
             )
@@ -207,7 +203,7 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         idSuffix = "constructor",
         methodName = CONSTRUCTOR_NAME,
         entryPointName = "construct",
-        domainGuard = instanceGuard(minArgs = 0, numericArgs = MAX_CONSTRUCTOR_ARGUMENTS),
+        domainGuard = instanceGuard(maxArgs = MAX_CONSTRUCTOR_ARGUMENTS, allowDateCopy = true),
         inputAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
             with(state.ctx) {
                 val receiver = call.receiver?.resolved ?: return@TsEtsIrUnknownCallModelInputAdapter null
@@ -215,7 +211,12 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 if (call.arguments.isEmpty() && nowMilliseconds == null) {
                     return@TsEtsIrUnknownCallModelInputAdapter null
                 }
-                val arguments = call.resolvedArguments(maxArgs = MAX_CONSTRUCTOR_ARGUMENTS)?.toMutableList()
+
+                val arguments = call.numericArguments(
+                    maxArgs = MAX_CONSTRUCTOR_ARGUMENTS,
+                    state = state,
+                    allowDateCopy = true,
+                )?.map { it.value }?.toMutableList()
                     ?: return@TsEtsIrUnknownCallModelInputAdapter null
                 while (arguments.size < MAX_CONSTRUCTOR_ARGUMENTS) {
                     arguments += mkFp64(0.0)
@@ -237,7 +238,7 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         idSuffix = "now",
         methodName = "now",
         entryPointName = "now",
-        domainGuard = numericGuard(minArgs = 0, numericArgs = 0),
+        domainGuard = staticOwnerGuard(maxArgs = 0),
         inputAdapter = TsEtsIrUnknownCallModelInputAdapter { state, _ ->
             with(state.ctx) {
                 val nowMilliseconds = dateNowMilliseconds ?: return@TsEtsIrUnknownCallModelInputAdapter null
@@ -250,24 +251,12 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         idSuffix = "utc",
         methodName = "UTC",
         entryPointName = "utc",
-        domainGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, _ ->
-            val hasSupportedInputs = call.hasBuiltinDateStaticOwner() &&
-                call.hasNumericOrUndefinedArguments(maxArgs = MAX_CONSTRUCTOR_ARGUMENTS, state = state)
-            if (hasSupportedInputs) {
-                state.ctx.trueExpr
-            } else {
-                state.ctx.falseExpr
-            }
-        },
+        domainGuard = staticOwnerGuard(maxArgs = MAX_CONSTRUCTOR_ARGUMENTS),
         inputAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
             with(state.ctx) {
-                val arguments = call.arguments.take(MAX_CONSTRUCTOR_ARGUMENTS).map { argument ->
-                    val resolved = argument.resolved ?: return@TsEtsIrUnknownCallModelInputAdapter null
-                    when (resolved) {
-                        mkUndefinedValue() -> mkFp64NaN()
-                        else -> resolved
-                    }
-                }.toMutableList()
+                val arguments = call.numericArguments(maxArgs = MAX_CONSTRUCTOR_ARGUMENTS, state = state)
+                    ?.map { it.value }?.toMutableList()
+                    ?: return@TsEtsIrUnknownCallModelInputAdapter null
                 while (arguments.size < MAX_CONSTRUCTOR_ARGUMENTS) {
                     arguments += mkFp64(0.0)
                 }
@@ -285,11 +274,16 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         idSuffix = idSuffix,
         methodName = methodName,
         entryPointName = methodName,
-        domainGuard = instanceGuard(minArgs = 0, numericArgs = consumedArgs),
-        inputAdapter = TsEtsIrUnknownCallModelInputAdapter { _, call ->
+        domainGuard = instanceGuard(maxArgs = consumedArgs),
+        inputAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
             val receiver = call.receiver?.resolved ?: return@TsEtsIrUnknownCallModelInputAdapter null
-            val arguments = call.resolvedArguments(consumedArgs)
+            val arguments = call.numericArguments(maxArgs = consumedArgs, state = state)
+                ?.map { it.value }?.toMutableList()
                 ?: return@TsEtsIrUnknownCallModelInputAdapter null
+            while (arguments.size < consumedArgs) {
+                arguments += state.ctx.mkFp64NaN()
+            }
+
             listOf(receiver) + arguments
         },
     )
@@ -298,13 +292,12 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         idSuffix: String,
         methodName: String,
         entryPointName: String,
-        minArgs: Int,
         maxArgs: Int,
     ): TsUnknownCallModel = model(
         idSuffix = idSuffix,
         methodName = methodName,
         entryPointName = entryPointName,
-        domainGuard = instanceGuard(minArgs = minArgs, numericArgs = maxArgs),
+        domainGuard = instanceGuard(maxArgs = maxArgs),
         inputAdapter = arityAdapter(maxArgs = maxArgs),
     )
 
@@ -327,40 +320,31 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     )
 
     private fun instanceGuard(
-        minArgs: Int,
-        numericArgs: Int,
+        maxArgs: Int,
+        allowDateCopy: Boolean = false,
     ) = TsEtsIrUnknownCallModelDomainGuard { state, call, _ ->
         with(state.ctx) {
-            val receiver = call.receiver
-            val receiverValue = receiver?.resolved ?: return@TsEtsIrUnknownCallModelDomainGuard falseExpr
+            val receiverValue = call.receiver?.resolved ?: return@TsEtsIrUnknownCallModelDomainGuard falseExpr
             val unsupportedReceiver = call.callee.enclosingClass != builtinDateSignature ||
                 receiverValue.sort != addressSort ||
                 receiverValue.asExpr(addressSort).hasFakeValueBranch()
             if (unsupportedReceiver) {
-                falseExpr
-            } else if (!call.hasNumericArguments(minArgs = minArgs, numericArgs = numericArgs, state = state)) {
-                falseExpr
-            } else {
-                val runtimeType = state.memory.typeStreamOf(receiverValue.asExpr(addressSort)).singleOrNull()
-                if (runtimeType == builtinDateType) {
-                    trueExpr
-                } else {
-                    falseExpr
-                }
+                return@TsEtsIrUnknownCallModelDomainGuard falseExpr
             }
+
+            val arguments = call.numericArguments(maxArgs = maxArgs, state = state, allowDateCopy = allowDateCopy)
+                ?: return@TsEtsIrUnknownCallModelDomainGuard falseExpr
+
+            mkAnd(mkBool(isDateReceiver(state = state, receiver = receiverValue)), mkAnd(arguments.map { it.guard }))
         }
     }
 
-    private fun numericGuard(
-        minArgs: Int,
-        numericArgs: Int,
-    ) = TsEtsIrUnknownCallModelDomainGuard { state, call, _ ->
-        val hasSupportedInputs = call.hasBuiltinDateStaticOwner() &&
-            call.hasNumericArguments(minArgs = minArgs, numericArgs = numericArgs, state = state)
-        if (hasSupportedInputs) {
-            state.ctx.trueExpr
-        } else {
-            state.ctx.falseExpr
+    private fun staticOwnerGuard(maxArgs: Int) = TsEtsIrUnknownCallModelDomainGuard { state, call, _ ->
+        with(state.ctx) {
+            val arguments = call.numericArguments(maxArgs = maxArgs, state = state)
+                ?: return@TsEtsIrUnknownCallModelDomainGuard falseExpr
+
+            mkAnd(mkBool(call.hasBuiltinDateStaticOwner()), mkAnd(arguments.map { it.guard }))
         }
     }
 
@@ -368,52 +352,96 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         if (callee.enclosingClass != builtinDateSignature) return false
 
         val owner = receiver?.source as? EtsLocal ?: return false
-        val ownerType = owner.type as? EtsFunctionType ?: return false
-        return owner.name == DATE_CLASS &&
-            ownerType.signature.enclosingClass == EtsClassSignature.UNKNOWN &&
-            ownerType.signature.name.isEmpty() &&
-            ownerType.signature.parameters.isEmpty() &&
-            ownerType.signature.returnType == EtsStringType
+        return owner.name == DATE_CLASS && owner.type.isBuiltinDateGlobalType()
     }
 
     private fun arityAdapter(maxArgs: Int) = TsEtsIrUnknownCallModelInputAdapter { state, call ->
         with(state.ctx) {
             val receiver = call.receiver?.resolved ?: return@TsEtsIrUnknownCallModelInputAdapter null
-            val arguments = call.resolvedArguments(maxArgs)?.toMutableList()
+            val arguments = call.numericArguments(maxArgs = maxArgs, state = state)?.map { it.value }?.toMutableList()
                 ?: return@TsEtsIrUnknownCallModelInputAdapter null
+            if (arguments.isEmpty()) {
+                // The mandatory first parameter is undefined when omitted; later parameters keep their defaults.
+                arguments += mkFp64NaN()
+            }
+
+            val providedArgumentCount = arguments.size
             while (arguments.size < maxArgs) {
                 arguments += mkFp64(0.0)
             }
 
-            listOf(receiver, mkFp64(call.arguments.size.toDouble())) + arguments
+            listOf(receiver, mkFp64(providedArgumentCount.toDouble())) + arguments
         }
     }
 
-    private fun TsUnknownCall.resolvedArguments(maxArgs: Int): List<UExpr<*>>? =
-        arguments.take(maxArgs).map { argument ->
-            argument.resolved ?: return null
-        }
+    private data class NumericDateArgument(val value: UExpr<KFp64Sort>, val guard: UBoolExpr)
 
-    private fun TsUnknownCall.hasNumericArguments(
-        minArgs: Int,
-        numericArgs: Int,
-        state: TsState,
-    ): Boolean {
-        if (arguments.size < minArgs) {
-            return false
-        }
-
-        return arguments.take(numericArgs).all { argument -> argument.resolved?.sort == state.ctx.fp64Sort }
-    }
-
-    private fun TsUnknownCall.hasNumericOrUndefinedArguments(
+    private fun TsUnknownCall.numericArguments(
         maxArgs: Int,
         state: TsState,
-    ): Boolean = with(state.ctx) {
-        arguments.take(maxArgs).all { argument ->
-            val resolved = argument.resolved
-            resolved?.sort == fp64Sort || resolved == mkUndefinedValue()
+        allowDateCopy: Boolean = false,
+    ): List<NumericDateArgument>? = arguments.take(maxArgs).map { argument ->
+        val resolved = argument.resolved ?: return null
+        numericArgument(state = state, value = resolved, allowDateCopy = allowDateCopy && arguments.size == 1)
+    }
+
+    private fun numericArgument(
+        state: TsState,
+        value: UExpr<*>,
+        allowDateCopy: Boolean,
+    ): NumericDateArgument = with(state.ctx) {
+        when {
+            value.isFakeObject() -> {
+                val type = value.getFakeType(state.memory)
+                val reference = numericArgument(state, value.extractRef(state.memory), allowDateCopy = allowDateCopy)
+                val booleanNumber = boolToFp(value.extractBool(state.memory))
+                val result = mkIte(
+                    type.fpTypeExpr,
+                    value.extractFp(state.memory),
+                    mkIte(type.boolTypeExpr, booleanNumber, reference.value),
+                )
+                val guard = mkOr(type.fpTypeExpr, type.boolTypeExpr, mkAnd(type.refTypeExpr, reference.guard))
+
+                NumericDateArgument(value = result, guard = guard)
+            }
+
+            value is UIteExpr<*> -> {
+                val whenTrue = numericArgument(state, value.trueBranch, allowDateCopy = allowDateCopy)
+                val whenFalse = numericArgument(state, value.falseBranch, allowDateCopy = allowDateCopy)
+
+                NumericDateArgument(
+                    value = mkIte(value.condition, whenTrue.value, whenFalse.value),
+                    guard = mkIte(value.condition, whenTrue.guard, whenFalse.guard),
+                )
+            }
+
+            value.sort == fp64Sort -> NumericDateArgument(value = value.asExpr(fp64Sort), guard = trueExpr)
+            value.sort == boolSort -> NumericDateArgument(
+                value = boolToFp(value.asExpr(boolSort)),
+                guard = trueExpr,
+            )
+
+            value.sort == addressSort -> referenceArgument(state, value.asExpr(addressSort), allowDateCopy = allowDateCopy)
+            else -> NumericDateArgument(value = mkFp64NaN(), guard = falseExpr)
         }
+    }
+
+    private fun referenceArgument(
+        state: TsState,
+        reference: UHeapRef,
+        allowDateCopy: Boolean,
+    ): NumericDateArgument = with(state.ctx) {
+        val isNull = mkHeapRefEq(reference, mkTsNullValue())
+        val isNullish = mkIsNullOrUndefined(reference)
+        val copiesDate = allowDateCopy && isDateReceiver(state = state, receiver = reference)
+        val timestamp = if (copiesDate) {
+            state.memory.read(dateModelTimestampLValue(reference))
+        } else {
+            mkFp64NaN()
+        }
+        val value = mkIte(isNull, mkFp64(0.0), mkIte(isNullish, mkFp64NaN(), timestamp))
+
+        NumericDateArgument(value = value, guard = mkOr(isNullish, mkBool(copiesDate)))
     }
 
     private fun TsEtsIrUnknownCallModelArtifact.withEntryPoint(methodName: String): TsEtsIrUnknownCallModelArtifact {

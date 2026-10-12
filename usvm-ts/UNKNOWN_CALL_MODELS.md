@@ -311,8 +311,11 @@ The current experiment has these explicit limits:
   behavior is outside the model domain;
 - `Date.now()` and `new Date()` require `TsOptions.dateNowMilliseconds`; one fixed value is reused throughout the
   analysis, and both calls use fallback when it is absent;
-- one-argument construction supports numeric timestamps only; string parsing and copying another Date are outside
-  the model domain;
+- one-argument construction supports numeric timestamps, boolean/null/undefined primitive conversion, and copying
+  another modeled Date's internal timestamp; string parsing and arbitrary object coercion remain outside the model
+  domain. Numeric primitive arguments also work through runtime-kind guarded `any` values;
+- missing mandatory setter arguments and explicit `undefined` numeric components produce NaN and invalidate the
+  receiver, while omitted optional components keep their defaults or existing values;
 - symbolic string formatting is not claimed: `toISOString()` is a source implementation for supported concrete
   execution, while symbolic string conversion remains subject to the engine's string limitations.
 

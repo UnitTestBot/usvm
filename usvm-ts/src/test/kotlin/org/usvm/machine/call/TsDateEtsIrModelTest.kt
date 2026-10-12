@@ -5,6 +5,7 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.io.TempDir
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
@@ -14,7 +15,10 @@ import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsTestResolver
+import org.usvm.util.assertNodeReplay
 import org.usvm.util.getResourcePath
+import java.nio.file.Path
+import kotlin.io.path.readText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -23,6 +27,9 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 
 class TsDateEtsIrModelTest {
+    @TempDir
+    lateinit var replayDirectory: Path
+
     private val sourceFile = loadEtsFileAutoConvert(
         getResourcePath("/models/DateEtsIr.ts"),
         provider = EtsIrProvider.TS_FRONTEND,
@@ -64,6 +71,144 @@ class TsDateEtsIrModelTest {
         assertNaN(methodName = "utcUndefinedYear")
         assertNumber(methodName = "utcYearOnly", expected = 1_577_836_800_000.0)
         assertNaN(methodName = "utcExplicitUndefined")
+    }
+
+    @Test
+    fun `explicit undefined Date constructor arguments invalidate the date`() {
+        assertNaN(methodName = "undefinedConstructor")
+        assertNaN(methodName = "undefinedConstructorComponent")
+
+        val method = method("undefinedConstructor")
+        val states = analyze(method = method, tsOptions = TsOptions(dateNowMilliseconds = 123.0))
+        val value = TsTestResolver().resolve(method, states.single()).returnValue
+
+        assertTrue(assertIs<TsTestValue.TsNumber>(value).number.isNaN())
+        replayDateArguments(
+            assertions = listOf(
+                "Number.isNaN(example.undefinedConstructor())",
+                "Number.isNaN(example.undefinedConstructorComponent())",
+            ),
+        )
+    }
+
+    @Test
+    fun `missing required and explicit undefined setter arguments invalidate return and receiver`() {
+        val methodNames = listOf(
+            "missingSetTime",
+            "missingSetMonth",
+            "missingSetMinutes",
+            "undefinedSetDate",
+            "undefinedOptionalSetterComponent",
+        )
+
+        for (methodName in methodNames) {
+            val method = method(methodName)
+            val states = analyze(method)
+            val value = TsTestResolver().resolve(method, states.single()).returnValue
+
+            assertTrue(assertIs<TsTestValue.TsBoolean>(value).value, methodName)
+        }
+
+        replayDateArguments(assertions = methodNames.map { "example.$it()" })
+    }
+
+    @Test
+    fun `omitted optional setter components preserve the existing date components`() {
+        val method = method("omittedOptionalSetterComponents")
+        val states = analyze(method)
+        val value = TsTestResolver().resolve(method, states.single()).returnValue
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(value).value)
+        replayDateArguments(assertions = listOf("example.omittedOptionalSetterComponents()"))
+    }
+
+    @Test
+    fun `copy construction preserves valid and invalid Date instants independently`() {
+        assertNumber(methodName = "copiedDateKeepsItsOwnTimestamp", expected = 123.0)
+        assertNaN(methodName = "copiedInvalidDateStaysInvalid")
+
+        replayDateArguments(
+            assertions = listOf(
+                "example.copiedDateKeepsItsOwnTimestamp() === 123",
+                "Number.isNaN(example.copiedInvalidDateStaysInvalid())",
+            ),
+        )
+    }
+
+    @Test
+    fun `primitive Date argument coercions preserve booleans null and boxed values`() {
+        assertNumber(methodName = "primitiveConstructorCoercions", expected = 10.0)
+        assertNumber(methodName = "boxedPrimitiveComponents", expected = 1_000.0)
+        assertNumber(methodName = "boxedDateCopy", expected = 123.0)
+
+        replayDateArguments(
+            assertions = listOf(
+                "example.primitiveConstructorCoercions() === 10",
+                "example.boxedPrimitiveComponents() === 1000",
+                "example.boxedDateCopy() === 123",
+            ),
+        )
+    }
+
+    @Test
+    fun `boxed number and undefined alternatives preserve constructor and setter results`() {
+        val scenarios = mapOf("boxedConstructorArgument" to 123.0, "boxedSetterArgument" to 246.0)
+
+        for ((methodName, numericResult) in scenarios) {
+            val method = method(methodName)
+            val tests = analyze(method).map { state -> TsTestResolver().resolve(method, state) }
+            val observedChoices = mutableSetOf<Boolean>()
+
+            for (test in tests) {
+                val useNumber = assertIs<TsTestValue.TsBoolean>(test.before.parameters.single()).value
+                val result = assertIs<TsTestValue.TsNumber>(test.returnValue).number
+                observedChoices += useNumber
+
+                if (useNumber) {
+                    assertEquals(numericResult, result, methodName)
+                } else {
+                    assertTrue(result.isNaN(), methodName)
+                }
+            }
+
+            assertEquals(setOf(true, false), observedChoices, methodName)
+        }
+
+        replayDateArguments(
+            assertions = listOf(
+                "example.boxedConstructorArgument(true) === 123",
+                "Number.isNaN(example.boxedConstructorArgument(false))",
+                "example.boxedSetterArgument(true) === 246",
+                "Number.isNaN(example.boxedSetterArgument(false))",
+            ),
+        )
+    }
+
+    @Test
+    fun `unsupported boxed object conversions keep a residual outcome`() {
+        val method = method("boxedUnsupportedArgument")
+        val events = mutableListOf<TsUnknownCallEvent>()
+        val observer = object : TsInterpreterObserver {
+            override fun onUnknownCall(event: TsUnknownCallEvent) {
+                events += event
+            }
+        }
+
+        val states = TsMachine(
+            scene = scene,
+            options = machineOptions,
+            tsOptions = TsOptions(),
+            observer = observer,
+        ).use { machine -> machine.analyze(listOf(method)) }
+        val tests = states.map { state -> TsTestResolver().resolve(method, state) }
+
+        assertTrue(tests.isNotEmpty())
+        tests.forEach { test ->
+            assertTrue(assertIs<TsTestValue.TsBoolean>(test.before.parameters.single()).value)
+            assertEquals(123.0, assertIs<TsTestValue.TsNumber>(test.returnValue).number)
+        }
+        assertTrue(events.any { event -> event.decision is TsUnknownCallDecision.ResidualFallback })
+        replayDateArguments(assertions = listOf("example.boxedUnsupportedArgument(true) === 123"))
     }
 
     @Test
@@ -196,6 +341,20 @@ class TsDateEtsIrModelTest {
             tests.any { test ->
                 assertIs<TsTestValue.TsNumber>(test.returnValue).number.isFinite()
             }
+        )
+    }
+
+    private fun replayDateArguments(assertions: List<String>) {
+        val source = getResourcePath("/models/DateEtsIr.ts").readText()
+        val checks = assertions.joinToString(separator = "\n") { assertion ->
+            "if (!($assertion)) throw new Error('Date argument replay failed: $assertion');"
+        }
+
+        assertNodeReplay(
+            source = source + "\nconst example = new DateEtsIr();\n" + checks,
+            directory = replayDirectory,
+            name = "date-arguments",
+            timeoutMessage = "Date argument replay timed out",
         )
     }
 

@@ -97,6 +97,120 @@ export class DateEtsIr {
         return new Date(timestamp).valueOf();
     }
 
+    undefinedConstructor(): number {
+        return new Date(undefined).getTime();
+    }
+
+    undefinedConstructorComponent(): number {
+        return new Date(2024, 0, undefined).getTime();
+    }
+
+    missingSetTime(): boolean {
+        const date = new Date(0);
+
+        const result = date.setTime();
+
+        return Number.isNaN(result) && Number.isNaN(date.getTime());
+    }
+
+    missingSetMonth(): boolean {
+        const date = new Date(0);
+
+        const result = date.setUTCMonth();
+
+        return Number.isNaN(result) && Number.isNaN(date.getTime());
+    }
+
+    missingSetMinutes(): boolean {
+        const date = new Date(0);
+
+        const result = date.setUTCMinutes();
+
+        return Number.isNaN(result) && Number.isNaN(date.getTime());
+    }
+
+    undefinedSetDate(): boolean {
+        const date = new Date(0);
+
+        const result = date.setUTCDate(undefined);
+
+        return Number.isNaN(result) && Number.isNaN(date.getTime());
+    }
+
+    undefinedOptionalSetterComponent(): boolean {
+        const date = new Date(0);
+
+        const result = date.setUTCFullYear(2024, undefined);
+
+        return Number.isNaN(result) && Number.isNaN(date.getTime());
+    }
+
+    omittedOptionalSetterComponents(): boolean {
+        const date = new Date(Date.UTC(2024, 0, 2, 3, 4, 5, 6));
+
+        date.setUTCFullYear(2025);
+        date.setUTCHours(8);
+
+        return date.getUTCFullYear() === 2025 && date.getUTCMonth() === 0 && date.getUTCDate() === 2
+            && date.getUTCHours() === 8 && date.getUTCMinutes() === 4
+            && date.getUTCSeconds() === 5 && date.getUTCMilliseconds() === 6;
+    }
+
+    copiedDateKeepsItsOwnTimestamp(): number {
+        const original = new Date(123);
+        const copy = new Date(original);
+
+        original.setTime(456);
+
+        return copy.getTime();
+    }
+
+    copiedInvalidDateStaysInvalid(): number {
+        return new Date(new Date(NaN)).getTime();
+    }
+
+    primitiveConstructorCoercions(): number {
+        return new Date(true).getTime() * 10 + new Date(false).getTime() + new Date(null).getTime();
+    }
+
+    boxedConstructorArgument(useNumber: boolean): number {
+        const values: any[] = [123, undefined];
+        return new Date(values[useNumber ? 0 : 1]).getTime();
+    }
+
+    boxedSetterArgument(useNumber: boolean): number {
+        const date = new Date(0);
+        const values: any[] = [123, undefined];
+
+        const result = date.setTime(values[useNumber ? 0 : 1]);
+
+        return result + date.getTime();
+    }
+
+    boxedPrimitiveComponents(): number {
+        const values: any[] = [true, null];
+        const date = new Date(0);
+
+        date.setUTCSeconds(values[0], values[1]);
+
+        return date.getTime() + Date.UTC(1970, values[1], values[0]);
+    }
+
+    boxedUnsupportedArgument(useNumber: boolean): number {
+        const values: any[] = [123, new DateImpostor()];
+        return new Date(values[useNumber ? 0 : 1]).getTime();
+    }
+
+    boxedDateCopy(): number {
+        const original = new Date(123);
+        const values: any[] = [original, false];
+        const copy = new Date(values[0]);
+
+        original.setTime(456);
+
+        return copy.getTime();
+    }
+
     foreignReceiverThroughAny(): number {
         const impostor: any = new DateImpostor();
         return impostor.getTime();
