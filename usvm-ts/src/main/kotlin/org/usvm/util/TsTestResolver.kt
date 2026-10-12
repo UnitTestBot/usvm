@@ -64,6 +64,7 @@ import java.util.concurrent.CancellationException
 /** A satisfying state lacks the modeled data needed to emit a concrete witness. */
 class TsUnsupportedWitnessException(message: String) : IllegalStateException(message)
 
+/** Resolves a satisfying TypeScript state to entry inputs and an optional completed execution. */
 class TsTestResolver {
     private val resolvedLValuesToFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf()
 
@@ -171,9 +172,8 @@ class TsTestResolver {
                         val concreteRef = evaluateInModel(res.value) as? UConcreteHeapRef
                         check(concreteRef != null && isAllocatedConcreteHeapRef(concreteRef))
 
-                        TsTestValue.TsException.ObjectException(
-                            TsTestValue.TsClass(name = "TypeError", properties = emptyMap())
-                        )
+                        val exception = TsTestValue.TsClass(name = "TypeError", properties = emptyMap())
+                        TsTestValue.TsException.ObjectException(exception)
                     }
 
                     is EtsStringType -> {
@@ -233,6 +233,7 @@ class TsTestResolver {
     }
 }
 
+/** Reads concrete TypeScript values from the initial model or the current state memory. */
 open class TsTestStateResolver(
     val ctx: TsContext,
     private val model: UModelBase<EtsType>,
@@ -465,20 +466,7 @@ open class TsTestStateResolver(
         type: EtsPrimitiveType,
     ): TsTestValue = with(ctx) {
         when (type) {
-            EtsNumberType -> {
-                val e = evaluateInModel(expr)
-                if (e.isFakeObject()) {
-                    val lValue = getIntermediateFpLValue(e.address)
-                    val value = finalStateMemory.read(lValue)
-                    resolveExpr(model.eval(value))
-                } else {
-                    if (e is KFpValue<*>) {
-                        TsTestValue.TsNumber.TsDouble(e.extractDouble())
-                    } else {
-                        TsTestValue.TsNumber.TsInteger(e.extractInt())
-                    }
-                }
-            }
+            EtsNumberType -> resolveNumber(expr)
 
             EtsBooleanType -> TsTestValue.TsBoolean(evaluateInModel(expr).toConcreteBoolValue())
             EtsUndefinedType -> TsTestValue.TsUndefined
@@ -488,6 +476,19 @@ open class TsTestStateResolver(
             EtsStringType -> error("String values must be resolved from heap references")
             EtsVoidType -> TODO()
             else -> error("Unexpected type: $type")
+        }
+    }
+
+    private fun resolveNumber(expr: UExpr<out USort>): TsTestValue = with(ctx) {
+        val value = evaluateInModel(expr)
+        return when {
+            value.isFakeObject() -> {
+                val lValue = getIntermediateFpLValue(value.address)
+                val payload = finalStateMemory.read(lValue)
+                resolveExpr(model.eval(payload))
+            }
+            value is KFpValue<*> -> TsTestValue.TsNumber.TsDouble(value.extractDouble())
+            else -> TsTestValue.TsNumber.TsInteger(value.extractInt())
         }
     }
 
@@ -586,8 +587,9 @@ open class TsTestStateResolver(
 
         val declaredType = entry.declaredType
         val sort = declaredType?.let { typeToSort(it) } ?: unresolvedSort
-        if (!written && sort !is TsUnresolvedSort && !entry.optional) {
-            return resolveObjectField(ref, ref, name, declaredType!!, initial = true)
+        val resolveDeclaredInitialValue = !written && sort !is TsUnresolvedSort && !entry.optional
+        if (declaredType != null && resolveDeclaredInitialValue) {
+            return resolveObjectField(ref, ref, name, declaredType, initial = true)
         }
 
         val valueMemory = if (written) finalStateMemory else model
@@ -656,6 +658,7 @@ open class TsTestStateResolver(
         }
 }
 
+/** Selects initial model values or values after symbolic execution when resolving a witness. */
 enum class ResolveMode {
     MODEL, CURRENT, ERROR
 }

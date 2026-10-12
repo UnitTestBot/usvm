@@ -19,8 +19,10 @@ class SceneCacheTest {
 
         val scene = SceneCache().getScene(source.toString())
 
-        assertTrue(scene.projectAndSdkClasses.any { clazz ->
+        val hasExpectedMethod = scene.projectAndSdkClasses.any { clazz ->
             clazz.name == "SceneFixture" && clazz.methods.any { it.name == "compute" }
-        })
+        }
+
+        assertTrue(hasExpectedMethod)
     }
 }

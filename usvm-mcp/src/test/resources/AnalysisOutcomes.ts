@@ -19,18 +19,6 @@ class AnalysisFixture {
         while (true) {}
     }
 
-    engineFailure(): boolean {
-        const values = new Array<number[]>(1);
-        return values.length === 1;
-    }
-
-    counterexampleBeforeEngineFailure(input: boolean): boolean {
-        if (input) return false;
-
-        const values = new Array<number[]>(1);
-        return values.length === 1;
-    }
-
     counterexampleBeforeCyclicObject(input: boolean): any {
         if (input) return false;
 

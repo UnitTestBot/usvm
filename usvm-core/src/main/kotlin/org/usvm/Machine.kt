@@ -50,12 +50,8 @@ abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
 
                     val (forkedStates, stateAlive) = try {
                         interpreter.step(state)
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: InterruptedException) {
-                        throw e
                     } catch (e: Throwable) {
-                        if (options.throwExceptionOnStepFailure) {
+                        if (shouldPropagateFailure(e)) {
                             throw e
                         }
 
@@ -106,6 +102,9 @@ abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
             }
         }
     }
+
+    private fun shouldPropagateFailure(error: Throwable): Boolean =
+        error is CancellationException || error is InterruptedException || options.throwExceptionOnStepFailure
 
     override fun toString(): String = this::class.simpleName?:"<empty>"
 }

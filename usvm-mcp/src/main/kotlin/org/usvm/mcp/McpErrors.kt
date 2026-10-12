@@ -4,13 +4,6 @@ import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlinx.coroutines.CancellationException
 
-/**
- * An expected, user-facing tool failure. Its message is written as an
- * actionable instruction for the calling LLM/user (what went wrong and
- * how to fix the call or the environment).
- */
-class McpToolException(message: String) : RuntimeException(message)
-
 fun textResult(text: String): CallToolResult =
     CallToolResult(content = listOf(TextContent(text)))
 
@@ -33,6 +26,8 @@ suspend fun runTool(block: suspend () -> CallToolResult): CallToolResult =
     } catch (e: McpToolException) {
         errorResult(e.message ?: "Tool failed")
     } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
-        val frames = e.stackTrace.take(5).joinToString("\n") { "  at $it" }
+        val frames = e.stackTrace.take(ERROR_STACK_FRAMES).joinToString("\n") { "  at $it" }
         errorResult("Internal error: ${e::class.simpleName}: ${e.message}\n$frames")
     }
+
+private const val ERROR_STACK_FRAMES = 5

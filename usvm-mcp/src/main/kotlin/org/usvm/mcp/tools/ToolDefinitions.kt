@@ -10,16 +10,8 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import org.usvm.mcp.McpToolException
-import org.usvm.mcp.exec.TsAnalysisRunner
-import org.usvm.mcp.scene.SceneCache
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
-
-/** Shared dependencies injected into every tool. */
-class UsvmToolContext(
-    val scenes: SceneCache,
-    val runner: TsAnalysisRunner,
-)
 
 // --- Input schema helpers -------------------------------------------------
 

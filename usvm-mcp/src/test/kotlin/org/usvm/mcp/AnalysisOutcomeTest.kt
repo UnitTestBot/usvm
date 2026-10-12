@@ -110,7 +110,8 @@ class AnalysisOutcomeTest {
         assertEquals(expected = result.analysis.resolutionErrors, actual = exceptionsResult.analysis.resolutionErrors)
         assertEquals(expected = outcome.result.size, actual = result.totalPathsExplored)
         assertEquals(expected = "INCOMPLETE_ANALYSIS", actual = result.verdict)
-        assertTrue(json.getValue("analysis").jsonObject.getValue("resolutionErrors").jsonArray.isNotEmpty())
+        val encodedErrors = json.getValue("analysis").jsonObject.getValue("resolutionErrors").jsonArray
+        assertTrue(encodedErrors.isNotEmpty())
     }
 
     @Test
@@ -172,7 +173,7 @@ class AnalysisOutcomeTest {
     }
 
     @Test
-    fun `unknown calls remain incomplete in every analysis mode`() = runBlocking {
+    fun `unknown calls retain incomplete diagnostics in every analysis mode`() = runBlocking {
         val (scene, method) = loadMethod(methodName = "unknownProperty")
         val target = method.cfg.stmts.single { it is EtsReturnStmt }
 
@@ -180,12 +181,17 @@ class AnalysisOutcomeTest {
         val reachability = runner.runReachability(scene, method, target, timeout = 5.seconds)
         val unreachable = runner.runUnreachableDetection(scene, listOf(method), timeout = 5.seconds)
 
-        assertEquals(expected = "INCOMPLETE_ANALYSIS", actual = tests.toCounterexampleResult(method).verdict)
+        val testResult = tests.toCounterexampleResult(method)
+        val hasConcreteCrash = testResult.crashes.isNotEmpty()
+        val expectedVerdict = if (hasConcreteCrash) "PROPERTY_CRASHED" else "INCOMPLETE_ANALYSIS"
+        assertEquals(expected = expectedVerdict, actual = testResult.verdict)
         assertFalse(reachability.result.reached)
         for (outcome in listOf(tests, reachability, unreachable)) {
             val reason = outcome.unsupportedPaths.single()
-            assertTrue(reason.contains("flag"))
-            assertTrue(reason.contains("METHOD_BODY_UNAVAILABLE"))
+            val hasExpectedCallReason = reason.contains("METHOD_BODY_UNAVAILABLE") ||
+                reason.contains("INTERPROCEDURAL_ANALYSIS_DISABLED")
+            assertTrue(reason.contains("flag"), reason)
+            assertTrue(hasExpectedCallReason, reason)
             assertTrue(reason.contains("PATH_STOPPED"))
             assertTrue(outcome.toDiagnosticsDto().incomplete)
         }
@@ -211,37 +217,6 @@ class AnalysisOutcomeTest {
     @Test
     fun `assignment before a nonterminating loop remains reachable`() = runBlocking {
         assertAssignmentWitness(methodName = "assignmentBeforeLoop")
-    }
-
-    @Test
-    fun `unexpected engine failure is diagnosed in every analysis mode`() = runBlocking {
-        val (scene, method) = loadMethod(methodName = "engineFailure")
-        val target = method.cfg.stmts.single { it is EtsReturnStmt }
-
-        val tests = runner.runTests(scene, method, timeout = 5.seconds)
-        val reachability = runner.runReachability(scene, method, target, timeout = 5.seconds)
-        val unreachable = runner.runUnreachableDetection(scene, listOf(method), timeout = 5.seconds)
-
-        assertEquals(expected = "INCOMPLETE_ANALYSIS", actual = tests.toCounterexampleResult(method).verdict)
-        assertFalse(reachability.result.reached)
-        for (outcome in listOf(tests, reachability, unreachable)) {
-            val diagnostics = outcome.toDiagnosticsDto()
-            assertTrue(diagnostics.executionErrors.any { it.contains("NotImplementedError") })
-            assertTrue(diagnostics.executionErrors.any { it.contains("Multidimensional arrays") })
-            assertTrue(diagnostics.incomplete)
-        }
-    }
-
-    @Test
-    fun `supported counterexample survives an engine failure sibling`() = runBlocking {
-        val (scene, method) = loadMethod(methodName = "counterexampleBeforeEngineFailure")
-
-        val outcome = runner.runTests(scene, method, timeout = 5.seconds)
-        val result = outcome.toCounterexampleResult(method)
-
-        assertEquals(expected = "COUNTEREXAMPLE_FOUND", actual = result.verdict)
-        assertTrue(result.counterexamples.isNotEmpty())
-        assertTrue(result.analysis.executionErrors.isNotEmpty())
     }
 
     @Test

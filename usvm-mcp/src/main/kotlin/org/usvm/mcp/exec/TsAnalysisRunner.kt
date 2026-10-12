@@ -1,10 +1,10 @@
 package org.usvm.mcp.exec
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
@@ -57,7 +57,9 @@ data class ReachabilityOutcome(
  * All runs are serialized through a [Mutex]: the machine and the SMT solver
  * are heavyweight, and MCP clients may issue concurrent calls.
  */
-class TsAnalysisRunner {
+class TsAnalysisRunner(
+    private val analysisDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) {
 
     private val mutex = Mutex()
 
@@ -155,12 +157,15 @@ class TsAnalysisRunner {
             ResolvedCase(test = null, error = "${e::class.simpleName}: ${e.message}")
         }
 
-    private suspend fun <T> withMachineLock(block: () -> T): T =
-        mutex.withLock {
-            runInterruptible(Dispatchers.IO) {
-                block()
-            }
+    @Suppress("RedundantSuspendModifier") // Mutex.lock and runInterruptible are suspension points.
+    private suspend fun <T> withMachineLock(block: () -> T): T {
+        mutex.lock()
+        try {
+            return runInterruptible(analysisDispatcher, block)
+        } finally {
+            mutex.unlock()
         }
+    }
 }
 
 private class AnalysisObserver : TsInterpreterObserver, UMachineObserver<TsState> {

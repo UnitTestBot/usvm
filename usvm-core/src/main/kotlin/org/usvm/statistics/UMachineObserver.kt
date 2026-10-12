@@ -3,10 +3,7 @@ package org.usvm.statistics
 /**
  * Symbolic machine events observer.
  */
-interface UMachineObserver<State> {
-
-    /** Called when an unexpected interpreter failure discards a state. */
-    fun onStepFailure(state: State, error: Throwable) { }
+interface UMachineObserver<State> : UStepFailureObserver<State> {
 
     /**
      * Called after symbolic machine starts running.

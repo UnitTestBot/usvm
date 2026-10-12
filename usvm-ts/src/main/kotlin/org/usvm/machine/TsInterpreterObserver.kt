@@ -11,14 +11,11 @@ import org.usvm.machine.expr.TsSimpleValueResolver
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.statistics.UInterpreterObserver
+import org.usvm.statistics.UStepFailureObserver
 
+/** Receives TypeScript execution events and recoverable interpreter step failures. */
 @Suppress("unused")
-interface TsInterpreterObserver : UInterpreterObserver {
-    /** Called when an unexpected interpreter failure discards a state. */
-    fun onStepFailure(state: TsState, error: Throwable) {
-        // default empty implementation
-    }
-
+interface TsInterpreterObserver : UInterpreterObserver, UStepFailureObserver<TsState> {
     /**
      * Called after the dispatcher completes a model or fallback decision for an unknown call.
      * A model decision is reported once after all its satisfiable successor callbacks complete.

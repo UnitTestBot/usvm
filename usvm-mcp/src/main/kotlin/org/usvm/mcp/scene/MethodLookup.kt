@@ -37,31 +37,27 @@ object MethodLookup {
 
         val analyzable = candidates.filter { it.isAnalyzable() }
 
-        return when {
-            analyzable.size == 1 -> analyzable.single()
+        if (analyzable.size == 1) return analyzable.single()
 
-            analyzable.isEmpty() && candidates.isNotEmpty() -> throw McpToolException(
+        val hasOnlyDeclarations = analyzable.isEmpty() && candidates.isNotEmpty()
+        val diagnostic = when {
+            hasOnlyDeclarations -> {
                 "Method '$methodName' exists but has no body (empty CFG), so it cannot be analyzed."
-            )
-
+            }
             analyzable.isEmpty() -> {
                 val available = classes
                     .flatMap { cls -> cls.methods.filter { it.isAnalyzable() } }
                     .joinToString(", ") { "'${it.enclosingClass?.name}.${it.name}'" }
-                throw McpToolException(
-                    "Method '$methodName' is not found. Available analyzable methods: $available. " +
-                        "Use the list_methods tool to inspect the file."
-                )
+                "Method '$methodName' is not found. Available analyzable methods: $available. " +
+                    "Use the list_methods tool to inspect the file."
             }
-
             else -> {
                 val options = analyzable.joinToString(", ") { "'${it.enclosingClass?.name}.${it.name}'" }
-                throw McpToolException(
-                    "Method name '$methodName' is ambiguous: $options. " +
-                        "Disambiguate with the 'class' argument."
-                )
+                "Method name '$methodName' is ambiguous: $options. " +
+                    "Disambiguate with the 'class' argument."
             }
         }
+        throw McpToolException(diagnostic)
     }
 
     fun EtsMethod.isAnalyzable(): Boolean =

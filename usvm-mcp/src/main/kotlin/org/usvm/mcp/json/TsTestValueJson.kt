@@ -131,18 +131,7 @@ private class WitnessJsonEncoder(roots: List<TsTestValue>) {
                 )
             }
 
-            is TsTestValue.TsArray<*> -> {
-                val elements = buildJsonArray { value.values.forEach { add(encode(it)) } }
-                if (id == null) {
-                    elements
-                } else {
-                    buildJsonObject {
-                        put(KIND, "array")
-                        put("\$id", id)
-                        put("values", elements)
-                    }
-                }
-            }
+            is TsTestValue.TsArray<*> -> encodeArray(value, id)
 
             is TsTestValue.TsException -> encodeException(value).let { dto ->
                 buildJsonObject {
@@ -152,6 +141,17 @@ private class WitnessJsonEncoder(roots: List<TsTestValue>) {
                     dto.value?.let { put("value", it) }
                 }
             }
+        }
+    }
+
+    private fun encodeArray(value: TsTestValue.TsArray<*>, id: Int?): JsonElement {
+        val elements = buildJsonArray { value.values.forEach { add(encode(it)) } }
+        if (id == null) return elements
+
+        return buildJsonObject {
+            put(KIND, "array")
+            put("\$id", id)
+            put("values", elements)
         }
     }
 
