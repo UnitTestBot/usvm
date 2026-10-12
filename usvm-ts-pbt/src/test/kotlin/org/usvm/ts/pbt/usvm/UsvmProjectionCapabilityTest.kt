@@ -81,6 +81,17 @@ class UsvmProjectionCapabilityTest {
     }
 
     @Test
+    fun `oversized string domains are rejected before symbolic allocation`() {
+        val capability = resolve(
+            domain = StringDomain(maxLength = Int.MAX_VALUE),
+            exportName = "acceptsString",
+        )
+
+        assertEquals(ProjectionLevel.UNSUPPORTED, capability.symbolic.level)
+        assertEquals("usvm.domain.collection.too-large", capability.symbolic.diagnostics.single().code)
+    }
+
+    @Test
     fun `optional references and exception handlers are supported`() {
         val optionalArray = resolve(
             domain = OptionalDomain(ArrayDomain(IntegerDomain(), minLength = 1, maxLength = 1)),

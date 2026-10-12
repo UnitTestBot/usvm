@@ -123,3 +123,17 @@ export function mixedArrayGrowth(value: number): boolean {
 
   return unsupportedArrayGrowth(value);
 }
+
+export function stringArrayMutationProperty(values: string[]): boolean {
+  const old = values[0];
+  values[0] = "b";
+  return old !== "a";
+}
+
+export function loneSurrogateProperty(value: string): boolean {
+  return value !== "\uD800";
+}
+
+export function supplementaryProperty(value: string): boolean {
+  return value !== "\uD83D\uDE00";
+}

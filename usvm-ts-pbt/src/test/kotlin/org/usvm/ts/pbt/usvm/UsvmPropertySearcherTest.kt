@@ -6,6 +6,7 @@ import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
+import org.usvm.machine.TsOptions
 import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.ts.pbt.backend.ProjectionLevel
 import org.usvm.ts.pbt.manifest.PropertyManifest
@@ -148,6 +149,51 @@ class UsvmPropertySearcherTest {
         assertEquals(listOf(JsConcreteValue.String(value = "a")), string.inputs)
         assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, nested.status)
         assertEquals(expectedNested, nested.inputs)
+    }
+
+    @Test
+    fun `resolves string array snapshots and preserves UTF-16 code units`() {
+        val arrayDomain = ArrayDomain(
+            element = StringDomain(minLength = 1, maxLength = 1),
+            minLength = 1,
+            maxLength = 1,
+        )
+        val loneSurrogate = manifest(
+            predicateExport = "loneSurrogateProperty",
+            domain = StringDomain(minLength = 1, maxLength = 1),
+        )
+        val supplementary = manifest(
+            predicateExport = "supplementaryProperty",
+            domain = StringDomain(minLength = 2, maxLength = 2),
+        )
+
+        val array = search(manifest(predicateExport = "stringArrayMutationProperty", domain = arrayDomain))
+        val lone = search(loneSurrogate)
+        val pair = search(supplementary)
+
+        val expectedArray = JsConcreteValue.Array(elements = listOf(JsConcreteValue.String(value = "a")))
+        assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, array.status)
+        assertEquals(listOf(expectedArray), array.inputs)
+        assertEquals(listOf(JsConcreteValue.String(value = "\uD800")), lone.inputs)
+        assertEquals(listOf(JsConcreteValue.String(value = "\uD83D\uDE00")), pair.inputs)
+    }
+
+    @Test
+    fun `projection respects an explicitly configured engine storage bound`() {
+        val limited = UsvmPropertySearcher(scene = scene, tsOptions = TsOptions(maxArraySize = 2))
+        val manifest = manifest(
+            predicateExport = "falseStringProperty",
+            domain = StringDomain(minLength = 3, maxLength = 3),
+        )
+
+        val result = limited.search(
+            manifest = manifest,
+            mapping = mapper.map(manifest),
+            concreteCapability = ProjectionCapability(level = ProjectionLevel.EXACT),
+        )
+
+        assertEquals(UsvmPropertySearchStatus.UNSUPPORTED, result.status)
+        assertNull(result.inputs)
     }
 
     @Test

@@ -32,11 +32,15 @@ class UsvmPropertySearcher(
     private val scene: EtsScene,
     machineOptions: UMachineOptions = UMachineOptions(),
     private val tsOptions: TsOptions = TsOptions(),
-    private val projectionOptions: UsvmProjectionOptions = UsvmProjectionOptions(),
+    projectionOptions: UsvmProjectionOptions = UsvmProjectionOptions(),
 ) {
     private val machineOptions = machineOptions.copy(stateCollectionStrategy = StateCollectionStrategy.ALL)
+    private val projectionOptions = projectionOptions.copy(
+        maxSymbolicCollectionLength = minOf(projectionOptions.maxSymbolicCollectionLength, tsOptions.maxArraySize),
+        maxSymbolicStringLength = minOf(projectionOptions.maxSymbolicStringLength, tsOptions.maxArraySize),
+    )
     private val capabilityResolver = UsvmProjectionCapabilityResolver()
-    private val domainProjector = UsvmDomainProjector(projectionOptions)
+    private val domainProjector = UsvmDomainProjector(this.projectionOptions)
     private val inputResolver = UsvmCandidateInputResolver()
 
     fun search(

@@ -188,7 +188,16 @@ class UsvmProjectionCapabilityResolver {
 
         return when (domain) {
             BooleanDomain, is IntegerDomain, is NumberDomain -> exact()
-            is StringDomain -> exact()
+            is StringDomain -> if (domain.maxLength > options.maxSymbolicStringLength) {
+                unsupported(
+                    code = PbtDiagnosticCode.USVM_DOMAIN_COLLECTION_TOO_LARGE,
+                    message = "String length ${domain.maxLength} exceeds the configured symbolic string bound " +
+                        options.maxSymbolicStringLength,
+                    path = path,
+                )
+            } else {
+                exact()
+            }
             is ConstantDomain -> exact()
             is OptionalDomain -> domainCapabilityForProjector(
                 domain = domain.value,
