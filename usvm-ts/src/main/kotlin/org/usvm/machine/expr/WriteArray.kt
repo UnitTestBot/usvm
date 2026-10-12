@@ -10,7 +10,6 @@ import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.TsSizeSort
@@ -22,6 +21,7 @@ import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.typedArrayOverrideLValue
 import org.usvm.util.typedArrayBoxedLValue
 import org.usvm.util.boxArrayValue
+import org.usvm.util.initializeTypedArrayOverrides
 
 private val logger = KotlinLogging.logger {}
 
@@ -106,12 +106,6 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
         index = bvIndex,
         expr = expr,
         arrayType = storageType,
-        onUnsupportedElementKind = {
-            reportRuntimeFeatureLimitation(
-                reason = TsRuntimeFeatureLimitationReason.ARRAY_INPUT_MIXED_KIND_WRITE,
-                detail = "input array write has a runtime kind outside its initialized typed backing",
-            )
-        },
         onUnsupportedGrowth = {
             reportRuntimeFeatureLimitation(
                 reason = TsRuntimeFeatureLimitationReason.ARRAY_INDEX_GROWTH,
@@ -128,7 +122,6 @@ fun TsContext.assignToArrayIndex(
     expr: UExpr<*>,
     arrayType: EtsArrayType,
     onUnsupportedGrowth: (() -> Unit)? = null,
-    onUnsupportedElementKind: (() -> Unit)? = null,
 ): Unit? {
     checkNotFake(array)
 
@@ -161,9 +154,8 @@ fun TsContext.assignToArrayIndex(
             val lValue = mkArrayIndexLValue(elementSort, array, index, arrayType)
             return scope.doWithState {
                 memory.write(lValue, expr.asExpr(elementSort), guard = trueExpr)
-                if (isAllocatedConcreteHeapRef(array)) {
-                    memory.write(typedArrayOverrideLValue(array, index), falseExpr, guard = trueExpr)
-                }
+                initializeTypedArrayOverrides(array)
+                memory.write(typedArrayOverrideLValue(array, index), falseExpr, guard = trueExpr)
             }
         }
 
@@ -181,13 +173,6 @@ fun TsContext.assignToArrayIndex(
             addressSort -> fake.extractRef(scope)
             else -> error("Unsupported typed array element sort: $elementSort")
         }
-        val allocated = isAllocatedConcreteHeapRef(array)
-        if (!allocated) {
-            val mismatchedKindIsFeasible = scope.checkSat(mkNot(compatibleKind)) != null
-            if (mismatchedKindIsFeasible) onUnsupportedElementKind?.invoke()
-            scope.assert(compatibleKind) ?: return null
-        }
-
         val lValue = mkArrayIndexLValue(
             sort = elementSort,
             ref = array,
@@ -196,10 +181,9 @@ fun TsContext.assignToArrayIndex(
         )
         return scope.doWithState {
             memory.write(lValue, payload.asExpr(elementSort), guard = compatibleKind)
-            if (allocated) {
-                memory.write(typedArrayBoxedLValue(array, index), fake, guard = trueExpr)
-                memory.write(typedArrayOverrideLValue(array, index), mkNot(compatibleKind), guard = trueExpr)
-            }
+            initializeTypedArrayOverrides(array)
+            memory.write(typedArrayBoxedLValue(array, index), fake, guard = trueExpr)
+            memory.write(typedArrayOverrideLValue(array, index), mkNot(compatibleKind), guard = trueExpr)
         }
     }
 

@@ -341,6 +341,13 @@ open class TsTestStateResolver(
                 "Other sorts must be resolved above, but got: $sort"
             }
 
+            if (resolveMode == ResolveMode.CURRENT) {
+                val hasBoxedValue = memory.read(typedArrayOverrideLValue(heapRef, index))
+                if (model.eval(hasBoxedValue).isTrue) {
+                    return@map resolveExpr(memory.read(typedArrayBoxedLValue(heapRef, index)))
+                }
+            }
+
             val lValue = mkArrayIndexLValue(sort, heapRef, index, type)
             val value = memory.read(lValue)
 

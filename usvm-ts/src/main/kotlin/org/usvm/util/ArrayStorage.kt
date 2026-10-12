@@ -12,8 +12,6 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.memcpy
-import org.usvm.api.allocateConcreteRef
-import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.collection.array.UArrayRegion
 import org.usvm.collection.array.UArrayRegionId
 import org.usvm.machine.TsContext
@@ -48,13 +46,10 @@ internal fun TsState.copyArrayElements(
     }
     with(ctx) {
         if (typeToSort(arrayType.elementType) !is TsUnresolvedSort) {
-            if (isAllocatedConcreteHeapRef(srcRef)) {
-                memory.memcpy(srcRef, dstRef, TsTypedArrayStorage.HAS_BOXED_VALUE, boolSort, fromSrc, fromDst, length)
-                memory.memcpy(srcRef, dstRef, TsTypedArrayStorage.BOXED_VALUE, addressSort, fromSrc, fromDst, length)
-            } else if (isAllocatedConcreteHeapRef(dstRef)) {
-                val empty = allocateConcreteRef()
-                memory.memcpy(empty, dstRef, TsTypedArrayStorage.HAS_BOXED_VALUE, boolSort, mkBv(0), fromDst, length)
-            }
+            initializeTypedArrayOverrides(srcRef)
+            initializeTypedArrayOverrides(dstRef)
+            memory.memcpy(srcRef, dstRef, TsTypedArrayStorage.HAS_BOXED_VALUE, boolSort, fromSrc, fromDst, length)
+            memory.memcpy(srcRef, dstRef, TsTypedArrayStorage.BOXED_VALUE, addressSort, fromSrc, fromDst, length)
         }
     }
     if (ctx.typeToSort(arrayType.elementType) is TsUnresolvedSort) {

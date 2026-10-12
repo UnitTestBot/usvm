@@ -151,7 +151,7 @@ private fun TsContext.readArrayElement(
     // If the element type is known, we can read it directly.
     if (sort !is TsUnresolvedSort) {
         return scope.calcOnState {
-            val element = readTypedArrayElement(memory, array, index, arrayType)
+            val element = readTypedArrayElement(array, index, arrayType)
             if (element.hasBoxedValue.isFalse) {
                 element.nativeValue
             } else {

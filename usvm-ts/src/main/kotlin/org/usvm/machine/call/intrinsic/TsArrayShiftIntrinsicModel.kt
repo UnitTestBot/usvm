@@ -92,7 +92,7 @@ internal object TsArrayShiftIntrinsicModel : TsBuiltInUnknownCallModel {
         index: UExpr<TsSizeSort>,
     ): TsUnknownCallModelCompletion = with(ctx) {
         if (input.elementSort !is TsUnresolvedSort) {
-            val element = readTypedArrayElement(memory, input.array, index, input.arrayType)
+            val element = readTypedArrayElement(input.array, index, input.arrayType)
             return@with if (element.hasBoxedValue.isFalse) {
                 TsUnknownCallModelCompletion.Normal { element.nativeValue }
             } else {

@@ -7,6 +7,8 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.api.readArrayIndex
+import org.usvm.api.memcpy
+import org.usvm.api.allocateConcreteRef
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsContext
@@ -16,7 +18,7 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.TsUnresolvedValue
 import org.usvm.machine.types.iteUnresolvedValue
-import org.usvm.memory.UReadOnlyMemory
+import org.usvm.machine.state.TsState
 
 /** Extra cells preserve values whose runtime kind differs from an allocated array's inferred element type. */
 internal enum class TsTypedArrayStorage {
@@ -37,12 +39,12 @@ internal data class TsTypedArrayElement(
 )
 
 /** Captures both representations before a model shifts or copies the underlying storage. */
-internal fun TsContext.readTypedArrayElement(
-    memory: UReadOnlyMemory<*>,
+internal fun TsState.readTypedArrayElement(
     array: UHeapRef,
     index: UExpr<TsSizeSort>,
     arrayType: EtsArrayType,
-): TsTypedArrayElement {
+): TsTypedArrayElement = with(ctx) {
+    initializeTypedArrayOverrides(array)
     val sort = typeToSort(arrayType.elementType)
     val nativeValue = memory.read(mkArrayIndexLValue(sort, array, index, arrayType))
     val native = TsUnresolvedValue(
@@ -50,34 +52,47 @@ internal fun TsContext.readTypedArrayElement(
         fpValue = if (sort == fp64Sort) nativeValue.asExpr(fp64Sort) else mkFp64(0.0),
         refValue = if (sort == addressSort) nativeValue.asExpr(addressSort) else mkUndefinedValue(),
         type = when (sort) {
-            boolSort -> EtsFakeType.mkBool(this)
-            fp64Sort -> EtsFakeType.mkFp(this)
-            addressSort -> EtsFakeType.mkRef(this)
+            boolSort -> EtsFakeType.mkBool(ctx)
+            fp64Sort -> EtsFakeType.mkFp(ctx)
+            addressSort -> EtsFakeType.mkRef(ctx)
             else -> error("Typed array has unresolved element sort")
         },
     )
-    val allocated = isAllocatedConcreteHeapRef(array)
-    val hasBoxed = if (allocated) {
-        memory.readArrayIndex(array, index, TsTypedArrayStorage.HAS_BOXED_VALUE, boolSort)
-    } else {
-        falseExpr
-    }
+    val hasBoxed = memory.readArrayIndex(array, index, TsTypedArrayStorage.HAS_BOXED_VALUE, boolSort)
     val boxed = TsUnresolvedValue(
         boolValue = falseExpr,
         fpValue = mkFp64(0.0),
-        refValue = if (allocated) {
-            memory.readArrayIndex(array, index, TsTypedArrayStorage.BOXED_VALUE, addressSort)
-        } else {
-            mkUndefinedValue()
-        },
-        type = EtsFakeType.mkRef(this),
+        refValue = memory.readArrayIndex(array, index, TsTypedArrayStorage.BOXED_VALUE, addressSort),
+        type = EtsFakeType.mkRef(ctx),
     )
 
-    return TsTypedArrayElement(
+    TsTypedArrayElement(
         nativeValue = nativeValue,
         hasBoxedValue = hasBoxed,
         unresolvedValue = iteUnresolvedValue(hasBoxed, boxed, native),
     )
+}
+
+/** Initializes private engine metadata, with alias guards so an existing array's overrides survive. */
+internal fun TsState.initializeTypedArrayOverrides(array: UHeapRef) = with(ctx) {
+    if (array in initializedTypedArrayOverrides) return@with
+
+    if (!isAllocatedConcreteHeapRef(array)) {
+        val distinctFromInitialized = initializedTypedArrayOverrides.map { prior -> mkNot(mkHeapRefEq(array, prior)) }
+        val initializeGuard = mkAnd(distinctFromInitialized)
+        val empty = allocateConcreteRef()
+        memory.memcpy(
+            srcRef = empty,
+            dstRef = array,
+            type = TsTypedArrayStorage.HAS_BOXED_VALUE,
+            elementSort = boolSort,
+            fromSrcIdx = mkBv(0),
+            fromDstIdx = mkBv(0),
+            toDstIdx = mkBv(Int.MAX_VALUE),
+            guard = initializeGuard,
+        )
+    }
+    initializedTypedArrayOverrides += array
 }
 
 internal fun TsContext.boxArrayValue(scope: TsStepScope, value: UExpr<*>): UConcreteHeapRef {

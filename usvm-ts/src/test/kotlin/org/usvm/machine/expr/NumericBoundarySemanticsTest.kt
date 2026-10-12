@@ -17,6 +17,7 @@ import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.TsTestResolver
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -43,6 +44,43 @@ class NumericBoundarySemanticsTest : TsMethodTestRunner() {
             { flag, result -> !flag.value && result.number == 2.0 },
             invariants = arrayOf({ flag, result -> result.number == if (flag.value) 1.0 else 2.0 }),
         )
+    }
+
+    @Test
+    fun `symbolic typed input writes preserve mixed values through aliases`() {
+        discoverProperties<TsTestValue.TsArray<*>, TsTestValue.TsNumber>(
+            method = method("symbolicTypedInputWrites"),
+            { values, result -> values.values.size < 2 && result.number == 0.0 },
+            { values, result -> values.values.size >= 2 && result.number == 1.0 },
+            invariants = arrayOf({ _, result -> result.number in setOf(0.0, 1.0) }),
+        )
+        discoverProperties<TsTestValue.TsArray<*>, TsTestValue.TsArray<*>, TsTestValue.TsNumber>(
+            method = method("symbolicTypedAliases"),
+            { _, _, result -> result.number == 0.0 },
+            { _, _, result -> result.number == 1.0 },
+            { _, _, result -> result.number == 2.0 },
+            invariants = arrayOf({ _, _, result -> result.number in setOf(0.0, 1.0, 2.0) }),
+        )
+    }
+
+    @Test
+    fun `materialized input snapshots show mixed writes only after execution`() {
+        val target = method("symbolicTypedInputWrites")
+        val tests = analyze(target).map { state -> TsTestResolver().resolve(target, state) }
+        val mutated = tests.filter { test ->
+            val result = test.returnValue as? TsTestValue.TsNumber
+            result?.number == 1.0
+        }
+
+        assertTrue(mutated.isNotEmpty())
+        for (test in mutated) {
+            val before = assertIs<TsTestValue.TsArray<*>>(test.before.parameters.single())
+            val after = assertIs<TsTestValue.TsArray<*>>(test.after.parameters.single())
+
+            assertTrue(before.values.all { value -> value is TsTestValue.TsNumber })
+            assertEquals(TsTestValue.TsNull, after.values[0])
+            assertEquals(TsTestValue.TsBoolean(true), after.values[1])
+        }
     }
 
     @Test

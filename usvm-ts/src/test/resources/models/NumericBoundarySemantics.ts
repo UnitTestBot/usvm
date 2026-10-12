@@ -38,6 +38,24 @@ export class NumericBoundarySemantics {
         return flag ? (alias[0] === 7 ? 1 : 0) : (alias[0] === undefined ? 2 : 0);
     }
 
+    symbolicTypedInputWrites(values: number[]): number {
+        if (values.length < 2) return 0;
+        const alias: any[] = values;
+        alias[0] = null;
+        alias[1] = true;
+        return alias[0] === null && alias[1] === true ? 1 : -1;
+    }
+
+    symbolicTypedAliases(values: number[], other: number[]): number {
+        if (values.length < 1 || other.length < 1) return 0;
+        const alias: any[] = values;
+        alias[0] = null;
+        const secondAlias: any[] = other;
+        const observed = secondAlias[0];
+        if (values === other) return observed === null ? 1 : -1;
+        return alias[0] === null ? 2 : -1;
+    }
+
     bitwiseNaN(): number {
         return (0 / 0) >> 1;
     }
