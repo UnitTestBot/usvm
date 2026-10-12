@@ -118,6 +118,7 @@ class NumericBoundarySemanticsTest : TsMethodTestRunner() {
             "negativeArrayWrite" to TsRuntimeFeatureLimitationReason.ARRAY_NAMED_PROPERTY_WRITE,
             "outOfRangeArrayWrite" to TsRuntimeFeatureLimitationReason.ARRAY_INDEX_GROWTH,
             "chainedMissingArrayWrite" to TsRuntimeFeatureLimitationReason.ARRAY_NAMED_PROPERTY_WRITE,
+            "typedArrayCannotStoreMissingValue" to TsRuntimeFeatureLimitationReason.ARRAY_ELEMENT_KIND_WRITE,
         )
 
         unsupportedMethods.forEach { (methodName, reason) ->

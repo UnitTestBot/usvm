@@ -50,7 +50,6 @@ import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkStringBackingElementLValue
 import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.mkStringBackingLengthLValue
-import org.usvm.util.resolveEtsField
 
 private val logger = KotlinLogging.logger {}
 
@@ -148,6 +147,14 @@ private fun TsContext.resolveDeclaredField(
     val deleted = scope.calcOnState { memory.read(deletedFieldLValue(instance, field)) }
     if (deleted.isTrue) return mkUndefinedValue()
 
+    val (errorStorageField, resolvedField, isModelStorageField) = resolveModelStorageField(
+        scope = scope,
+        instanceLocal = local,
+        instance = instance,
+        field = field,
+        hierarchy = hierarchy,
+    )
+
     // A literal's own declarations, rather than scene-wide same-name fields, determine its initial storage.
     val objectClass = objectLiteralClass(scope, instance, hierarchy)
     val wasWritten = scope.calcOnState { (instance to field.name) in writtenConcreteFields }
@@ -157,31 +164,31 @@ private fun TsContext.resolveDeclaredField(
     }
 
     val declaredLiteralField = objectClass?.fields?.singleOrNull { it.name == field.name }
-    val resolvedField = resolveEtsField(local, field, hierarchy)
     val writtenSort = scope.calcOnState { writtenObjectLiteralFieldSorts[instance to field.name] }
     val declaredLiteralSort = declaredLiteralField?.let { typeToSort(it.type) }
-    val sort = writtenSort ?: declaredLiteralSort ?: resolvedFieldSort(
-        scope = scope,
-        instance = instance,
-        field = field,
-        resolved = resolvedField,
-        hierarchy = hierarchy,
-    )
-    val declaredType = if (objectClass != null) {
+    val storageSort = if (errorStorageField != null) {
+        addressSort
+    } else {
+        writtenSort ?: declaredLiteralSort ?: resolvedFieldSort(scope, instance, field, resolvedField, hierarchy)
+    }
+    val declaredType = if (errorStorageField != null) {
+        null
+    } else if (objectClass != null) {
         declaredLiteralField?.type
     } else {
         (resolvedField as? TsResolutionResult.Unique)?.property?.type
     }
 
-    if (!wasWritten) {
+    val requiresDeclaredPresence = !wasWritten && !isModelStorageField
+    if (requiresDeclaredPresence) {
         val fieldExists = scope.calcOnState {
             memory.types.evalIsSubtype(instance, EtsAuxiliaryType(properties = setOf(field.name)))
         }
         scope.assert(fieldExists) ?: return null
     }
 
-    val storedValue = readField(scope, instance, field, sort)
-    val value = materializeFieldValue(scope, storedValue, sort, declaredType) ?: return null
+    val storedValue = readField(scope, instance, field, storageSort, errorStorageField)
+    val value = materializeFieldValue(scope, storedValue, storageSort, declaredType) ?: return null
     if (deleted.isFalse) return value
 
     // Conditional deletion yields undefined on the deleted branch, while preserving the stored runtime kind.
@@ -334,9 +341,14 @@ private fun TsContext.readField(
     instance: UHeapRef,
     field: EtsFieldSignature,
     sort: USort,
+    errorStorageField: ErrorStorageField?,
 ): UExpr<*> {
     if (sort !is TsUnresolvedSort) {
-        val lValue = mkFieldLValue(sort, instance, field)
+        val lValue = if (errorStorageField == null) {
+            mkFieldLValue(sort, instance, field.name)
+        } else {
+            mkErrorModelStorageLValue(sort, instance, errorStorageField)
+        }
         return scope.calcOnState { memory.read(lValue) }
     }
 

@@ -168,6 +168,7 @@ private const val ECMASCRIPT_BITWISE_INTEGER_SIZE = 32
  * and `x << 37` is equivalent to `x << 5`.
  */
 private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
+private const val UNKNOWN_SIGNATURE_COMPONENT = "%unk"
 
 private enum class UpdateOperator {
     INCREMENT,
@@ -430,51 +431,8 @@ class TsExprResolver(
         )
     }
 
-    override fun visit(expr: EtsCastExpr): UExpr<*>? = with(ctx) {
-        val resolvedExpr = resolve(expr.arg) ?: return@with null
-        if (resolvedExpr is UConcreteHeapRef && classConstructorSignature(resolvedExpr) != null) {
-            // TypeScript assertions do not change the identity of a constructor at runtime.
-            return@with resolvedExpr
-        }
-
-        return when (resolvedExpr.sort) {
-            fp64Sort -> {
-                logger.error("Unsupported cast from fp ${expr.arg} to ${expr.type}")
-                TODO("Not yet implemented https://github.com/UnitTestBot/usvm/issues/299")
-            }
-
-            boolSort -> {
-                logger.error("Unsupported cast from boolean ${expr.arg} to ${expr.type}")
-                TODO("Not yet implemented https://github.com/UnitTestBot/usvm/issues/299")
-            }
-
-            addressSort -> {
-                scope.calcOnState {
-                    val instance = resolvedExpr.asExpr(addressSort)
-
-                    if (instance.isFakeObject()) {
-                        val fakeType = instance.getFakeType(scope)
-                        pathConstraints += fakeType.refTypeExpr
-                        val refValue = instance.extractRef(scope)
-                        pathConstraints += memory.types.evalIsSubtype(refValue, expr.type)
-                        return@calcOnState instance
-                    }
-
-                    if (expr.type !is EtsRefType) {
-                        logger.error("Unsupported cast from non-ref ${expr.arg} to ${expr.type}")
-                        TODO("Not supported yet https://github.com/UnitTestBot/usvm/issues/299")
-                    }
-
-                    pathConstraints += memory.types.evalIsSubtype(instance, expr.type)
-                    instance
-                }
-            }
-
-            else -> {
-                error("Unsupported cast from ${expr.arg} to ${expr.type}")
-            }
-        }
-    }
+    // TypeScript assertions are erased; they neither convert nor constrain the runtime value.
+    override fun visit(expr: EtsCastExpr): UExpr<*>? = resolve(expr.arg)
 
     override fun visit(expr: EtsTypeOfExpr): UExpr<out USort>? = with(ctx) {
         val arg = resolve(expr.arg) ?: return null
@@ -1360,12 +1318,19 @@ class TsExprResolver(
 
                     val callee = scope.calcOnState { associatedFunction[ptr] }
                     if (callee == null) {
+                        val resolvedArguments = if (expr.isBuiltInArrayConstructor()) {
+                            val argument = resolve(expr.args.single()) ?: return null
+                            listOf(argument)
+                        } else {
+                            List(expr.args.size) { null }
+                        }
                         unknownCallDispatcher.dispatch(
                             scope = scope,
                             call = expr,
                             callSite = scope.calcOnState { lastStmt },
                             failureReason = TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND,
                             resolvedReceiver = ptr,
+                            resolvedArguments = resolvedArguments,
                         )
                         return null
                     }
@@ -1404,6 +1369,26 @@ class TsExprResolver(
                 null
             }
         }
+    }
+
+    private fun EtsPtrCallExpr.isBuiltInArrayConstructor(): Boolean {
+        if (callee.name != "Array" || ptr.name != "Array" || args.size != 1) {
+            return false
+        }
+
+        val signature = (ptr.type as? EtsFunctionType)?.signature ?: return false
+        val parameter = signature.parameters.singleOrNull() ?: return false
+        val returnType = signature.returnType as? EtsArrayType ?: return false
+        val signatureFile = signature.enclosingClass.file
+
+        return signatureFile.projectName == UNKNOWN_SIGNATURE_COMPONENT &&
+            signatureFile.fileName == UNKNOWN_SIGNATURE_COMPONENT &&
+            signature.name.isEmpty() &&
+            parameter.type == EtsNumberType &&
+            parameter.isOptional &&
+            !parameter.isRest &&
+            returnType.elementType == EtsAnyType &&
+            returnType.dimensions == 1
     }
 
     private fun EtsPtrCallExpr.isBuiltInNumberConverter(): Boolean {

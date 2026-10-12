@@ -54,6 +54,11 @@ export class NumericBoundarySemantics {
         const observed = secondAlias[0];
         if (values === other) return observed === null ? 1 : -1;
         return alias[0] === null ? 2 : -1;
+    typedArrayCannotStoreMissingValue(): number {
+        const source = [11];
+        const destination = [22];
+        destination[0] = source[2];
+        return destination[0];
     }
 
     bitwiseNaN(): number {

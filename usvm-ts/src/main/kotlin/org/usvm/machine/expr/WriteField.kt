@@ -25,6 +25,7 @@ import org.usvm.util.TsResolutionResult
 import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
+import org.usvm.util.boxArrayValue
 import org.usvm.util.resolveEtsField
 import org.usvm.util.truncateKnownArrayIndices
 
@@ -198,6 +199,26 @@ fun TsContext.assignToInstanceField(
         trackInputProperty(scope, unwrappedInstance, instanceLocal, field.name, hierarchy) ?: return null
         writeInputPropertyValue(scope, unwrappedInstance, field.name, expr)
         return Unit
+    }
+
+    val errorStorageField = resolveModelStorageField(
+        scope = scope,
+        instanceLocal = instanceLocal,
+        instance = unwrappedInstance,
+        field = field,
+        hierarchy = hierarchy,
+    ).storageField
+    if (errorStorageField != null) {
+        val payload = boxArrayValue(scope, expr)
+        return scope.doWithState {
+            memory.write(
+                mkErrorModelStorageLValue(addressSort, unwrappedInstance, errorStorageField),
+                payload.asExpr(addressSort),
+                guard = trueExpr,
+            )
+            memory.write(deletedFieldLValue(unwrappedInstance, field), falseExpr, guard = trueExpr)
+            writtenConcreteFields += unwrappedInstance to field.name
+        }
     }
 
     val objectLiteralClass = objectLiteralClass(scope, unwrappedInstance, hierarchy)
