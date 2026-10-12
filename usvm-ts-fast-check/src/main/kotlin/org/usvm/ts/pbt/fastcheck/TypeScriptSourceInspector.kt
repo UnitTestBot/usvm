@@ -2,6 +2,7 @@ package org.usvm.ts.pbt.fastcheck
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import java.nio.file.Files
 import java.nio.file.Path
@@ -28,6 +29,20 @@ object TypeScriptSourceInspector {
             "false" -> false
             else -> error("TypeScript source inspection returned an invalid response: $output")
         }
+    }
+
+    fun captures(
+        source: Path,
+        exportName: String,
+        names: List<String>,
+    ): List<TypeScriptSourceCapture> {
+        val output = inspect(
+            source = source,
+            operation = "inspect-captures",
+            arguments = listOf(exportName, PropertyManifestJson.json.encodeToString(names)),
+        )
+
+        return PropertyManifestJson.json.decodeFromString(output)
     }
 
     fun instrumentReplay(
@@ -97,8 +112,22 @@ object TypeScriptSourceInspector {
 data class TypeScriptReplayInstrumentation(
     val source: String?,
     val reason: String?,
+    val origin: String? = null,
 ) {
     init {
         require((source == null) != (reason == null)) { "Source replay instrumentation needs source or a reason" }
     }
 }
+
+@Serializable
+enum class TypeScriptCaptureKind { BUILTIN, NUMBER, STRING, BOOLEAN, NULL, UNDEFINED, FUNCTION, OBJECT, UNSUPPORTED }
+
+@Serializable
+data class TypeScriptSourceCapture(
+    val name: String,
+    val kind: TypeScriptCaptureKind,
+    val value: String?,
+    val fields: List<TypeScriptSourceCapture>,
+    val reason: String?,
+    val origin: String? = null,
+)

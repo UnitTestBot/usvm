@@ -1,7 +1,6 @@
 package org.usvm.ts.calls
 
 import org.jacodb.ets.model.EtsLexicalEnvType
-import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
@@ -15,13 +14,14 @@ import org.usvm.machine.TsAnalysisStopReason
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
-import org.usvm.machine.call.isBuiltinDateGlobalType
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallModelSelection
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.statistics.UMachineObserver
 import org.usvm.ts.pbt.fastcheck.TypeScriptSourceInspector
+import org.usvm.ts.pbt.fastcheck.TypeScriptSourceCapture
+import org.usvm.ts.pbt.mapping.EtsLexicalEnvironmentBinding
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.EtsInputBinding
 import org.usvm.ts.pbt.mapping.EtsMappingStatus
@@ -161,6 +161,8 @@ internal class CurrentTsCallsSymbolicEngine(
         val symbolicInputs = CallsSymbolicInputs(
             inputs = request.function.inputs,
             bindings = prepared.inputBindings,
+            lexicalEnvironment = prepared.lexicalEnvironment,
+            captures = prepared.captures,
         )
         val interpreterObserver = request.unknownCallEventSink?.let(::UnknownCallEventSinkObserver)
         val analysis = TsMachine(
@@ -307,17 +309,24 @@ internal class CurrentTsCallsSymbolicEngine(
             )
         }
 
-        val unsupportedCaptures = (lexicalEnvironment?.parameter?.type as? EtsLexicalEnvType)
-            ?.closures
-            ?.filterNot(::isSupportedBuiltinCapture)
-            ?.map { closure -> closure.name }
-            .orEmpty()
-        if (unsupportedCaptures.isNotEmpty()) {
+        val sourceCaptures = if (lexicalEnvironment == null) {
+            emptyList()
+        } else {
+            val environment = lexicalEnvironment.parameter.type as EtsLexicalEnvType
+            TypeScriptSourceInspector.captures(
+                source = source,
+                exportName = request.function.entryPoint.exportName,
+                names = environment.closures.map { closure -> closure.name },
+            )
+        }
+        val captureLimitation = lexicalEnvironment?.let { binding ->
+            callsCapturePreflight(scene, binding, sourceCaptures)
+        }
+        if (captureLimitation != null) {
             return CallsTargetPreparation.Rejected(
                 status = CallsSymbolicStatus.UNSUPPORTED,
                 reasonCode = CallsSymbolicPreflightReasonCode.LEXICAL_CAPTURE_UNSUPPORTED,
-                diagnostic = "Symbolic entry point has unsupported runtime captures: " +
-                    unsupportedCaptures.joinToString(),
+                diagnostic = captureLimitation,
             )
         }
 
@@ -371,17 +380,11 @@ internal class CurrentTsCallsSymbolicEngine(
             scene = scene,
             method = method,
             inputBindings = mappedTarget.bindings.inputs,
+            lexicalEnvironment = lexicalEnvironment,
+            captures = sourceCaptures,
             targetObservation = targetObservation,
             exactTargetCandidateCount = exactTargetCandidates.size,
         )
-    }
-
-    private fun isSupportedBuiltinCapture(capture: EtsLocal): Boolean {
-        if (capture.name == "Date") {
-            return capture.type.isBuiltinDateGlobalType()
-        }
-
-        return capture.name in SUPPORTED_BUILTIN_CAPTURES
     }
 
     private fun exactTargetCandidates(method: EtsMethod, target: CallsSourceTarget): List<EtsStmt> =
@@ -530,6 +533,8 @@ internal class CurrentTsCallsSymbolicEngine(
             val scene: EtsScene,
             val method: EtsMethod,
             val inputBindings: List<EtsInputBinding>,
+            val lexicalEnvironment: EtsLexicalEnvironmentBinding?,
+            val captures: List<TypeScriptSourceCapture>,
             val targetObservation: SourceTargetObservation,
             val exactTargetCandidateCount: Int,
         ) : CallsTargetPreparation
@@ -609,15 +614,7 @@ internal class CurrentTsCallsSymbolicEngine(
     private companion object {
         const val BUNDLED_FRONTEND_PREFIX: String = "bundled:"
 
-        val SUPPORTED_BUILTIN_CAPTURES: Set<String> = setOf(
-            "Array",
-            "Boolean",
-            "Error",
-            "Math",
-            "Number",
-            "Object",
-            "String",
-        )
+
     }
 }
 

@@ -402,7 +402,7 @@ class CurrentTsCallsSymbolicEngineTest {
     }
 
     @Test
-    fun `user captured object named Date is not admitted as a native global`() {
+    fun `source Date object keeps its project method and is not replaced by a builtin`() {
         val fixture = fixture(
             source = """
                 const Date = { now: (): number => 7 };
@@ -419,9 +419,11 @@ class CurrentTsCallsSymbolicEngineTest {
         )
 
         val preflight = fixture.preflight()
+        val result = fixture.search(modelIds = emptySet())
 
-        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, preflight.status, preflight.toString())
-        assertEquals(CallsSymbolicPreflightReasonCode.LEXICAL_CAPTURE_UNSUPPORTED, preflight.reasonCode)
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, preflight.status, preflight.toString())
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        fixture.assertReplayConfirmed(assertNotNull(result.inputs, result.toString()))
     }
 
     @Test
@@ -451,6 +453,109 @@ class CurrentTsCallsSymbolicEngineTest {
 
         val result = fixture.search(modelIds = setOf("ts.array.includes", "ts.math.floor"))
 
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        fixture.assertReplayConfirmed(assertNotNull(result.inputs, result.toString()))
+    }
+
+    @Test
+    fun `immutable module captures named Infinity and NaN preserve source numbers`() {
+        val fixture = fixture(
+            source = """
+                const Infinity = 7;
+                const NaN = 8;
+                export const sourceNumbers = (value: number): boolean => {
+                  if (value === 0 && Infinity === 7 && NaN === 8) {
+                    return true;
+                  }
+                  return false;
+                };
+            """.trimIndent(),
+            exportName = "sourceNumbers",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+
+        val preflight = fixture.preflight()
+        val result = fixture.search(modelIds = emptySet())
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, preflight.status, preflight.toString())
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        fixture.assertReplayConfirmed(assertNotNull(result.inputs, result.toString()))
+    }
+
+    @Test
+    fun `project Math function and literal capture aliases keep runtime values`() {
+        val fixture = fixture(
+            source = """
+                const Math = (value: number): number => value + 7;
+                const threshold = 7;
+                const alias = threshold;
+                export const sourceMath = (value: number): boolean => {
+                  if (value === 0 && Math(value) === alias) {
+                    return true;
+                  }
+                  return false;
+                };
+            """.trimIndent(),
+            exportName = "sourceMath",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+
+        val preflight = fixture.preflight()
+        val result = fixture.search(modelIds = emptySet())
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, preflight.status, preflight.toString())
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        fixture.assertReplayConfirmed(assertNotNull(result.inputs, result.toString()))
+    }
+
+    @Test
+    fun `source object capture aliases preserve reference identity`() {
+        val fixture = fixture(
+            source = """
+                const source = { value: 7 };
+                const alias = source;
+                export const objectAlias = (value: number): boolean => {
+                  if (value === 0 && source === alias && source.value === 7) {
+                    return true;
+                  }
+                  return false;
+                };
+            """.trimIndent(),
+            exportName = "objectAlias",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+
+        val preflight = fixture.preflight()
+        val result = fixture.search(modelIds = emptySet())
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, preflight.status, preflight.toString())
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        fixture.assertReplayConfirmed(assertNotNull(result.inputs, result.toString()))
+    }
+
+    @Test
+    fun `genuine SDK Number owner and Infinity NaN values retain their original identities`() {
+        val fixture = fixture(
+            source = """
+                export const sdkValues = (value: number): boolean => {
+                  if (value === 0 && Infinity > 7 && Number.isNaN(NaN)) {
+                    return true;
+                  }
+                  return false;
+                };
+            """.trimIndent(),
+            exportName = "sdkValues",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+
+        val preflight = fixture.preflight()
+        val result = fixture.search(modelIds = setOf("ts.number.isNaN"))
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, preflight.status, preflight.toString())
         assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
         fixture.assertReplayConfirmed(assertNotNull(result.inputs, result.toString()))
     }

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import ts from 'typescript'
 import { instrumentSourceReplay } from './source-replay.js'
+import { inspectSourceCaptures } from './source-captures.js'
 
 const [operation, sourcePath, ...arguments_] = process.argv.slice(2)
 if (sourcePath === undefined) throw new Error('Expected a TypeScript source path')
@@ -13,7 +14,13 @@ const diagnostics = ts.transpileModule(source, {
 }).diagnostics?.filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error) ?? []
 if (diagnostics.length > 0) throw new Error(ts.flattenDiagnosticMessageText(diagnostics[0]?.messageText ?? '', '\n'))
 
-if (operation === 'expression-arrow') {
+if (operation === 'inspect-captures') {
+  const [exportName, namesText] = arguments_
+  if (exportName === undefined || namesText === undefined) throw new Error('Expected export and capture names')
+  const names: unknown = JSON.parse(namesText)
+  if (!Array.isArray(names) || !names.every((name) => typeof name === 'string')) throw new Error('Invalid capture names')
+  process.stdout.write(JSON.stringify(inspectSourceCaptures(sourcePath, exportName, names as string[])))
+} else if (operation === 'expression-arrow') {
   const [exportName, startText, endText] = arguments_
   const start = Number(startText)
   const end = Number(endText)

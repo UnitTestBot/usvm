@@ -20,6 +20,8 @@ import org.usvm.machine.expr.toConcreteBoolValue
 import org.usvm.machine.state.TsState
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
+import org.usvm.ts.pbt.fastcheck.TypeScriptSourceCapture
+import org.usvm.ts.pbt.mapping.EtsLexicalEnvironmentBinding
 import org.usvm.ts.pbt.mapping.EtsInputBinding
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
@@ -49,6 +51,8 @@ internal fun callsSymbolicInputPreflight(inputs: List<PropertyInput>): String? {
 internal class CallsSymbolicInputs(
     inputs: List<PropertyInput>,
     bindings: List<EtsInputBinding>,
+    private val lexicalEnvironment: EtsLexicalEnvironmentBinding?,
+    private val captures: List<TypeScriptSourceCapture>,
 ) {
     private val boundInputs: List<Pair<PropertyInput, EtsInputBinding>>
     private var snapshots: List<CallsInputSnapshot>? = null
@@ -67,6 +71,7 @@ internal class CallsSymbolicInputs(
 
     fun initialize(state: TsState) {
         check(snapshots == null) { "Calls symbolic inputs were initialized more than once" }
+        lexicalEnvironment?.let { binding -> state.initializeCallsCaptures(binding, captures) }
         val initializedSnapshots = boundInputs.map { (input, binding) ->
             state.initializeInput(
                 stackSlot = binding.stackSlot,
