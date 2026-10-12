@@ -137,8 +137,13 @@ class MapValueRegressionTest : GoNativeTestRunner() {
             val hasAdditionalEntry = executions.any {
                 val input = mapReplayEntries(it.arguments.single())
                 val observed = input?.firstOrNull { entry ->
-                    val key = entry.first
-                    if (key is Double && observedKey is Double) key == observedKey else key == observedKey
+                    val numericKey = entry.first as? Double
+                    val numericObservedKey = observedKey as? Double
+                    if (numericKey != null && numericObservedKey != null) {
+                        numericKey == numericObservedKey
+                    } else {
+                        entry.first == observedKey
+                    }
                 }
                 input?.size == 2 && observed != null &&
                     it.result.long == (observed.second as Number).toLong()
