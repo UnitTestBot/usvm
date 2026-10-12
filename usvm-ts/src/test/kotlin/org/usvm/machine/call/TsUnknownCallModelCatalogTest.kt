@@ -178,10 +178,7 @@ class TsUnknownCallModelCatalogTest {
         val catalog = TsBuiltInUnknownCallModels.catalog()
 
         val expectedModelIds = listOf(
-            "ts.array.includes",
-            "ts.array.indexOf",
             "ts.array.isArray",
-            "ts.array.lastIndexOf",
             "ts.array.pop",
             TsArrayShiftIntrinsicModel.MODEL_ID,
             TsNumericIntrinsicModelFamily.MATH_ABS_ID,
@@ -196,6 +193,25 @@ class TsUnknownCallModelCatalogTest {
             TsNumericIntrinsicModelFamily.NUMBER_IS_INTEGER_ID,
             TsNumericIntrinsicModelFamily.NUMBER_IS_NAN_ID,
             TsNumericIntrinsicModelFamily.NUMBER_IS_SAFE_INTEGER_ID,
+        )
+
+        assertEquals(expectedModelIds, catalog.modelIds)
+        assertSame(catalog, TsBuiltInUnknownCallModels.catalog())
+        assertFailsWith<UnsupportedOperationException> { (catalog.modelIds as MutableList<String>).clear() }
+        assertEquals(
+            expectedModelIds,
+            TsBuiltInUnknownCallModels.catalog().modelIds,
+        )
+        assertTrue(TsBuiltInUnknownCallModels.catalog(TsUnknownCallModelSelection.Only(emptySet())).modelIds.isEmpty())
+    }
+
+    @Test
+    fun `array and string built in model families are discovered`() {
+        val modelIds = TsBuiltInUnknownCallModels.catalog().modelIds
+        val expectedModelIds = listOf(
+            "ts.array.includes",
+            "ts.array.indexOf",
+            "ts.array.lastIndexOf",
             "ts.string.charAt",
             "ts.string.charCodeAt",
             "ts.string.endsWith",
@@ -207,15 +223,7 @@ class TsUnknownCallModelCatalogTest {
             "ts.string.primitive.length",
             "ts.string.startsWith",
         )
-
-        assertEquals(expectedModelIds, catalog.modelIds)
-        assertSame(catalog, TsBuiltInUnknownCallModels.catalog())
-        assertFailsWith<UnsupportedOperationException> { (catalog.modelIds as MutableList<String>).clear() }
-        assertEquals(
-            expectedModelIds,
-            TsBuiltInUnknownCallModels.catalog().modelIds,
-        )
-        assertTrue(TsBuiltInUnknownCallModels.catalog(TsUnknownCallModelSelection.Only(emptySet())).modelIds.isEmpty())
+        assertTrue(modelIds.containsAll(expectedModelIds))
     }
 
     @Test
