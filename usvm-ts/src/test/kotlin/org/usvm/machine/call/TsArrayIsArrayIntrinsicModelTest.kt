@@ -1,5 +1,6 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
@@ -28,7 +29,11 @@ class TsArrayIsArrayIntrinsicModelTest {
         getResourcePath("/models/ArrayIsArrayIntrinsicModel.ts"),
         provider = EtsIrProvider.TS_FRONTEND,
     )
-    private val scene = EtsScene(projectFiles = listOf(sourceFile))
+    private val shadowFile = loadEtsFileAutoConvert(
+        getResourcePath("/models/ArrayIsArraySourceShadow.ts"),
+        provider = EtsIrProvider.TS_FRONTEND,
+    )
+    private val scene = EtsScene(projectFiles = listOf(sourceFile, shadowFile))
 
     @Test
     fun `scalars are not arrays`() {
@@ -127,8 +132,17 @@ class TsArrayIsArrayIntrinsicModelTest {
         assertTrue(result.modelIds.isEmpty())
     }
 
-    private fun analyze(vararg methodNames: String): AnalysisResult {
-        val methods = methodNames.associateWith(::method)
+    @Test
+    fun `a file global source shadow does not acquire an SDK constructor identity`() {
+        val result = analyze("globalShadowKeepsItsImplementation", source = shadowFile)
+
+        val value = result.values.getValue("globalShadowKeepsItsImplementation").single()
+        assertFalse(assertIs<TsTestValue.TsBoolean>(value).value)
+        assertTrue(result.modelIds.isEmpty())
+    }
+
+    private fun analyze(vararg methodNames: String, source: EtsFile = sourceFile): AnalysisResult {
+        val methods = methodNames.associateWith { name -> method(name, source) }
         val observer = RecordingUnknownCallObserver()
 
         return TsMachine(
@@ -150,8 +164,8 @@ class TsArrayIsArrayIntrinsicModelTest {
         }
     }
 
-    private fun method(name: String): EtsMethod = scene.projectClasses
-        .single { clazz -> clazz.name == DEFAULT_ARK_CLASS_NAME && clazz.declaringFile === sourceFile }
+    private fun method(name: String, source: EtsFile): EtsMethod = scene.projectClasses
+        .single { clazz -> clazz.name == DEFAULT_ARK_CLASS_NAME && clazz.declaringFile === source }
         .methods
         .single { method -> method.name == name }
 
