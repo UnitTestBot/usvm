@@ -3,18 +3,24 @@ package org.usvm.ts.calls
 import io.ksmt.expr.KBitVec16Value
 import io.ksmt.sort.KBv16Sort
 import io.ksmt.sort.KFp64Sort
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsType
 import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.expr.extractInt
 import org.usvm.machine.expr.toConcreteBoolValue
+import org.usvm.machine.state.TsState
 import org.usvm.model.UModelBase
 import org.usvm.ts.pbt.model.JsConcreteValue
+import org.usvm.util.markDenseInputArray
 
 internal sealed interface CallsInputSnapshot {
     fun resolve(model: UModelBase<EtsType>): JsConcreteValue
+
+    fun markDenseInputs(state: TsState) = Unit
 }
 
 internal data class BooleanInputSnapshot(
@@ -52,7 +58,14 @@ internal data class StringInputSnapshot(
 internal data class ArrayInputSnapshot(
     val length: UExpr<TsSizeSort>,
     val elements: List<CallsInputSnapshot>,
+    val reference: UConcreteHeapRef,
+    val runtimeType: EtsArrayType,
 ) : CallsInputSnapshot {
+    override fun markDenseInputs(state: TsState) {
+        elements.forEach { element -> element.markDenseInputs(state) }
+        state.markDenseInputArray(array = reference, type = runtimeType)
+    }
+
     override fun resolve(model: UModelBase<EtsType>): JsConcreteValue {
         val concreteLength = model.eval(length).extractInt()
         require(concreteLength in 0..elements.size) { "Resolved array length is outside its symbolic domain" }
@@ -72,6 +85,8 @@ internal data class OptionalInputSnapshot(
 ) : CallsInputSnapshot {
     override fun resolve(model: UModelBase<EtsType>): JsConcreteValue =
         if (model.eval(chooseValue).toConcreteBoolValue()) nested.resolve(model) else nil
+
+    override fun markDenseInputs(state: TsState) = nested.markDenseInputs(state)
 }
 
 private const val UTF16_CODE_UNIT_MASK = 0xffff

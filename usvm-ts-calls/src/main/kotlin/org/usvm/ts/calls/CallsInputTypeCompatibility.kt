@@ -28,6 +28,7 @@ import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
+import org.usvm.util.componentType
 
 /** Rejects bindings whose frozen domain would replace a source parameter with an incompatible runtime kind. */
 internal fun callsInputTypePreflight(
@@ -111,10 +112,10 @@ private fun PropertyDomain.inputTypeLimitation(
             return inputTypeLimitation(type.originalType, genericParameters, path, visitedGenerics)
         }
         is EtsArrayType -> {
-            val isSupportedArray = this is ArrayDomain && type.dimensions == 1
+            val isSupportedArray = this is ArrayDomain && type.dimensions >= 1
             if (isSupportedArray) {
                 return (this as ArrayDomain).element.inputTypeLimitation(
-                    type = type.elementType,
+                    type = type.componentType,
                     genericParameters = genericParameters,
                     path = "$path[]",
                     visitedGenerics = visitedGenerics,

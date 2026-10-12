@@ -23,6 +23,7 @@ internal fun PropertyDomain.isSupportedCallsSymbolicDomain(): Boolean = when (th
     is OptionalDomain -> value.isSupportedCallsSymbolicDomain() &&
         (nil == JsConcreteValue.Null || nil == JsConcreteValue.Undefined)
     is ArrayDomain -> when (val elementDomain = element) {
+        is ArrayDomain -> elementDomain.isSupportedCallsSymbolicDomain()
         BooleanDomain, is IntegerDomain, is NumberDomain, is StringDomain -> true
         is ConstantDomain -> elementDomain.value is JsConcreteValue.Boolean ||
             elementDomain.value is JsConcreteValue.Number || elementDomain.value is JsConcreteValue.String
@@ -76,6 +77,7 @@ internal class CallsSymbolicInputs(
                 domain = input.domain,
             )
         }
+        initializedSnapshots.forEach { snapshot -> snapshot.markDenseInputs(state) }
         snapshots = initializedSnapshots
     }
 

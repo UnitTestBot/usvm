@@ -167,4 +167,95 @@ internal class CurrentTsCallsExtendedInputDomainsTest : CurrentTsCallsSymbolicEn
         assertEquals(listOf(JsConcreteValue.String("xy")), assertIs<JsConcreteValue.Array>(inputs.single()).elements)
         fixture.assertReplayConfirmed(inputs)
     }
+
+    @Test
+    fun `nested numeric arrays preserve dimensions and replay actual source`() {
+        val fixture = fixture(
+            source = """
+                export function matrix(values: number[][]): boolean {
+                  if (values.length === 1 && values[0].length === 1 && values[0][0] === 7) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "matrix",
+            inputs = listOf(
+                PropertyInput(
+                    name = "values",
+                    domain = ArrayDomain(
+                        element = ArrayDomain(element = IntegerDomain(min = 0, max = 10), minLength = 1, maxLength = 2),
+                        minLength = 1,
+                        maxLength = 2,
+                    ),
+                ),
+            ),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.search(modelIds = emptySet())
+
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        val inputs = assertNotNull(result.inputs, result.toString())
+        val outer = assertIs<JsConcreteValue.Array>(inputs.single())
+        val inner = assertIs<JsConcreteValue.Array>(outer.elements.single())
+        assertEquals(listOf(JsConcreteValue.number(7.0)), inner.elements)
+        fixture.assertReplayConfirmed(inputs)
+    }
+
+    @Test
+    fun `optional nested arrays register every dense region after all inputs are initialized`() {
+        val rows = ArrayDomain(element = IntegerDomain(min = 0, max = 0), minLength = 1, maxLength = 2)
+        val matrices = ArrayDomain(element = rows, minLength = 1, maxLength = 2)
+        val fixture = fixture(
+            source = """
+                export function optionalMatrices(first: number[][] | undefined, second: number[][]): boolean {
+                  if (first !== undefined && first[0].includes(0) && second[0].includes(0)) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "optionalMatrices",
+            inputs = listOf(
+                PropertyInput(name = "first", domain = OptionalDomain(matrices)),
+                PropertyInput(name = "second", domain = matrices),
+            ),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.search(modelIds = setOf("ts.array.includes", "ts.math.floor"))
+
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        fixture.assertReplayConfirmed(assertNotNull(result.inputs, result.toString()))
+    }
+
+    @Test
+    fun `nested domains reject a missing source array dimension`() {
+        val fixture = fixture(
+            source = """
+                export function flat(values: number[]): boolean {
+                  if (values.length === 1) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "flat",
+            inputs = listOf(
+                PropertyInput(
+                    name = "values",
+                    domain = ArrayDomain(element = ArrayDomain(element = IntegerDomain())),
+                ),
+            ),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, result.status, result.toString())
+        assertEquals(CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED, result.reasonCode)
+        assertTrue(result.diagnostic.orEmpty().contains("inputs.values[]"))
+    }
+
 }

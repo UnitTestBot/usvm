@@ -29,7 +29,7 @@ import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.util.allocateBoundedString
-import org.usvm.util.markDenseInputArray
+import org.usvm.util.componentType
 import org.usvm.util.mkArrayIndexLValue
 
 internal data class MaterializedCallsInput(val value: UExpr<*>, val snapshot: CallsInputSnapshot)
@@ -120,6 +120,14 @@ private fun PropertyDomain.callsRuntimeType(): EtsType = when (this) {
     BooleanDomain -> EtsBooleanType
     is IntegerDomain, is NumberDomain -> EtsNumberType
     is StringDomain -> EtsStringType
+    is ArrayDomain -> {
+        val nestedType = element.callsRuntimeType()
+        if (nestedType is EtsArrayType) {
+            nestedType.copy(dimensions = nestedType.dimensions + 1)
+        } else {
+            EtsArrayType(elementType = nestedType, dimensions = 1)
+        }
+    }
     is ConstantDomain -> when (value) {
         is JsConcreteValue.Boolean -> EtsBooleanType
         is JsConcreteValue.Number -> EtsNumberType
@@ -130,7 +138,7 @@ private fun PropertyDomain.callsRuntimeType(): EtsType = when (this) {
 }
 
 private fun TsState.materializeCallsArray(domain: ArrayDomain): MaterializedCallsInput = with(ctx) {
-    val runtimeType = EtsArrayType(domain.element.callsRuntimeType(), dimensions = 1)
+    val runtimeType = domain.callsRuntimeType() as EtsArrayType
     val descriptor = arrayDescriptorOf(runtimeType)
     val arrayRef = memory.allocConcrete(runtimeType)
     val length = initializeLength(minLength = domain.minLength, maxLength = domain.maxLength)
@@ -140,7 +148,7 @@ private fun TsState.materializeCallsArray(domain: ArrayDomain): MaterializedCall
         sizeSort = sizeSort,
         count = length,
     )
-    val elementSort = typeToSort(runtimeType.elementType)
+    val elementSort = typeToSort(runtimeType.componentType)
     val elements = List(domain.maxLength) { index ->
         val element = materializeCallsInput(domain.element)
         val liveIndex = mkBvSignedLessExpr(mkBv(index), length)
@@ -164,8 +172,13 @@ private fun TsState.materializeCallsArray(domain: ArrayDomain): MaterializedCall
         }
         element.snapshot
     }
-    markDenseInputArray(array = arrayRef, type = runtimeType)
-    MaterializedCallsInput(arrayRef, ArrayInputSnapshot(length = length, elements = elements))
+    val snapshot = ArrayInputSnapshot(
+        length = length,
+        elements = elements,
+        reference = arrayRef,
+        runtimeType = runtimeType,
+    )
+    MaterializedCallsInput(arrayRef, snapshot)
 }
 
 private fun TsState.initializeLength(
