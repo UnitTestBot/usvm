@@ -57,10 +57,12 @@ class TsSequenceEtsIrModelTest {
 
     @Test
     fun `array searches ignore evaluated extras and preserve undefined lastIndexOf semantics`() {
+        val expectedModels = setOf("ts.array.indexOf", "ts.array.includes", "ts.array.lastIndexOf")
+
         val result = analyze(methodName = "arraySearchesEvaluateIgnoredArguments")
 
         assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
-        assertTrue(setOf("ts.array.indexOf", "ts.array.includes", "ts.array.lastIndexOf").all(result.modelIds::contains))
+        assertTrue(expectedModels.all(result.modelIds::contains))
     }
 
     @Test

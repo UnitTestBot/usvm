@@ -278,16 +278,6 @@ class TsArrayPopEtsIrModelTest {
         }
     }
 
-    private fun assertUsesResidualFallback(methodName: String) {
-        val result = analyze(methodName)
-
-        assertTrue(
-            result.values.isEmpty(),
-            "Expected fallback to stop the path, got values=${result.values}, events=${result.events}",
-        )
-        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.last().outcome)
-    }
-
     private fun makeFakeReceiver(state: TsState): UConcreteHeapRef {
         val result = assertIs<TsMethodResult.Success>(state.methodResult).value
         val fakeReceiver = assertIs<UConcreteHeapRef>(result)
