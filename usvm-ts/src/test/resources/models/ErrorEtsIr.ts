@@ -1,5 +1,10 @@
 class ForeignFields {
-    overwrittenPrimitiveKinds(): boolean {
+    name: number = 17;
+    message: boolean = true;
+}
+
+export class ErrorEtsIr {
+    static overwrittenPrimitiveKinds(): boolean {
         const error: any = new Error("original");
         error.message = 7;
         error.name = false;
@@ -7,31 +12,26 @@ class ForeignFields {
             && error.name === false && typeof error.name === "boolean";
     }
 
-    overwrittenReferenceKinds(): boolean {
+    static overwrittenReferenceKinds(): boolean {
         const error: any = new Error("original");
         error.message = null;
         error.name = undefined;
         return error.message === null && error.name === undefined;
     }
 
-    overwrittenObjectAlias(): boolean {
+    static overwrittenObjectAlias(): boolean {
         const error: any = new Error("original");
         const payload = { marker: 7 };
         error.message = payload;
         return error.message === payload && error.message.marker === 7;
     }
 
-    symbolicMessage(message: string): boolean {
+    static symbolicMessage(message: string): boolean {
         const error = new Error(message);
         if (message.length === 0) return error.message === message && error.name === "Error";
         return error.message === message && typeof error.message === "string" && error.name === "Error";
     }
 
-    name: number = 17;
-    message: boolean = true;
-}
-
-export class ErrorEtsIr {
     static name(): string {
         return new Error("expected message").name;
     }
