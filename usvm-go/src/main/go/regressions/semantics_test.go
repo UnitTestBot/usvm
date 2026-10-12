@@ -9,6 +9,14 @@ import (
 
 func TestNativeOracle(t *testing.T) {
 	cases := map[string]func() any{
+		"pointerMapConvertedAlias":                   func() any { return pointerMapConvertedAlias() },
+		"float32MapZeroAndNaN":                       func() any { return float32MapZeroAndNaN() },
+		"interfaceMapUncomparableLookup":             func() any { return interfaceMapUncomparableLookup() },
+		"interfaceMapUncomparableUpdate":             func() any { return interfaceMapUncomparableUpdate() },
+		"floatMapNaNResult":                          func() any { return floatMapNaNResult() },
+		"pointerMapKeyResult":                        func() any { return pointerMapKeyResult() },
+		"namedStringMapResult":                       func() any { return namedStringMapResult() },
+		"namedArrayMapResult":                        func() any { return namedArrayMapResult() },
 		"floatMapZeroLookup":                         func() any { return floatMapZeroLookup() },
 		"floatMapZeroOverwrite":                      func() any { return floatMapZeroOverwrite() },
 		"floatMapZeroDelete":                         func() any { return floatMapZeroDelete() },

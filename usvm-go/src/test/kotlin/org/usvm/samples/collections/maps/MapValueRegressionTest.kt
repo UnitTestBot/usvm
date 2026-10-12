@@ -1,13 +1,190 @@
 package org.usvm.samples.collections.maps
 
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
+import kotlinx.serialization.json.put
 import org.junit.jupiter.api.Test
+import org.usvm.generatedGoFile
+import org.usvm.interpreter.GoMapEntries
+import org.usvm.interpreter.GoPointer
+import org.usvm.samples.GoExecution
 import org.usvm.samples.GoNativeTestRunner
 import org.usvm.samples.GoResult
 import org.usvm.samples.GoSample
 import org.usvm.samples.longEntry
+import org.usvm.samples.replayWithNativeGo
 import org.usvm.test.util.checkers.eq
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 class MapValueRegressionTest : GoNativeTestRunner() {
+    @Test
+    @GoSample(method = "pointerMapConvertedAlias", fixture = "regressions")
+    fun pointerMapConvertedAlias() = checkNative(method = "pointerMapConvertedAlias")
+
+    @Test
+    @GoSample(method = "negativeMapZero", fixture = "regressions")
+    fun negativeMapZero() = checkDiscoveredProperties(
+        method = "negativeMapZero",
+        { value: Double, result: GoResult ->
+            val actual = result.value as? Double
+            result.isSuccess && actual != null &&
+                (value.isNaN() && actual.isNaN() || actual.toRawBits() == (-value).toRawBits())
+        },
+    )
+
+    @Test
+    @GoSample(method = "mapNaN", fixture = "regressions")
+    fun mapNaN() = checkDiscoveredProperties(
+        method = "mapNaN",
+        { value: Double, result: GoResult ->
+            val expected = value / value
+            val actual = result.value as? Double
+            result.isSuccess && actual != null && (actual == expected || actual.isNaN() && expected.isNaN())
+        },
+    )
+
+    @Test
+    @GoSample(method = "float32MapZeroAndNaN", fixture = "regressions")
+    fun float32MapZeroAndNaN() = checkNative(method = "float32MapZeroAndNaN")
+
+    @Test
+    @GoSample(method = "interfaceMapUncomparableLookup", fixture = "regressions")
+    fun interfaceMapUncomparableLookup() = checkNative(method = "interfaceMapUncomparableLookup")
+
+    @Test
+    @GoSample(method = "interfaceMapUncomparableUpdate", fixture = "regressions")
+    fun interfaceMapUncomparableUpdate() = checkNative(method = "interfaceMapUncomparableUpdate")
+
+    @Test
+    @GoSample(method = "inputFloatMapLookup", fixture = "regressions")
+    fun inputFloatMapLookup() = replayMapInputs(method = "inputFloatMapLookup", observedKey = 0.0)
+
+    @Test
+    @GoSample(method = "inputStringMapLookup", fixture = "regressions")
+    fun inputStringMapLookup() = replayMapInputs(method = "inputStringMapLookup", observedKey = "same")
+
+    @Test
+    @GoSample(method = "inputFloatMapExtraEntry", fixture = "regressions")
+    fun inputFloatMapExtraEntry() = replayMapInputs(
+        method = "inputFloatMapExtraEntry", observedKey = 0.0, needsAdditionalEntry = true,
+    )
+
+    @Test
+    @GoSample(method = "inputStringMapExtraEntry", fixture = "regressions")
+    fun inputStringMapExtraEntry() = replayMapInputs(
+        method = "inputStringMapExtraEntry", observedKey = "same", needsAdditionalEntry = true,
+    )
+
+    @Test
+    @GoSample(method = "floatMapNaNResult", fixture = "regressions")
+    fun floatMapNaNResult() {
+        val executions = runner("floatMapNaNResult", options)
+        assertEquals(expected = 1, actual = executions.size)
+        val entries = executions.single().result.value as GoMapEntries
+        assertEquals(expected = 2, actual = entries.size)
+        assertTrue(entries.entries.all { (it.key as Double).isNaN() })
+        assertEquals(setOf(7L, 9L), entries.entries.map { (it.value as Number).toLong() }.toSet())
+        assertEquals(expected = 2, actual = entries.entries.map { it.identity }.toSet().size)
+
+        replayMapOutputs(method = "floatMapNaNResult", executions = executions, expectedSummary = 216L)
+    }
+
+    @Test
+    @GoSample(method = "pointerMapKeyResult", fixture = "regressions")
+    fun pointerMapKeyResult() {
+        val executions = runner("pointerMapKeyResult", options)
+        assertEquals(expected = 1, actual = executions.size)
+        val entries = executions.single().result.value as GoMapEntries
+        assertEquals(expected = 2, actual = entries.size)
+        assertTrue(entries.entries.all { ((it.key as GoPointer).value as Number).toLong() == 0L })
+        assertEquals(setOf(7L, 9L), entries.entries.map { (it.value as Number).toLong() }.toSet())
+        assertEquals(expected = 2, actual = entries.entries.map { it.identity }.toSet().size)
+
+        replayMapOutputs(method = "pointerMapKeyResult", executions = executions, expectedSummary = 216L)
+    }
+
+    @Test
+    @GoSample(method = "namedStringMapResult", fixture = "regressions")
+    fun namedStringMapResult() {
+        val executions = runner("namedStringMapResult", options)
+        assertEquals(expected = 1, actual = executions.size)
+        assertEquals(mapOf("same" to 9L), executions.single().result.map)
+
+        replayMapOutputs(method = "namedStringMapResult", executions = executions, expectedSummary = 109L)
+    }
+
+    @Test
+    @GoSample(method = "namedArrayMapResult", fixture = "regressions")
+    fun namedArrayMapResult() {
+        val executions = runner("namedArrayMapResult", options)
+        assertEquals(expected = 1, actual = executions.size)
+        assertEquals(mapOf(listOf(1L, 2L) to 7L), executions.single().result.map)
+
+        replayMapOutputs(method = "namedArrayMapResult", executions = executions, expectedSummary = 119L)
+    }
+
+    private fun replayMapInputs(method: String, observedKey: Any, needsAdditionalEntry: Boolean = false) {
+        val executions = runner(method, options)
+        assertTrue(executions.isNotEmpty())
+        assertTrue(executions.all { it.result.isSuccess })
+        if (needsAdditionalEntry) {
+            val hasAdditionalEntry = executions.any {
+                val input = it.arguments.single() as? Map<*, *>
+                input?.size == 2 && input.containsKey(observedKey) &&
+                    it.result.long == (input[observedKey] as Number).toLong()
+            }
+            assertTrue(hasAdditionalEntry, message = "A witness must retain an observed key and an unobserved entry")
+        }
+
+        val inputs = buildJsonArray {
+            executions.forEach { execution ->
+                val input = execution.arguments.single() as? Map<*, *>
+                add(buildJsonObject {
+                    put("nil", input == null)
+                    put("entries", buildJsonArray {
+                        input.orEmpty().forEach { (key, value) ->
+                            add(buildJsonObject {
+                                when (key) {
+                                    is Double -> put("floatKeyBits", key.toRawBits().toULong().toString(radix = 16))
+                                    is String -> put("stringKey", key)
+                                    else -> error("Unsupported map replay key $key")
+                                }
+                                put("value", (value as Number).toLong())
+                            })
+                        }
+                    })
+                })
+            }
+        }
+        val outputs = replayMapWitnesses(method = method, inputs = inputs)
+        assertEquals(executions.map { it.result.long }, outputs)
+    }
+
+    private fun replayMapOutputs(method: String, executions: List<GoExecution>, expectedSummary: Long) {
+        assertTrue(executions.single().result.isSuccess)
+        val inputs = buildJsonArray { add(buildJsonObject { put("nil", true) }) }
+        assertEquals(listOf(expectedSummary), replayMapWitnesses(method = method, inputs = inputs))
+    }
+
+    private fun replayMapWitnesses(method: String, inputs: JsonArray): List<Long> {
+        val request = buildJsonObject {
+            put("method", method)
+            put("inputs", inputs)
+        }
+        return replayWithNativeGo(
+            executable = generatedGoFile("native-replay.test"),
+            testName = "TestReplayMapKeys",
+            request = request,
+            timeout = 5.seconds,
+        ).jsonArray.map { it.jsonPrimitive.long }
+    }
+
     @Test
     @GoSample(method = "floatMapZeroLookup", fixture = "regressions")
     fun floatMapZeroLookup() = checkNative(method = "floatMapZeroLookup")

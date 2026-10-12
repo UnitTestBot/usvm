@@ -39,6 +39,7 @@ import org.usvm.UHeapRef
 import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapAnyKey
+import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.api.readField
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.map.length.UMapLengthLValue
@@ -62,6 +63,7 @@ import org.usvm.mkSizeExpr
 import org.usvm.mkSizeGeExpr
 import org.usvm.mkSizeLeExpr
 import org.usvm.model.UModelBase
+import org.usvm.operator.GoBinaryOperator
 import org.usvm.sampleUValue
 import org.usvm.sizeSort
 import org.usvm.solver.USatResult
@@ -103,7 +105,7 @@ class GoTestInterpreter(
         constraints += bound
         val result = ctx.solver<GoType>().check(constraints)
         return (result as? USatResult)?.model ?: throw UnsupportedOperationException(
-            "Cannot materialize Go model within size limit: $result"
+            "Cannot materialize Go model under witness constraints: $result"
         )
     }
 
@@ -340,7 +342,7 @@ class GoTestInterpreter(
         }
 
         @Suppress("NestedBlockDepth") // Resolves both primitive and reference map regions.
-        fun resolveMap(map: UHeapRef, mapType: GoType, keyType: GoType, valueType: GoType): Map<Any?, Any?>? = with(
+        fun resolveMap(map: UHeapRef, mapType: GoType, keyType: GoType, valueType: GoType): Any? = with(
             ctx
         ) {
             if (model.eval(map) == model.nullRef) {
@@ -355,9 +357,11 @@ class GoTestInterpreter(
 
             val keyScope = MemoryScope(ctx, state, model, state.memory)
             val usesRepresentatives = keyType.needsMapKeyRepresentative()
-            val forbiddenKeys = mutableSetOf<Any?>()
             val seenRepresentatives = mutableSetOf<UHeapRef>()
             val seenValueKeys = mutableSetOf<Any?>()
+            val losslessEntries = mutableListOf<GoMapEntry>()
+            val observedKeys = mutableSetOf<UHeapRef>()
+            var needsLosslessWitness = false
             val decodeKey: (UExpr<out USort>) -> Any? = { key ->
                 val value = if (usesRepresentatives) {
                     val reference = key.asExpr(addressSort)
@@ -399,21 +403,13 @@ class GoTestInterpreter(
                         } else {
                             USetEntryLValue(keySort, map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
                         }
+                        if (usesRepresentatives) observedKeys += key.asExpr(addressSort)
                         val decodedKey = decodeKey(key)
-                        if (!resolveBool(memory.read(membership))) {
-                            forbiddenKeys += decodedKey
-                            return@mapNotNull null
-                        }
+                        if (!resolveBool(memory.read(membership))) return@mapNotNull null
                         if (usesRepresentatives) {
                             val concrete = model.eval(key.asExpr(addressSort))
                             if (!seenRepresentatives.add(concrete)) return@mapNotNull null
-                            val distinctValueKey = seenValueKeys.add(decodedKey)
-                            if (!distinctValueKey) {
-                                throw UnsupportedOperationException(
-                                    "Go map has distinct representatives with JVM-equal keys ($keyType); " +
-                                        "duplicate NaN or pointer identities cannot be represented by a JVM Map",
-                                )
-                            }
+                            needsLosslessWitness = !seenValueKeys.add(decodedKey) || needsLosslessWitness
                         }
 
                         val lvalue = if (isRefSet) {
@@ -421,8 +417,11 @@ class GoTestInterpreter(
                         } else {
                             UMapEntryLValue(keySort, valueSort, map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
                         }
-                        val value = memory.read(lvalue)
-                        decodedKey to convertExpr(value, valueType)
+                        val value = convertExpr(memory.read(lvalue), valueType)
+                        if (usesRepresentatives) {
+                            losslessEntries += GoMapEntry(decodedKey, value, identity = model.eval(key).toString())
+                        }
+                        decodedKey to value
                     }.toMap()
                 )
             }
@@ -434,31 +433,41 @@ class GoTestInterpreter(
                 }.entries
             }
 
-            val length = resolveLength(memory.read(UMapLengthLValue(map, mapType, sizeSort)))
+            val lengthExpression = memory.read(UMapLengthLValue(map, mapType, sizeSort))
+            val length = resolveLength(lengthExpression)
 
             val result = mutableMapOf<Any?, Any?>()
             getEntries(memory, map).also { addToMap(result, it) }
             getEntries(model, model.eval(map)).also { addToMap(result, it) }
 
+            if (usesRepresentatives) {
+                // Unobserved entries need a solver-backed witness, never invented keys or values.
+                if (length != losslessEntries.size) {
+                    val canGenerateKeys = keyType.underlying() in setOf(
+                        GoBasicTypes.FLOAT32, GoBasicTypes.FLOAT64, GoBasicTypes.STRING,
+                    )
+                    val bound = if (length > losslessEntries.size && canGenerateKeys) {
+                        constrainHiddenMapEntries(
+                            map, mapType, keyType, observedKeys, lengthExpression,
+                            length = length,
+                            hiddenCount = minOf(length - losslessEntries.size, MAX_NEW_MAP_KEYS_PER_REFINEMENT),
+                        )
+                    } else {
+                        mkEq(lengthExpression, mkSizeExpr(losslessEntries.size))
+                    }
+                    throw MaterializationBoundException(bound)
+                }
+                return if (needsLosslessWitness) GoMapEntries(losslessEntries.toList()) else result
+            }
+
             if (length > result.size) {
                 val diff = length - result.size
-                val underlyingKey = keyType.underlying()
-                val floatingKey = underlyingKey == GoBasicTypes.FLOAT32 || underlyingKey == GoBasicTypes.FLOAT64
-                val stringKey = underlyingKey == GoBasicTypes.STRING
-                val canGenerateKey = !isRefSet || floatingKey || stringKey
-                val rng = if (canGenerateKey) RNG(underlyingKey as BasicType) else null
-                if (usesRepresentatives && !canGenerateKey) {
-                    throw UnsupportedOperationException(
-                        "Go value-key map has unmaterialized symbolic entries ($keyType)",
-                    )
-                }
+                val rng = if (isRefSet) null else RNG(keyStorageType as BasicType)
                 for (i in 0 until diff) {
-                    val key = if (isRefSet && !canGenerateKey) {
+                    val key = if (isRefSet) {
                         convertExpr(state.symbolicObjectMapAnyKey(map, mapType), keyType)
                     } else {
-                        val excluded = result.toMutableMap()
-                        forbiddenKeys.forEach { excluded[it] = null }
-                        requireNotNull(rng).generateUniqueMapKey(excluded)
+                        requireNotNull(rng).generateUniqueMapKey(result)
                     }
                     val value = convertExpr(valueSort.sampleUValue(), valueType)
                     result[key] = value
@@ -466,6 +475,99 @@ class GoTestInterpreter(
             }
 
             return result
+        }
+
+        private fun mapKeyPayload(
+            key: UHeapRef,
+            type: GoType,
+        ): Pair<UExpr<out USort>, UWritableMemory<GoType>> = with(ctx) {
+            val known = state.data.mapKeyRepresentatives[type].orEmpty().firstOrNull {
+                model.eval(it.reference) == model.eval(key) && resolveBool(it.guard)
+            }
+            val source = if (known == null) memory else state.memory
+            val snapshot = known?.snapshot ?: source.readField(key, field = 0, sort = typeToSort(type))
+            val underlying = type.underlying()
+            val sort = typeToSort(underlying)
+            val payload = if (type is NamedType) {
+                mkIte(
+                    mkHeapRefEq(snapshot.asExpr(addressSort), nullRef),
+                    sort.sampleUValue(),
+                    source.readField(snapshot.asExpr(addressSort), field = 0, sort = sort),
+                )
+            } else {
+                snapshot
+            }
+            payload to source
+        }
+
+        private fun constrainHiddenMapEntries(
+            map: UHeapRef,
+            mapType: GoType,
+            keyType: GoType,
+            observed: Set<UHeapRef>,
+            lengthExpression: UExpr<USizeSort>,
+            length: Int,
+            hiddenCount: Int,
+        ): UBoolExpr = with(ctx) {
+            val underlying = keyType.underlying()
+            val keys = observed.toMutableList()
+            val payloads = keys.map { mapKeyPayload(it, keyType).first }.toMutableList()
+            val usedStringLengths = if (underlying == GoBasicTypes.STRING) {
+                keys.map { key ->
+                    val (payload, source) = mapKeyPayload(key, keyType)
+                    val view = state.arrayView(payload.asExpr(addressSort), underlying, sourceMemory = source)
+                    resolveLength(view.length)
+                }.toMutableSet()
+            } else {
+                mutableSetOf()
+            }
+            var constraints = mkEq(lengthExpression, mkSizeExpr(length))
+            repeat(hiddenCount) {
+                val fresh = state.makeSymbolicRefUntyped()
+                val snapshot = memory.readField(fresh, field = 0, sort = typeToSort(keyType))
+                val sort = typeToSort(underlying)
+                val payload = if (keyType is NamedType) {
+                    mkIte(
+                        mkHeapRefEq(snapshot.asExpr(addressSort), nullRef),
+                        sort.sampleUValue(),
+                        memory.readField(snapshot.asExpr(addressSort), field = 0, sort = sort),
+                    )
+                } else {
+                    snapshot
+                }
+                constraints = mkAnd(
+                    constraints,
+                    memory.read(URefSetEntryLValue(map, fresh, mapType)),
+                    mkNot(mkHeapRefEq(fresh, nullRef)),
+                )
+                for (key in keys) constraints = mkAnd(constraints, mkNot(mkHeapRefEq(fresh, key)))
+                if (underlying == GoBasicTypes.STRING) {
+                    val nextLength = (0..MAX_ARRAY_LENGTH).firstOrNull { it !in usedStringLengths }
+                        ?: throw UnsupportedOperationException("No bounded distinct string key for Go map witness")
+                    usedStringLengths += nextLength
+                    val view = state.arrayView(payload.asExpr(addressSort), underlying, sourceMemory = memory)
+                    constraints = mkAnd(constraints, mkEq(view.length, mkSizeExpr(nextLength)))
+                    if (nextLength > 0) {
+                        constraints = mkAnd(constraints, mkNot(mkHeapRefEq(payload.asExpr(addressSort), nullRef)))
+                    }
+                    for (index in 0 until nextLength) {
+                        val byte = memory.readGoArrayIndex(
+                            view.backing, mkSizeAddExpr(view.offset, mkSizeExpr(index)), view.storageType, bv8Sort,
+                        )
+                        constraints = mkAnd(constraints, mkBvUnsignedLessOrEqualExpr(byte, mkBv(127, bv8Sort)))
+                    }
+                } else {
+                    val reflexive = GoBinaryOperator.Eql(payload, payload).asExpr(boolSort)
+                    constraints = mkAnd(constraints, reflexive)
+                    for (other in payloads) {
+                        val equal = GoBinaryOperator.Eql(payload, other).asExpr(boolSort)
+                        constraints = mkAnd(constraints, mkNot(equal))
+                    }
+                }
+                keys += fresh
+                payloads += payload
+            }
+            constraints
         }
 
         fun resolveTuple(tuple: UHeapRef, tupleType: TupleType): List<Any?>? = with(ctx) {
@@ -551,6 +653,7 @@ class GoTestInterpreter(
     private companion object {
         const val MAX_ARRAY_LENGTH = 10_000
         const val MAX_MODEL_REFINEMENTS = 32
+        const val MAX_NEW_MAP_KEYS_PER_REFINEMENT = 64
     }
 
     private class MaterializationBoundException(val bound: UBoolExpr) : RuntimeException()
@@ -656,10 +759,6 @@ class RNG(
 
         GoBasicTypes.UINT64, GoBasicTypes.UINTPTR -> {
             { random.nextULong() }
-        }
-
-        GoBasicTypes.STRING -> {
-            { random.nextLong().toString() }
         }
 
         GoBasicTypes.FLOAT32 -> {

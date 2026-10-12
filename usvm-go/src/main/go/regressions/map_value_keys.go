@@ -94,3 +94,109 @@ func interfaceMapValueLookup() int {
 	values := map[any]int{[2]int{1, 2}: 7}
 	return values[[2]int{1, 2}]
 }
+
+type mapArrayKey [2]int
+
+func float32MapZeroAndNaN() int {
+	zero := float32(negativeMapZero(0))
+	nan := float32(mapNaN(0))
+	values := map[float32]int{0: 7}
+	values[zero] = 9
+	if len(values) != 1 || values[0] != 9 {
+		return -1
+	}
+	values[nan] = 7
+	values[nan] = 9
+	delete(values, zero)
+	result := len(values) * 100
+	for key, value := range values {
+		if key == key {
+			return -1
+		}
+		result += value
+	}
+	return result
+}
+
+func interfaceMapUncomparableLookup() int {
+	values := map[any]int{}
+	key := []int{1}
+	return values[key]
+}
+
+func interfaceMapUncomparableUpdate() int {
+	values := map[any]int{}
+	key := []int{1}
+	values[key] = 7
+	return len(values)
+}
+
+func floatMapNaNResult() map[float64]int {
+	key := mapNaN(0)
+	values := map[float64]int{}
+	values[key] = 7
+	values[key] = 9
+	return values
+}
+
+func pointerMapKeyResult() map[*int]int {
+	first, second := new(int), new(int)
+	values := map[*int]int{first: 7, second: 9}
+	return values
+}
+
+func namedStringMapResult() map[mapStringKey]int {
+	return map[mapStringKey]int{"same": 9}
+}
+
+func namedArrayMapResult() map[mapArrayKey]int {
+	return map[mapArrayKey]int{{1, 2}: 7}
+}
+
+func inputFloatMapLookup(values map[float64]int) int {
+	value, found := values[negativeMapZero(0)]
+	if found {
+		return value
+	}
+	return -1
+}
+
+func inputStringMapLookup(values map[string]int) int {
+	value, found := values["same"]
+	if found {
+		return value
+	}
+	return -1
+}
+
+func inputFloatMapExtraEntry(values map[float64]int) int {
+	if len(values) != 2 {
+		return -1
+	}
+	value, found := values[0]
+	if !found {
+		return -2
+	}
+	return value
+}
+
+func inputStringMapExtraEntry(values map[string]int) int {
+	if len(values) != 2 {
+		return -1
+	}
+	value, found := values["same"]
+	if !found {
+		return -2
+	}
+	return value
+}
+
+type mapPointerNumber int
+
+func pointerMapConvertedAlias() int {
+	pointer := new(int)
+	values := map[*int]int{pointer: 7}
+	converted := (*mapPointerNumber)(pointer)
+	restored := (*int)(converted)
+	return len(values)*10 + values[restored]
+}
