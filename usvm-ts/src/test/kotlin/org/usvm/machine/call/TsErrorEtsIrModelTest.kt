@@ -1,10 +1,5 @@
 package org.usvm.machine.call
 
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
-import kotlin.time.Duration
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
@@ -23,6 +18,11 @@ import org.usvm.machine.expr.builtInErrorSignature
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.util.TsTestResolver
 import org.usvm.util.getResourcePath
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
+import kotlin.time.Duration
 
 class TsErrorEtsIrModelTest {
     private val builtInSourceFile = loadEtsFileAutoConvert(
