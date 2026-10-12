@@ -136,6 +136,7 @@ import org.usvm.state.GoArrayValueCopy
 import org.usvm.state.GoMethodResult
 import org.usvm.state.GoState.Companion.POINTER_FIELD
 import org.usvm.state.copyValue
+import org.usvm.state.decodeUtf8Rune
 import org.usvm.state.valueShape
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.type.GoBasicTypes
@@ -610,94 +611,105 @@ class GoExprVisitor(
     }
 
     override fun visitGoRangeExpr(expr: GoRangeExpr): UExpr<out USort> {
-        val collection = expr.instance.accept(this).asExpr(ctx.addressSort).let {
-            when (val type = expr.instance.type.underlying()) {
-                is MapType -> {
-                    copyMap(unboxNamedRef(it, expr.instance.type), type)
-                }
-                GoBasicTypes.STRING -> {
-                    it
-                }
-                else -> {
-                    error("illegal type for range")
-                }
-            }
+        val reference = unboxNamedRef(expr.instance.accept(this).asExpr(ctx.addressSort), expr.instance.type)
+        val type = expr.instance.type.underlying()
+        val collection = if (type is MapType) mapOrEmpty(reference, type) else reference
+        val remaining = when (type) {
+            is MapType -> copyMap(collection, type)
+            GoBasicTypes.STRING -> collection
+            else -> error("illegal type for range")
         }
+
         return scope.calcOnState {
             mkTuple(
-                TupleType(listOf(expr.instance.type, GoBasicTypes.INT32)),
-                collection,
+                TupleType(listOf(expr.instance.type, GoBasicTypes.INT32, expr.instance.type)),
+                remaining,
                 ctx.mkSizeExpr(0),
+                collection,
             )
         }
     }
 
     override fun visitGoNextExpr(expr: GoNextExpr): UExpr<out USort> {
         val iter = expr.instance.accept(this).asExpr(ctx.addressSort)
-        return scope.calcOnState {
-            val tupleType = memory.typeStreamOf(iter).commonSuperType as TupleType
-            val collection = memory.readField(iter, 0, ctx.addressSort)
-            val notNull = ctx.mkNot(ctx.mkHeapRefEq(collection, ctx.nullRef))
-            when (val collectionType = tupleType.types[0].underlying()) {
-                GoBasicTypes.STRING -> {
-                    val index = memory.readField(iter, 1, ctx.sizeSort)
-                    val char = memory.readGoArrayIndex(collection, index, collectionType, ctx.bv8Sort)
-                    val length = memory.readGoArrayLength(collection, collectionType, ctx.sizeSort)
-                    val ok = ctx.mkAnd(notNull, ctx.mkBvSignedLessExpr(index, length))
+        val tupleType = scope.calcOnState { memory.typeStreamOf(iter).commonSuperType as TupleType }
+        val collection = scope.calcOnState { memory.readField(iter, 0, ctx.addressSort) }
+        val notNull = ctx.mkNot(ctx.mkHeapRefEq(collection, ctx.nullRef))
 
-                    checkLength(length) ?: throw GoStepAbort()
+        return when (val collectionType = tupleType.types[0].underlying()) {
+            GoBasicTypes.STRING -> scope.calcOnState {
+                val index = memory.readField(iter, 1, ctx.sizeSort)
+                val length = memory.readGoArrayLength(collection, collectionType, ctx.sizeSort)
+                val ok = ctx.mkAnd(notNull, ctx.mkSizeLtExpr(index, length))
+                checkLength(length) ?: throw GoStepAbort()
+                val (rune, width) = decodeUtf8Rune(collection, index, length)
 
-                    memory.writeField(iter, 1, ctx.sizeSort, ctx.mkBvAddExpr(index, ctx.mkSizeExpr(1)), ctx.trueExpr)
-                    mkTuple(
-                        TupleType(listOf(GoBasicTypes.BOOL, GoBasicTypes.INT32, GoBasicTypes.INT32)),
-                        ok,
-                        index,
-                        ctx.mkPrimitiveCast(char, ctx.bv32Sort),
-                    )
-                }
-
-                is MapType -> {
-                    scope.ensureObjectMapSizeCorrect(collection, collectionType) ?: throw GoStepAbort()
-
-                    val length = symbolicObjectMapSize(collection, collectionType)
-                    val ok = ctx.mkAnd(notNull, ctx.mkBvSignedGreaterExpr(length, ctx.mkBv(0)))
-                    val keySort = ctx.typeToSort(collectionType.keyType.mapKeyStorageType())
-                    val isPrimitiveKey = keySort != ctx.addressSort
-                    val (key, value) = if (isPrimitiveKey) {
-                        val k = symbolicPrimitiveMapAnyKey(collection, collectionType, keySort, USizeExprKeyInfo())
-                        val v = symbolicPrimitiveMapGet(
-                            collection,
-                            k,
-                            collectionType,
-                            ctx.typeToSort(collectionType.valueType),
-                            USizeExprKeyInfo(),
-                        )
-                        symbolicPrimitiveMapRemove(collection, k, collectionType, USizeExprKeyInfo())
-                        k to v
-                    } else {
-                        val k = symbolicObjectMapAnyKey(collection, collectionType)
-                        val v = symbolicObjectMapGet(
-                            collection,
-                            k,
-                            collectionType,
-                            ctx.typeToSort(collectionType.valueType),
-                        )
-                        symbolicObjectMapRemove(collection, k, collectionType)
-                        k to v
-                    }
-
-                    mkTuple(
-                        TupleType(listOf(GoBasicTypes.BOOL, collectionType.keyType, collectionType.valueType)),
-                        ok,
-                        if (isPrimitiveKey) tryBox(key, collectionType.keyType) else key,
-                        value,
-                    )
-                }
-
-                else -> {
-                    error("invalid collection type in next expr")
-                }
+                memory.writeField(iter, 1, ctx.sizeSort, ctx.mkSizeAddExpr(index, width), guard = ok)
+                mkTuple(
+                    TupleType(listOf(GoBasicTypes.BOOL, GoBasicTypes.INT32, GoBasicTypes.INT32)),
+                    ok,
+                    index,
+                    rune,
+                )
             }
+            is MapType -> nextMapEntry(iter, collection, collectionType)
+            else -> error("invalid collection type in next expr")
+        }
+    }
+
+    private fun nextMapEntry(iter: UHeapRef, remaining: UHeapRef, type: MapType): UHeapRef {
+        scope.ensureObjectMapSizeCorrect(remaining, type) ?: throw GoStepAbort()
+        val original = scope.calcOnState { memory.readField(iter, 2, ctx.addressSort) }
+        val length = scope.calcOnState { symbolicObjectMapSize(remaining, type) }
+        val hasNext = ctx.mkSizeGtExpr(length, ctx.mkSizeExpr(0))
+        val keySort = ctx.typeToSort(type.keyType.mapKeyStorageType())
+        val valueSort = ctx.typeToSort(type.valueType)
+        val isReferenceKey = keySort == ctx.addressSort
+        val key = scope.calcOnState {
+            if (isReferenceKey) {
+                symbolicObjectMapAnyKey(remaining, type)
+            } else {
+                symbolicPrimitiveMapAnyKey(remaining, type, keySort, USizeExprKeyInfo())
+            }
+        }
+        val wasPresent = scope.calcOnState {
+            if (isReferenceKey) {
+                memory.refSetContainsElement(remaining, key.asExpr(ctx.addressSort), type)
+            } else {
+                memory.setContainsElement(remaining, key, type, USizeExprKeyInfo())
+            }
+        }
+        scope.assert(ctx.mkOr(ctx.mkNot(hasNext), wasPresent)) ?: throw GoStepAbort()
+
+        val stillPresent = scope.calcOnState {
+            if (isReferenceKey) {
+                symbolicObjectMapRemove(remaining, key.asExpr(ctx.addressSort), type)
+                memory.refSetContainsElement(original, key.asExpr(ctx.addressSort), type)
+            } else {
+                symbolicPrimitiveMapRemove(remaining, key, type, USizeExprKeyInfo())
+                memory.setContainsElement(original, key, type, USizeExprKeyInfo())
+            }
+        }
+        // A deleted key consumes one machine step. The false successor retries this SSA instruction.
+        val canYieldOrFinish = ctx.mkOr(ctx.mkNot(hasNext), stillPresent)
+        scope.fork(canYieldOrFinish) ?: throw GoStepAbort()
+
+        return scope.calcOnState {
+            val value = if (isReferenceKey) {
+                symbolicObjectMapGet(original, key.asExpr(ctx.addressSort), type, valueSort)
+            } else {
+                symbolicPrimitiveMapGet(original, key, type, valueSort, USizeExprKeyInfo())
+            }
+            mkTuple(
+                TupleType(listOf(GoBasicTypes.BOOL, type.keyType, type.valueType)),
+                hasNext,
+                if (isReferenceKey) key else tryBox(key, type.keyType),
+                ctx.mkIte(
+                    hasNext,
+                    trueBranch = { copyValue(value, type.valueType).asExpr(valueSort) },
+                    falseBranch = { sampleValue(type.valueType).asExpr(valueSort) },
+                ),
+            )
         }
     }
 
@@ -906,6 +918,12 @@ class GoExprVisitor(
         }
 
         val operandType = expr.lhv.type.underlying()
+        val hasValueEquality = operandType is StructType || operandType is ArrayType || operandType is InterfaceType
+        if (isEquality && hasValueEquality) {
+            val equal = valuesEqual(lhv, rhv, expr.lhv.type, guard = ctx.trueExpr)
+            return if (expr is GoEqlExpr) equal else ctx.mkNot(equal)
+        }
+
         val signed = operandType is BasicType && !operandType.typeName.startsWith("uint")
         val lhs = unboxNamedPrimitive(lhv, expr.lhv.type)
         val rhs = unboxNamedPrimitive(rhv, expr.rhv.type)
@@ -1320,6 +1338,20 @@ class GoExprVisitor(
     private fun compareStrings(expr: GoBinaryExpr): UExpr<UBoolSort> {
         val left = unboxNamedRef(expr.lhv.accept(this).asExpr(ctx.addressSort), expr.lhv.type)
         val right = unboxNamedRef(expr.rhv.accept(this).asExpr(ctx.addressSort), expr.rhv.type)
+        val (equal, less) = compareStringValues(left, right)
+
+        return when (expr) {
+            is GoEqlExpr -> equal
+            is GoNeqExpr -> ctx.mkNot(equal)
+            is GoLssExpr -> less
+            is GoLeqExpr -> ctx.mkOr(less, equal)
+            is GoGtrExpr -> ctx.mkNot(ctx.mkOr(less, equal))
+            is GoGeqExpr -> ctx.mkNot(less)
+            else -> error("Unsupported string operation: $expr")
+        }
+    }
+
+    private fun compareStringValues(left: UHeapRef, right: UHeapRef): Pair<UBoolExpr, UBoolExpr> {
         return scope.calcOnState {
             val leftView = arrayView(left, GoBasicTypes.STRING)
             val rightView = arrayView(right, GoBasicTypes.STRING)
@@ -1352,30 +1384,127 @@ class GoExprVisitor(
             }
             less = ctx.mkOr(less, ctx.mkAnd(equalPrefix, ctx.mkSizeLtExpr(leftView.length, rightView.length)))
             val equal = ctx.mkAnd(equalPrefix, ctx.mkEq(leftView.length, rightView.length))
-            when (expr) {
-                is GoEqlExpr -> {
-                    equal
-                }
-                is GoNeqExpr -> {
-                    ctx.mkNot(equal)
-                }
-                is GoLssExpr -> {
-                    less
-                }
-                is GoLeqExpr -> {
-                    ctx.mkOr(less, equal)
-                }
-                is GoGtrExpr -> {
-                    ctx.mkNot(ctx.mkOr(less, equal))
-                }
-                is GoGeqExpr -> {
-                    ctx.mkNot(less)
-                }
-                else -> {
-                    error("Unsupported string operation: $expr")
-                }
-            }
+            equal to less
         }
+    }
+
+    private fun valuesEqual(
+        left: UExpr<out USort>,
+        right: UExpr<out USort>,
+        type: GoType,
+        guard: UBoolExpr,
+    ): UBoolExpr {
+        if (guard.isFalse) return ctx.falseExpr
+
+        val underlying = type.underlying()
+        if (underlying is InterfaceType) {
+            return interfacesEqual(left.asExpr(ctx.addressSort), right.asExpr(ctx.addressSort), guard)
+        }
+        val lhs = equalityPayload(left, type)
+        val rhs = equalityPayload(right, type)
+
+        return when (underlying) {
+            is StructType -> {
+                var equal = ctx.trueExpr
+                for ((index, fieldType) in underlying.fields.orEmpty().withIndex()) {
+                    val sort = ctx.typeToSort(fieldType)
+                    val fieldLeft = scope.calcOnState { memory.readField(lhs.asExpr(ctx.addressSort), index, sort) }
+                    val fieldRight = scope.calcOnState { memory.readField(rhs.asExpr(ctx.addressSort), index, sort) }
+                    val fieldEqual = valuesEqual(fieldLeft, fieldRight, fieldType, ctx.mkAnd(guard, equal))
+                    equal = ctx.mkAnd(equal, fieldEqual)
+                }
+                equal
+            }
+            is ArrayType -> {
+                val leftView = scope.calcOnState { arrayView(lhs.asExpr(ctx.addressSort), underlying) }
+                val rightView = scope.calcOnState { arrayView(rhs.asExpr(ctx.addressSort), underlying) }
+                val sort = ctx.typeToSort(underlying.elementType)
+                var equal = ctx.trueExpr
+                for (index in 0 until underlying.len.toInt()) {
+                    val position = ctx.mkSizeExpr(index)
+                    val elementLeft = scope.calcOnState {
+                        memory.readGoArrayIndex(
+                            leftView.backing,
+                            ctx.mkSizeAddExpr(leftView.offset, position),
+                            leftView.storageType,
+                            sort,
+                        )
+                    }
+                    val elementRight = scope.calcOnState {
+                        memory.readGoArrayIndex(
+                            rightView.backing,
+                            ctx.mkSizeAddExpr(rightView.offset, position),
+                            rightView.storageType,
+                            sort,
+                        )
+                    }
+                    val elementEqual = valuesEqual(elementLeft, elementRight, underlying.elementType, ctx.mkAnd(guard, equal))
+                    equal = ctx.mkAnd(equal, elementEqual)
+                }
+                equal
+            }
+            GoBasicTypes.STRING -> compareStringValues(lhs.asExpr(ctx.addressSort), rhs.asExpr(ctx.addressSort)).first
+            is PointerType -> referenceEquals(lhs.asExpr(ctx.addressSort), rhs.asExpr(ctx.addressSort))
+            is BasicType -> GoBinaryOperator.Eql(lhs, rhs).asExpr(ctx.boolSort)
+            else -> unsupportedExpr("value equality for $type").asExpr(ctx.boolSort)
+        }
+    }
+
+    private fun equalityPayload(value: UExpr<out USort>, type: GoType): UExpr<out USort> {
+        if (type !is NamedType) return value
+
+        val underlying = type.underlying()
+        val reference = value.asExpr(ctx.addressSort)
+        val sort = ctx.typeToSort(underlying)
+        return scope.calcOnState {
+            ctx.mkIte(
+                ctx.mkHeapRefEq(reference, ctx.nullRef),
+                trueBranch = { sampleValue(underlying).asExpr(sort) },
+                falseBranch = { unbox(reference, sort).asExpr(sort) },
+            )
+        }
+    }
+
+    private fun interfacesEqual(left: UHeapRef, right: UHeapRef, guard: UBoolExpr): UBoolExpr {
+        val leftNil = ctx.mkHeapRefEq(left, ctx.nullRef)
+        val rightNil = ctx.mkHeapRefEq(right, ctx.nullRef)
+        val bothNonNil = ctx.mkAnd(ctx.mkNot(leftNil), ctx.mkNot(rightNil))
+        if (bothNonNil.isFalse) return ctx.mkAnd(leftNil, rightNil)
+
+        var result = ctx.mkAnd(leftNil, rightNil)
+        val typeSystem = ctx.typeSystem<GoType>()
+        val dynamicTypes = program.types.values.distinct().filter(typeSystem::isInstantiable)
+        for (dynamicType in dynamicTypes) {
+            val sameType = scope.calcOnState {
+                ctx.mkAnd(
+                    memory.types.evalIsSubtype(left, dynamicType),
+                    memory.types.evalIsSupertype(left, dynamicType),
+                    memory.types.evalIsSubtype(right, dynamicType),
+                    memory.types.evalIsSupertype(right, dynamicType),
+                )
+            }
+            val active = ctx.mkAnd(guard, bothNonNil, sameType)
+            if (scope.checkSat(active) == null) continue
+
+            if (!isComparable(dynamicType)) {
+                scope.fork(ctx.mkNot(active), blockOnFalseState = { panic("comparing uncomparable type $dynamicType") })
+                    ?: throw GoStepAbort()
+                continue
+            }
+            val sort = ctx.typeToSort(dynamicType)
+            val lhs = if (dynamicType is NamedType) left else scope.calcOnState { unbox(left, sort) }
+            val rhs = if (dynamicType is NamedType) right else scope.calcOnState { unbox(right, sort) }
+            val equal = valuesEqual(lhs, rhs, dynamicType, guard = active)
+            result = ctx.mkOr(result, ctx.mkAnd(bothNonNil, sameType, equal))
+        }
+        return result
+    }
+
+    private fun isComparable(type: GoType): Boolean = when (val underlying = type.underlying()) {
+        is StructType -> underlying.fields.orEmpty().all(::isComparable)
+        is ArrayType -> isComparable(underlying.elementType)
+        is MapType, is SliceType, is SignatureType -> false
+        else -> true
     }
 
     private fun appendCompositeArray(

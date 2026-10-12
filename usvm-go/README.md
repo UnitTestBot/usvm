@@ -138,9 +138,10 @@ support. In particular:
 
 - Channels, goroutines, `select`, generic multi-conversions and unsafe pointer
   conversions are unsupported. Unsupported callees are reported explicitly.
-- String comparison requires at least one concrete length. Rune conversion and
-  complete UTF-8 string iteration are not implemented. Resolved strings are decoded
-  as UTF-8, so arbitrary invalid byte sequences are not preserved in result text.
+- String comparison requires at least one concrete length. Rune conversion is not
+  implemented. String range decodes UTF-8 runes and byte indexes, consuming each malformed
+  byte as RuneError with width one. Resolved strings are decoded as UTF-8, so arbitrary
+  invalid byte sequences are not preserved in result text.
 - Numeric conversion regressions cover finite, representable float-to-integer
   inputs. NaN, infinity and out-of-range float-to-integer results have not been
   validated; such results may depend on the Go target.
