@@ -1,22 +1,9 @@
 package org.usvm.machine
 
 import mu.KotlinLogging
-import org.jacodb.ets.model.EtsAliasType
-import org.jacodb.ets.model.EtsArrayType
-import org.jacodb.ets.model.EtsClass
-import org.jacodb.ets.model.EtsClassSignature
-import org.jacodb.ets.model.EtsClassType
-import org.jacodb.ets.model.EtsClassValueType
-import org.jacodb.ets.model.EtsFileSignature
-import org.jacodb.ets.model.EtsGenericType
-import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
-import org.jacodb.ets.model.EtsTupleType
-import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsUnclearRefType
-import org.jacodb.ets.model.EtsUnionType
 import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
@@ -30,6 +17,7 @@ import org.usvm.machine.call.deduplicateEtsFilesBySignature
 import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.types.TsConstructorInputGuard
 import org.usvm.machine.types.TsTypeSystem
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
@@ -93,13 +81,14 @@ class TsMachine(
             )
         }
         ?: scene
-    private val graph = TsGraph(analysisScene)
-    private val typeSystem = TsTypeSystem(analysisScene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
+    private val runtimeScene = analysisScene.withCoreRuntimeSdk()
+    private val graph = TsGraph(runtimeScene)
+    private val typeSystem = TsTypeSystem(runtimeScene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
     private val components = TsComponents(typeSystem, options)
     private val ctx = TsContext(
-        scene = analysisScene,
+        scene = runtimeScene,
         components = components,
-        applicationAndSdkClasses = scene.projectAndSdkClasses,
+        applicationAndSdkClasses = runtimeScene.projectAndSdkClasses,
     )
     private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsModelUnknownCallDispatcher(
         models = requireNotNull(resolvedUnknownCallModels),
@@ -262,18 +251,12 @@ class TsMachine(
     ): Pair<Map<EtsMethod, TsState>, MutableSet<String>> {
         val initialStates = mutableMapOf<EtsMethod, TsState>()
         val unsupportedPaths = mutableSetOf<String>()
-        val classesBySignature = analysisScene.projectAndSdkClasses.associateBy { it.signature }
+        val constructorInputs = TsConstructorInputGuard(runtimeScene)
 
         methods.forEach { method ->
-            val genericParameters = method.typeParameters.filterIsInstance<EtsGenericType>().associateBy { it.typeName }
-            val unsupportedParameter = method.parameters.firstNotNullOfOrNull { parameter ->
-                val gap = parameter.type.constructorInputGap(genericParameters, classesBySignature)
-                gap?.let { parameter to it }
-            }
-            if (unsupportedParameter != null) {
-                val (parameter, gap) = unsupportedParameter
-                unsupportedPaths += "${gap.description} '${parameter.name}' " +
-                    "in ${method.humanReadableSignature} is not modeled"
+            val unsupportedReason = constructorInputs.unsupportedReason(method)
+            if (unsupportedReason != null) {
+                unsupportedPaths += unsupportedReason
             } else {
                 initialStates[method] = interpreter.getInitialState(method, targets)
             }
@@ -285,136 +268,4 @@ class TsMachine(
     override fun close() {
         components.close()
     }
-}
-
-private enum class ConstructorInputGap(val description: String) {
-    CONSTRUCTOR_VALUE("Constructor-typed parameter"),
-    UNRESOLVED_INHERITED_GENERIC("Unresolved inherited generic field in parameter"),
-}
-
-private fun EtsType.constructorInputGap(
-    genericParameters: Map<String, EtsGenericType>,
-    classesBySignature: Map<EtsClassSignature, EtsClass>,
-    visitedGenerics: Set<String> = emptySet(),
-    visitedClasses: Set<EtsClassSignature> = emptySet(),
-): ConstructorInputGap? = when (this) {
-    is EtsClassValueType -> ConstructorInputGap.CONSTRUCTOR_VALUE
-    is EtsUnionType -> types.firstNotNullOfOrNull {
-        it.constructorInputGap(genericParameters, classesBySignature, visitedGenerics, visitedClasses)
-    }
-    is EtsIntersectionType -> types.firstNotNullOfOrNull {
-        it.constructorInputGap(genericParameters, classesBySignature, visitedGenerics, visitedClasses)
-    }
-    is EtsTupleType -> types.firstNotNullOfOrNull {
-        it.constructorInputGap(genericParameters, classesBySignature, visitedGenerics, visitedClasses)
-    }
-    is EtsArrayType -> elementType.constructorInputGap(
-        genericParameters,
-        classesBySignature,
-        visitedGenerics,
-        visitedClasses,
-    )
-    is EtsClassType -> constructorInputGapInClass(
-        genericParameters,
-        classesBySignature,
-        visitedGenerics,
-        visitedClasses,
-    )
-    is EtsUnclearRefType -> typeParameters.firstNotNullOfOrNull {
-        it.constructorInputGap(genericParameters, classesBySignature, visitedGenerics, visitedClasses)
-    }
-    is EtsAliasType -> originalType.constructorInputGap(
-        genericParameters,
-        classesBySignature,
-        visitedGenerics,
-        visitedClasses,
-    )
-    is EtsGenericType -> {
-        if (typeName in visitedGenerics) {
-            null
-        } else {
-            val declaration = genericParameters[typeName]
-            listOfNotNull(constraint, defaultType, declaration?.constraint, declaration?.defaultType)
-                .firstNotNullOfOrNull {
-                    it.constructorInputGap(
-                        genericParameters,
-                        classesBySignature,
-                        visitedGenerics + typeName,
-                        visitedClasses,
-                    )
-                }
-        }
-    }
-    else -> null
-}
-
-private fun EtsClassType.constructorInputGapInClass(
-    genericParameters: Map<String, EtsGenericType>,
-    classesBySignature: Map<EtsClassSignature, EtsClass>,
-    visitedGenerics: Set<String>,
-    visitedClasses: Set<EtsClassSignature>,
-): ConstructorInputGap? {
-    val typeArgumentGap = typeParameters.firstNotNullOfOrNull {
-        it.constructorInputGap(genericParameters, classesBySignature, visitedGenerics, visitedClasses)
-    }
-    if (typeArgumentGap != null) {
-        return typeArgumentGap
-    }
-
-    if (signature in visitedClasses) {
-        return null
-    }
-
-    val clazz = classesBySignature[signature] ?: return null
-    val nextVisitedClasses = visitedClasses + signature
-    val fieldGap = clazz.fields.firstNotNullOfOrNull { field ->
-        if (field.modifiers.isStatic) return@firstNotNullOfOrNull null
-
-        field.type.constructorInputGap(
-            genericParameters,
-            classesBySignature,
-            visitedGenerics,
-            nextVisitedClasses,
-        )
-    }
-    if (fieldGap != null) {
-        return fieldGap
-    }
-
-    val superClass = clazz.superClass ?: return null
-    val superClasses = if (superClass.file == EtsFileSignature.UNKNOWN) {
-        classesBySignature.values.filter { it.name == superClass.name }
-    } else {
-        listOfNotNull(classesBySignature[superClass])
-    }
-
-    return superClasses.firstNotNullOfOrNull { parent ->
-        val parentGap = EtsClassType(parent.signature).constructorInputGap(
-            genericParameters,
-            classesBySignature,
-            visitedGenerics,
-            nextVisitedClasses,
-        )
-        if (parentGap != null) return@firstNotNullOfOrNull parentGap
-
-        // The frontend omits extends type arguments, so an inherited T may contain a constructor.
-        val parentGenerics = parent.typeParameters.filterIsInstance<EtsGenericType>()
-            .mapTo(mutableSetOf()) { it.typeName }
-        val unresolvedGenericField = parent.fields.any { field ->
-            !field.modifiers.isStatic && field.type.containsGeneric(parentGenerics)
-        }
-        if (unresolvedGenericField) ConstructorInputGap.UNRESOLVED_INHERITED_GENERIC else null
-    }
-}
-
-private fun EtsType.containsGeneric(names: Set<String>): Boolean = when (this) {
-    is EtsGenericType -> typeName in names
-    is EtsUnionType -> types.any { it.containsGeneric(names) }
-    is EtsIntersectionType -> types.any { it.containsGeneric(names) }
-    is EtsTupleType -> types.any { it.containsGeneric(names) }
-    is EtsArrayType -> elementType.containsGeneric(names)
-    is EtsClassType -> typeParameters.any { it.containsGeneric(names) }
-    is EtsUnclearRefType -> typeParameters.any { it.containsGeneric(names) }
-    is EtsAliasType -> originalType.containsGeneric(names)
-    else -> false
 }

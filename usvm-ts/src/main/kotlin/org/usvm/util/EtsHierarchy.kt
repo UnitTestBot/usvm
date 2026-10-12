@@ -45,7 +45,7 @@ class EtsHierarchy(private val scene: EtsScene) {
                     }
 
                     result.takeIf { it.isNotEmpty() }
-                }.flatten().toMutableSet() + classesForType(OBJECT_CLASS)
+                }.flatten().toMutableSet() + scene.sdkClasses.filter { it.name == "Object" }
             }
         }
 
