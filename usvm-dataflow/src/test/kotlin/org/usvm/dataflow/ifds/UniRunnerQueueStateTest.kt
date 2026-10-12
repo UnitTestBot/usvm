@@ -120,9 +120,17 @@ class UniRunnerQueueStateTest {
             releaseIdle.countDown()
             sender.join(3000)
             receiver.join(3000)
+
+            assertFalse(sender.isAlive)
+            assertFalse(receiver.isAlive)
             assertNull(failure.get())
             assertEquals(expected = true, actual = fixture.reports.first())
-            fixture.dispatcher.nextTask().run()
+
+            // Buffered work can be received in the initial task before it suspends.
+            val edgeProcessingPending = fixture.callInspections.get() < 2
+            if (edgeProcessingPending) {
+                fixture.dispatcher.nextTask().run()
+            }
 
             assertEquals(expected = 2, actual = fixture.callInspections.get())
             assertEquals(listOf(true, false, false, true), fixture.reports.toList())
