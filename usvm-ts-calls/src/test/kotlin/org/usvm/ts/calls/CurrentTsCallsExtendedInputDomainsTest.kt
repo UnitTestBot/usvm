@@ -258,4 +258,41 @@ internal class CurrentTsCallsExtendedInputDomainsTest : CurrentTsCallsSymbolicEn
         assertTrue(result.diagnostic.orEmpty().contains("inputs.values[]"))
     }
 
+
+    @Test
+    fun `optional array slots preserve independent numeric and undefined values`() {
+        val fixture = fixture(
+            source = """
+                export function mixedSlots(values: (number | undefined)[]): boolean {
+                  if (values.length === 2 && values[0] === 7 && values[1] === undefined) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "mixedSlots",
+            inputs = listOf(
+                PropertyInput(
+                    name = "values",
+                    domain = ArrayDomain(
+                        element = OptionalDomain(IntegerDomain(min = 0, max = 10)),
+                        minLength = 2,
+                        maxLength = 2,
+                    ),
+                ),
+            ),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.search(modelIds = emptySet())
+
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        val inputs = assertNotNull(result.inputs, result.toString())
+        assertEquals(
+            listOf(JsConcreteValue.number(7.0), JsConcreteValue.Undefined),
+            assertIs<JsConcreteValue.Array>(inputs.single()).elements,
+        )
+        fixture.assertReplayConfirmed(inputs)
+    }
+
 }

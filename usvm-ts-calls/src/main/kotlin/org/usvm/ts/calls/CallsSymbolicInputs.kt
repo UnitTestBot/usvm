@@ -22,13 +22,7 @@ internal fun PropertyDomain.isSupportedCallsSymbolicDomain(): Boolean = when (th
     is ConstantDomain -> value !is JsConcreteValue.Array
     is OptionalDomain -> value.isSupportedCallsSymbolicDomain() &&
         (nil == JsConcreteValue.Null || nil == JsConcreteValue.Undefined)
-    is ArrayDomain -> when (val elementDomain = element) {
-        is ArrayDomain -> elementDomain.isSupportedCallsSymbolicDomain()
-        BooleanDomain, is IntegerDomain, is NumberDomain, is StringDomain -> true
-        is ConstantDomain -> elementDomain.value is JsConcreteValue.Boolean ||
-            elementDomain.value is JsConcreteValue.Number || elementDomain.value is JsConcreteValue.String
-        else -> false
-    }
+    is ArrayDomain -> element.isSupportedCallsSymbolicDomain()
     else -> false
 }
 

@@ -6,14 +6,18 @@ import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnionType
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.machine.TsSizeSort
+import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.extractValue
@@ -73,11 +77,13 @@ private fun TsState.initializeIntegerInput(domain: IntegerDomain): UExpr<KFp64So
         value = value,
     )
     val negativeZero = mkAnd(mkFpIsZeroExpr(value), mkFpIsNegativeExpr(value))
+    val minimum = mkFp64(domain.min.toDouble())
+    val maximum = mkFp64(domain.max.toDouble())
     pathConstraints += mkAnd(
         mkFpEqualExpr(value, rounded),
         mkNot(negativeZero),
-        mkFpLessOrEqualExpr(mkFp64(domain.min.toDouble()), value),
-        mkFpLessOrEqualExpr(value, mkFp64(domain.max.toDouble())),
+        mkFpLessOrEqualExpr(minimum, value),
+        mkFpLessOrEqualExpr(value, maximum),
     )
     value
 }
@@ -101,10 +107,13 @@ private fun TsState.materializeCallsOptional(domain: OptionalDomain): Materializ
     val nestedNumber = extractValue(nested.value, fp64Sort, ::getIntermediateFpLValue)
     val nestedReference = extractValue(nested.value, addressSort, ::getIntermediateRefLValue)
     val reference = mkIte(chooseValue, nestedReference.first ?: mkUndefinedValue(), nil.asExpr(addressSort))
+    val boolKind = mkAnd(chooseValue, nestedBool.second)
+    val numberKind = mkAnd(chooseValue, nestedNumber.second)
+    val referenceKind = mkOr(mkNot(chooseValue), mkAnd(chooseValue, nestedReference.second))
     val valueType = EtsFakeType(
-        boolTypeExpr = mkAnd(chooseValue, nestedBool.second),
-        fpTypeExpr = mkAnd(chooseValue, nestedNumber.second),
-        refTypeExpr = mkOr(mkNot(chooseValue), mkAnd(chooseValue, nestedReference.second)),
+        boolTypeExpr = boolKind,
+        fpTypeExpr = numberKind,
+        refTypeExpr = referenceKind,
     )
     val value = mkFakeValue(
         scope = null,
@@ -128,11 +137,18 @@ private fun PropertyDomain.callsRuntimeType(): EtsType = when (this) {
             EtsArrayType(elementType = nestedType, dimensions = 1)
         }
     }
+    is OptionalDomain -> {
+        val nestedType = value.callsRuntimeType()
+        val nilType = ConstantDomain(nil).callsRuntimeType()
+        EtsUnionType(types = listOf(nestedType, nilType))
+    }
     is ConstantDomain -> when (value) {
         is JsConcreteValue.Boolean -> EtsBooleanType
         is JsConcreteValue.Number -> EtsNumberType
         is JsConcreteValue.String -> EtsStringType
-        else -> error("Array elements require a concrete runtime kind")
+        JsConcreteValue.Null -> EtsNullType
+        JsConcreteValue.Undefined -> EtsUndefinedType
+        is JsConcreteValue.Array -> error("Array constants are not primitive domains")
     }
     else -> error("Unsupported array element domain: $this")
 }
@@ -168,6 +184,11 @@ private fun TsState.materializeCallsArray(domain: ArrayDomain): MaterializedCall
                 element.value.asExpr(addressSort),
                 guard = liveIndex,
             )
+            is TsUnresolvedSort -> memory.write(
+                mkArrayIndexLValue(addressSort, arrayRef, mkBv(index), runtimeType),
+                element.value.asExpr(addressSort),
+                guard = liveIndex,
+            )
             else -> error("Unsupported Calls element sort: $elementSort")
         }
         element.snapshot
@@ -188,9 +209,11 @@ private fun TsState.initializeLength(
     if (minLength == maxLength) return mkBv(minLength)
 
     val length: UExpr<TsSizeSort> = makeSymbolicPrimitive(sizeSort)
+    val minimum = mkBv(minLength)
+    val maximum = mkBv(maxLength)
     val lengthBounds = mkAnd(
-        mkBvSignedGreaterOrEqualExpr(length, mkBv(minLength)),
-        mkBvSignedLessOrEqualExpr(length, mkBv(maxLength)),
+        mkBvSignedGreaterOrEqualExpr(length, minimum),
+        mkBvSignedLessOrEqualExpr(length, maximum),
     )
     pathConstraints += lengthBounds
     length

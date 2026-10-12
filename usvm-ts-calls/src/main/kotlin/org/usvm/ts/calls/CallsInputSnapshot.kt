@@ -9,12 +9,14 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.machine.TsSizeSort
+import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.expr.extractInt
 import org.usvm.machine.expr.toConcreteBoolValue
 import org.usvm.machine.state.TsState
 import org.usvm.model.UModelBase
 import org.usvm.ts.pbt.model.JsConcreteValue
+import org.usvm.util.componentType
 import org.usvm.util.markDenseInputArray
 
 internal sealed interface CallsInputSnapshot {
@@ -63,7 +65,10 @@ internal data class ArrayInputSnapshot(
 ) : CallsInputSnapshot {
     override fun markDenseInputs(state: TsState) {
         elements.forEach { element -> element.markDenseInputs(state) }
-        state.markDenseInputArray(array = reference, type = runtimeType)
+        val elementSort = state.ctx.typeToSort(runtimeType.componentType)
+        if (elementSort !is TsUnresolvedSort) {
+            state.markDenseInputArray(array = reference, type = runtimeType)
+        }
     }
 
     override fun resolve(model: UModelBase<EtsType>): JsConcreteValue {
