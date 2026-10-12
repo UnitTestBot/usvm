@@ -47,12 +47,12 @@ data class TsUnknownCallValue(
     val resolved: UExpr<*>?,
 )
 
-/** Takes the meaningful argument prefix only after every source argument has been resolved. */
+/** Takes the meaningful values from arguments already evaluated by the caller. */
 internal fun TsUnknownCall.resolvedInstanceInputs(maxArgumentCount: Int): List<UExpr<*>>? {
     val resolvedReceiver = receiver?.resolved ?: return null
-    val resolvedArguments = arguments.map { argument -> argument.resolved ?: return null }
+    val resolvedArguments = arguments.take(maxArgumentCount).map { argument -> argument.resolved ?: return null }
 
-    return listOf(resolvedReceiver) + resolvedArguments.take(maxArgumentCount)
+    return listOf(resolvedReceiver) + resolvedArguments
 }
 
 /** Identifies the execution stage that prevented a TypeScript call from continuing normally. */
