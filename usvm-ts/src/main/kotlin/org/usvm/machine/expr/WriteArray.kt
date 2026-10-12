@@ -16,12 +16,12 @@ import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
-import org.usvm.util.mkArrayIndexLValue
-import org.usvm.util.mkArrayLengthLValue
-import org.usvm.util.typedArrayOverrideLValue
-import org.usvm.util.typedArrayBoxedLValue
 import org.usvm.util.boxArrayValue
 import org.usvm.util.initializeTypedArrayOverrides
+import org.usvm.util.mkArrayIndexLValue
+import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.typedArrayBoxedLValue
+import org.usvm.util.typedArrayOverrideLValue
 
 private val logger = KotlinLogging.logger {}
 
@@ -69,7 +69,6 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
             type = EtsUnknownType,
         )
         return assignToInstanceField(scope, lhv.array, array, field, expr, hierarchy)
-
     }
 
     if (storageType !is EtsArrayType) {

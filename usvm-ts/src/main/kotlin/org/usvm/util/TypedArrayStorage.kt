@@ -6,19 +6,19 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.api.readArrayIndex
-import org.usvm.api.memcpy
 import org.usvm.api.allocateConcreteRef
+import org.usvm.api.memcpy
+import org.usvm.api.readArrayIndex
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
-import org.usvm.machine.types.mkFakeValue
+import org.usvm.machine.state.TsState
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.TsUnresolvedValue
 import org.usvm.machine.types.iteUnresolvedValue
-import org.usvm.machine.state.TsState
+import org.usvm.machine.types.mkFakeValue
 
 /** Extra cells preserve values whose runtime kind differs from an allocated array's inferred element type. */
 internal enum class TsTypedArrayStorage {
@@ -100,14 +100,12 @@ internal fun TsContext.boxArrayValue(scope: TsStepScope, value: UExpr<*>): UConc
     if (!containsFakeValue) return value.toFakeObject(scope)
 
     return scope.calcOnState {
-        mkFakeValue(
-            scope = scope,
-            value = TsUnresolvedValue(
-                boolValue = falseExpr,
-                fpValue = mkFp64(0.0),
-                refValue = value.asExpr(addressSort),
-                type = EtsFakeType.mkRef(ctx),
-            ),
+        val packet = TsUnresolvedValue(
+            boolValue = falseExpr,
+            fpValue = mkFp64(0.0),
+            refValue = value.asExpr(addressSort),
+            type = EtsFakeType.mkRef(ctx),
         )
+        mkFakeValue(scope = scope, value = packet)
     }
 }

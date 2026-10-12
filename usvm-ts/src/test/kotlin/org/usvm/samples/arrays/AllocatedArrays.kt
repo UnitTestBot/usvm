@@ -96,7 +96,7 @@ class AllocatedArrays : TsMethodTestRunner() {
     @Test
     fun `test createArrayOfNumbersAndPutDifferentTypes`() {
         val method = getMethod("createArrayOfNumbersAndPutDifferentTypes")
-        val expected = listOf(TsTestValue.TsNull, TsTestValue.TsBoolean(true), TsTestValue.TsUndefined)
+        val expected = listOf(TsTestValue.TsNull, TsTestValue.TsBoolean(value = true), TsTestValue.TsUndefined)
 
         checkMatches<TsTestValue.TsArray<*>>(
             method = method,

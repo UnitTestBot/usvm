@@ -44,7 +44,6 @@ import org.usvm.util.arrayStorageType
 import org.usvm.util.copyArrayElements
 import org.usvm.util.forEachArrayPayloadRegion
 import org.usvm.util.initializeArrayKind
-import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.readTypedArrayElement
 import org.usvm.util.resolveEtsMethods

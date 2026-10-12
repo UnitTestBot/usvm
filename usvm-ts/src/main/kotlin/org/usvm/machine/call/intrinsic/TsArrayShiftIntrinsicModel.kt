@@ -5,6 +5,7 @@ import org.jacodb.ets.model.EtsArrayType
 import org.usvm.UAddressSort
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.isFalse
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.call.TsUnknownCall
 import org.usvm.machine.call.TsUnknownCallFailureReason
@@ -19,7 +20,6 @@ import org.usvm.util.arrayStorageType
 import org.usvm.util.copyArrayElements
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.readTypedArrayElement
-import org.usvm.isFalse
 
 /** Engine intrinsic for `Array.shift`, whose bulk move is implemented by symbolic-memory `memcpy`. */
 internal object TsArrayShiftIntrinsicModel : TsBuiltInUnknownCallModel {

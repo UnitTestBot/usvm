@@ -113,9 +113,10 @@ private fun TsContext.readArrayProperty(
         memory.read(lengthLValue)
     }
 
+    val zero = mkBv(0)
     val elementExists = mkAnd(
         indexIsSupported,
-        mkBvSignedGreaterOrEqualExpr(index, mkBv(0)),
+        mkBvSignedGreaterOrEqualExpr(index, zero),
         mkBvSignedLessExpr(index, length),
     )
     if (elementExists.isFalse) {
