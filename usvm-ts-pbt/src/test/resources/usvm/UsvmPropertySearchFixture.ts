@@ -111,9 +111,8 @@ export function nestedArrayProperty(value: number[][]): boolean {
 }
 
 export function unsupportedArrayGrowth(value: number): boolean {
-  const values = [value];
-  values.length = 2;
-  return true;
+  const values = { present: 1 };
+  return values[value] === 1;
 }
 
 export function mixedArrayGrowth(value: number): boolean {

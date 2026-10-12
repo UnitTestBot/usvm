@@ -23,6 +23,7 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.ts.pbt.mapping.EtsInputBinding
 import org.usvm.ts.pbt.model.ArrayDomain
+import org.usvm.util.componentType
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
@@ -219,7 +220,7 @@ class UsvmDomainProjector(
             }
             val arrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
             val descriptor = arrayDescriptorOf(arrayType)
-            val array = state.memory.allocConcrete(descriptor)
+            val array = state.memory.allocConcrete(etsType)
 
             state.memory.initializeArrayLength(array, descriptor, sizeSort, mkBv(domain.elements.size))
             domain.elements.zip(elementTypes).forEachIndexed { index, (elementDomain, elementType) ->
@@ -241,8 +242,7 @@ class UsvmDomainProjector(
             domain: ArrayDomain,
             etsType: EtsArrayType,
         ): UConcreteHeapRef = with(state.ctx) {
-            val descriptor = arrayDescriptorOf(etsType)
-            val array = state.memory.allocConcrete(descriptor)
+            val array = state.memory.allocConcrete(etsType)
             val length = state.makeSymbolicPrimitive(sizeSort)
             val minimumLength = mkBv(domain.minLength)
             val maximumLength = mkBv(domain.maxLength)
@@ -253,7 +253,7 @@ class UsvmDomainProjector(
             state.pathConstraints += mkAnd(meetsMinimum, meetsMaximum)
 
             repeat(domain.maxLength) { index ->
-                val element = materialize(domain.element, etsType.elementType)
+                val element = materialize(domain.element, etsType.componentType)
                 val guard = mkBvSignedLessExpr(mkBv(index), length)
 
                 writeArrayElement(array, etsType, index, element, guard)

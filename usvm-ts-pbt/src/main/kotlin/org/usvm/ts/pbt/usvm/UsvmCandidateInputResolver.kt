@@ -16,6 +16,7 @@ import org.usvm.machine.expr.toConcreteBoolValue
 import org.usvm.machine.state.TsState
 import org.usvm.sizeSort
 import org.usvm.ts.pbt.model.ArrayDomain
+import org.usvm.util.componentType
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
@@ -146,7 +147,7 @@ internal class UsvmCandidateInputResolver {
         val ref = state.models.single().eval(value.asExpr(addressSort)) as UConcreteHeapRef
         val elementTypes = when (etsType) {
             is EtsTupleType -> etsType.types
-            is EtsArrayType -> List(domain.elements.size) { etsType.elementType }
+            is EtsArrayType -> List(domain.elements.size) { etsType.componentType }
             else -> error("Unsupported tuple EtsIR type $etsType")
         }
         val arrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
@@ -179,7 +180,7 @@ internal class UsvmCandidateInputResolver {
                 state.memory.read(mkArrayIndexLValue(elementSort, ref, mkBv(index), etsType))
             }
 
-            resolveValue(state, domain.element, etsType.elementType, element)
+            resolveValue(state, domain.element, etsType.componentType, element)
         }
 
         JsConcreteValue.Array(elements)

@@ -24,6 +24,7 @@ import org.usvm.ts.pbt.mapping.EtsMappingResult
 import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMappingArtifact
 import org.usvm.ts.pbt.model.ArrayDomain
+import org.usvm.util.componentType
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.ExecutionKind
@@ -223,7 +224,7 @@ class UsvmProjectionCapabilityResolver {
 
         val elementTypes = when (etsType) {
             is EtsTupleType -> etsType.types
-            is EtsArrayType -> List(domain.elements.size) { etsType.elementType }
+            is EtsArrayType -> List(domain.elements.size) { etsType.componentType }
             else -> return unsupported(
                 code = PbtDiagnosticCode.USVM_DOMAIN_TYPE_UNSUPPORTED,
                 message = "Tuple domain requires an EtsIR tuple or array type",
@@ -246,7 +247,7 @@ class UsvmProjectionCapabilityResolver {
         if (domain.maxLength > options.maxSymbolicCollectionLength) {
             return collectionTooLarge(domain.maxLength, options, path)
         }
-        val elementType = (etsType as EtsArrayType).elementType
+        val elementType = (etsType as EtsArrayType).componentType
 
         return domainCapabilityForProjector(domain.element, elementType, "$path.element", options)
     }
@@ -277,8 +278,7 @@ class UsvmProjectionCapabilityResolver {
             }
 
             is EtsArrayType -> {
-                etsType.dimensions == 1 &&
-                    domain.elements.all { domainCompatibilityForProjector(it, etsType.elementType) }
+                domain.elements.all { domainCompatibilityForProjector(it, etsType.componentType) }
             }
 
             else -> false
@@ -286,8 +286,7 @@ class UsvmProjectionCapabilityResolver {
 
         is ArrayDomain -> {
             etsType is EtsArrayType &&
-                etsType.dimensions == 1 &&
-                domainCompatibilityForProjector(domain.element, etsType.elementType)
+                domainCompatibilityForProjector(domain.element, etsType.componentType)
         }
     }
 
