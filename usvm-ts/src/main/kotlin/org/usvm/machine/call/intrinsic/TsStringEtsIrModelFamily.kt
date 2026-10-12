@@ -242,19 +242,19 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             sourceModel(
                 id = "ts.string.trim",
                 methodName = "trim",
-                inputAdapter = noArgumentsAdapter,
+                inputAdapter = receiverOnlyAdapter,
                 domainGuard = receiverDomain,
             ),
             sourceModel(
                 id = "ts.string.trimStart",
                 methodName = "trimStart",
-                inputAdapter = noArgumentsAdapter,
+                inputAdapter = receiverOnlyAdapter,
                 domainGuard = receiverDomain,
             ),
             sourceModel(
                 id = "ts.string.trimEnd",
                 methodName = "trimEnd",
-                inputAdapter = noArgumentsAdapter,
+                inputAdapter = receiverOnlyAdapter,
                 domainGuard = receiverDomain,
             ),
             sourceModel(

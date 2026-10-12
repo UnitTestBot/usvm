@@ -12,6 +12,7 @@ import org.usvm.machine.call.TsEtsIrUnknownCallModel
 import org.usvm.machine.call.TsEtsIrUnknownCallModelArtifact
 import org.usvm.machine.call.TsEtsIrUnknownCallModelDomainGuard
 import org.usvm.machine.call.TsEtsIrUnknownCallModelInputAdapter
+import org.usvm.machine.call.TsUnknownCall
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModel
 import org.usvm.machine.call.TsUnknownCallModelCompletion
