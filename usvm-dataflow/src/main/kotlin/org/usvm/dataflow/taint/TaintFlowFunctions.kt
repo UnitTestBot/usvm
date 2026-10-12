@@ -331,7 +331,10 @@ class ForwardTaintFlowFunctions<Method, Statement>(
             //    to remove any marks from 'instance' and arguments.
             //   Currently, "analyzability" of the callee depends on the fact that the callee
             //    is "accessible" through the JcApplicationGraph::callees().
-            if (callee in graph.callees(callStatement) && unitResolver.resolve(callee) != UnknownUnit) {
+            val calleeIsAnalyzable = callee in graph.callees(callStatement) &&
+                unitResolver.resolve(callee) != UnknownUnit
+
+            if (calleeIsAnalyzable) {
 
                 if (fact.variable.isStatic) {
                     return@FlowFunction emptyList()

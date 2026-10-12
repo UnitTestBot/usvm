@@ -48,7 +48,7 @@ import org.usvm.dataflow.taint.TaintZeroFact
 import org.usvm.dataflow.taint.Tainted
 
 @TestInstance(PER_CLASS)
-class TaintFlowFunctionsTest : BaseAnalysisTest(configFileName = "config_test.json") {
+open class TaintFlowFunctionsTest : BaseAnalysisTest(configFileName = "config_test.json") {
 
     override val graph: JcApplicationGraph = mockk {
         every { cp } returns this@TaintFlowFunctionsTest.cp
