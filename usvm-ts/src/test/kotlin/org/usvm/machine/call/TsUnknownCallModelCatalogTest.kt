@@ -203,9 +203,13 @@ class TsUnknownCallModelCatalogTest {
             "ts.string.indexOf",
             "ts.string.lastIndexOf",
             "ts.string.primitive.codeUnitAt",
+            "ts.string.primitive.copyRange",
             "ts.string.primitive.fromCodeUnit",
             "ts.string.primitive.length",
+            "ts.string.slice",
             "ts.string.startsWith",
+            "ts.string.toLowerCase",
+            "ts.string.toUpperCase",
         )
 
         assertEquals(expectedModelIds, catalog.modelIds)
@@ -232,9 +236,13 @@ class TsUnknownCallModelCatalogTest {
             "ts.string.indexOf",
             "ts.string.lastIndexOf",
             "ts.string.primitive.codeUnitAt",
+            "ts.string.primitive.copyRange",
             "ts.string.primitive.fromCodeUnit",
             "ts.string.primitive.length",
+            "ts.string.slice",
             "ts.string.startsWith",
+            "ts.string.toLowerCase",
+            "ts.string.toUpperCase",
         )
         assertTrue(modelIds.containsAll(expectedModelIds))
     }

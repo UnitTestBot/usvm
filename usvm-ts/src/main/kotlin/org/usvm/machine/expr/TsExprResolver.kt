@@ -804,7 +804,7 @@ class TsExprResolver(
                             guard = trueExpr,
                         )
                         memory.write(mkStringBackingLengthLValue(resultChars), resultLength, guard = trueExpr)
-                        boundedStringBackingRefs += result
+                        boundedStringBackingRefs += result to options.maxArraySize
 
                         memory.memcpy(
                             srcRef = leftChars,

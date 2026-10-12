@@ -218,7 +218,10 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         "includes",
         "indexOf",
         "lastIndexOf",
+        "slice",
         "startsWith",
+        "toLowerCase",
+        "toUpperCase",
     )
     if (instanceType is EtsStringType && expr.callee.name in modeledStringMethods) {
         val dispatcher = unknownCallDispatcher

@@ -242,6 +242,76 @@ class TsSequenceEtsIrModelTest {
         assertTrue("ts.string.lastIndexOf" in result.modelIds)
     }
 
+    @Test
+    fun `string slice copies exact UTF16 code units`() {
+        val result = analyze(methodName = "stringSlicePreservesUtf16")
+
+        assertEquals("😀", assertIs<TsTestValue.TsString>(result.values.single()).value)
+        assertTrue("ts.string.slice" in result.modelIds)
+    }
+
+    @Test
+    fun `modeled strings compare by UTF-16 value`() {
+        val result = analyze(methodName = "stringModelsUseValueEquality")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertTrue("ts.string.slice" in result.modelIds)
+    }
+
+    @Test
+    fun `non-string references retain identity equality`() {
+        val result = analyze(methodName = "stringEqualityPreservesReferenceIdentity")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+    }
+
+    @Test
+    fun `fake reference strings compare by UTF-16 value`() {
+        val result = analyze(methodName = "stringValueEqualityThroughAny")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+    }
+
+    @Test
+    fun `string truthiness follows UTF-16 length`() {
+        val result = analyze(methodName = "stringTruthinessUsesLength")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+    }
+
+    @Test
+    fun `non-string truthiness does not read string storage`() {
+        val result = analyze(methodName = "nonStringTruthinessDoesNotReadStringStorage")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+    }
+
+    @Test
+    fun `mixed object equality does not read string storage`() {
+        val result = analyze(methodName = "mixedObjectEqualityDoesNotReadStringStorage")
+
+        assertTrue(result.values.isNotEmpty())
+        assertTrue(result.values.all { value -> assertIs<TsTestValue.TsBoolean>(value).value })
+    }
+
+    @Test
+    fun `ASCII casing composes with charAt slice and concatenation`() {
+        val capitalized = analyze(methodName = "stringCapitalizeAscii")
+        val empty = analyze(methodName = "stringCapitalizeEmpty")
+
+        assertEquals("Hello", assertIs<TsTestValue.TsString>(capitalized.values.single()).value)
+        assertEquals("", assertIs<TsTestValue.TsString>(empty.values.single()).value)
+        assertTrue(setOf("ts.string.toUpperCase", "ts.string.toLowerCase").all(capitalized.modelIds::contains))
+    }
+
+    @Test
+    fun `ASCII casing leaves non ASCII strings to residual fallback`() {
+        val result = analyze(methodName = "stringCapitalizeNonAscii")
+
+        assertTrue(result.values.isEmpty())
+        assertTrue(result.events.any { event -> event.outcome == TsUnknownCallOutcome.PATH_STOPPED })
+    }
+
     private fun analyze(
         methodName: String,
         tsOptions: TsOptions = TsOptions(),

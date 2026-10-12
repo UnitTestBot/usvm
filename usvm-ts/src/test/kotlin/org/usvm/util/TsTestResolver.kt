@@ -79,6 +79,7 @@ class TsTestResolver {
             method,
             resolvedLValuesToFakeObjects,
             state.maxStringLength,
+            stringLengthBounds = state.boundedStringBackingRefs,
             propertyState = state,
         )
         val afterMemoryScope = MemoryScope(
@@ -88,6 +89,7 @@ class TsTestResolver {
             method,
             resolvedLValuesToFakeObjects,
             state.maxStringLength,
+            stringLengthBounds = state.boundedStringBackingRefs,
             propertyState = state,
         )
 
@@ -193,6 +195,7 @@ class TsTestResolver {
         method: EtsMethod,
         resolvedLValuesToFakeObjects: List<Pair<ULValue<*, *>, UConcreteHeapRef>>,
         maxStringLength: Int,
+        stringLengthBounds: Map<UHeapRef, Int>,
         propertyState: TsState,
     ) : TsTestStateResolver(
         ctx = ctx,
@@ -201,6 +204,7 @@ class TsTestResolver {
         method = method,
         resolvedLValuesToFakeObjects = resolvedLValuesToFakeObjects,
         maxStringLength = maxStringLength,
+        stringLengthBounds = stringLengthBounds,
         propertyState = propertyState,
     ) {
         fun resolveState(): TsParametersState {
@@ -219,6 +223,7 @@ open class TsTestStateResolver(
     val method: EtsMethod,
     val resolvedLValuesToFakeObjects: List<Pair<ULValue<*, *>, UConcreteHeapRef>>,
     val maxStringLength: Int,
+    private val stringLengthBounds: Map<UHeapRef, Int> = emptyMap(),
     private val propertyState: TsState? = null,
 ) {
     private val resolvedClasses = hashMapOf<UConcreteHeapRef, TsTestValue.TsClass>()
@@ -370,7 +375,8 @@ open class TsTestStateResolver(
 
         val lengthLValue = mkStringBackingLengthLValue(charsRef)
         val length = evaluateInModel(stringMemory.read(lengthLValue)).extractInt()
-        require(length in 0..maxStringLength) { "Unsupported symbolic string length: $length" }
+        val lengthBound = stringLengthBounds[heapRef] ?: stringLengthBounds[concreteRef] ?: maxStringLength
+        require(length in 0..lengthBound) { "Unsupported symbolic string length: $length" }
 
         val value = buildString(length) {
             repeat(length) { index ->
