@@ -13,6 +13,7 @@ import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsCopyDataPropertiesStmt
 import org.jacodb.ets.model.EtsDefineAccessorStmt
 import org.jacodb.ets.model.EtsDefineDataPropertyStmt
+import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLValue
@@ -82,9 +83,11 @@ import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.prepareRefinedStringBackings
 import org.usvm.machine.state.returnValue
 import org.usvm.machine.state.symbolicStringBackingConstraint
+import org.usvm.machine.types.initialInputType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
+import org.usvm.solver.UUnknownResult
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
 import org.usvm.types.single
@@ -786,6 +789,7 @@ class TsInterpreter(
         // TODO not equal but subtype for abstract/interfaces
         state.pathConstraints += state.memory.types.evalTypeEquals(thisRef, method.enclosingClass!!.type)
 
+        val genericParameters = method.typeParameters.filterIsInstance<EtsGenericType>().associateBy { it.typeName }
         method.parameters.forEachIndexed { i, param ->
             val idx = i + 1 // +1 because 0 is reserved for `this`
             val ref by lazy {
@@ -793,7 +797,7 @@ class TsInterpreter(
                 state.memory.read(lValue).asExpr(addressSort)
             }
 
-            val parameterType = param.type
+            val parameterType = param.type.initialInputType(genericParameters)
             run {
                 if (parameterType !is EtsRefType) return@run
 
@@ -856,7 +860,11 @@ class TsInterpreter(
         state.configureState()
 
         val solver = solver<EtsType>()
-        val model = solver.check(state.pathConstraints).ensureSat().model
+        val solverResult = solver.check(state.pathConstraints)
+        if (solverResult is UUnknownResult) {
+            throw TsInitialStateSolverUnknownException(method)
+        }
+        val model = solverResult.ensureSat().model
         state.models = listOf(model)
 
         state

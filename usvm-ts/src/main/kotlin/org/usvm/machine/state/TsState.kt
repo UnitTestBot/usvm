@@ -32,8 +32,8 @@ import org.usvm.machine.expr.TsCapturedInstanceCall
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
-import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.UMemory
+import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet

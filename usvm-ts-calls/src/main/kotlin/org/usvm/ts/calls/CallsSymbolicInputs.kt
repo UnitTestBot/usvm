@@ -21,8 +21,8 @@ import org.usvm.machine.state.TsState
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.ts.pbt.fastcheck.TypeScriptSourceCapture
-import org.usvm.ts.pbt.mapping.EtsLexicalEnvironmentBinding
 import org.usvm.ts.pbt.mapping.EtsInputBinding
+import org.usvm.ts.pbt.mapping.EtsLexicalEnvironmentBinding
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
@@ -84,11 +84,11 @@ internal class CallsSymbolicInputs(
         snapshots = initializedSnapshots
     }
 
-    fun resolve(state: TsState): List<JsConcreteValue> {
+    fun resolve(state: TsState): Sequence<List<JsConcreteValue>> {
         val initializedSnapshots = checkNotNull(snapshots) { "Calls symbolic inputs were not initialized" }
-        val model = state.models.single()
-
-        return initializedSnapshots.map { snapshot -> snapshot.resolve(model) }
+        return state.models.asSequence().map { model ->
+            initializedSnapshots.map { snapshot -> snapshot.resolve(model) }
+        }
     }
 }
 
@@ -109,8 +109,7 @@ private fun TsState.initializeInput(
         }
 
         is NumberDomain -> {
-            val value: UExpr<KFp64Sort> = makeSymbolicPrimitive(fp64Sort)
-            pathConstraints += numberDomainConstraint(value, domain)
+            val value = initializeNumberInput(domain)
             memory.write(
                 mkRegisterStackLValue(fp64Sort, stackSlot),
                 value.asExpr(fp64Sort),
@@ -138,10 +137,9 @@ private fun TsState.initializeStringInput(
     stackSlot: Int,
     domain: StringDomain,
 ): StringInputSnapshot = with(ctx) {
-    val length: UExpr<TsSizeSort> = makeSymbolicPrimitive(sizeSort)
+    val length = initializeLength(minLength = domain.minLength, maxLength = domain.maxLength)
     val codeUnits: List<UExpr<KBv16Sort>> = List(domain.maxLength) { makeSymbolicPrimitive(bv16Sort) }
 
-    constrainLength(length = length, minLength = domain.minLength, maxLength = domain.maxLength)
     val stringRef = allocateBoundedString(length = length, codeUnits = codeUnits)
     memory.write(
         mkRegisterStackLValue(addressSort, stackSlot),
@@ -164,9 +162,8 @@ private fun TsState.initializeArrayInput(
     }
     val descriptor = arrayDescriptorOf(runtimeType)
     val arrayRef = memory.allocConcrete(descriptor)
-    val length: UExpr<TsSizeSort> = makeSymbolicPrimitive(sizeSort)
+    val length = initializeLength(minLength = domain.minLength, maxLength = domain.maxLength)
 
-    constrainLength(length = length, minLength = domain.minLength, maxLength = domain.maxLength)
     memory.initializeArrayLength(
         arrayHeapRef = arrayRef,
         type = descriptor,
@@ -186,9 +183,8 @@ private fun TsState.initializeArrayInput(
         }
 
         is NumberDomain -> List(domain.maxLength) { index ->
-            val value = makeSymbolicPrimitive(fp64Sort)
+            val value = initializeNumberInput(elementDomain)
             val liveIndex = mkBvSignedLessExpr(mkBv(index), length)
-            pathConstraints += numberDomainConstraint(value, elementDomain)
             memory.write(
                 mkArrayIndexLValue(fp64Sort, arrayRef, mkBv(index), runtimeType),
                 value,
@@ -213,16 +209,40 @@ private fun TsState.initializeArrayInput(
     )
 }
 
-private fun TsState.constrainLength(
-    length: UExpr<TsSizeSort>,
+private fun TsState.initializeLength(
     minLength: Int,
     maxLength: Int,
-) = with(ctx) {
+): UExpr<TsSizeSort> = with(ctx) {
+    if (minLength == maxLength) return mkBv(minLength)
+
+    val length: UExpr<TsSizeSort> = makeSymbolicPrimitive(sizeSort)
     val lengthBounds = mkAnd(
         mkBvSignedGreaterOrEqualExpr(length, mkBv(minLength)),
         mkBvSignedLessOrEqualExpr(length, mkBv(maxLength)),
     )
     pathConstraints += lengthBounds
+    length
+}
+
+private fun TsState.initializeNumberInput(domain: NumberDomain): UExpr<KFp64Sort> = with(ctx) {
+    val lowerBound = domain.min.toDouble()
+    val upperBound = domain.max.toDouble()
+    val hasSingleNumericValue = lowerBound == upperBound && !domain.allowNaN
+    if (hasSingleNumericValue) {
+        // Numeric equality admits both signs of zero. Keep that choice symbolic even for [0, 0].
+        return if (lowerBound == 0.0) {
+            val positiveSign: UBoolExpr = makeSymbolicPrimitive(boolSort)
+            val positiveZero = mkFp64(0.0)
+            val negativeZero = mkFpNegationExpr(positiveZero)
+            mkIte(positiveSign, positiveZero, negativeZero)
+        } else {
+            mkFp64(lowerBound)
+        }
+    }
+
+    val value: UExpr<KFp64Sort> = makeSymbolicPrimitive(fp64Sort)
+    pathConstraints += numberDomainConstraint(value, domain)
+    value
 }
 
 private fun TsState.numberDomainConstraint(

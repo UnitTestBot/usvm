@@ -468,6 +468,46 @@ class CallsExperimentTest {
         assertEquals(2, summary.byProfile.getValue(CallsExperimentProfile.FROZEN_FRESH).toolErrors)
     }
 
+    @Test
+    fun `solver unknown survives raw serialization and summary without becoming unreached`(@TempDir directory: Path) {
+        val rawOutput = directory.resolve("results.jsonl")
+        val diagnostic = "Solver returned UNKNOWN while checking initial constraints"
+        val engine = CallsSymbolicEngine {
+            CallsSymbolicSearchResult(
+                status = CallsSymbolicStatus.UNKNOWN,
+                elapsedMillis = 7L,
+                diagnostic = diagnostic,
+            )
+        }
+
+        CallsExperimentRunner(
+            symbolicEngine = engine,
+            targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("No witness to replay") },
+            runtimeToolRevision = FIXTURE_TOOL_REVISION,
+        ).run(
+            manifest = manifest(sourceRoot = ".", seeds = listOf(0L)),
+            manifestDirectory = directory,
+            rawOutput = rawOutput,
+        )
+        val records = readRecords(rawOutput).filterIsInstance<CallsTargetResult>()
+        val summary = CallsExperimentAggregator.summarize(rawOutput)
+
+        assertEquals(4, records.size)
+        records.forEach { record ->
+            assertEquals(CallsSymbolicStatus.UNKNOWN, record.symbolicStatus)
+            assertFalse(record.solverReached)
+            assertFalse(record.inputExtracted)
+            assertNull(record.replayStatus)
+            assertEquals(diagnostic, record.diagnostic)
+        }
+        summary.byProfile.values.forEach { profile ->
+            assertEquals(1, profile.symbolicStatuses.getValue(CallsSymbolicStatus.UNKNOWN))
+            assertEquals(0, profile.symbolicStatuses.getValue(CallsSymbolicStatus.UNREACHED))
+            assertEquals(0, profile.timeouts)
+            assertEquals(0, profile.toolErrors)
+        }
+    }
+
     private fun manifest(sourceRoot: String, seeds: List<Long>) = CallsExperimentManifest(
         schemaVersion = CallsExperimentManifest.SCHEMA_VERSION,
         experimentId = "fixture",

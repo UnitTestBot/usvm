@@ -47,22 +47,36 @@ internal fun TsState.initializeCallsCaptures(
     for (local in environment.closures) {
         val payload = resolveCapturedValue(valuesByName.getValue(local.name), local.type, objectReferences)
         val stored = captureStorageValue(payload, local.type)
-        memory.write(mkFieldLValue(stored.sort, environmentRef, local.name), stored.asExpr(stored.sort), guard = trueExpr)
+        memory.write(
+            mkFieldLValue(stored.sort, environmentRef, local.name),
+            stored.asExpr(stored.sort),
+            guard = trueExpr,
+        )
     }
-    memory.write(mkRegisterStackLValue(addressSort, binding.stackSlot), environmentRef, guard = trueExpr)
+    memory.write(
+        mkRegisterStackLValue(addressSort, binding.stackSlot),
+        environmentRef.asExpr(addressSort),
+        guard = trueExpr,
+    )
     saveSortForLocal(binding.stackSlot, addressSort)
 }
 
 private fun TypeScriptSourceCapture.captureLimitation(scene: EtsScene, type: EtsType): String? = when (kind) {
-    TypeScriptCaptureKind.UNSUPPORTED -> reason ?: "Source binding requires runtime initialization"
+    TypeScriptCaptureKind.UNSUPPORTED -> {
+        reason ?: "Source binding requires runtime initialization"
+    }
     TypeScriptCaptureKind.BUILTIN -> {
         if (value in SUPPORTED_CAPTURE_OWNERS) null else "Global builtin $value has no supported Calls owner"
     }
     TypeScriptCaptureKind.FUNCTION -> {
         if (sourceFunction(scene, type) == null) "Source function has unsupported captures or no unique body" else null
     }
-    TypeScriptCaptureKind.OBJECT -> objectCaptureLimitation(scene, type)
-    else -> null
+    TypeScriptCaptureKind.OBJECT -> {
+        objectCaptureLimitation(scene, type)
+    }
+    else -> {
+        null
+    }
 }
 
 private fun TypeScriptSourceCapture.objectCaptureLimitation(scene: EtsScene, type: EtsType): String? {
@@ -95,17 +109,29 @@ private fun TsState.resolveCapturedValue(
     objectReferences: MutableMap<String, UHeapRef>,
 ): UExpr<*> = with(ctx) {
     when (capture.kind) {
-        TypeScriptCaptureKind.NUMBER -> when (val value = requireNotNull(capture.value)) {
-            "NaN" -> mkFp64NaN()
-            "Infinity" -> mkFpInf(signBit = false, sort = fp64Sort)
-            "-Infinity" -> mkFpInf(signBit = true, sort = fp64Sort)
-            else -> mkFp64(value.toDouble())
+        TypeScriptCaptureKind.NUMBER -> {
+            when (val value = requireNotNull(capture.value)) {
+                "NaN" -> mkFp64NaN()
+                "Infinity" -> mkFpInf(signBit = false, sort = fp64Sort)
+                "-Infinity" -> mkFpInf(signBit = true, sort = fp64Sort)
+                else -> mkFp64(value.toDouble())
+            }
         }
-        TypeScriptCaptureKind.STRING -> mkInitializedStringConstant(requireNotNull(capture.value))
-        TypeScriptCaptureKind.BOOLEAN -> mkBool(requireNotNull(capture.value).toBooleanStrict())
-        TypeScriptCaptureKind.NULL -> mkTsNullValue()
-        TypeScriptCaptureKind.UNDEFINED -> mkUndefinedValue()
-        TypeScriptCaptureKind.BUILTIN -> allocateConcreteRef()
+        TypeScriptCaptureKind.STRING -> {
+            mkInitializedStringConstant(requireNotNull(capture.value))
+        }
+        TypeScriptCaptureKind.BOOLEAN -> {
+            mkBool(requireNotNull(capture.value).toBooleanStrict())
+        }
+        TypeScriptCaptureKind.NULL -> {
+            mkTsNullValue()
+        }
+        TypeScriptCaptureKind.UNDEFINED -> {
+            mkUndefinedValue()
+        }
+        TypeScriptCaptureKind.BUILTIN -> {
+            memory.allocConcrete(type)
+        }
         TypeScriptCaptureKind.FUNCTION -> {
             val method = requireNotNull(sourceFunction(scene, type))
             getMethodRef(method = method)
@@ -128,7 +154,9 @@ private fun TsState.resolveCapturedValue(
             }
             ref
         }
-        TypeScriptCaptureKind.UNSUPPORTED -> error("Unsupported capture passed preflight: ${capture.name}")
+        TypeScriptCaptureKind.UNSUPPORTED -> {
+            error("Unsupported capture passed preflight: ${capture.name}")
+        }
     }
 }
 

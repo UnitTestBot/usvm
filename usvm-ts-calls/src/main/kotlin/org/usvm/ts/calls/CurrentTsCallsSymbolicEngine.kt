@@ -1,5 +1,6 @@
 package org.usvm.ts.calls
 
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
@@ -16,22 +17,25 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallModelSelection
+import org.usvm.machine.interpreter.TsInitialStateSolverUnknownException
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.statistics.UMachineObserver
-import org.usvm.ts.pbt.fastcheck.TypeScriptSourceInspector
 import org.usvm.ts.pbt.fastcheck.TypeScriptSourceCapture
-import org.usvm.ts.pbt.mapping.EtsLexicalEnvironmentBinding
+import org.usvm.ts.pbt.fastcheck.TypeScriptSourceInspector
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.EtsInputBinding
+import org.usvm.ts.pbt.mapping.EtsLexicalEnvironmentBinding
 import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
 import org.usvm.ts.pbt.model.ArrayDomain
-import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
+import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.contains
 import java.nio.file.Path
 import kotlin.time.TimeSource
+
+private val logger = KotlinLogging.logger {}
 
 internal data class CallsSymbolicPreflightRequest(
     val sourceRoot: Path,
@@ -100,8 +104,13 @@ internal class CurrentTsCallsSymbolicEngine(
                 prepared = preparation as CallsTargetPreparation.Eligible,
             )
         }.getOrElse { error ->
+            logger.warn(error) { "Calls symbolic search did not produce a result" }
             result(
-                status = CallsSymbolicStatus.TOOL_ERROR,
+                status = if (error is TsInitialStateSolverUnknownException) {
+                    CallsSymbolicStatus.UNKNOWN
+                } else {
+                    CallsSymbolicStatus.TOOL_ERROR
+                },
                 startedAt = startedAt,
                 diagnostic = error.message ?: error::class.java.name,
             )
@@ -206,7 +215,7 @@ internal class CurrentTsCallsSymbolicEngine(
         }
 
         val inputs = states.asSequence()
-            .map(symbolicInputs::resolve)
+            .flatMap(symbolicInputs::resolve)
             .firstOrNull { candidate ->
                 candidate.zip(request.function.inputs).all { (value, input) -> value in input.domain }
             }
@@ -300,6 +309,20 @@ internal class CurrentTsCallsSymbolicEngine(
         }
 
         val mappedTarget = mapping.predicate.targets.single()
+        val method = mappedTarget.method
+        val inputTypeLimitation = callsInputTypePreflight(
+            inputs = request.function.inputs,
+            bindings = mappedTarget.bindings.inputs,
+            method = method,
+        )
+        if (inputTypeLimitation != null) {
+            return CallsTargetPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED,
+                diagnostic = inputTypeLimitation,
+            )
+        }
+
         val lexicalEnvironment = mappedTarget.bindings.lexicalEnvironment
         if (lexicalEnvironment != null && lexicalEnvironment.parameter.type !is EtsLexicalEnvType) {
             return CallsTargetPreparation.Rejected(
@@ -330,7 +353,6 @@ internal class CurrentTsCallsSymbolicEngine(
             )
         }
 
-        val method = mappedTarget.method
         val exactTargetCandidates = exactTargetCandidates(method, request.target)
         val targetObservation = when (request.target.mode) {
             CallsSourceTargetMode.ENTRY -> {
@@ -613,8 +635,6 @@ internal class CurrentTsCallsSymbolicEngine(
 
     private companion object {
         const val BUNDLED_FRONTEND_PREFIX: String = "bundled:"
-
-
     }
 }
 

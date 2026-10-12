@@ -117,6 +117,7 @@ internal enum class CallsSymbolicStatus {
     UNREPRESENTABLE,
     UNSUPPORTED,
     TIMEOUT,
+    UNKNOWN,
     TOOL_ERROR,
     UNMAPPED,
     AMBIGUOUS,
