@@ -29,6 +29,7 @@ import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
@@ -130,6 +131,7 @@ class UsvmDomainProjector(
             is OptionalDomain -> materializeOptional(domain, etsType)
             is TupleDomain -> materializeTuple(domain, etsType)
             is ArrayDomain -> materializeArray(domain, etsType as EtsArrayType)
+            is ObjectDomain -> error("Object domains are not supported by the USVM property projector")
         }
 
         private fun materializeInteger(domain: IntegerDomain): UExpr<KFp64Sort> = with(state.ctx) {
@@ -185,7 +187,8 @@ class UsvmDomainProjector(
                 is JsConcreteValue.String -> state.mkInitializedStringConstant(value.value)
                 JsConcreteValue.Null -> mkTsNullValue()
                 JsConcreteValue.Undefined -> mkUndefinedValue()
-                is JsConcreteValue.Array -> error("Array constants are not valid property-domain primitives")
+                is JsConcreteValue.Array, is JsConcreteValue.Object ->
+                    error("Object constants are not valid property-domain primitives")
             }
         }
 

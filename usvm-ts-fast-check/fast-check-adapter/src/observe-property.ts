@@ -262,7 +262,8 @@ function captureValue(
   }
 
   if (types.isProxy(value)) return { status: 'unsupported', reason: 'proxy' };
-  if (!Array.isArray(value)) return { status: 'unsupported', reason: 'unsupported-type' };
+  if (typeof value !== 'object' || value === null) return { status: 'unsupported', reason: 'unsupported-type' };
+  if (!Array.isArray(value)) return captureObject(value, maxArrayElements, seen, depth, budget);
   if (depth >= 4) return { status: 'unsupported', reason: 'depth-limit' };
   if (Object.getPrototypeOf(value) !== Array.prototype) return { status: 'unsupported', reason: 'array-prototype' };
   if (seen.has(value)) return { status: 'unsupported', reason: 'alias-or-cycle' };
@@ -290,9 +291,52 @@ function captureValue(
   // Inspect names only after the bounded value walk, rather than allocating every descriptor up front.
   const hasExtraProperty = Object.getOwnPropertyNames(value)
     .some((key) => key !== 'length' && !/^(0|[1-9]\d*)$/.test(key));
-  if (hasExtraProperty) return { status: 'unsupported', reason: 'array-extra-property' };
+  if (hasExtraProperty || Object.getOwnPropertySymbols(value).length > 0) {
+    return { status: 'unsupported', reason: 'array-extra-property' };
+  }
 
   return { status: 'captured', value: { kind: 'array', elements } };
+}
+
+function captureObject(
+  value: object,
+  maxArrayElements: number,
+  seen: WeakSet<object>,
+  depth: number,
+  budget: CaptureBudget,
+): CaptureResult {
+  if (depth >= 4) return { status: 'unsupported', reason: 'depth-limit' };
+  if (Object.getPrototypeOf(value) !== Object.prototype) return { status: 'unsupported', reason: 'object-prototype' };
+  if (seen.has(value)) return { status: 'unsupported', reason: 'alias-or-cycle' };
+
+  budget.remaining -= '{"kind":"object","fields":{}}'.length;
+  if (budget.remaining < 0) return { status: 'truncated', reason: 'byte-budget' };
+
+  seen.add(value);
+  const entries: Array<readonly [string, TaggedJsValue]> = [];
+  for (const name in value) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, name);
+    if (descriptor === undefined) continue;
+    if (entries.length >= 32) return { status: 'unsupported', reason: 'object-field-limit' };
+    if (['__proto__', 'constructor', 'prototype'].includes(name)) {
+      return { status: 'unsupported', reason: 'object-property-name' };
+    }
+    if (!('value' in descriptor)) return { status: 'unsupported', reason: 'accessor' };
+
+    budget.remaining -= entries.length === 0 ? 1 : 2; // Colon and, after the first field, comma.
+    if (!reserveJsonString(name, budget)) return { status: 'truncated', reason: 'byte-budget' };
+    const captured = captureValue(descriptor.value, maxArrayElements, seen, depth + 1, budget);
+    if (captured.status !== 'captured') return captured;
+
+    entries.push([name, captured.value]);
+  }
+
+  // Reject properties the wire format cannot preserve, after the bounded value walk.
+  const hasHiddenProperties = Object.getOwnPropertyNames(value).length !== entries.length
+    || Object.getOwnPropertySymbols(value).length > 0;
+  if (hasHiddenProperties) return { status: 'unsupported', reason: 'object-hidden-property' };
+
+  return { status: 'captured', value: { kind: 'object', fields: Object.fromEntries(entries) } };
 }
 
 function reserveJsonString(value: string, budget: CaptureBudget): boolean {

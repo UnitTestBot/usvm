@@ -19,6 +19,7 @@ import org.usvm.ts.pbt.model.ExecutionKind
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
@@ -50,6 +51,18 @@ class UsvmProjectionCapabilityTest {
             assertEquals(case.level, capability.symbolic.level, case.exportName)
             assertEquals(case.diagnosticPaths, capability.symbolic.diagnostics.map { it.path }, case.exportName)
         }
+    }
+
+    @Test
+    fun `object domains remain concrete only until symbolic projection supports their runtime identity`() {
+        val capability = resolve(
+            domain = ObjectDomain(mapOf("value" to NumberDomain())),
+            exportName = "acceptsObject",
+        )
+
+        assertEquals(ProjectionLevel.UNSUPPORTED, capability.symbolic.level)
+        assertEquals(PropertyCapabilityLevel.CONCRETE_ONLY, capability.property)
+        assertEquals("usvm.domain.type.unsupported", capability.symbolic.diagnostics.single().code)
     }
 
     @Test

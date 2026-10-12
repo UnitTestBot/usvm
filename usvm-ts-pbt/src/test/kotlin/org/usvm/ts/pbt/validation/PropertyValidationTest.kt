@@ -1,12 +1,14 @@
 package org.usvm.ts.pbt.validation
 
 import org.junit.jupiter.api.Test
+import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.JsNumber
 import org.usvm.ts.pbt.model.JsNumberKind
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyDomain
@@ -72,6 +74,29 @@ class PropertyValidationTest {
             listOf("domain.constant.unsupported"),
             validatePropertyDefinition(definition).diagnostics.map { it.code },
         )
+    }
+
+    @Test
+    fun `object domains reject unsafe keys and oversized shapes`() {
+        val domains = listOf(
+            ObjectDomain(mapOf("__proto__" to BooleanDomain)),
+            ObjectDomain((0..32).associate { index -> "field$index" to BooleanDomain }),
+        )
+
+        domains.forEach { domain ->
+            val diagnostics = validatePropertyDefinition(validDefinition(domain)).diagnostics
+
+            assertEquals(listOf("domain.object.fields"), diagnostics.map { it.code })
+        }
+    }
+
+    @Test
+    fun `constant domains reject object values`() {
+        val definition = validDefinition(ConstantDomain(JsConcreteValue.Object(emptyMap())))
+
+        val diagnostics = validatePropertyDefinition(definition).diagnostics
+
+        assertEquals(listOf("domain.constant.unsupported"), diagnostics.map { it.code })
     }
 
     @Test

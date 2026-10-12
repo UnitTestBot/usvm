@@ -21,6 +21,7 @@ import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
@@ -78,6 +79,7 @@ internal class UsvmCandidateInputResolver {
             is OptionalDomain -> resolveOptional(state, domain, etsType, value)
             is TupleDomain -> resolveTuple(state, domain, etsType, value)
             is ArrayDomain -> resolveArray(state, domain, etsType as EtsArrayType, value)
+            is ObjectDomain -> error("Object domains are not supported by the USVM property projector")
         }
     }
 

@@ -850,6 +850,32 @@ test('reports the original nested array when the predicate mutates its invocatio
   });
 });
 
+test('reports and replays the original plain object after nested mutation', async () => {
+  await withPropertyModule(async (sourceRoot) => {
+    const originalValue = { nested: { score: 1 } };
+    const request = executionRequest(sourceRoot, 'mutatesNestedObject', {
+      inputDomain: { kind: 'object', fields: {
+        nested: { kind: 'object', fields: { score: { kind: 'integer', min: 1, max: 1 } } },
+      } },
+    });
+    request.examples = [[encodeJsValue(originalValue)]];
+    enableObservation(request);
+
+    const response = await executeProperty(request);
+    const replay = await executeProperty({
+      ...request,
+      replayPath: response.result.replayPath ?? undefined,
+      seed: response.result.seed,
+    });
+
+    assert.equal(response.result.status, 'failure');
+    assert.deepEqual(response.result.counterexample, [encodeJsValue(originalValue)]);
+    assert.deepEqual(response.result.observations?.invocations[0]?.input,
+      { status: 'captured', value: encodeJsValue([originalValue]) });
+    assert.deepEqual(replay.result.counterexample, response.result.counterexample);
+  });
+});
+
 test('reports and replays the original array when the predicate creates a cycle', async () => {
   await withPropertyModule(async (sourceRoot) => {
     const originalValue = [1];
@@ -1022,6 +1048,12 @@ export async function neverCompletes(_value: number): Promise<boolean> {
 
 export function mutatesNestedArrayToObject(value: unknown[][]): boolean {
   value[0]![0] = {};
+
+  return false;
+}
+
+export function mutatesNestedObject(value: { nested: { score: number } }): boolean {
+  value.nested.score = 2;
 
   return false;
 }

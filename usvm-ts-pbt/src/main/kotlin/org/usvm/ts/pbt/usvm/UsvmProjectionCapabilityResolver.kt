@@ -30,6 +30,7 @@ import org.usvm.ts.pbt.model.ExecutionKind
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.StringDomain
@@ -209,6 +210,11 @@ class UsvmProjectionCapabilityResolver {
 
             is TupleDomain -> tupleCapability(domain, etsType, path, options)
             is ArrayDomain -> arrayCapability(domain, etsType, path, options)
+            is ObjectDomain -> unsupported(
+                code = PbtDiagnosticCode.USVM_DOMAIN_TYPE_UNSUPPORTED,
+                message = "Object domains are not supported by the USVM property projector",
+                path = path,
+            )
         }
     }
 
@@ -268,6 +274,7 @@ class UsvmProjectionCapabilityResolver {
         is IntegerDomain, is NumberDomain -> etsType == EtsNumberType || etsType is EtsNumberLiteralType
         is StringDomain -> etsType == EtsStringType || etsType is EtsStringLiteralType
         is ConstantDomain -> isConstantCompatible(domain.value, etsType)
+        is ObjectDomain -> false
         is OptionalDomain -> isOptionalCompatible(domain, etsType)
         is TupleDomain -> when (etsType) {
             is EtsTupleType -> {
@@ -296,7 +303,7 @@ class UsvmProjectionCapabilityResolver {
         is JsConcreteValue.String -> etsType == EtsStringType || etsType is EtsStringLiteralType
         JsConcreteValue.Null -> etsType == EtsNullType
         JsConcreteValue.Undefined -> etsType == EtsUndefinedType
-        is JsConcreteValue.Array -> false
+        is JsConcreteValue.Array, is JsConcreteValue.Object -> false
     }
 
     private fun isOptionalCompatible(domain: OptionalDomain, etsType: EtsType): Boolean {

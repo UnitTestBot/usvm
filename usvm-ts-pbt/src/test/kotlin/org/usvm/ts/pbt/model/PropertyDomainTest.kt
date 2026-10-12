@@ -6,6 +6,19 @@ import kotlin.test.assertTrue
 
 class PropertyDomainTest {
     @Test
+    fun `object membership requires every declared field and no extras`() {
+        val domain = ObjectDomain(mapOf("score" to NumberDomain(), "enabled" to BooleanDomain))
+        val valid = JsConcreteValue.Object(mapOf(
+            "score" to JsConcreteValue.number(2.0),
+            "enabled" to JsConcreteValue.Boolean(true),
+        ))
+
+        assertTrue(valid in domain)
+        assertFalse(JsConcreteValue.Object(valid.fields - "enabled") in domain)
+        assertFalse(JsConcreteValue.Object(valid.fields + ("extra" to JsConcreteValue.Null)) in domain)
+    }
+
+    @Test
     fun `integer membership matches values produced by fast-check integer`() {
         val domain = IntegerDomain(min = -1, max = 1)
 

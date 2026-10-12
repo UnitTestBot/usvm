@@ -57,3 +57,7 @@ function throwingHelper(_value: number): boolean {
 export function returnsNumber(value: number): number {
   return value;
 }
+
+export function acceptsObject(input: { value: number }): boolean {
+    return input.value > 0;
+}
