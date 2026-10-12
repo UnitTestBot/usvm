@@ -1479,6 +1479,8 @@ class TsExprResolver(
     // region OTHER
 
     override fun visit(expr: EtsNewExpr): UExpr<out USort>? = with(ctx) {
+        expr.constructorValue?.let { return@with constructRuntimeClass(it) }
+
         // Try to resolve the concrete type if possible.
         // Otherwise, create an object with UnclearRefType
         val resolvedType = if (expr.type.isResolved()) {
@@ -1502,6 +1504,15 @@ class TsExprResolver(
         }
 
         scope.calcOnState { memory.allocConcrete(resolvedType) }
+    }
+
+    private fun constructRuntimeClass(constructorValue: EtsValue): UExpr<out USort>? = with(ctx) {
+        val constructorType = resolveRuntimeConstructor(constructorValue, operation = RuntimeConstructorOperation.NEW)
+            ?: return@with null
+        val clazz = scene.projectClasses.singleOrNull { it.signature == constructorType.signature }
+            ?: throw UnsupportedOperationException("Unknown new project class: ${constructorType.signature}")
+
+        scope.calcOnState { memory.allocConcrete(clazz.type) }
     }
 
     override fun visit(expr: EtsNewArrayExpr): UExpr<out USort>? = with(ctx) {

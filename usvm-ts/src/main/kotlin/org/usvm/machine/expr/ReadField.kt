@@ -136,7 +136,13 @@ private fun TsContext.resolveDeclaredField(
     val resolvedField = resolveEtsField(local, field, hierarchy)
     val writtenSort = scope.calcOnState { writtenObjectLiteralFieldSorts[instance to field.name] }
     val declaredLiteralSort = declaredLiteralField?.let { typeToSort(it.type) }
-    val sort = writtenSort ?: declaredLiteralSort ?: resolvedFieldSort(scope, instance, field, resolvedField)
+    val sort = writtenSort ?: declaredLiteralSort ?: resolvedFieldSort(
+        scope = scope,
+        instance = instance,
+        field = field,
+        resolved = resolvedField,
+        hierarchy = hierarchy,
+    )
     val declaredType = if (objectClass != null) {
         declaredLiteralField?.type
     } else {
@@ -168,9 +174,15 @@ private fun TsContext.resolvedFieldSort(
     instance: UHeapRef,
     field: EtsFieldSignature,
     resolved: TsResolutionResult<EtsField>,
+    hierarchy: EtsHierarchy,
 ): USort = when (resolved) {
     is TsResolutionResult.Unique -> typeToSort(resolved.property.type)
-    is TsResolutionResult.Ambiguous -> unresolvedSort
+    is TsResolutionResult.Ambiguous -> resolveAmbiguousFieldSort(
+        scope = scope,
+        instance = instance,
+        fields = resolved.properties,
+        hierarchy = hierarchy,
+    )
     TsResolutionResult.Empty -> {
         if (field.name !in listOf("i", "LogLevel")) {
             logger.warn { "Field $field not found, creating fake field" }

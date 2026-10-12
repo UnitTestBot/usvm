@@ -46,8 +46,7 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
             enclosingClass = EtsClassSignature.UNKNOWN,
             type = EtsUnknownType,
         )
-        assignToInstanceField(scope, lhv.array, array, field, expr, hierarchy)
-        return Unit
+        return assignToInstanceField(scope, lhv.array, array, field, expr, hierarchy)
     }
     if (receiverType !is EtsArrayType) {
         throw UnsupportedOperationException("Symbolic object property keys are not supported")
