@@ -17,8 +17,9 @@ import org.usvm.machine.state.TsState
 import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.util.arrayStorageType
 import org.usvm.util.copyArrayElements
-import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.readTypedArrayElement
+import org.usvm.isFalse
 
 /** Engine intrinsic for `Array.shift`, whose bulk move is implemented by symbolic-memory `memcpy`. */
 internal object TsArrayShiftIntrinsicModel : TsBuiltInUnknownCallModel {
@@ -91,15 +92,12 @@ internal object TsArrayShiftIntrinsicModel : TsBuiltInUnknownCallModel {
         index: UExpr<TsSizeSort>,
     ): TsUnknownCallModelCompletion = with(ctx) {
         if (input.elementSort !is TsUnresolvedSort) {
-            val firstElementLValue = mkArrayIndexLValue(
-                sort = input.elementSort,
-                ref = input.array,
-                index = index,
-                type = input.arrayType,
-            )
-            val firstElement = memory.read(firstElementLValue)
-
-            return@with TsUnknownCallModelCompletion.Normal { firstElement }
+            val element = readTypedArrayElement(memory, input.array, index, input.arrayType)
+            return@with if (element.hasBoxedValue.isFalse) {
+                TsUnknownCallModelCompletion.Normal { element.nativeValue }
+            } else {
+                TsUnknownCallModelCompletion.Unresolved(element.unresolvedValue)
+            }
         }
 
         val firstElement = readUnresolvedArrayElement(memory, input.array, index)

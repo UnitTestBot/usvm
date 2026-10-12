@@ -49,6 +49,23 @@ import org.usvm.util.resolveEtsMethods
 
 private val logger = KotlinLogging.logger {}
 
+private val modeledStringMethods = setOf(
+    "substring",
+    "trim",
+    "trimStart",
+    "trimEnd",
+    "charAt",
+    "charCodeAt",
+    "endsWith",
+    "includes",
+    "indexOf",
+    "lastIndexOf",
+    "slice",
+    "startsWith",
+    "toLowerCase",
+    "toUpperCase",
+)
+
 internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     expr: EtsInstanceCallExpr,
 ): TsExprApproximationResult = with(ctx) {
@@ -217,18 +234,6 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         }
     }
 
-    val modeledStringMethods = setOf(
-        "charAt",
-        "charCodeAt",
-        "endsWith",
-        "includes",
-        "indexOf",
-        "lastIndexOf",
-        "slice",
-        "startsWith",
-        "toLowerCase",
-        "toUpperCase",
-    )
     if (instanceType is EtsStringType && expr.callee.name in modeledStringMethods) {
         val dispatcher = unknownCallDispatcher
         if (dispatcher !is TsUnknownCallModelDispatcher) {

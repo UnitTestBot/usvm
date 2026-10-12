@@ -1,7 +1,6 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
-import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayAccess
@@ -88,10 +87,8 @@ import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
-import org.usvm.types.first
 import org.usvm.types.single
 import org.usvm.util.executableOverloadImplementation
-import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
@@ -605,32 +602,8 @@ class TsInterpreter(
                         "Expected address sort for the array, got: ${array.sort}"
                     }
                     val arrayRef = array.asExpr(addressSort)
-                    val resolvedIndex = exprResolver.resolve(lhv.index) ?: return null
-                    val index = resolvedIndex.asExpr(fp64Sort)
-                    val bvIndex = mkFpToBvExpr(
-                        roundingMode = fpRoundingModeSortDefaultValue(),
-                        value = index,
-                        bvSize = 32,
-                        isSigned = true,
-                    ).asExpr(sizeSort)
-                    val arrayType = if (isAllocatedConcreteHeapRef(array)) {
-                        scope.calcOnState { memory.typeStreamOf(array).first() }
-                    } else {
-                        lhv.array.type
-                    }
-                    check(arrayType is EtsArrayType) {
-                        "Expected EtsArrayType, got: ${lhv.array.type}"
-                    }
-                    val elementSort = typeToSort(arrayType.elementType)
-                    val elementLValue = mkArrayIndexLValue(
-                        sort = elementSort,
-                        ref = arrayRef,
-                        index = bvIndex.asExpr(sizeSort),
-                        type = arrayType,
-                    )
-                    scope.doWithState {
-                        memory.write(elementLValue, expr.cast(), guard = trueExpr)
-                    }
+
+                    exprResolver.handleAssignToArrayIndex(lhv, expr, arrayRef)
                 }
             }
 

@@ -2,11 +2,19 @@ package org.usvm.samples.arrays
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
+import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
+import org.usvm.machine.TsInterpreterObserver
+import org.usvm.machine.TsMachine
+import org.usvm.machine.TsOptions
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.test.util.checkers.noResultsExpected
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
 import org.usvm.util.neq
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class AllocatedArrays : TsMethodTestRunner() {
     private val tsPath = "/samples/arrays/AllocatedArrays.ts"
@@ -95,19 +103,37 @@ class AllocatedArrays : TsMethodTestRunner() {
 
     @Test
     fun `test allocatedArrayLengthExpansion`() {
-        val method = getMethod("allocatedArrayLengthExpansion")
-        discoverProperties<TsTestValue>(
-            method = method,
-            { r -> r is TsTestValue.TsException }
-        )
+        assertArrayIndexGrowthLimitation("allocatedArrayLengthExpansion")
     }
 
     @Test
     fun `test writeInTheIndexEqualToLength`() {
-        val method = getMethod("writeInTheIndexEqualToLength")
-        discoverProperties<TsTestValue>(
-            method = method,
-            { r -> r is TsTestValue.TsException },
+        assertArrayIndexGrowthLimitation("writeInTheIndexEqualToLength")
+    }
+
+    private fun assertArrayIndexGrowthLimitation(methodName: String) {
+        val observer = RecordingObserver()
+        val states = TsMachine(
+            scene = scene,
+            options = UMachineOptions(),
+            tsOptions = TsOptions(),
+            observer = observer,
+        ).use { machine ->
+            machine.analyze(listOf(getMethod(methodName)))
+        }
+
+        assertTrue(states.isEmpty())
+        assertEquals(
+            TsRuntimeFeatureLimitationReason.ARRAY_INDEX_GROWTH,
+            observer.limitations.single().reason,
         )
+    }
+
+    private class RecordingObserver : TsInterpreterObserver {
+        val limitations = mutableListOf<TsRuntimeFeatureLimitationEvent>()
+
+        override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
+            limitations += event
+        }
     }
 }

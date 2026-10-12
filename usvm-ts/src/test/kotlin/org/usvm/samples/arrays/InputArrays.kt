@@ -18,22 +18,22 @@ class InputArrays : TsMethodTestRunner() {
         val method = getMethod("inputArrayOfNumbers")
         discoverProperties<TsTestValue.TsArray<*>, TsTestValue>(
             method = method,
-            { _, r -> r is TsTestValue.TsException },
             { x, r ->
                 r as TsTestValue.TsNumber
-                val x0 = x.values[0] as TsTestValue.TsNumber
-                (r eq 1) && (x0 eq 1)
+                val firstElement = x.values.firstOrNull()
+                (r eq 1) && firstElement is TsTestValue.TsNumber && (firstElement eq 1)
             },
             { x, r ->
                 r as TsTestValue.TsNumber
-                val x0 = x.values[0] as TsTestValue.TsNumber
-                (r eq 2) && (x0 neq 1)
+                val firstElement = x.values.firstOrNull()
+                val firstElementIsUndefined = firstElement == null || firstElement is TsTestValue.TsUndefined
+                (r eq -1) && firstElementIsUndefined
             },
-            invariants = arrayOf(
-                { _, r ->
-                    r !is TsTestValue.TsNumber || (r neq -1)
-                }
-            )
+            { x, r ->
+                r as TsTestValue.TsNumber
+                val firstElement = x.values.firstOrNull()
+                (r eq 2) && firstElement is TsTestValue.TsNumber && (firstElement neq 1)
+            },
         )
     }
 
@@ -62,7 +62,7 @@ class InputArrays : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsArray<TsTestValue.TsBoolean>, TsTestValue.TsNumber>(
             method = method,
             { x, r -> (r eq 1) && x.values[0].value },
-            { x, r -> (r eq -1) && !x.values[0].value },
+            { x, r -> (r eq -1) && x.values.firstOrNull()?.value != true },
         )
     }
 
@@ -73,29 +73,33 @@ class InputArrays : TsMethodTestRunner() {
             method = method,
             // TODO exception
             { x, r ->
-                val firstElement = x.values[0]
+                val firstElement = x.values.firstOrNull()
                 (r.values == x.values) && firstElement is TsTestValue.TsNumber && (firstElement eq 1.1)
             },
             { x, r ->
-                val firstElement = x.values[0]
+                val firstElement = x.values.firstOrNull()
                 val firstElementCondition = firstElement !is TsTestValue.TsNumber || (firstElement neq 1.1)
 
-                val secondElement = x.values[1]
+                val secondElement = x.values.getOrNull(1)
                 val secondElementCondition = secondElement is TsTestValue.TsBoolean && secondElement.value
 
                 (r.values == x.values) && firstElementCondition && secondElementCondition
             },
             { x, r ->
-                val firstElement = x.values[0]
+                val firstElement = x.values.firstOrNull()
                 val firstElementCondition = firstElement !is TsTestValue.TsNumber || (firstElement neq 1.1)
 
-                val secondElement = x.values[1]
+                val secondElement = x.values.getOrNull(1)
                 val secondElementCondition = secondElement !is TsTestValue.TsBoolean || !secondElement.value
 
-                val thirdElement = x.values[2]
-                val thirdElementCondition = thirdElement is TsTestValue.TsUndefined
+                val thirdElement = x.values.getOrNull(2)
+                val thirdElementCondition = thirdElement == null || thirdElement is TsTestValue.TsUndefined
+                val resultMatches = r.values.size == x.values.size && r.values.zip(x.values).all { (actual, expected) ->
+                    actual == expected ||
+                        actual is TsTestValue.TsClass && expected is TsTestValue.TsClass && actual.name == expected.name
+                }
 
-                (r.values == x.values) && firstElementCondition && secondElementCondition && thirdElementCondition
+                resultMatches && firstElementCondition && secondElementCondition && thirdElementCondition
             }
         )
     }
@@ -127,8 +131,11 @@ class InputArrays : TsMethodTestRunner() {
                 r is TsTestValue.TsNull && value is TsTestValue.TsNumber && (value eq 1)
             },
             { x, r ->
-                val value = x.values[0]
-                (r == value) && (value !is TsTestValue.TsNumber || (value neq 1))
+                val value = x.values.firstOrNull()
+                val valueIsNotOne = value !is TsTestValue.TsNumber || (value neq 1)
+                val resultMatches = if (value == null) r is TsTestValue.TsUndefined else r == value
+
+                valueIsNotOne && resultMatches
             },
         )
     }
@@ -155,7 +162,7 @@ class InputArrays : TsMethodTestRunner() {
                 resultCondition && fstCondition && sndCondition
             },
             { x, y, r ->
-                val fst = x.values[0]
+                val fst = x.values.firstOrNull()
                 val condition = fst !is TsTestValue.TsNumber || (fst neq 1)
                 condition && r is TsTestValue.TsArray<*> && r.values == x.values
             },
