@@ -62,6 +62,20 @@ class TsTypeSystemTest {
     }
 
     @Test
+    fun `core SDK uses bundled TypeScript declarations with their members`() {
+        val scene = EtsScene(projectFiles = emptyList()).withCoreRuntimeSdk()
+        val objectClass = scene.sdkClasses.single { it.name == "Object" }
+        val functionClass = scene.sdkClasses.single { it.name == "Function" }
+        val arrayClass = scene.sdkClasses.single { it.name == "Array" }
+
+        assertTrue(objectClass.signature == EtsHierarchy.OBJECT_CLASS.signature)
+        assertTrue(objectClass.methods.any { it.name == "hasOwnProperty" })
+        assertTrue(functionClass.methods.any { it.name == "apply" })
+        assertTrue(arrayClass.methods.any { it.name == "slice" })
+        assertTrue(scene.sdkClasses.all { it.signature.file.fileName == "lib.es5.d.ts" })
+    }
+
+    @Test
     fun `core SDK bootstrap preserves explicitly loaded SDK declarations`() {
         val fileSignature = EtsFileSignature(projectName = "sdk", fileName = "function.ts")
         val functionClass = EtsClassImpl(

@@ -1,52 +1,57 @@
 package org.usvm.machine
 
+import org.jacodb.ets.dto.EtsFileDto
+import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsClass
-import org.jacodb.ets.model.EtsClassCategory
-import org.jacodb.ets.model.EtsClassImpl
-import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFile
-import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.EtsIrProvider
+import org.jacodb.ets.utils.etsIrSerializerScript
+import org.jacodb.ets.utils.generateEtsIR
 import org.usvm.util.EtsHierarchy
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.inputStream
 
-private val runtimeSdkFile = EtsHierarchy.OBJECT_CLASS.signature.file
-private val runtimePrototypeFile = EtsFileSignature(projectName = "usvm-runtime-sdk", fileName = "PrototypeIdentities")
+private val coreRuntimeClassNames = setOf("Object", "Function", "Array")
 
-/** Synthetic Function and Array identities cannot be materialized as ordinary class instances. */
-internal fun EtsClassType.isCoreRuntimePrototypeIdentity(): Boolean = signature.file == runtimePrototypeFile
+// JacoDB ships the matching TypeScript lib*.d.ts next to its frontend. Single-file conversion supports
+// declarations, while project mode deliberately skips them. Cache the DTO, not mutable scene-owned classes.
+private val coreRuntimeSdk: EtsFileDto by lazy {
+    val library = etsIrSerializerScript(EtsIrProvider.TS_FRONTEND).resolveSibling("lib.es5.d.ts")
+    val ir = generateEtsIR(library, loadEntrypoints = false, provider = EtsIrProvider.TS_FRONTEND)
+    try {
+        val file = ir.inputStream().use { EtsFileDto.loadFromJson(it) }
+        file.copy(
+            classes = file.classes.filter { it.signature.name in coreRuntimeClassNames },
+            namespaces = emptyList(),
+        )
+    } finally {
+        ir.deleteIfExists()
+    }
+}
+
+/** Standard Function and Array declarations use dedicated values, not ordinary class-instance witnesses. */
+internal fun EtsClassType.isCoreRuntimePrototypeIdentity(): Boolean =
+    signature.file == EtsHierarchy.OBJECT_CLASS.signature.file &&
+        signature.name in setOf("Function", "Array")
 
 /**
- * Minimal prototype identities for the standard Object, Function and Array constructors.
- * These declarations support runtime membership checks, not execution of their standard-library APIs.
- * Preserve explicitly loaded SDK declarations; add only the missing core identities. Synthetic Function and Array
- * declarations have a reserved signature and are excluded from instantiable type streams: functions and arrays
- * use their existing dedicated runtime representations. Object remains an ordinary object input candidate.
+ * Load Object, Function and Array from the standard declarations bundled in the pinned JacoDB dependency.
+ * Keep their signatures and members and preserve SDK declarations supplied by the caller. Declaration files
+ * describe prototypes and APIs; executing an SDK API still requires an interpreter implementation or model.
  */
 internal fun EtsScene.withCoreRuntimeSdk(): EtsScene {
-    val objectSignature = sdkClasses.singleOrNull { it.name == "Object" }?.signature
-        ?: EtsHierarchy.OBJECT_CLASS.signature
-    val missingClasses = listOf("Object", "Function", "Array")
-        .filter { name -> sdkClasses.none { it.name == name } }
-        .map { name ->
-            EtsClassImpl(
-                signature = EtsClassSignature(
-                    name = name,
-                    file = if (name == "Object") runtimeSdkFile else runtimePrototypeFile,
-                ),
-                fields = emptyList(),
-                methods = emptyList(),
-                category = EtsClassCategory.INTERFACE,
-                superClass = if (name == "Object") null else objectSignature,
-            )
-        }
-    if (missingClasses.isEmpty()) return this
+    val missingNames = coreRuntimeClassNames - sdkClasses.map { it.name }.toSet()
+    if (missingNames.isEmpty()) return this
 
-    val coreSdkFiles = missingClasses.groupBy { it.signature.file }.map { (file, classes) ->
-        EtsFile(signature = file, classes = classes, namespaces = emptyList())
-    }
-    return EtsScene(projectFiles = projectFiles, sdkFiles = sdkFiles + coreSdkFiles, projectName = projectName)
+    val library = coreRuntimeSdk.toEtsFile()
+    val classes = library.classes.filter { it.name in missingNames }
+    check(classes.map { it.name }.toSet() == missingNames) { "Core TypeScript SDK declarations are missing" }
+    val file = EtsFile(signature = library.signature, classes = classes, namespaces = emptyList())
+
+    return EtsScene(projectFiles = projectFiles, sdkFiles = sdkFiles + file, projectName = projectName)
 }
 
 /** An undeclared frontend local denotes a standard-library constructor, rather than a project binding. */

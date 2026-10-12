@@ -118,11 +118,13 @@ class EtsHierarchy(private val scene: EtsScene) {
     }
 
     companion object {
-        // TODO use real one
+        private val objectFile = EtsFileSignature(projectName = "", fileName = "lib.es5.d.ts")
+
+        // The Object declaration in the TypeScript library bundled by JacoDB.
         val OBJECT_CLASS = EtsClassType(
             signature = EtsClassSignature(
                 name = "Object",
-                file = EtsFileSignature(projectName = "ES2015", fileName = "BuiltinClass")
+                file = objectFile
             ),
         )
     }
