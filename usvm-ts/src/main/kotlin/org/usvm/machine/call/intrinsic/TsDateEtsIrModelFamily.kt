@@ -259,7 +259,8 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         inputAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
             with(state.ctx) {
                 val arguments = call.numericArguments(maxArgs = MAX_CONSTRUCTOR_ARGUMENTS, state = state)
-                    ?.map { it.value }?.toMutableList()
+                    ?.map { it.value }
+                    ?.toMutableList()
                     ?: return@TsEtsIrUnknownCallModelInputAdapter null
                 while (arguments.size < MAX_CONSTRUCTOR_ARGUMENTS) {
                     arguments += mkFp64(0.0)
@@ -282,7 +283,8 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         inputAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
             val receiver = call.receiver?.resolved ?: return@TsEtsIrUnknownCallModelInputAdapter null
             val arguments = call.numericArguments(maxArgs = consumedArgs, state = state)
-                ?.map { it.value }?.toMutableList()
+                ?.map { it.value }
+                ?.toMutableList()
                 ?: return@TsEtsIrUnknownCallModelInputAdapter null
             while (arguments.size < consumedArgs) {
                 arguments += state.ctx.mkFp64NaN()
@@ -420,12 +422,18 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             }
 
             value.sort == fp64Sort -> NumericDateArgument(value = value.asExpr(fp64Sort), guard = trueExpr)
-            value.sort == boolSort -> NumericDateArgument(
-                value = boolToFp(value.asExpr(boolSort)),
-                guard = trueExpr,
+            value.sort == boolSort -> {
+                val booleanNumber = boolToFp(value.asExpr(boolSort))
+
+                NumericDateArgument(value = booleanNumber, guard = trueExpr)
+            }
+
+            value.sort == addressSort -> referenceArgument(
+                state = state,
+                reference = value.asExpr(addressSort),
+                allowDateCopy = allowDateCopy,
             )
 
-            value.sort == addressSort -> referenceArgument(state, value.asExpr(addressSort), allowDateCopy = allowDateCopy)
             else -> NumericDateArgument(value = mkFp64NaN(), guard = falseExpr)
         }
     }
