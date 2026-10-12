@@ -86,17 +86,19 @@ internal class CurrentTsCallsExtendedInputDomainsTest : CurrentTsCallsSymbolicEn
     @Test
     fun `optional numeric domain preserves both nullish and numeric branches`() {
         for (targetValue in listOf(JsConcreteValue.Undefined, JsConcreteValue.number(7.0))) {
-            val condition = if (targetValue == JsConcreteValue.Undefined) "value === undefined" else "value === 7"
+            val undefinedTarget = targetValue == JsConcreteValue.Undefined
+            val condition = if (undefinedTarget) "value === undefined" else "value === 7"
+            val exportName = if (undefinedTarget) "optionalUndefined" else "optionalNumber"
             val fixture = fixture(
                 source = """
-                    export function optional(value: number | undefined): boolean {
+                    export function $exportName(value: number | undefined): boolean {
                       if ($condition) {
                         return true;
                       }
                       return false;
                     }
                 """.trimIndent(),
-                exportName = "optional",
+                exportName = exportName,
                 inputs = listOf(
                     PropertyInput(name = "value", domain = OptionalDomain(IntegerDomain(min = 0, max = 10))),
                 ),
