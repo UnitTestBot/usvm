@@ -42,13 +42,18 @@ class CoverageArtifactException(
     }
 }
 
-/** Decodes and filters one source-mapped Istanbul JSON report produced by an isolated c8 run. */
+/**
+ * Decodes and filters one source-mapped Istanbul JSON report produced by an isolated c8 run.
+ * [checkBudget] can cancel between I/O, parsing and entry decoding; the bounded JSON parse itself is not preemptible.
+ */
 fun decodeIstanbulCoverageReport(
     reportPath: Path,
     context: IstanbulCoverageContext,
+    checkBudget: () -> Unit = {},
+    maxReportBytes: Long = MAX_COVERAGE_REPORT_BYTES,
 ): PropertyCoverageArtifact {
-    val report = IstanbulCoverageReportReader.read(reportPath)
-    val decoder = IstanbulCoverageDecoder(context)
+    val report = IstanbulCoverageReportReader.read(reportPath, checkBudget, maxReportBytes)
+    val decoder = IstanbulCoverageDecoder(context, checkBudget)
 
     return decoder.decode(report)
 }

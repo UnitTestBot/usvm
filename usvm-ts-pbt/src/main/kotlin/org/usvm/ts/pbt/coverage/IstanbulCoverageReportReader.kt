@@ -10,13 +10,20 @@ import java.nio.file.Path
 
 /** Reads one bounded Istanbul report and converts I/O and JSON failures into coverage diagnostics. */
 internal object IstanbulCoverageReportReader {
-    fun read(reportPath: Path): JsonObject {
+    fun read(
+        reportPath: Path,
+        checkBudget: () -> Unit = {},
+        maxReportBytes: Long = MAX_COVERAGE_REPORT_BYTES,
+    ): JsonObject {
+        require(maxReportBytes > 0)
+        checkBudget()
         requireRegularFile(reportPath)
-        requireAllowedSize(reportPath)
+        requireAllowedSize(reportPath, maxReportBytes)
 
         val reportText = readText(reportPath)
+        checkBudget()
 
-        return parse(reportText, reportPath)
+        return parse(reportText, reportPath).also { checkBudget() }
     }
 
     private fun requireRegularFile(reportPath: Path) {
@@ -29,17 +36,17 @@ internal object IstanbulCoverageReportReader {
         }
     }
 
-    private fun requireAllowedSize(reportPath: Path) {
+    private fun requireAllowedSize(reportPath: Path, maxReportBytes: Long) {
         val reportSize = try {
             Files.size(reportPath)
         } catch (error: IOException) {
             throw unreadableReport(reportPath, error)
         }
 
-        if (reportSize > MAX_COVERAGE_REPORT_BYTES) {
+        if (reportSize > maxReportBytes) {
             throw CoverageArtifactException.create(
                 code = PbtDiagnosticCode.COVERAGE_REPORT_INVALID,
-                message = "Istanbul coverage report exceeds $MAX_COVERAGE_REPORT_BYTES bytes",
+                message = "Istanbul coverage report exceeds $maxReportBytes bytes",
                 path = reportPath.toString(),
             )
         }

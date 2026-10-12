@@ -134,7 +134,16 @@ export function decodeJsNumber(taggedNumber: unknown, path = 'number'): number {
         );
       }
 
-      return bitsToDouble(taggedNumber.bits);
+      const finiteValue = bitsToDouble(taggedNumber.bits);
+      if (!Number.isFinite(finiteValue)) {
+        throw protocolError(
+          adapterDiagnostic.jsNumberEncodingInvalid,
+          'Finite JavaScript numbers require finite IEEE-754 bits',
+          path,
+        );
+      }
+
+      return finiteValue;
 
     case 'nan':
       requireNoBits(taggedNumber, path);
