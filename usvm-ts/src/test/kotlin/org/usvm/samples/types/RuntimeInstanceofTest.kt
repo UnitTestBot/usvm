@@ -386,6 +386,72 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `unused constructor fields do not exclude structural input objects`() {
+        val methods = listOf(
+            "unreadConstructorField",
+            "unreadNestedConstructorField",
+            "unreadGenericConstructorField",
+            "unreadInheritedGenericConstructorField",
+        )
+
+        methods.forEach { methodName ->
+            discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
+                method = getMethod(methodName = methodName, className = "RuntimeInstanceof"),
+                { _, result -> result.number == 1.0 },
+                { _, result -> result.number == 0.0 },
+                invariants = arrayOf({ input, result ->
+                    val marker = input.properties["marker"] as? TsTestValue.TsNumber
+                    result.number == if (marker?.number == 7.0) 1.0 else 0.0
+                }),
+            )
+        }
+
+        replay(methods.flatMap { methodName ->
+            listOf(
+                "if (new RuntimeInstanceof().$methodName({ marker: 7 } as any) !== 1) throw Error('$methodName 7');",
+                "if (new RuntimeInstanceof().$methodName({ marker: 3 } as any) !== 0) throw Error('$methodName 3');",
+            )
+        })
+    }
+
+    @Test
+    fun `writing a constructor field before reading it needs no callable input witness`() {
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
+            method = getMethod(methodName = "overwrittenConstructorField", className = "RuntimeInstanceof"),
+            { _, result -> result.number == 1.0 },
+            invariants = arrayOf({ _, result -> result.number == 1.0 }),
+        )
+
+        replay(listOf(
+            "if (new RuntimeInstanceof().overwrittenConstructorField({} as any) !== 1) throw Error('overwritten ctor');"
+        ))
+    }
+
+    @Test
+    fun `unsupported field read preserves paths that do not read the constructor`() {
+        val method = getMethod(methodName = "conditionalConstructorField", className = "RuntimeInstanceof")
+
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+            method = method,
+            { _, read, result -> !read.value && result.number == 1.0 },
+            { _, read, result -> !read.value && result.number == 0.0 },
+            invariants = arrayOf({ input, read, result ->
+                val marker = input.properties["marker"] as? TsTestValue.TsNumber
+                val expected = if (marker?.number == 7.0) 1.0 else 0.0
+
+                read.value == false && result.number == expected
+            }),
+        )
+
+        val outcome = analyze("conditionalConstructorField")
+
+        assertTrue(outcome.unsupportedPaths.any { "Constructor-typed input field" in it },
+            "${outcome.unsupportedPaths}")
+        assertTrue(outcome.states.isNotEmpty())
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+    }
+
+    @Test
     fun `constructor typed input has an explicit unsupported outcome`() {
         val outcome = analyze("constructorParameter")
 
@@ -465,12 +531,12 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `constructor value in class type argument has an explicit unsupported outcome`() {
+    fun `reading an unresolved generic field has an explicit unsupported outcome`() {
         val outcome = analyze("constructorBoxParameter")
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
         assertTrue(outcome.states.isEmpty(), "${outcome.states}")
-        assertTrue(outcome.unsupportedPaths.any { "Constructor-typed parameter" in it },
+        assertTrue(outcome.unsupportedPaths.any { "Unresolved generic input field" in it },
             "${outcome.unsupportedPaths}")
 
         replay(listOf(
@@ -492,7 +558,7 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
             assertTrue(outcome.states.isEmpty(), "$methodName: ${outcome.states}")
-            assertTrue(outcome.unsupportedPaths.any { "Constructor-typed parameter" in it },
+            assertTrue(outcome.unsupportedPaths.any { "Constructor-typed input field" in it },
                 "$methodName: ${outcome.unsupportedPaths}")
         }
 
@@ -507,7 +573,7 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `inherited generic fields have explicit unsupported outcomes`() {
+    fun `reading inherited generic fields has explicit unsupported outcomes`() {
         val methods = listOf("inheritedGenericConstructorParameter", "inheritedGenericNumberParameter")
 
         methods.forEach { methodName ->
@@ -515,7 +581,7 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
             assertTrue(outcome.states.isEmpty(), "$methodName: ${outcome.states}")
-            assertTrue(outcome.unsupportedPaths.any { "Unresolved inherited generic" in it },
+            assertTrue(outcome.unsupportedPaths.any { "Unresolved generic input field" in it },
                 "$methodName: ${outcome.unsupportedPaths}")
         }
 

@@ -252,7 +252,7 @@ class TsMachine(
     ): Pair<Map<EtsMethod, TsState>, MutableSet<String>> {
         val initialStates = mutableMapOf<EtsMethod, TsState>()
         val unsupportedPaths = mutableSetOf<String>()
-        val constructorInputs = TsConstructorInputGuard(runtimeScene)
+        val constructorInputs = TsConstructorInputGuard()
 
         methods.forEach { method ->
             val unsupportedReason = constructorInputs.unsupportedReason(method)

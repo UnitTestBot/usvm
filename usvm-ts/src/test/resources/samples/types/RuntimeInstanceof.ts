@@ -153,6 +153,32 @@ class RuntimeInstanceof {
         return instance instanceof InstanceHasInstanceFieldChild;
     }
 
+    unreadConstructorField(holder: { marker: number; ctor: typeof InstanceA }): number {
+        return holder.marker === 7 ? 1 : 0;
+    }
+
+    unreadNestedConstructorField(holder: { marker: number; nested: { ctor: typeof InstanceA } }): number {
+        return holder.marker === 7 ? 1 : 0;
+    }
+
+    unreadGenericConstructorField(holder: InstancePayload<typeof InstanceA>): number {
+        return holder.marker === 7 ? 1 : 0;
+    }
+
+    unreadInheritedGenericConstructorField(holder: InstanceInheritedPayload): number {
+        return holder.marker === 7 ? 1 : 0;
+    }
+
+    overwrittenConstructorField(holder: { ctor: typeof InstanceA }): number {
+        holder.ctor = InstanceA;
+        return typeof holder.ctor === "function" ? 1 : 0;
+    }
+
+    conditionalConstructorField(holder: { marker: number; ctor: typeof InstanceA }, read: boolean): number {
+        if (read) return typeof holder.ctor === "function" ? 1 : 0;
+        return holder.marker === 7 ? 1 : 0;
+    }
+
     constructorParameter(ctor: typeof InstanceA): boolean {
         return new InstanceA() instanceof ctor;
     }
@@ -254,3 +280,6 @@ class InstanceHasInstanceFieldParent {
     static [Symbol.hasInstance] = (_value: unknown): boolean => false;
 }
 class InstanceHasInstanceFieldChild extends InstanceHasInstanceFieldParent { hasInstanceFieldChildMarker: number = 1; }
+
+class InstancePayload<T> { marker!: number; value!: T; }
+class InstanceInheritedPayload extends InstancePayload<typeof InstanceA> {}
