@@ -2,6 +2,8 @@ package org.usvm.machine
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
@@ -11,6 +13,7 @@ import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsGenericType
+import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
@@ -54,8 +57,6 @@ import org.usvm.machine.types.EtsFakeType
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.types.single
 import org.usvm.util.mkFieldLValue
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.contract
 
 typealias TsSizeSort = UBv32Sort
 
@@ -165,6 +166,13 @@ class TsContext(
         is EtsNullType -> addressSort
         is EtsUndefinedType -> addressSort
         is EtsUnionType -> unresolvedSort
+        is EtsIntersectionType -> {
+            val memberSorts = type.types.map(::typeToSort)
+            val commonSort = memberSorts.firstOrNull() ?: unresolvedSort
+            val hasCommonSort = memberSorts.all { it == commonSort }
+
+            if (hasCommonSort) commonSort else unresolvedSort
+        }
         is EtsRefType -> addressSort
         is EtsLexicalEnvType -> addressSort
         is EtsAnyType -> unresolvedSort

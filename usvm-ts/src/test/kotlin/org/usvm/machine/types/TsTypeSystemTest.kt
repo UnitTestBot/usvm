@@ -1,5 +1,9 @@
 package org.usvm.machine.types
 
+import io.mockk.mockk
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
@@ -17,15 +21,51 @@ import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnknownType
 import org.junit.jupiter.api.Test
+import org.usvm.machine.TsContext
 import org.usvm.machine.withCoreRuntimeSdk
 import org.usvm.types.TypesResult
+import org.usvm.types.USingleTypeStream
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.type
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.seconds
 
 class TsTypeSystemTest {
+    @Test
+    fun `synthetic wrapper does not satisfy structural type constraints`() {
+        val scene = EtsScene(projectFiles = emptyList())
+        val context = TsContext(scene = scene, components = mockk())
+        val typeSystem = TsTypeSystem(
+            scene = scene,
+            typeOperationsTimeout = 1.seconds,
+            hierarchy = EtsHierarchy(scene),
+        )
+        val fakeType = EtsFakeType.mkRef(context)
+        val structuralType = EtsAuxiliaryType(properties = setOf("style"))
+
+        val fakeHasProperty = typeSystem.isSupertype(structuralType, fakeType)
+        val propertyHasFakeType = typeSystem.isSupertype(fakeType, structuralType)
+
+        assertFalse(fakeHasProperty)
+        assertFalse(propertyHasFakeType)
+    }
+
+    @Test
+    fun `fake type remains in a singleton stream after filtering by itself`() {
+        val scene = EtsScene(projectFiles = emptyList())
+        val context = TsContext(scene = scene, components = mockk())
+        val typeSystem = TsTypeSystem(
+            scene = scene,
+            typeOperationsTimeout = 1.seconds,
+            hierarchy = EtsHierarchy(scene),
+        )
+        val fakeType = EtsFakeType.mkRef(context)
+        val stream = USingleTypeStream(typeSystem = typeSystem, singleType = fakeType)
+
+        val filtered = stream.filterBySupertype(fakeType).filterBySubtype(fakeType)
+
+        assertTrue(typeSystem.isSupertype(fakeType, fakeType))
+        assertFalse(filtered.isEmpty ?: true)
+    }
+
     @Test
     fun `runtime object constraint accepts references and excludes primitive or unresolved types`() {
         val scene = EtsScene(projectFiles = emptyList())
