@@ -10,6 +10,16 @@ import java.util.concurrent.TimeUnit
 
 /** Uses the native TypeScript AST when lowered source ranges need validation or replay instrumentation. */
 object TypeScriptSourceInspector {
+    fun localSourceClosure(sourceRoot: Path, source: Path): TypeScriptLocalSourceClosure {
+        val output = inspect(
+            source = sourceRoot,
+            operation = "inspect-local-closure",
+            arguments = listOf(source.toString()),
+        )
+
+        return PropertyManifestJson.json.decodeFromString(output)
+    }
+
     fun isExportedExpressionArrowBody(
         source: Path,
         exportName: String,
@@ -130,4 +140,11 @@ data class TypeScriptSourceCapture(
     val fields: List<TypeScriptSourceCapture>,
     val reason: String?,
     val origin: String? = null,
+)
+
+@Serializable
+data class TypeScriptLocalSourceClosure(
+    val files: List<String>,
+    val reasonCode: String? = null,
+    val diagnostic: String? = null,
 )
