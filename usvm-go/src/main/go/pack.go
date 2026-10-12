@@ -645,14 +645,21 @@ func (p *Package) PackMethods(in WithMethods) []string {
 	for i := 0; i < in.NumMethods(); i++ {
 		method := in.Method(i)
 		signature := method.Type().(*types.Signature)
-		methods = append(methods, method.Name()+p.PackMethodParams(signature.Params())+p.PackMethodResults(signature.Results()))
+		methods = append(methods, method.Name()+p.PackMethodParams(signature)+p.PackMethodResults(signature.Results()))
 	}
 
 	return methods
 }
 
-func (p *Package) PackMethodParams(in *types.Tuple) string {
-	return "(" + strings.Join(p.PackTupleTypes(in), ", ") + ")"
+func (p *Package) PackMethodParams(signature *types.Signature) string {
+	params := p.PackTupleTypes(signature.Params())
+	if signature.Variadic() {
+		last := len(params) - 1
+		slice := signature.Params().At(last).Type().(*types.Slice)
+		params[last] = "..." + slice.Elem().String()
+	}
+
+	return "(" + strings.Join(params, ", ") + ")"
 }
 
 func (p *Package) PackMethodResults(in *types.Tuple) string {
