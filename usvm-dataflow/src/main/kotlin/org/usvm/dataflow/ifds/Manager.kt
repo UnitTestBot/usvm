@@ -26,6 +26,10 @@ interface Manager<out Fact, in Event, out Method, out Statement>
 
     fun handleEvent(event: Event)
 
+    /**
+     * Updates control state under the reporting runner's worklist monitor.
+     * Do not submit work or invoke summary handlers here; those belong to [handleEvent].
+     */
     fun handleControlEvent(event: ControlEvent)
 
     fun subscribeOnSummaryEdges(

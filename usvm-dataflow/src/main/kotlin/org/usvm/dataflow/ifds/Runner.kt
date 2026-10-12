@@ -18,7 +18,6 @@ package org.usvm.dataflow.ifds
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.getOrElse
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import org.jacodb.api.common.CommonMethod
@@ -54,7 +53,6 @@ class UniRunner<Fact, Event, Method, Statement>(
     where Method : CommonMethod,
           Statement : CommonInst {
     private val flowSpace: FlowFunctions<Fact, Method, Statement> = analyzer.flowFunctions
-    private val workList: Channel<Edge<Fact, Statement>> = Channel(Channel.UNLIMITED)
     val pathEdges: MutableSet<Edge<Fact, Statement>> = ConcurrentHashMap.newKeySet()
     private val reasons: MutableMap<Edge<Fact, Statement>, MutableSet<Reason<Fact, Statement>>> = ConcurrentHashMap()
 
@@ -65,6 +63,9 @@ class UniRunner<Fact, Event, Method, Statement>(
 
     private val queueIsEmpty = QueueEmptinessChanged(runner = this, isEmpty = true)
     private val queueIsNotEmpty = QueueEmptinessChanged(runner = this, isEmpty = false)
+
+    private val workList: Channel<Edge<Fact, Statement>> = Channel(capacity = Channel.UNLIMITED)
+    private val workListMonitor = Any()
 
     override suspend fun run(startMethods: List<Method>) {
         for (method in startMethods) {
@@ -116,8 +117,11 @@ class UniRunner<Fact, Event, Method, Statement>(
             }
 
             // Add edge to worklist:
-            workList.trySend(edge).getOrThrow()
-            manager.handleControlEvent(queueIsNotEmpty)
+            // Control handlers only update idle state; summary/user callbacks above never own this monitor.
+            synchronized(workListMonitor) {
+                workList.trySend(edge).getOrThrow()
+                manager.handleControlEvent(queueIsNotEmpty)
+            }
 
             return true
         }
@@ -127,11 +131,19 @@ class UniRunner<Fact, Event, Method, Statement>(
 
     private suspend fun tabulationAlgorithm() = coroutineScope {
         while (isActive) {
-            val edge = workList.tryReceive().getOrElse {
-                manager.handleControlEvent(queueIsEmpty)
-                val edge = workList.receive()
-                edge
+            val available = synchronized(workListMonitor) {
+                val queued = workList.tryReceive().getOrNull()
+                if (queued == null) manager.handleControlEvent(queueIsEmpty)
+                queued
             }
+            val edge = if (available != null) {
+                available
+            } else {
+                val received = workList.receive()
+                synchronized(workListMonitor) { manager.handleControlEvent(queueIsNotEmpty) }
+                received
+            }
+
             tabulationAlgorithmStep(edge, this@coroutineScope)
         }
     }
