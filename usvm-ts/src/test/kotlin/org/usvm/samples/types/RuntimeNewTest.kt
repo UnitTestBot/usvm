@@ -191,6 +191,27 @@ class RuntimeNewTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `inherited duplicate declarations do not change runtime field storage`() {
+        for (methodName in listOf("fieldReadWithInheritedDeclarations", "fieldWriteWithInheritedDeclarations")) {
+            val method = getMethod(methodName = methodName, className = "RuntimeNew")
+
+            discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean>(
+                method = method,
+                { input, result -> input.value && result.value },
+                { input, result -> !input.value && result.value },
+                invariants = arrayOf({ _, result -> result.value }),
+            )
+        }
+
+        replay(listOf(
+            "if (!new RuntimeNew().fieldReadWithInheritedDeclarations(true)) throw Error('number read');",
+            "if (!new RuntimeNew().fieldReadWithInheritedDeclarations(false)) throw Error('string read');",
+            "if (!new RuntimeNew().fieldWriteWithInheritedDeclarations(true)) throw Error('number write');",
+            "if (!new RuntimeNew().fieldWriteWithInheritedDeclarations(false)) throw Error('string write');",
+        ))
+    }
+
+    @Test
     fun `runtime field sort change is reported as unsupported`() {
         val methodName = "writeIncompatibleRuntimeField"
         val method = getMethod(methodName = methodName, className = "RuntimeNew")

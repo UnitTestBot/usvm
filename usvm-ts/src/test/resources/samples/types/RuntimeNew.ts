@@ -24,6 +24,9 @@ class NewText {
     }
 }
 
+// Inherited declarations also appear in scene-wide lookup for the parent class.
+class NewAChild extends NewA {}
+
 class ConstructorCounter {
     count: number;
 
@@ -93,6 +96,17 @@ class RuntimeNew {
         const value = new (useNumber ? NewA : NewText)(7);
         value.value = useNumber ? 9 : "nine";
         return useNumber ? value.value === 9 : value.value === "nine";
+    }
+
+    fieldReadWithInheritedDeclarations(useNumber: boolean): boolean {
+        const value = new (useNumber ? NewA : NewText)(7);
+        return useNumber ? value.value === 7 : value.value === "seven";
+    }
+
+    fieldWriteWithInheritedDeclarations(useNumber: boolean): boolean {
+        const value = new (useNumber ? NewA : NewText)(7);
+        value.value = useNumber ? 11 : "eleven";
+        return useNumber ? value.value === 11 : value.value === "eleven";
     }
 
     writeIncompatibleRuntimeField(useNumber: boolean): boolean {

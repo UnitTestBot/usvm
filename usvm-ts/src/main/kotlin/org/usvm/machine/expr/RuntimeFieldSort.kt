@@ -29,6 +29,8 @@ internal fun TsContext.resolveAmbiguousFieldSort(
     } ?: return unresolvedSort
 
     val ancestors = hierarchy.getAncestors(runtimeClass)
-    val runtimeField = fields.singleOrNull { it.declaringClass in ancestors } ?: return unresolvedSort
+    // Scene-wide resolution repeats a declaration for every class inheriting it.
+    val runtimeFields = fields.filter { it.declaringClass in ancestors }.distinct()
+    val runtimeField = runtimeFields.singleOrNull() ?: return unresolvedSort
     return typeToSort(runtimeField.type)
 }
