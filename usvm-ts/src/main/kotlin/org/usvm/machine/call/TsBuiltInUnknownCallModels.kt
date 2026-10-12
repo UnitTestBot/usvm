@@ -22,6 +22,18 @@ object TsBuiltInUnknownCallModels {
     }
     private val allModels by lazy { TsUnknownCallModelCatalog(models) }
 
+    internal fun hasPartialApproximationModel(
+        methodName: String,
+        enclosingClassName: String,
+        allowUnqualifiedTarget: Boolean = false,
+    ): Boolean =
+        allModels.hasTarget(
+            methodName = methodName,
+            enclosingClassName = enclosingClassName,
+            failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+            allowUnqualifiedTarget = allowUnqualifiedTarget,
+        )
+
     fun catalog(selection: TsUnknownCallModelSelection = TsUnknownCallModelSelection.All): TsUnknownCallModelCatalog =
         if (selection == TsUnknownCallModelSelection.All) allModels else TsUnknownCallModelCatalog(models, selection)
 }
