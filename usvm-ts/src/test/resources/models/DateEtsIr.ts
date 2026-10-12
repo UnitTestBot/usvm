@@ -6,6 +6,11 @@ export class DateEtsIr {
         return Date.now() - new Date().getTime();
     }
 
+    primitiveNamedDate(): number {
+        const Date = 123;
+        return Date.valueOf();
+    }
+
     epochYear(): number {
         return new Date(0).getUTCFullYear();
     }

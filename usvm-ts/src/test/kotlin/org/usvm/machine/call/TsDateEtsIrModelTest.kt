@@ -47,6 +47,11 @@ class TsDateEtsIrModelTest {
     }
 
     @Test
+    fun `a primitive named Date keeps its ordinary valueOf behavior`() {
+        assertNumber(methodName = "primitiveNamedDate", expected = 123.0)
+    }
+
+    @Test
     fun `numeric constructors getters UTC and overflow execute through source models`() {
         assertNumber(methodName = "epochYear", expected = 1970.0)
         assertNumber(methodName = "leapDay", expected = 129.0)

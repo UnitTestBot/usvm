@@ -144,7 +144,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     // Handle `.valueOf()` method calls
     if (expr.callee.name == "valueOf") {
         val receiverIsDate = scope.calcOnState {
-            TsDateEtsIrModelFamily.isDateReceiver(state = this, source = expr.instance, receiver = instance)
+            TsDateEtsIrModelFamily.isDateReceiver(state = this, receiver = instance)
         }
         if (!receiverIsDate) {
             return from(handleValueOf(expr, instance))
