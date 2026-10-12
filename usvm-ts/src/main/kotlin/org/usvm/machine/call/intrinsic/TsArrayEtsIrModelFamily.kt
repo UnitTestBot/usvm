@@ -444,7 +444,11 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             domainGuard = domainGuard,
             inputAdapter = inputAdapter,
             requiredModelIds = buildSet {
-                if (methodName == "join") add("ts.array.primitive.elementString")
+                if (methodName == "join") {
+                    add("ts.array.primitive.elementString")
+                    add(TsNumericIntrinsicModelFamily.NUMBER_IS_SAFE_INTEGER_ID)
+                    add(MATH_FLOOR_MODEL_ID)
+                }
                 if (methodName == "reduce") {
                     add("ts.array.primitive.requireDense")
                     add("ts.typeError.constructor")

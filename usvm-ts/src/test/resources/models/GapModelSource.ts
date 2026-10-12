@@ -130,6 +130,72 @@ export class GapModelSource {
         return this.numbers().join(",");
     }
 
+    private joinNumberValue(value: number): string {
+        const values = "a".split("") as unknown as number[];
+        values[0] = value;
+        return values.join();
+    }
+
+    numericJoinSafeIntegerEdges(): string {
+        const values = "a,b,c,d,e,f,g,h".split(",") as unknown as number[];
+        values[0] = -9007199254740991;
+        values[1] = -1000000001;
+        values[2] = -10;
+        values[3] = -1;
+        values[4] = -0;
+        values[5] = 0;
+        values[6] = 10;
+        values[7] = 9007199254740991;
+        return values.join("|");
+    }
+
+    numericJoinSpecials(): string {
+        const values = "a,b,c,d,e".split(",") as unknown as number[];
+        values[0] = NaN;
+        values[1] = Infinity;
+        values[2] = -Infinity;
+        values[3] = -0;
+        values[4] = 0;
+        return values.join("|");
+    }
+
+    numericJoinConcreteDecimals(): string {
+        const values = "a,b,c,d,e,f".split(",") as unknown as number[];
+        values[0] = 0.1;
+        values[1] = 1e-7;
+        values[2] = 1e-6;
+        values[3] = 1e20;
+        values[4] = 1e21;
+        values[5] = 1000000000000000100;
+        return values.join("|");
+    }
+
+    numericJoinSymbolicInteger(value: number): string {
+        if (!Number.isInteger(value) || value < -12 || value > 12) return "outside";
+        return this.joinNumberValue(value);
+    }
+
+    numericJoinSymbolicSpecial(value: number): string {
+        if (Number.isFinite(value)) return "finite";
+        return this.joinNumberValue(value);
+    }
+
+    numericJoinRuntimeKind(flag: boolean): string {
+        const values = "a".split("") as any[];
+        values[0] = flag ? -42 : false;
+        return values.join();
+    }
+
+    numericJoinSymbolicFraction(value: number): string {
+        if (value > 0 && value < 1) return this.joinNumberValue(value);
+        return "outside";
+    }
+
+    numericJoinSymbolicUnsafeInteger(value: number): string {
+        if (value > 9007199254740991 && value <= 1e16) return this.joinNumberValue(value);
+        return "outside";
+    }
+
     splitLong(): string[] {
         return "abcdefghijklmnop".split("");
     }

@@ -13,10 +13,38 @@ export class ArrayModels {
         let index = 0;
         while (index < length) {
             if (index !== 0) result += separator;
-            result += ArrayModelPrimitives.elementString(receiver[index]);
+            const value = receiver[index];
+            result += typeof value === "number"
+                ? ArrayModels.numberString(value)
+                : ArrayModelPrimitives.elementString(value);
             index++;
         }
         return result;
+    }
+
+    private static numberString(value: number): string {
+        if (value !== value) return "NaN";
+        if (value === Infinity) return "Infinity";
+        if (value === -Infinity) return "-Infinity";
+        if (value === 0) return "0";
+
+        // The primitive uses exact ECMAScript formatting for concrete values.
+        // Symbolic fractions and unsafe integers remain residual.
+        if (!Number.isSafeInteger(value)) return ArrayModelPrimitives.elementString(value);
+
+        const negative = value < 0;
+        let remaining = negative ? -value : value;
+        let result = "";
+        while (remaining > 0) {
+            // For safe integers the quotient rounds by less than 0.1, so floor
+            // and the subsequent exact integer subtraction recover the digit.
+            const quotient = Math.floor(remaining / 10);
+            const digit = remaining - quotient * 10;
+            result = "0123456789"[digit] + result;
+            remaining = quotient;
+        }
+
+        return negative ? "-" + result : result;
     }
 
     static reduce(receiver: any[], callback: (acc: any, current: any, index: number, array: any[]) => any,

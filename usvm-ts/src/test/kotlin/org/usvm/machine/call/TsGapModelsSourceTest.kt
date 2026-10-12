@@ -89,6 +89,7 @@ class TsGapModelsSourceTest : TsMethodTestRunner() {
             "composedMutations" to "cba",
             "independentArrays" to "abcd",
             "joinRuntimeKinds" to "--true-false",
+            "joinNumbers" to "1,2,3",
         )
 
         for ((name, expected) in expectedValues) {
@@ -143,12 +144,114 @@ class TsGapModelsSourceTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `join formats safe integer limits special values and concrete decimal boundaries`() {
+        val expectedValues = mapOf(
+            "numericJoinSafeIntegerEdges" to "-9007199254740991|-1000000001|-10|-1|0|0|10|9007199254740991",
+            "numericJoinSpecials" to "NaN|Infinity|-Infinity|0|0",
+            "numericJoinConcreteDecimals" to "0.1|1e-7|0.000001|100000000000000000000|1e+21|1000000000000000100",
+        )
+
+        for ((name, expected) in expectedValues) {
+            discoverProperties<TsTestValue.TsString>(
+                method = method(name),
+                { result -> result.value == expected },
+                invariants = arrayOf({ result -> result.value == expected }),
+            )
+        }
+    }
+
+    @Test
+    fun `join preserves symbolic integer digits special values and mixed runtime kinds`() {
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsString>(
+            method = method("numericJoinSymbolicInteger"),
+            { value, result ->
+                value.number in -12.0..-10.0 && result.value == value.number.toInt().toString()
+            },
+            { value, result -> value.number == 0.0 && result.value == "0" },
+            { value, result -> value.number in 1.0..9.0 && result.value == value.number.toInt().toString() },
+            { value, result -> value.number in 10.0..12.0 && result.value == value.number.toInt().toString() },
+            { _, result -> result.value == "outside" },
+            invariants = arrayOf({ value, result ->
+                val number = value.number
+                val smallInteger = number.isFinite() && number % 1.0 == 0.0 && number in -12.0..12.0
+                val expected = if (smallInteger) number.toInt().toString() else "outside"
+
+                result.value == expected
+            }),
+        )
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsString>(
+            method = method("numericJoinSymbolicSpecial"),
+            { value, result -> value.number.isNaN() && result.value == "NaN" },
+            { value, result -> value.number == Double.POSITIVE_INFINITY && result.value == "Infinity" },
+            { value, result -> value.number == Double.NEGATIVE_INFINITY && result.value == "-Infinity" },
+            invariants = arrayOf({ value, result ->
+                val expected = when {
+                    value.number.isNaN() -> "NaN"
+                    value.number == Double.POSITIVE_INFINITY -> "Infinity"
+                    value.number == Double.NEGATIVE_INFINITY -> "-Infinity"
+                    else -> "finite"
+                }
+
+                result.value == expected
+            }),
+        )
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsString>(
+            method = method("numericJoinRuntimeKind"),
+            { flag, result -> flag.value && result.value == "-42" },
+            { flag, result -> !flag.value && result.value == "false" },
+            invariants = arrayOf({ flag, result -> result.value == if (flag.value) "-42" else "false" }),
+        )
+    }
+
+    @Test
+    fun `numeric join includes its dependencies under an explicit model selection`() {
+        val method = method("numericJoinSafeIntegerEdges")
+        val selectedOptions = tsOptions.copy(
+            unknownCallModelSelection = TsUnknownCallModelSelection.Only(setOf("ts.array.join", "ts.string.split")),
+        )
+
+        val analysis = TsMachine(scene = scene, options = options, tsOptions = selectedOptions)
+            .use { machine -> machine.analyzeWithOutcome(listOf(method)) }
+        val values = analysis.states.map { state -> TsTestResolver().resolve(method, state).returnValue }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
+        assertEquals(
+            listOf(TsTestValue.TsString(value = "-9007199254740991|-1000000001|-10|-1|0|0|10|9007199254740991")),
+            values,
+        )
+    }
+
+    @Test
+    fun `join leaves symbolic fractional and unsafe integer formatting residual`() {
+        for (name in listOf("numericJoinSymbolicFraction", "numericJoinSymbolicUnsafeInteger")) {
+            val events = mutableListOf<TsUnknownCallEvent>()
+            val observer = object : TsInterpreterObserver {
+                override fun onUnknownCall(event: TsUnknownCallEvent) {
+                    events += event
+                }
+            }
+            val method = method(name)
+
+            val analysis = TsMachine(scene = scene, options = options, tsOptions = tsOptions, observer = observer)
+                .use { machine -> machine.analyzeWithOutcome(listOf(method)) }
+            val values = analysis.states.map { state -> TsTestResolver().resolve(method, state).returnValue }
+            val numericResidual = events.any { event ->
+                event.callee.name == "elementString" && event.outcome == TsUnknownCallOutcome.PATH_STOPPED
+            }
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason, name)
+            assertTrue(values.isNotEmpty(), name)
+            assertTrue(values.all { value -> value == TsTestValue.TsString(value = "outside") }, "$name: $values")
+            assertTrue(numericResidual, "$name: $events")
+        }
+    }
+
+    @Test
     fun `unrelated helpers and unsupported coercions remain residual`() {
         val residualCallees = mapOf(
             "unrelatedPrivateHelper" to "elementString",
             "joinCallable" to "join",
             "splitCallable" to "split",
-            "joinNumbers" to "elementString",
             "splitLong" to "split",
             "reduceShrink" to "requireDense",
         )
@@ -192,8 +295,11 @@ class TsGapModelsSourceTest : TsMethodTestRunner() {
     fun `generated model witnesses replay in JavaScript`() {
         val methodNames = listOf(
             "splitEdges", "reduceAliases", "reduceEmptyError", "ignoredArguments", "composedMutations",
-            "independentArrays", "joinRuntimeKinds", "reduceMutation", "reduceOmitted", "reduceUndefined",
+            "independentArrays", "joinRuntimeKinds", "joinNumbers", "reduceMutation", "reduceOmitted",
+            "reduceUndefined",
             "reduceInitialEmpty", "reduceThrows", "symbolicBooleans", "symbolicNullish",
+            "numericJoinSafeIntegerEdges", "numericJoinSpecials", "numericJoinConcreteDecimals",
+            "numericJoinSymbolicInteger", "numericJoinSymbolicSpecial", "numericJoinRuntimeKind",
         )
         val script = buildString {
             appendLine(source.readText())

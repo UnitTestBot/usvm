@@ -1,5 +1,6 @@
 package org.usvm.machine.call.intrinsic
 
+import io.ksmt.expr.KFp64Value
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsStringType
@@ -17,6 +18,7 @@ import org.usvm.machine.call.TsUnknownCallModelExecution
 import org.usvm.machine.call.TsUnknownCallModelSuccessor
 import org.usvm.machine.expr.mkFpToUint32AfterValidation
 import org.usvm.machine.expr.mkValidArrayLength
+import org.usvm.machine.expr.toEcmaScriptString
 import org.usvm.machine.state.TsState
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
@@ -86,6 +88,13 @@ internal object TsDenseArrayPrimitives {
                     val isString = state.memory.types.evalTypeEquals(ref, EtsStringType)
                     mkAnd(kind.refTypeExpr, mkOr(isString, nullish))
                 }
+                val concreteNumber = if (kind.fpTypeExpr.isFalse) {
+                    null
+                } else {
+                    value.extractFp(state.memory) as? KFp64Value
+                }
+                val numberText = concreteNumber?.value?.toEcmaScriptString()
+                val numberGuard = if (numberText != null) kind.fpTypeExpr else falseExpr
                 val successors = buildList {
                     if (!kind.boolTypeExpr.isFalse) {
                         add(
@@ -107,15 +116,28 @@ internal object TsDenseArrayPrimitives {
                             )
                         )
                     }
+                    if (numberText != null && !numberGuard.isFalse) {
+                        add(
+                            TsUnknownCallModelSuccessor(
+                                guard = numberGuard,
+                                completion = TsUnknownCallModelCompletion.Normal {
+                                    mkInitializedStringConstant(numberText)
+                                },
+                            )
+                        )
+                    }
                 }
                 if (successors.isEmpty()) return null
 
                 return TsUnknownCallModelExecution(
                     successors = successors,
-                    residualGuard = mkNot(mkOr(kind.boolTypeExpr, referenceGuard)),
+                    residualGuard = mkNot(mkOr(kind.boolTypeExpr, referenceGuard, numberGuard)),
                 )
             }
             when {
+                value is KFp64Value -> execution(guard = trueExpr) {
+                    mkInitializedStringConstant(value.value.toEcmaScriptString())
+                }
                 value.sort == boolSort -> execution(guard = trueExpr) {
                     booleanString(value.asExpr(ctx.boolSort))
                 }
