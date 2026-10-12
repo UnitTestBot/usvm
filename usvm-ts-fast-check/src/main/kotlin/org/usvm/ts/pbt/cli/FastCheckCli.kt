@@ -3,7 +3,6 @@ package org.usvm.ts.pbt.cli
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.CoverageCapabilityLevel
 import org.usvm.ts.pbt.backend.PropertyBasedTestingBackend
@@ -15,6 +14,7 @@ import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
+import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import org.usvm.ts.pbt.registry.DuplicatePropertyIdException
 import org.usvm.ts.pbt.registry.PropertyRegistry
 import org.usvm.ts.pbt.registry.PropertyRegistryProvider
@@ -127,7 +127,7 @@ class FastCheckCli(
         requireCoverageSupport(options, backend)
         val results = properties.map { property -> backend.run(property, configuration) }
 
-        output.appendLine(PropertyManifestJson.json.encodeToString(results))
+        output.appendLine(PropertyManifestJson.json.encodeToUtf8SafeString(results))
 
         val hasPropertyFailure = results.any { result -> result.status == PropertyRunStatus.FAILURE }
         return if (hasPropertyFailure) {
@@ -311,7 +311,7 @@ class FastCheckCli(
             kind = kind,
         )
 
-        errors.appendLine(PropertyManifestJson.json.encodeToString(diagnostic))
+        errors.appendLine(PropertyManifestJson.json.encodeToUtf8SafeString(diagnostic))
     }
 
     private companion object {

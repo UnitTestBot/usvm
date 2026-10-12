@@ -1,9 +1,13 @@
 package org.usvm.ts.calls
 
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
+import java.util.UUID
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import org.usvm.ts.pbt.backend.PropertyFailureKind
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
@@ -21,11 +25,7 @@ import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
-import java.nio.file.Files
-import java.nio.file.LinkOption
-import java.nio.file.Path
-import java.nio.file.StandardCopyOption
-import java.util.UUID
+import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 
 @Serializable
 internal enum class CallsReplayStatus {
@@ -377,7 +377,7 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
         }
     """.trimIndent() + "\n"
 
-    private fun jsString(value: String): String = CallsExperimentJson.json.encodeToString(value)
+    private fun jsString(value: String): String = CallsExperimentJson.json.encodeToUtf8SafeString(value)
 
     private data class ResolvedTarget(
         val sourceRootIndex: Int,

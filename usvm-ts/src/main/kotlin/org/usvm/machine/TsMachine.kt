@@ -65,7 +65,10 @@ data class TsMachineAnalysisResult(
     val unsupportedCall: Boolean,
     val engineFailed: Boolean,
     val unsupportedPaths: List<String>,
-)
+) {
+    /** Includes execution bounds and unsupported entry inputs retained in [unsupportedPaths]. */
+    val runtimeLimited: Boolean get() = unsupportedPaths.isNotEmpty()
+}
 
 class TsMachine(
     scene: EtsScene,

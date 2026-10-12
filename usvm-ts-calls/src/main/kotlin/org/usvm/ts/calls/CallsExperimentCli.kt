@@ -1,7 +1,7 @@
 package org.usvm.ts.calls
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -47,7 +47,7 @@ internal fun replayWitness(args: List<String>) {
         selector = selector,
     )
 
-    val encoded = CallsExperimentJson.json.encodeToString(result)
+    val encoded = CallsExperimentJson.json.encodeToUtf8SafeString(result)
     System.out.appendLine(encoded)
 }
 
@@ -82,7 +82,7 @@ private fun summarize(args: List<String>) {
         prettyPrint = true
     }
     output.parent?.let(Files::createDirectories)
-    Files.writeString(output, json.encodeToString(summary) + "\n")
+    Files.writeString(output, json.encodeToUtf8SafeString(summary) + "\n")
 }
 
 private fun usage(): String = """

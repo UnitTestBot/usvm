@@ -1,6 +1,7 @@
 package org.usvm.util
 
 import io.ksmt.expr.KBitVec16Value
+import io.ksmt.sort.KBv16Sort
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStringType
@@ -8,7 +9,6 @@ import org.jacodb.ets.model.EtsType
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.api.initializeArray
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.machine.TsSizeSort
@@ -21,29 +21,37 @@ import org.usvm.sizeSort
 fun TsState.mkSymbolicString(minLength: Int, maxLength: Int): UConcreteHeapRef = with(ctx) {
     require(minLength >= 0 && maxLength >= minLength) { "Invalid symbolic string length bounds" }
 
+    val length = makeSymbolicPrimitive(sizeSort)
+    val codeUnits = List(maxLength) { makeSymbolicPrimitive(bv16Sort) }
+    val string = mkStringFromCodeUnits(length = length, codeUnits = codeUnits)
+    pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(minLength))
+
+    string
+}
+
+/** Builds a UTF-16 string using the same private backing regions as ordinary string operations. */
+fun TsState.mkStringFromCodeUnits(
+    length: UExpr<TsSizeSort>,
+    codeUnits: List<UExpr<KBv16Sort>>,
+): UConcreteHeapRef = with(ctx) {
     val string = memory.allocConcrete(EtsStringType)
     val charactersType = EtsArrayType(EtsNumberType, dimensions = 1)
     val characters = memory.allocConcrete(charactersType)
-    val length = makeSymbolicPrimitive(sizeSort)
-    val meetsMinimum = mkBvSignedGreaterOrEqualExpr(length, mkBv(minLength))
-    val meetsMaximum = mkBvSignedLessOrEqualExpr(length, mkBv(maxLength))
-    val contents = sequence {
-        repeat(maxLength) {
-            yield(makeSymbolicPrimitive(bv16Sort))
-        }
-    }
+    val nonnegativeLength = mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+    val withinCapacity = mkBvSignedLessOrEqualExpr(length, mkBv(codeUnits.size))
 
-    memory.initializeArray(
-        arrayHeapRef = characters,
-        type = stringBackingArrayDescriptor,
-        sort = bv16Sort,
-        sizeSort = sizeSort,
-        contents = contents,
-    )
     memory.initializeArrayLength(characters, stringBackingArrayDescriptor, sizeSort, length)
+    codeUnits.forEachIndexed { index, codeUnit ->
+        val position = mkBv(index)
+        memory.write(
+            mkStringBackingElementLValue(characters, position),
+            codeUnit,
+            guard = mkBvSignedLessExpr(position, length),
+        )
+    }
     memory.write(mkStringBackingLValue(string), characters, guard = trueExpr)
-    pathConstraints += mkAnd(meetsMinimum, meetsMaximum)
-    boundedStringBackingRefs += string to maxLength
+    pathConstraints += mkAnd(nonnegativeLength, withinCapacity)
+    boundedStringBackingRefs += string to codeUnits.size
 
     string
 }
