@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFile, readdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -72,20 +73,48 @@ interface ScriptCoverage {
   script: V8Script;
   cache: SourceMapCacheEntry;
   path: string;
+  sourceUrl: string;
+  scriptPath: string;
+}
+
+export interface GeneratedModuleIdentity {
+  originalPath: string;
+  originalSha256: string;
+  generatedModule: string;
+  generatedSha256: string;
+  sourceMapSha256: string;
 }
 
 /** Reconstructs only source-mapped TypeScript if arms whose V8 counters agree. */
-export async function convertV8IfBranches(rawDirectory: string, sourceRoots: string[]): Promise<BranchReport> {
+export async function convertV8IfBranches(
+  rawDirectory: string,
+  sourceRoots: string[],
+  generatedIdentity?: GeneratedModuleIdentity,
+): Promise<BranchReport> {
   const roots = await Promise.all(sourceRoots.map(root => realpath(root)));
+  const lexicalRoots = [...sourceRoots.map(root => path.resolve(root)), ...roots.flatMap(root =>
+    process.platform === 'darwin' && root.startsWith('/private/') ? [root.slice('/private'.length)] : [])];
+  const identity = generatedIdentity === undefined ? undefined : {
+    ...generatedIdentity,
+    originalPath: await realpath(generatedIdentity.originalPath).catch(() => generatedIdentity.originalPath),
+    generatedModule: await realpath(generatedIdentity.generatedModule).catch(() => generatedIdentity.generatedModule),
+  };
   const names = (await readdir(rawDirectory)).filter(name => name.endsWith('.json')).sort();
   const reports = await Promise.all(names.map(async name =>
     JSON.parse(await readFile(path.join(rawDirectory, name), 'utf8')) as V8Report,
   ));
-  const scripts = await collectScripts(reports, roots);
+  const collected = await collectScripts(reports, roots, lexicalRoots, identity);
+  const scripts = collected.scripts;
   const files: BranchReport['files'] = [];
-  const diagnostics: BranchDiagnostic[] = [];
+  const diagnostics: BranchDiagnostic[] = [...collected.diagnostics];
 
   for (const [sourcePath, candidates] of scripts) {
+    if (identity !== undefined && sourcePath === identity.originalPath &&
+        (collected.generatedScriptCount !== 1 || collected.diagnostics.some(entry =>
+          entry.path === sourcePath && ['coverage.branch.ambiguous', 'coverage.branch.unknown'].includes(entry.code)))) {
+      continue;
+    }
+
     if (candidates.length !== 1 || candidates[0] === undefined) {
       diagnostics.push(diagnostic(
         sourcePath,
@@ -95,7 +124,16 @@ export async function convertV8IfBranches(rawDirectory: string, sourceRoots: str
       continue;
     }
 
-    const converted = await convertScript(candidates[0]);
+    const candidate = candidates[0];
+    if (identity !== undefined && candidate.scriptPath === identity.generatedModule) {
+      const identityDiagnostic = await verifyGeneratedIdentity(candidate, identity);
+      if (identityDiagnostic !== undefined) {
+        diagnostics.push(identityDiagnostic);
+        continue;
+      }
+    }
+
+    const converted = await convertScript(candidate);
     files.push({ path: sourcePath, branches: converted.branches.map((branch, branchId) => ({
       ...branch,
       branchId,
@@ -103,38 +141,169 @@ export async function convertV8IfBranches(rawDirectory: string, sourceRoots: str
     diagnostics.push(...converted.diagnostics);
   }
 
+  if (identity !== undefined && !scripts.has(identity.originalPath)) {
+    diagnostics.push(diagnostic(identity.originalPath, 'unknown',
+      'Generated V8 script has no unambiguous source-map link to the requested TypeScript source'));
+  }
+
   return { files, diagnostics };
 }
 
-async function collectScripts(reports: V8Report[], roots: string[]): Promise<Map<string, (ScriptCoverage | undefined)[]>> {
+async function collectScripts(
+  reports: V8Report[],
+  roots: string[],
+  lexicalRoots: string[],
+  generatedIdentity?: GeneratedModuleIdentity,
+): Promise<{
+  scripts: Map<string, (ScriptCoverage | undefined)[]>;
+  diagnostics: BranchDiagnostic[];
+  generatedScriptCount: number;
+}> {
   const scripts = new Map<string, (ScriptCoverage | undefined)[]>();
+  const diagnostics: BranchDiagnostic[] = [];
+  let generatedScriptCount = 0;
 
   for (const report of reports) {
     for (const script of report.result ?? []) {
       if (!script.url.startsWith('file:')) continue;
 
-      const sourcePath = await realpath(fileURLToPath(script.url)).catch(() => undefined);
-      if (sourcePath === undefined || !sourcePath.endsWith('.ts')) continue;
-      if (!roots.some(root => sourcePath.startsWith(`${root}${path.sep}`))) continue;
-
+      const scriptPath = await realpath(fileURLToPath(script.url)).catch(() => undefined);
+      if (scriptPath === undefined) continue;
       const cache = report['source-map-cache']?.[script.url];
-      const candidates = scripts.get(sourcePath) ?? [];
-      candidates.push(cache === undefined ? undefined : { script, cache, path: sourcePath });
-      scripts.set(sourcePath, candidates);
+      if (generatedIdentity !== undefined && scriptPath === generatedIdentity.generatedModule) {
+        generatedScriptCount += 1;
+        if (cache?.data === undefined) {
+          diagnostics.push(diagnostic(generatedIdentity.originalPath, 'unknown',
+            'Generated V8 script has no usable source-map cache entry'));
+          continue;
+        }
+      }
+
+      const sources = cache?.data?.sources ?? [];
+      const mappedSources = await Promise.all(sources.map(async sourceUrl => {
+        if (!sourceUrl.startsWith('file:')) return { sourceUrl, sourcePath: undefined };
+
+        let lexicalPath: string;
+        try {
+          lexicalPath = path.resolve(fileURLToPath(sourceUrl));
+        } catch {
+          return { sourceUrl, sourcePath: undefined };
+        }
+        if (!lexicalPath.endsWith('.ts') ||
+          (!isUnderRoot(lexicalPath, lexicalRoots) && !isUnderRoot(lexicalPath, roots))) {
+          return { sourceUrl, sourcePath: undefined };
+        }
+
+        const sourcePath = await realpath(lexicalPath).catch(() => undefined);
+        return { sourceUrl, sourcePath };
+      }));
+      const selected = mappedSources.filter(({ sourcePath }) => sourcePath !== undefined &&
+        sourcePath.endsWith('.ts') && isUnderRoot(sourcePath, roots));
+
+      if (selected.length === 0 && scriptPath.endsWith('.ts') && isUnderRoot(scriptPath, roots)) {
+        selected.push({ sourcePath: scriptPath, sourceUrl: pathToFileURL(scriptPath).href });
+      }
+
+      if (generatedIdentity !== undefined && scriptPath === generatedIdentity.generatedModule &&
+          (selected.length !== 1 || selected[0]?.sourcePath !== generatedIdentity.originalPath)) {
+        diagnostics.push(diagnostic(generatedIdentity.originalPath, 'ambiguous',
+          'Generated V8 script does not map to exactly the requested TypeScript source'));
+        continue;
+      }
+
+      for (const { sourcePath, sourceUrl } of selected) {
+        if (sourcePath === undefined) continue;
+        if (scriptPath !== sourcePath && scriptPath !== generatedIdentity?.generatedModule) {
+          diagnostics.push(diagnostic(sourcePath, 'unknown',
+            'Generated V8 script requires a pinned module identity for exact branch conversion'));
+          continue;
+        }
+        if (generatedIdentity !== undefined && sourcePath === generatedIdentity.originalPath &&
+            scriptPath !== generatedIdentity.generatedModule) {
+          diagnostics.push(diagnostic(sourcePath, 'ambiguous',
+            'Requested TypeScript source also appears under another V8 script'));
+          continue;
+        }
+
+        const candidates = scripts.get(sourcePath) ?? [];
+        candidates.push(cache?.data === undefined || cache.data === null
+          ? undefined
+          : { script, cache, path: sourcePath, sourceUrl, scriptPath });
+        scripts.set(sourcePath, candidates);
+      }
     }
   }
 
-  return scripts;
+  if (generatedIdentity !== undefined && generatedScriptCount === 0) {
+    diagnostics.push(diagnostic(generatedIdentity.originalPath, 'unknown',
+      'Generated module is absent from raw V8 coverage'));
+  }
+  if (generatedIdentity !== undefined && generatedScriptCount > 1) {
+    diagnostics.push(diagnostic(generatedIdentity.originalPath, 'ambiguous',
+      'Generated module appears in several raw V8 scripts'));
+  }
+
+  return { scripts, diagnostics, generatedScriptCount };
 }
+
+function isUnderRoot(file: string, roots: string[]): boolean {
+  return roots.some(root => {
+    const relative = path.relative(root, file);
+    return relative !== '' && relative !== '..' && !relative.startsWith(`..${path.sep}`)
+      && !path.isAbsolute(relative);
+  });
+}
+
+async function verifyGeneratedIdentity(
+  coverage: ScriptCoverage,
+  identity: GeneratedModuleIdentity,
+): Promise<BranchDiagnostic | undefined> {
+  const generated = await readFile(identity.generatedModule, 'utf8').catch(() => undefined);
+  const sourceMap = await readFile(`${identity.generatedModule}.map`, 'utf8').catch(() => undefined);
+  const source = await readFile(identity.originalPath, 'utf8').catch(() => undefined);
+  if (generated === undefined || sourceMap === undefined || source === undefined ||
+      sha256(generated) !== identity.generatedSha256 || sha256(sourceMap) !== identity.sourceMapSha256 ||
+      sha256(source) !== identity.originalSha256) {
+    return diagnostic(identity.originalPath, 'unsupported', 'Covered generated module or original source changed');
+  }
+
+  const lineLengths = generated.split('\n').map(line => line.endsWith('\r') ? line.length - 1 : line.length);
+  if (generated.endsWith('\n')) lineLengths.pop();
+  if (JSON.stringify(lineLengths) !== JSON.stringify(coverage.cache.lineLengths)) {
+    return diagnostic(identity.originalPath, 'ambiguous', 'V8 generated script lengths differ from the pinned module');
+  }
+
+  let parsedMap: { mappings?: string };
+  try {
+    parsedMap = JSON.parse(sourceMap) as { mappings?: string };
+  } catch {
+    return diagnostic(identity.originalPath, 'unsupported', 'Pinned generated source map is invalid');
+  }
+  if (parsedMap.mappings !== coverage.cache.data.mappings) {
+    return diagnostic(identity.originalPath, 'ambiguous', 'V8 source-map cache differs from the pinned map');
+  }
+
+  return undefined;
+}
+
+const sha256 = (value: string): string => createHash('sha256').update(value).digest('hex');
 
 async function convertScript(coverage: ScriptCoverage): Promise<{
   branches: Branch[];
   diagnostics: BranchDiagnostic[];
 }> {
   const source = await readFile(coverage.path, 'utf8');
-  const sourceIndex = coverage.cache.data.sources.findIndex(candidate =>
-    candidate.startsWith('file:') && fileURLToPath(candidate) === coverage.path,
+  const sourceIndexes = coverage.cache.data.sources.flatMap((candidate, index) =>
+    candidate === coverage.sourceUrl ? [index] : [],
   );
+  if (sourceIndexes.length !== 1) {
+    return {
+      branches: [],
+      diagnostics: [diagnostic(coverage.path, 'ambiguous', 'V8 source map does not identify one TypeScript source')],
+    };
+  }
+
+  const sourceIndex = sourceIndexes[0] as number;
   const coveredSource = coverage.cache.data.sourcesContent?.[sourceIndex];
   if (coveredSource !== source) {
     return {
@@ -226,10 +395,7 @@ function countAt(
   map: TraceMap,
 ): number | undefined {
   const sourcePosition = ast.getLineAndCharacterOfPosition(sourceOffset);
-  const sourceUrl = coverage.cache.data.sources.find(candidate =>
-    candidate.startsWith('file:') && fileURLToPath(candidate) === coverage.path,
-  );
-  if (sourceUrl === undefined) return undefined;
+  const sourceUrl = coverage.sourceUrl;
 
   const generated = generatedPositionFor(map, {
     source: sourceUrl,
@@ -329,8 +495,15 @@ function diagnostic(sourcePath: string, kind: string, message: string): BranchDi
 }
 
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const [rawDirectory, ...sourceRoots] = process.argv.slice(2);
+  const [rawDirectory, ...argumentsAfterRaw] = process.argv.slice(2);
   if (rawDirectory === undefined) throw new Error('Raw V8 coverage directory is required');
+  const identityArguments = argumentsAfterRaw.filter(argument => argument.startsWith('--generated-identity='));
+  if (identityArguments.length > 1) throw new Error('Only one generated identity is supported');
 
-  process.stdout.write(`${JSON.stringify(await convertV8IfBranches(rawDirectory, sourceRoots))}\n`);
+  const identityArgument = identityArguments[0];
+  const generatedIdentity = identityArgument === undefined ? undefined
+    : JSON.parse(identityArgument.slice('--generated-identity='.length)) as GeneratedModuleIdentity;
+  const sourceRoots = argumentsAfterRaw.filter(argument => !argument.startsWith('--generated-identity='));
+
+  process.stdout.write(`${JSON.stringify(await convertV8IfBranches(rawDirectory, sourceRoots, generatedIdentity))}\n`);
 }

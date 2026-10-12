@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { convertV8IfBranches } from '../src/coverage-branches.js';
+import ts from 'typescript';
+import { convertV8IfBranches, type GeneratedModuleIdentity } from '../src/coverage-branches.js';
 
 const adapterRoot = path.resolve(fileURLToPath(new URL('../', import.meta.url)), '..');
 const c8 = path.join(adapterRoot, 'node_modules/c8/bin/c8.js');
@@ -36,6 +38,118 @@ async function runCoverage(source: string): Promise<{
 
   return { root, raw, sourcePath };
 }
+
+async function runGeneratedCoverage(source: string): Promise<{
+  root: string;
+  raw: string;
+  identity: GeneratedModuleIdentity;
+}> {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'usvm-generated-branch-'));
+  const sourceRoot = path.join(root, 'original');
+  const generatedRoot = path.join(root, 'generated');
+  await Promise.all([mkdir(sourceRoot), mkdir(generatedRoot)]);
+  const originalPath = path.join(sourceRoot, 'subject.ts');
+  const generatedModule = path.join(generatedRoot, 'subject.mjs');
+  const raw = path.join(root, 'raw');
+  await writeFile(originalPath, source);
+
+  const output = ts.transpileModule(source, {
+    fileName: originalPath,
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext,
+      sourceMap: true, inlineSources: true },
+  });
+  const map = JSON.parse(output.sourceMapText ?? '{}') as Record<string, unknown>;
+  map.file = path.basename(generatedModule);
+  map.sourceRoot = '';
+  map.sources = [originalPath];
+  const sourceMap = JSON.stringify(map);
+  const generatedSource = output.outputText.replace(/\/\/# sourceMappingURL=.*$/m,
+    `//# sourceMappingURL=${path.basename(generatedModule)}.map`);
+  await writeFile(generatedModule, generatedSource);
+  await writeFile(`${generatedModule}.map`, sourceMap);
+
+  const result = spawnSync(process.execPath, [
+    c8, '--reporter=json', `--reports-dir=${path.join(root, 'report')}`,
+    `--temp-directory=${raw}`, '--exclude-after-remap', '--allowExternal',
+    '--exclude=__usvm_no_default_excludes__', process.execPath, generatedModule,
+  ], { cwd: adapterRoot, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+
+  const sha256 = (value: string): string => createHash('sha256').update(value).digest('hex');
+  return { root, raw, identity: {
+    originalPath: await realpath(originalPath), originalSha256: sha256(source),
+    generatedModule: await realpath(generatedModule),
+    generatedSha256: sha256(generatedSource), sourceMapSha256: sha256(sourceMap),
+  } };
+}
+
+test('generated JavaScript maps only original ordered if arms across true, false, and mixed runs', async () => {
+  for (const [calls, hits] of [
+    ['subject(1);', [1, 0]],
+    ['subject(-1);', [0, 1]],
+    ['subject(1); subject(-1);', [1, 1]],
+  ] as const) {
+    const fixture = await runGeneratedCoverage(`
+export function subject(value: number): boolean {
+  if (value > 0) { return true; }
+  else { return false; }
+}
+${calls}
+`);
+
+    try {
+      const report = await convertV8IfBranches(fixture.raw, [path.dirname(fixture.identity.originalPath)],
+        fixture.identity);
+
+      assert.deepEqual(report.files.map(file => file.path), [fixture.identity.originalPath]);
+      assert.deepEqual(report.files[0]?.branches.map(branch => branch.arms.map(arm => arm.hits)), [hits]);
+      assert.deepEqual(report.diagnostics, []);
+    } finally {
+      await rm(fixture.root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('missing, duplicate, and changed generated maps cannot produce exact branch counts', async () => {
+  const fixture = await runGeneratedCoverage(`
+export function subject(value: number): boolean {
+  if (value > 0) return true;
+  else return false;
+}
+subject(1);
+`);
+
+  try {
+    const sourceRoot = path.dirname(fixture.identity.originalPath);
+    const changed = await convertV8IfBranches(fixture.raw, [sourceRoot], {
+      ...fixture.identity, generatedSha256: '0'.repeat(64),
+    });
+    assert.deepEqual(changed.files, []);
+    assert.equal(changed.diagnostics[0]?.code, 'coverage.branch.unsupported');
+
+    const reports = (await readdir(fixture.raw)).filter(name => name.endsWith('.json'));
+    const reportPath = path.join(fixture.raw, reports[0] as string);
+    const rawReport = JSON.parse(await readFile(reportPath, 'utf8')) as {
+      result?: { url: string }[];
+      'source-map-cache'?: Record<string, unknown>;
+    };
+    const generatedUrl = rawReport.result?.find(script => script.url.includes('/subject.mjs'))?.url;
+    assert.ok(generatedUrl);
+
+    delete rawReport['source-map-cache']?.[generatedUrl];
+    await writeFile(reportPath, JSON.stringify(rawReport));
+    const missing = await convertV8IfBranches(fixture.raw, [sourceRoot], fixture.identity);
+    assert.deepEqual(missing.files, []);
+    assert.equal(missing.diagnostics.some(entry => entry.code === 'coverage.branch.unknown'), true);
+
+    await cp(reportPath, path.join(fixture.raw, 'duplicate.json'));
+    const duplicate = await convertV8IfBranches(fixture.raw, [sourceRoot], fixture.identity);
+    assert.deepEqual(duplicate.files, []);
+    assert.equal(duplicate.diagnostics.some(entry => entry.code === 'coverage.branch.ambiguous'), true);
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
 
 test('real c8 and tsx preserve true, false, mixed, and nested TypeScript arms', async () => {
   for (const [calls, expected] of [
