@@ -116,8 +116,9 @@ class TsMachine(
     fun analyzeWithOutcome(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
+        configureInitialState: (EtsMethod, TsState) -> Unit = { _, _ -> },
     ): TsAnalysisResult {
-        val (initialStates, unsupportedPaths) = createInitialStates(methods, targets)
+        val (initialStates, unsupportedPaths) = createInitialStates(methods, targets, configureInitialState)
 
         if (initialStates.isEmpty()) {
             return TsAnalysisResult(emptyList(), TsAnalysisStopReason.EXHAUSTED, unsupportedPaths.toList())
@@ -250,6 +251,7 @@ class TsMachine(
     private fun createInitialStates(
         methods: List<EtsMethod>,
         targets: List<TsTarget>,
+        configureInitialState: (EtsMethod, TsState) -> Unit,
     ): Pair<Map<EtsMethod, TsState>, MutableSet<String>> {
         val initialStates = mutableMapOf<EtsMethod, TsState>()
         val unsupportedPaths = mutableSetOf<String>()
@@ -260,7 +262,9 @@ class TsMachine(
             if (unsupportedReason != null) {
                 unsupportedPaths += unsupportedReason
             } else {
-                initialStates[method] = interpreter.getInitialState(method, targets)
+                initialStates[method] = interpreter.getInitialState(method, targets) {
+                    configureInitialState(method, this)
+                }
             }
         }
 

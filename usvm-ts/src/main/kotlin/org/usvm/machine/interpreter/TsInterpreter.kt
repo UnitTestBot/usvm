@@ -759,6 +759,7 @@ class TsInterpreter(
     fun getInitialState(
         method: EtsMethod,
         targets: List<TsTarget>,
+        configureState: TsState.() -> Unit = {},
     ): TsState = with(ctx) {
         val state = TsState(
             ctx = ctx,
@@ -851,6 +852,8 @@ class TsInterpreter(
                 state.saveSortForLocal(idx, parameterSort)
             }
         }
+
+        state.configureState()
 
         val solver = solver<EtsType>()
         val model = solver.check(state.pathConstraints).ensureSat().model
