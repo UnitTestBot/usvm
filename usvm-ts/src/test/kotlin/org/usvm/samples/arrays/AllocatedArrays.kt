@@ -9,6 +9,7 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
+import org.usvm.test.util.checkers.eq as exactly
 import org.usvm.test.util.checkers.noResultsExpected
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
@@ -99,6 +100,7 @@ class AllocatedArrays : TsMethodTestRunner() {
 
         checkMatches<TsTestValue.TsArray<*>>(
             method = method,
+            analysisResultNumberMatches = exactly(1),
             { result -> result.values == expected },
         )
     }
