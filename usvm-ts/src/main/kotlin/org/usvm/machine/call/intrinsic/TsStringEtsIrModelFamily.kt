@@ -32,7 +32,8 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private const val PRIMITIVES_CLASS_NAME = "StringModelPrimitives"
     private const val RESOURCE_NAME = "/org/usvm/machine/call/models/StringModels.ts"
     private const val REPLACE_ALL_INPUT_COUNT = 3
-    private const val DEFAULT_SPLIT_LIMIT = 4294967295.0
+    private const val DEFAULT_SPLIT_LIMIT = 4_294_967_295.0
+    private const val SPLIT_OMITTED_SEPARATOR_INPUT_INDEX = 3
 
     private val baseArtifact by lazy {
         loadBundledEtsIrUnknownCallModelArtifact(
@@ -200,7 +201,7 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             val length = state.memory.read(mkStringBackingLengthLValue(characters))
             val boundedResult = mkBvSignedLessOrEqualExpr(length, mkBv(SOURCE_ARRAY_MODEL_CAPACITY - 1))
             val zeroLimit = mkFpEqualExpr(inputs[2].asExpr(fp64Sort), mkFp64(0.0))
-            val omittedSeparator = inputs[3].asExpr(boolSort)
+            val omittedSeparator = inputs[SPLIT_OMITTED_SEPARATOR_INPUT_INDEX].asExpr(boolSort)
             mkAnd(stringsGuard, mkOr(boundedResult, zeroLimit, omittedSeparator))
         }
     }

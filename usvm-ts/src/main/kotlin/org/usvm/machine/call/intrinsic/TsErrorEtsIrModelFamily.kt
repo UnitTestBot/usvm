@@ -61,7 +61,8 @@ internal object TsErrorEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         )
 
         val entryPoint = artifact.file.allClasses.single { it.name == "ErrorModels" }
-            .methods.single { it.name == methodName }
+            .methods
+            .single { it.name == methodName }
 
         return TsEtsIrUnknownCallModel(
             id = modelId,

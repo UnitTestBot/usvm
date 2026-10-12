@@ -97,41 +97,39 @@ internal object TsDenseArrayPrimitives {
                 val numberGuard = if (numberText != null) kind.fpTypeExpr else falseExpr
                 val successors = buildList {
                     if (!kind.boolTypeExpr.isFalse) {
-                        add(
-                            TsUnknownCallModelSuccessor(
-                                guard = kind.boolTypeExpr,
-                                completion = TsUnknownCallModelCompletion.Normal {
-                                    booleanString(value.extractBool(memory))
-                                },
-                            )
+                        val successor = TsUnknownCallModelSuccessor(
+                            guard = kind.boolTypeExpr,
+                            completion = TsUnknownCallModelCompletion.Normal {
+                                booleanString(value.extractBool(memory))
+                            },
                         )
+                        add(successor)
                     }
                     if (!referenceGuard.isFalse) {
-                        add(
-                            TsUnknownCallModelSuccessor(
-                                guard = referenceGuard,
-                                completion = TsUnknownCallModelCompletion.Normal {
-                                    ctx.mkIte(nullish, mkInitializedStringConstant(""), ref)
-                                },
-                            )
+                        val successor = TsUnknownCallModelSuccessor(
+                            guard = referenceGuard,
+                            completion = TsUnknownCallModelCompletion.Normal {
+                                ctx.mkIte(nullish, mkInitializedStringConstant(""), ref)
+                            },
                         )
+                        add(successor)
                     }
                     if (numberText != null && !numberGuard.isFalse) {
-                        add(
-                            TsUnknownCallModelSuccessor(
-                                guard = numberGuard,
-                                completion = TsUnknownCallModelCompletion.Normal {
-                                    mkInitializedStringConstant(numberText)
-                                },
-                            )
+                        val successor = TsUnknownCallModelSuccessor(
+                            guard = numberGuard,
+                            completion = TsUnknownCallModelCompletion.Normal {
+                                mkInitializedStringConstant(numberText)
+                            },
                         )
+                        add(successor)
                     }
                 }
                 if (successors.isEmpty()) return null
 
+                val supportedGuard = mkOr(kind.boolTypeExpr, referenceGuard, numberGuard)
                 return TsUnknownCallModelExecution(
                     successors = successors,
-                    residualGuard = mkNot(mkOr(kind.boolTypeExpr, referenceGuard, numberGuard)),
+                    residualGuard = mkNot(supportedGuard),
                 )
             }
             when {

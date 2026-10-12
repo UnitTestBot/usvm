@@ -53,10 +53,9 @@ internal object TsNumberParseFloatModel : TsBuiltInUnknownCallModelFamily {
                     val characters = state.memory.read(mkStringBackingLValue(input))
                     val length = state.memory.read(mkStringBackingLengthLValue(characters))
                     val isString = state.memory.types.evalTypeEquals(input, EtsStringType)
-                    val isBounded = mkAnd(
-                        mkBvSignedGreaterOrEqualExpr(length, mkBv(0)),
-                        mkBvSignedLessOrEqualExpr(length, mkBv(MAX_INPUT_LENGTH)),
-                    )
+                    val hasNonNegativeLength = mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+                    val isWithinLengthLimit = mkBvSignedLessOrEqualExpr(length, mkBv(MAX_INPUT_LENGTH))
+                    val isBounded = mkAnd(hasNonNegativeLength, isWithinLengthLimit)
                     mkAnd(isString, isBounded)
                 }
             },
