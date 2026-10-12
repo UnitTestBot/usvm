@@ -28,6 +28,7 @@ tasks {
 
 repositories {
     mavenCentral()
+    githubPackages(project, "UnitTestBot/jacodb")
     maven("https://jitpack.io")
 }
 

@@ -6,9 +6,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: read
+
 env:
   JAVA: 11
   JAVA_DISTRIBUTION: zulu
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_ACTOR: ${{ github.actor }}
 
 jobs:
   ci-core:
@@ -155,6 +161,10 @@ jobs:
         run: env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend ./gradlew :usvm-ts-pbt:check :usvm-ts-fast-check:check
 
   lint:
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
