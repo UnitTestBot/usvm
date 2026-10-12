@@ -87,10 +87,6 @@ internal fun TsExprResolver.handleArrayAccess(
     }
     scope.assert(mkNot(index.hasUnsupportedReadKey)) ?: return null
 
-    check(storageType is EtsArrayType) {
-        "Expected EtsArrayType, got: ${value.array.type}"
-    }
-
     val indexIsSupported = mkAnd(
         index.isNumeric,
         mkValidArrayIndexProperty(
