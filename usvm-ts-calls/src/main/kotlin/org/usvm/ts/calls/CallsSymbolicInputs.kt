@@ -1,44 +1,42 @@
 package org.usvm.ts.calls
 
-import io.ksmt.expr.KBitVec16Value
-import io.ksmt.sort.KBv16Sort
-import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
-import org.jacodb.ets.model.EtsArrayType
-import org.jacodb.ets.model.EtsBooleanType
-import org.jacodb.ets.model.EtsNumberType
-import org.jacodb.ets.model.EtsType
-import org.usvm.UBoolExpr
-import org.usvm.UConcreteHeapRef
-import org.usvm.UExpr
-import org.usvm.api.initializeArrayLength
-import org.usvm.api.makeSymbolicPrimitive
-import org.usvm.machine.TsSizeSort
-import org.usvm.machine.expr.extractDouble
-import org.usvm.machine.expr.extractInt
-import org.usvm.machine.expr.toConcreteBoolValue
 import org.usvm.machine.state.TsState
-import org.usvm.model.UModelBase
-import org.usvm.sizeSort
 import org.usvm.ts.pbt.fastcheck.TypeScriptSourceCapture
 import org.usvm.ts.pbt.mapping.EtsInputBinding
 import org.usvm.ts.pbt.mapping.EtsLexicalEnvironmentBinding
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
+import org.usvm.ts.pbt.model.ConstantDomain
+import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
-import org.usvm.util.allocateBoundedString
-import org.usvm.util.markDenseInputArray
-import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkRegisterStackLValue
 
 internal fun PropertyDomain.isSupportedCallsSymbolicDomain(): Boolean = when (this) {
-    BooleanDomain, is NumberDomain, is StringDomain -> true
-    is ArrayDomain -> element == BooleanDomain || element is NumberDomain
+    BooleanDomain, is IntegerDomain, is NumberDomain, is StringDomain -> true
+    is ConstantDomain -> value !is JsConcreteValue.Array
+    is OptionalDomain -> value.isSupportedCallsSymbolicDomain() &&
+        (nil == JsConcreteValue.Null || nil == JsConcreteValue.Undefined)
+    is ArrayDomain -> when (val elementDomain = element) {
+        BooleanDomain, is IntegerDomain, is NumberDomain, is StringDomain -> true
+        is ConstantDomain -> elementDomain.value is JsConcreteValue.Boolean ||
+            elementDomain.value is JsConcreteValue.Number || elementDomain.value is JsConcreteValue.String
+        else -> false
+    }
     else -> false
+}
+
+internal fun PropertyDomain.callsInputCapacity(): Int = when (this) {
+    is StringDomain -> maxLength
+    is ConstantDomain -> (value as? JsConcreteValue.String)?.value?.length ?: 0
+    is OptionalDomain -> value.callsInputCapacity()
+    is ArrayDomain -> maxOf(maxLength, element.callsInputCapacity())
+    else -> 0
 }
 
 internal fun callsSymbolicInputPreflight(inputs: List<PropertyInput>): String? {
@@ -78,9 +76,6 @@ internal class CallsSymbolicInputs(
                 domain = input.domain,
             )
         }
-        initializedSnapshots.filterIsInstance<ArrayInputSnapshot>().forEach { snapshot ->
-            snapshot.markDenseInput(state)
-        }
         snapshots = initializedSnapshots
     }
 
@@ -96,221 +91,19 @@ private fun TsState.initializeInput(
     stackSlot: Int,
     domain: PropertyDomain,
 ): CallsInputSnapshot = with(ctx) {
-    when (domain) {
-        BooleanDomain -> {
-            val value: UBoolExpr = makeSymbolicPrimitive(boolSort)
-            memory.write(
-                mkRegisterStackLValue(boolSort, stackSlot),
-                value.asExpr(boolSort),
-                guard = trueExpr,
-            )
-            saveSortForLocal(stackSlot, boolSort)
-            BooleanInputSnapshot(value)
-        }
-
-        is NumberDomain -> {
-            val value = initializeNumberInput(domain)
-            memory.write(
-                mkRegisterStackLValue(fp64Sort, stackSlot),
-                value.asExpr(fp64Sort),
-                guard = trueExpr,
-            )
-            saveSortForLocal(stackSlot, fp64Sort)
-            NumberInputSnapshot(value)
-        }
-
-        is StringDomain -> {
-            initializeStringInput(stackSlot = stackSlot, domain = domain)
-        }
-
-        is ArrayDomain -> {
-            initializeArrayInput(stackSlot = stackSlot, domain = domain)
-        }
-
-        else -> {
-            error("Unsupported calls symbolic domain: $domain")
-        }
+    val input = materializeCallsInput(domain)
+    when (input.value.sort) {
+        boolSort -> memory.write(
+            mkRegisterStackLValue(boolSort, stackSlot), input.value.asExpr(boolSort), guard = trueExpr,
+        )
+        fp64Sort -> memory.write(
+            mkRegisterStackLValue(fp64Sort, stackSlot), input.value.asExpr(fp64Sort), guard = trueExpr,
+        )
+        addressSort -> memory.write(
+            mkRegisterStackLValue(addressSort, stackSlot), input.value.asExpr(addressSort), guard = trueExpr,
+        )
+        else -> error("Unsupported Calls input sort: ${input.value.sort}")
     }
+    saveSortForLocal(stackSlot, input.value.sort)
+    input.snapshot
 }
-
-private fun TsState.initializeStringInput(
-    stackSlot: Int,
-    domain: StringDomain,
-): StringInputSnapshot = with(ctx) {
-    val length = initializeLength(minLength = domain.minLength, maxLength = domain.maxLength)
-    val codeUnits: List<UExpr<KBv16Sort>> = List(domain.maxLength) { makeSymbolicPrimitive(bv16Sort) }
-
-    val stringRef = allocateBoundedString(length = length, codeUnits = codeUnits)
-    memory.write(
-        mkRegisterStackLValue(addressSort, stackSlot),
-        stringRef.asExpr(addressSort),
-        guard = trueExpr,
-    )
-    saveSortForLocal(stackSlot, addressSort)
-
-    StringInputSnapshot(length = length, codeUnits = codeUnits)
-}
-
-private fun TsState.initializeArrayInput(
-    stackSlot: Int,
-    domain: ArrayDomain,
-): ArrayInputSnapshot = with(ctx) {
-    val runtimeType = when (domain.element) {
-        BooleanDomain -> EtsArrayType(EtsBooleanType, dimensions = 1)
-        is NumberDomain -> EtsArrayType(EtsNumberType, dimensions = 1)
-        else -> error("Unsupported calls symbolic array element domain: ${domain.element}")
-    }
-    val descriptor = arrayDescriptorOf(runtimeType)
-    val arrayRef = memory.allocConcrete(descriptor)
-    val length = initializeLength(minLength = domain.minLength, maxLength = domain.maxLength)
-
-    memory.initializeArrayLength(
-        arrayHeapRef = arrayRef,
-        type = descriptor,
-        sizeSort = sizeSort,
-        count = length,
-    )
-    val elements = when (val elementDomain = domain.element) {
-        BooleanDomain -> List(domain.maxLength) { index ->
-            val value = makeSymbolicPrimitive(boolSort)
-            val liveIndex = mkBvSignedLessExpr(mkBv(index), length)
-            memory.write(
-                mkArrayIndexLValue(boolSort, arrayRef, mkBv(index), runtimeType),
-                value,
-                guard = liveIndex,
-            )
-            BooleanInputSnapshot(value)
-        }
-
-        is NumberDomain -> List(domain.maxLength) { index ->
-            val value = initializeNumberInput(elementDomain)
-            val liveIndex = mkBvSignedLessExpr(mkBv(index), length)
-            memory.write(
-                mkArrayIndexLValue(fp64Sort, arrayRef, mkBv(index), runtimeType),
-                value,
-                guard = liveIndex,
-            )
-            NumberInputSnapshot(value)
-        }
-
-        else -> error("Unsupported calls symbolic array element domain: $elementDomain")
-    }
-    memory.write(
-        mkRegisterStackLValue(addressSort, stackSlot),
-        arrayRef.asExpr(addressSort),
-        guard = trueExpr,
-    )
-    saveSortForLocal(stackSlot, addressSort)
-    ArrayInputSnapshot(
-        length = length,
-        elements = elements,
-        arrayRef = arrayRef,
-        runtimeType = runtimeType,
-    )
-}
-
-private fun TsState.initializeLength(
-    minLength: Int,
-    maxLength: Int,
-): UExpr<TsSizeSort> = with(ctx) {
-    if (minLength == maxLength) return mkBv(minLength)
-
-    val length: UExpr<TsSizeSort> = makeSymbolicPrimitive(sizeSort)
-    val lengthBounds = mkAnd(
-        mkBvSignedGreaterOrEqualExpr(length, mkBv(minLength)),
-        mkBvSignedLessOrEqualExpr(length, mkBv(maxLength)),
-    )
-    pathConstraints += lengthBounds
-    length
-}
-
-private fun TsState.initializeNumberInput(domain: NumberDomain): UExpr<KFp64Sort> = with(ctx) {
-    val lowerBound = domain.min.toDouble()
-    val upperBound = domain.max.toDouble()
-    val hasSingleNumericValue = lowerBound == upperBound && !domain.allowNaN
-    if (hasSingleNumericValue) {
-        // Numeric equality admits both signs of zero. Keep that choice symbolic even for [0, 0].
-        return if (lowerBound == 0.0) {
-            val positiveSign: UBoolExpr = makeSymbolicPrimitive(boolSort)
-            val positiveZero = mkFp64(0.0)
-            val negativeZero = mkFpNegationExpr(positiveZero)
-            mkIte(positiveSign, positiveZero, negativeZero)
-        } else {
-            mkFp64(lowerBound)
-        }
-    }
-
-    val value: UExpr<KFp64Sort> = makeSymbolicPrimitive(fp64Sort)
-    pathConstraints += numberDomainConstraint(value, domain)
-    value
-}
-
-private fun TsState.numberDomainConstraint(
-    value: UExpr<KFp64Sort>,
-    domain: NumberDomain,
-): UBoolExpr = with(ctx) {
-    val lowerBound = mkFp64(domain.min.toDouble())
-    val upperBound = mkFp64(domain.max.toDouble())
-    val inBounds = mkAnd(
-        mkFpLessOrEqualExpr(lowerBound, value),
-        mkFpLessOrEqualExpr(value, upperBound),
-    )
-
-    if (domain.allowNaN) mkOr(mkFpIsNaNExpr(value), inBounds) else inBounds
-}
-
-private sealed interface CallsInputSnapshot {
-    fun resolve(model: UModelBase<EtsType>): JsConcreteValue
-}
-
-private data class BooleanInputSnapshot(
-    val value: UBoolExpr,
-) : CallsInputSnapshot {
-    override fun resolve(model: UModelBase<EtsType>): JsConcreteValue =
-        JsConcreteValue.Boolean(model.eval(value).toConcreteBoolValue())
-}
-
-private data class NumberInputSnapshot(
-    val value: UExpr<KFp64Sort>,
-) : CallsInputSnapshot {
-    override fun resolve(model: UModelBase<EtsType>): JsConcreteValue =
-        JsConcreteValue.number(model.eval(value).extractDouble())
-}
-
-private data class StringInputSnapshot(
-    val length: UExpr<TsSizeSort>,
-    val codeUnits: List<UExpr<KBv16Sort>>,
-) : CallsInputSnapshot {
-    override fun resolve(model: UModelBase<EtsType>): JsConcreteValue {
-        val concreteLength = model.eval(length).extractInt()
-        require(concreteLength in 0..codeUnits.size) { "Resolved string length is outside its symbolic domain" }
-        val value = buildString(concreteLength) {
-            codeUnits.take(concreteLength).forEach { codeUnit ->
-                val concreteCodeUnit = model.eval(codeUnit) as KBitVec16Value
-                append((concreteCodeUnit.shortValue.toInt() and UTF16_CODE_UNIT_MASK).toChar())
-            }
-        }
-
-        return JsConcreteValue.String(value)
-    }
-}
-
-private data class ArrayInputSnapshot(
-    val length: UExpr<TsSizeSort>,
-    val elements: List<CallsInputSnapshot>,
-    val arrayRef: UConcreteHeapRef,
-    val runtimeType: EtsArrayType,
-) : CallsInputSnapshot {
-    fun markDenseInput(state: TsState) {
-        state.markDenseInputArray(array = arrayRef, type = runtimeType)
-    }
-
-    override fun resolve(model: UModelBase<EtsType>): JsConcreteValue {
-        val concreteLength = model.eval(length).extractInt()
-        require(concreteLength in 0..elements.size) { "Resolved array length is outside its symbolic domain" }
-
-        return JsConcreteValue.Array(elements.take(concreteLength).map { element -> element.resolve(model) })
-    }
-}
-
-private const val UTF16_CODE_UNIT_MASK = 0xffff

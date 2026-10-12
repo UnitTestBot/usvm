@@ -28,9 +28,7 @@ import org.usvm.ts.pbt.mapping.EtsInputBinding
 import org.usvm.ts.pbt.mapping.EtsLexicalEnvironmentBinding
 import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
-import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
-import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.contains
 import java.nio.file.Path
 import kotlin.time.TimeSource
@@ -155,13 +153,7 @@ internal class CurrentTsCallsSymbolicEngine(
             stopOnTargetsReached = false,
             throwExceptionOnStepFailure = true,
         )
-        val inputCapacity = request.function.inputs.maxOfOrNull { input ->
-            when (val domain = input.domain) {
-                is ArrayDomain -> domain.maxLength
-                is StringDomain -> domain.maxLength
-                else -> 0
-            }
-        } ?: 0
+        val inputCapacity = request.function.inputs.maxOfOrNull { input -> input.domain.callsInputCapacity() } ?: 0
         val tsOptions = TsOptions(
             maxArraySize = maxOf(TsOptions().maxArraySize, inputCapacity),
             unknownCallModelSelection = modelSelection,

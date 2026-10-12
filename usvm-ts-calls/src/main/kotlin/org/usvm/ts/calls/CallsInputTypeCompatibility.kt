@@ -3,21 +3,28 @@ package org.usvm.ts.calls
 import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberLiteralType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.ts.pbt.mapping.EtsInputBinding
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
+import org.usvm.ts.pbt.model.ConstantDomain
+import org.usvm.ts.pbt.model.IntegerDomain
+import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
@@ -50,24 +57,47 @@ private fun PropertyDomain.inputTypeLimitation(
     path: String,
     visitedGenerics: Set<String> = emptySet(),
 ): String? {
+    if (this is OptionalDomain) {
+        val valueLimitation = value.inputTypeLimitation(type, genericParameters, path, visitedGenerics)
+        if (valueLimitation != null) return valueLimitation
+
+        return ConstantDomain(nil).inputTypeLimitation(type, genericParameters, "$path.nil", visitedGenerics)
+    }
+
+    val constant = (this as? ConstantDomain)?.value
     val compatible = when (type) {
         EtsAnyType, EtsUnknownType -> {
             true
         }
         EtsBooleanType -> {
-            this == BooleanDomain
+            this == BooleanDomain || constant is JsConcreteValue.Boolean
         }
         EtsNumberType -> {
-            this is NumberDomain
+            this is NumberDomain || this is IntegerDomain || constant is JsConcreteValue.Number
         }
         EtsStringType -> {
-            this is StringDomain
+            this is StringDomain || constant is JsConcreteValue.String
         }
         is EtsNumberLiteralType -> {
-            this is NumberDomain && !allowNaN && min.toDouble() == type.value && max.toDouble() == type.value
+            when {
+                this is NumberDomain -> !allowNaN && min.toDouble() == type.value && max.toDouble() == type.value
+                this is IntegerDomain -> min.toDouble() == type.value && max.toDouble() == type.value
+                constant is JsConcreteValue.Number -> constant.toDouble() == type.value
+                else -> false
+            }
         }
         is EtsStringLiteralType -> {
-            this is StringDomain && minLength == 0 && maxLength == 0 && type.value.isEmpty()
+            (this is StringDomain && minLength == 0 && maxLength == 0 && type.value.isEmpty()) ||
+                (constant is JsConcreteValue.String && constant.value == type.value)
+        }
+        is EtsBooleanLiteralType -> {
+            constant is JsConcreteValue.Boolean && constant.value == type.value
+        }
+        EtsNullType -> {
+            constant == JsConcreteValue.Null
+        }
+        EtsUndefinedType -> {
+            constant == JsConcreteValue.Undefined
         }
         is EtsGenericType -> {
             if (type.typeName in visitedGenerics) {
