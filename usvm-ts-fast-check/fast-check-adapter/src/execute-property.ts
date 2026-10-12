@@ -104,6 +104,9 @@ export interface FastCheckExecutionSuccess {
 export async function executeProperty(requestValue: unknown): Promise<FastCheckExecutionSuccess> {
   const request = validateRequest(requestValue);
   const startedAt = performance.now();
+  const recorder = request.observationRequest === undefined
+    ? undefined
+    : new ObservationRecorder(request.manifest.propertyId, request.observationRequest);
 
   if (request.observationRequest !== undefined) {
     for (const source of request.observationRequest.sources) {
@@ -118,9 +121,6 @@ export async function executeProperty(requestValue: unknown): Promise<FastCheckE
     : await loadEntryPoint(request.manifest.precondition, request.sourceRoots, 'manifest.precondition');
 
   const contractErrors: ContractErrorState = { first: undefined };
-  const recorder = request.observationRequest === undefined
-    ? undefined
-    : new ObservationRecorder(request.manifest.propertyId, request.observationRequest);
   const baseArbitrary = buildPropertyArbitrary(request.manifest);
   const tracker = recorder === undefined ? undefined : new PhaseTrackingArbitrary(baseArbitrary);
   const arbitrary = tracker ?? baseArbitrary;

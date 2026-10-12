@@ -2,7 +2,9 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { types } from 'node:util';
-import { encodeJsValue, type TaggedJsValue } from './js-value.js';
+import { adapterDiagnostic } from './diagnostics.js';
+import { encodeJsValue, protocolError, type TaggedJsValue } from './js-value.js';
+import { stringifyProtocolJson } from './protocol-json.js';
 
 export interface ObservationPointRequest {
   id: string;
@@ -105,6 +107,14 @@ export class ObservationRecorder {
       droppedPoints: 0,
       captureTimeMillis: 0,
     };
+
+    if (this.reservedArtifactBytes() > request.maxBytes) {
+      throw protocolError(
+        adapterDiagnostic.protocolRequestInvalid,
+        'Observation identity and source metadata exceed the artifact byte budget',
+        'observationRequest.maxBytes',
+      );
+    }
   }
 
   get result(): ObservationArtifact {
@@ -119,7 +129,7 @@ export class ObservationRecorder {
     invocation: () => T,
   ): T {
     if (this.artifact.invocations.length >= this.request.maxInvocations) {
-      this.artifact.droppedInvocations += 1;
+      this.artifact.droppedInvocations = incrementCounter(this.artifact.droppedInvocations);
 
       return invocation();
     }
@@ -136,9 +146,9 @@ export class ObservationRecorder {
       points: [],
     };
     this.artifact.invocations.push(record);
-    if (this.artifactBytes() > this.request.maxBytes) {
+    if (this.reservedArtifactBytes() > this.request.maxBytes) {
       this.artifact.invocations.pop();
-      this.artifact.droppedInvocations += 1;
+      this.artifact.droppedInvocations = incrementCounter(this.artifact.droppedInvocations);
 
       return invocation();
     }
@@ -157,7 +167,7 @@ export class ObservationRecorder {
   point(record: InvocationRecord, pointId: string, value: unknown): void {
     const point = this.pointsById.get(pointId);
     if (point === undefined || record.points.length >= this.request.maxPointsPerInvocation) {
-      this.artifact.droppedPoints += 1;
+      this.artifact.droppedPoints = incrementCounter(this.artifact.droppedPoints);
 
       return;
     }
@@ -174,9 +184,9 @@ export class ObservationRecorder {
       eventOrdinal: record.points.length,
       value: this.snapshot(value),
     });
-    if (this.artifactBytes() > this.request.maxBytes) {
+    if (this.reservedArtifactBytes() > this.request.maxBytes) {
       record.points.pop();
-      this.artifact.droppedPoints += 1;
+      this.artifact.droppedPoints = incrementCounter(this.artifact.droppedPoints);
     }
   }
 
@@ -187,20 +197,41 @@ export class ObservationRecorder {
       if (reason !== undefined) return { status: 'unsupported', reason };
 
       const tagged = encodeJsValue(value);
-      const bytes = Buffer.byteLength(JSON.stringify(tagged), 'utf8');
-      if (this.artifactBytes() + bytes > this.request.maxBytes) {
+      const bytes = Buffer.byteLength(stringifyProtocolJson(tagged), 'utf8');
+      if (this.reservedArtifactBytes() + bytes > this.request.maxBytes) {
         return { status: 'truncated', reason: 'byte-budget' };
       }
 
       return { status: 'captured', value: tagged };
     } finally {
-      this.artifact.captureTimeMillis += performance.now() - startedAt;
+      this.artifact.captureTimeMillis = Math.min(
+        Number.MAX_SAFE_INTEGER,
+        this.artifact.captureTimeMillis + performance.now() - startedAt,
+      );
     }
   }
 
-  private artifactBytes(): number {
-    return Buffer.byteLength(JSON.stringify(this.artifact), 'utf8');
+  private reservedArtifactBytes(): number {
+    // Reserve final counters/timing and the longest admission/outcome before accepting any record.
+    // Completing an async invocation or incrementing dropped counters must never grow past maxBytes.
+    const envelope = {
+      ...this.artifact,
+      invocations: this.artifact.invocations.map((record) => ({
+        ...record,
+        admission: 'rejected',
+        outcome: 'pending',
+      })),
+      droppedInvocations: Number.MAX_SAFE_INTEGER,
+      droppedPoints: Number.MAX_SAFE_INTEGER,
+      captureTimeMillis: Number.MAX_SAFE_INTEGER,
+    };
+
+    return Buffer.byteLength(stringifyProtocolJson(envelope), 'utf8');
   }
+}
+
+function incrementCounter(value: number): number {
+  return Math.min(Number.MAX_SAFE_INTEGER, value + 1);
 }
 
 function unsafeReason(value: unknown, maxArrayElements: number, seen: WeakSet<object>, depth: number): string | undefined {

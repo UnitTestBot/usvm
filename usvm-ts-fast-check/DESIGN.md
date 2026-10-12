@@ -95,6 +95,12 @@ arrays beyond the declared depth or element bound. Such values have an explicit 
 fabricated concrete value. Byte-limited values have `truncated` status. Snapshot time is reported as
 `captureTimeMillis`; it measures capture work, not end-to-end runtime overhead.
 
+The byte budget covers the entire artifact, including property identity, selected-source hashes, and final metadata.
+If the mandatory envelope cannot fit, the request is rejected before importing the predicate. Identities are never
+shortened to fit. Capture reserves the longest final admission/outcome and full safe-integer counters/timing before
+accepting a record; counters and capture time saturate at `Number.MAX_SAFE_INTEGER`. Internal serialization never
+consults user `toJSON` methods, including methods inherited by tagged values and protocol arrays.
+
 Before importing the predicate, the adapter checks SHA-256 bytes of every selected source module in the request.
 `verifiedSources` identifies only those selected modules. The build status remains `unverified`: the adapter does not
 verify transpiled output, the loader, or transitive imports. Observation phases come from fast-check arbitrary
