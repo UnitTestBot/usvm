@@ -73,3 +73,14 @@ test('completed expression arrow retains lexical this and arguments', () => {
   const target = 'arguments[0]'
   assert.deepEqual(replay(source, target, 'COMPLETED_RETURN', 1, target), { value: 7, marker: true })
 })
+
+test('nested completed returns do not confirm an outer invocation that falls through', () => {
+  const source = 'function fixture(value: number) { if (value === 0) return 1; fixture(0); }'
+  assert.deepEqual(replay(source, 'return 1;', 'COMPLETED_RETURN', 1, '1'), { value: undefined, marker: false })
+  assert.deepEqual(replay(source, 'return 1;', 'COMPLETED_RETURN', 0, '1'), { value: 1, marker: true })
+})
+
+test('outer selected return completes after a recursive invocation', () => {
+  const source = 'function fixture(value: number) { if (value > 0) fixture(0); return 1; }'
+  assert.deepEqual(replay(source, 'return 1;', 'COMPLETED_RETURN', 1, '1'), { value: 1, marker: true })
+})

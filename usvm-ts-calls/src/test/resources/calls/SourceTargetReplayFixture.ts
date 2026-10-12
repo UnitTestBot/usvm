@@ -97,3 +97,13 @@ export function finallyThrowCaughtOutside(): number | undefined {
     try { return 1; } finally { throw new Error('cancel return'); }
   } catch { /* implicit function completion does not complete the selected return */ }
 }
+
+export function recursiveOuterFallthrough(value: number): number | undefined {
+  if (value === 0) return 1;
+  recursiveOuterFallthrough(0);
+}
+
+export function recursiveOuterReturn(value: number): number {
+  if (value > 0) recursiveOuterReturn(0);
+  return 1;
+}

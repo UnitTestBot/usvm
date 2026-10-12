@@ -9,6 +9,7 @@ import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsType
 import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
@@ -66,12 +67,16 @@ internal class CallsSymbolicInputs(
 
     fun initialize(state: TsState) {
         check(snapshots == null) { "Calls symbolic inputs were initialized more than once" }
-        snapshots = boundInputs.map { (input, binding) ->
+        val initializedSnapshots = boundInputs.map { (input, binding) ->
             state.initializeInput(
                 stackSlot = binding.stackSlot,
                 domain = input.domain,
             )
         }
+        initializedSnapshots.filterIsInstance<ArrayInputSnapshot>().forEach { snapshot ->
+            snapshot.markDenseInput(state)
+        }
+        snapshots = initializedSnapshots
     }
 
     fun resolve(state: TsState): List<JsConcreteValue> {
@@ -195,9 +200,12 @@ private fun TsState.initializeArrayInput(
         guard = trueExpr,
     )
     saveSortForLocal(stackSlot, addressSort)
-    markDenseInputArray(array = arrayRef, type = runtimeType)
-
-    ArrayInputSnapshot(length = length, elements = elements)
+    ArrayInputSnapshot(
+        length = length,
+        elements = elements,
+        arrayRef = arrayRef,
+        runtimeType = runtimeType,
+    )
 }
 
 private fun TsState.constrainLength(
@@ -265,7 +273,13 @@ private data class StringInputSnapshot(
 private data class ArrayInputSnapshot(
     val length: UExpr<TsSizeSort>,
     val elements: List<CallsInputSnapshot>,
+    val arrayRef: UConcreteHeapRef,
+    val runtimeType: EtsArrayType,
 ) : CallsInputSnapshot {
+    fun markDenseInput(state: TsState) {
+        state.markDenseInputArray(array = arrayRef, type = runtimeType)
+    }
+
     override fun resolve(model: UModelBase<EtsType>): JsConcreteValue {
         val concreteLength = model.eval(length).extractInt()
         require(concreteLength in 0..elements.size) { "Resolved array length is outside its symbolic domain" }

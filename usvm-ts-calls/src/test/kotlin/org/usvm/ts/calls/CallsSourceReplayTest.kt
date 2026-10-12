@@ -253,6 +253,44 @@ class CallsSourceReplayTest {
     }
 
     @Test
+    fun `completed replay observes only the outer selected invocation during recursion`() {
+        val fixture = fixture()
+        val recursive = fixture.target(
+            functionName = "recursiveOuterFallthrough",
+            statement = "return 1;",
+            mode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = "1",
+        )
+        val outerReturn = fixture.target(
+            functionName = "recursiveOuterReturn",
+            statement = "return 1;",
+            mode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = "1",
+        )
+
+        val innerOnly = fixture.replay(
+            exportName = "recursiveOuterFallthrough",
+            inputs = listOf(number(1.0)),
+            target = recursive,
+        )
+        val direct = fixture.replay(
+            exportName = "recursiveOuterFallthrough",
+            inputs = listOf(number(0.0)),
+            target = recursive,
+        )
+        val completedOuter = fixture.replay(
+            exportName = "recursiveOuterReturn",
+            inputs = listOf(number(1.0)),
+            target = outerReturn,
+        )
+
+        assertEquals(CallsReplayStatus.REJECTED, innerOnly.status, innerOnly.toString())
+        assertEquals(false, innerOnly.invocation?.targetHit)
+        assertEquals(CallsReplayStatus.CONFIRMED, direct.status, direct.toString())
+        assertEquals(CallsReplayStatus.CONFIRMED, completedOuter.status, completedOuter.toString())
+    }
+
+    @Test
     fun `rejects a source target symlink that escapes its declared root`() {
         val workspace = Files.createTempDirectory("calls-replay-root-boundary-")
         try {

@@ -424,6 +424,37 @@ class CurrentTsCallsSymbolicEngineTest {
         assertEquals(CallsSymbolicPreflightReasonCode.LEXICAL_CAPTURE_UNSUPPORTED, preflight.reasonCode)
     }
 
+    @Test
+    fun `all same-sort array inputs retain dense snapshots after initialization`() {
+        val zeroNumbers = NumberDomain(
+            min = JsNumber.finite(0.0),
+            max = JsNumber.finite(0.0),
+            allowNaN = false,
+        )
+        val arrays = ArrayDomain(element = zeroNumbers, minLength = 1, maxLength = 2)
+        val fixture = fixture(
+            source = """
+                export function bothArraysContainZero(first: number[], second: number[]): boolean {
+                  if (first.includes(0) && second.includes(0)) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "bothArraysContainZero",
+            inputs = listOf(
+                PropertyInput(name = "first", domain = arrays),
+                PropertyInput(name = "second", domain = arrays),
+            ),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.search(modelIds = setOf("ts.array.includes", "ts.math.floor"))
+
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        fixture.assertReplayConfirmed(assertNotNull(result.inputs, result.toString()))
+    }
+
     private fun fixture(
         source: String,
         exportName: String,

@@ -345,6 +345,11 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
             value: false,
             writable: true,
           });
+          Object.defineProperty(globalThis, ${jsString("$marker:depth")}, {
+            configurable: true,
+            value: 0,
+            writable: true,
+          });
           let invocation: 'returned' | 'threw' = 'returned';
           let caught: unknown;
           try {

@@ -47,9 +47,11 @@ export function instrumentSourceReplay(file: ts.SourceFile, target: SourceReplay
     && target.expressionStart === arrowBody.getStart(file) && target.expressionEnd === arrowBody.getEnd()
   if (matchesArrowExpression && arrowBody !== undefined) {
     const temporary = uniqueIdentifier(file, target.marker)
+    const depth = depthStorage(target.marker)
     const expression = file.text.slice(arrowBody.getStart(file), arrowBody.getEnd())
     return { source: applyEdits(file.text, [{ start: arrowBody.getStart(file), end: arrowBody.getEnd(),
-      text: `{ const ${temporary} = (${expression}); ${marker} = true; return ${temporary}; }` }]), reason: null }
+      text: `{ ${depth} = (${depth} ?? 0) + 1; try { const ${temporary} = (${expression}); `
+        + `if (${depth} === 1) ${marker} = true; return ${temporary}; } finally { ${depth}--; } }` }]), reason: null }
   }
   return { source: null, reason: 'Completed-return target does not identify an exact return or arrow body' }
 }
@@ -88,13 +90,9 @@ function instrumentEntry(file: ts.SourceFile, statement: ts.Statement, marker: s
 function instrumentCompletedReturn(file: ts.SourceFile, selected: ts.ReturnStatement, marker: string, name: string): string {
   let owner: ts.Node = selected.parent
   while (!ts.isFunctionLike(owner)) owner = owner.parent
-  const finalizers: ts.Block[] = []
-  for (let ancestor: ts.Node = selected; ancestor !== owner; ancestor = ancestor.parent) {
-    const parent = ancestor.parent
-    if (ts.isTryStatement(parent) && parent.finallyBlock !== undefined && ancestor !== parent.finallyBlock) {
-      finalizers.push(parent.finallyBlock)
-    }
-  }
+  const body = functionBody(owner)
+  if (body === undefined) throw new Error('Completed return must belong to a function body')
+  const depth = depthStorage(name)
   const temporary = uniqueIdentifier(file, name)
   const edits: Edit[] = []
   const visit = (node: ts.Node): void => {
@@ -102,44 +100,36 @@ function instrumentCompletedReturn(file: ts.SourceFile, selected: ts.ReturnState
     if (ts.isReturnStatement(node)) {
       const expression = node.expression === undefined ? null : file.text.slice(node.expression.getStart(file), node.expression.getEnd())
       const value = node === selected ? 'true' : 'false'
-      const result = expression === null ? `${marker} = ${value}; return;`
-        : `const ${temporary} = (${expression}); ${marker} = ${value}; return ${temporary};`
+      const completion = `if (${depth} === 1) ${marker} = ${value};`
+      const result = expression === null ? `${completion} return;`
+        : `const ${temporary} = (${expression}); ${completion} return ${temporary};`
       edits.push({ start: node.getStart(file), end: node.getEnd(), text: `{ ${result} }` })
       return
-    }
-    if ((ts.isBreakStatement(node) || ts.isContinueStatement(node)) && exitsFinalizer(node, finalizers)) {
-      const original = file.text.slice(node.getStart(file), node.getEnd())
-      edits.push({ start: node.getStart(file), end: node.getEnd(), text: `{ ${marker} = false; ${original} }` })
     }
     ts.forEachChild(node, visit)
   }
   visit(owner)
-  // Only an exception escaping a finalizer cancels the pending selected return; locally caught throws do not.
-  for (const finalizer of finalizers) {
-    edits.push({ start: finalizer.getStart(file) + 1, end: finalizer.getStart(file) + 1, text: 'try {' })
-    edits.push({ start: finalizer.getEnd() - 1, end: finalizer.getEnd() - 1,
-      text: `} catch (${temporary}) { ${marker} = false; throw ${temporary}; }` })
-  }
+  const firstBodyStatement = body.statements.find((statement) =>
+    !ts.isExpressionStatement(statement) || !ts.isStringLiteral(statement.expression),
+  )
+  const guardedStart = firstBodyStatement?.getFullStart() ?? body.getEnd() - 1
+  edits.push({ start: guardedStart, end: guardedStart, text: `\n${depth} = (${depth} ?? 0) + 1; try {\n` })
+  edits.push({ start: body.getEnd() - 1, end: body.getEnd() - 1,
+    text: `\nif (${depth} === 1) ${marker} = false; } finally { ${depth}--; }\n` })
   return applyEdits(file.text, edits)
 }
 
-function exitsFinalizer(node: ts.BreakStatement | ts.ContinueStatement, finalizers: ts.Block[]): boolean {
-  const enclosing = finalizers.filter((block) => block.pos <= node.pos && block.end >= node.end)
-  if (enclosing.length === 0) return false
-  let destination: ts.Node | undefined
-  for (let ancestor = node.parent; ancestor !== undefined && !ts.isFunctionLike(ancestor); ancestor = ancestor.parent) {
-    if (node.label !== undefined) {
-      if (ts.isLabeledStatement(ancestor) && ancestor.label.text === node.label.text) { destination = ancestor; break }
-    } else if (isLoop(ancestor) || (ts.isBreakStatement(node) && ts.isSwitchStatement(ancestor))) {
-      destination = ancestor; break
-    }
+function functionBody(node: ts.Node): ts.Block | undefined {
+  if (ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node) || ts.isMethodDeclaration(node)
+    || ts.isGetAccessorDeclaration(node) || ts.isSetAccessorDeclaration(node) || ts.isConstructorDeclaration(node)) {
+    return node.body
   }
-  return destination !== undefined && enclosing.some((block) => destination!.pos < block.pos || destination!.end > block.end)
+  if (ts.isArrowFunction(node) && ts.isBlock(node.body)) return node.body
+  return undefined
 }
 
-function isLoop(node: ts.Node): boolean {
-  return ts.isWhileStatement(node) || ts.isDoStatement(node) || ts.isForStatement(node)
-    || ts.isForInStatement(node) || ts.isForOfStatement(node)
+function depthStorage(marker: string): string {
+  return `(globalThis as Record<string, number>)[${JSON.stringify(`${marker}:depth`)}]`
 }
 
 function uniqueIdentifier(file: ts.SourceFile, marker: string): string {
