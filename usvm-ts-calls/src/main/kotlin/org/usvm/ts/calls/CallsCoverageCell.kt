@@ -9,7 +9,26 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
+import java.security.MessageDigest
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TimeSource
+
+@Serializable
+internal data class CallsCoverageUniverseIdentity(
+    val toolRevision: String,
+    val nativeFrontendRevision: String,
+    val sourceManifest: String,
+    val sourceIdentity: CallsCoverageSourceIdentity,
+    val projectIndex: Int,
+    val functionIndex: Int,
+    val sourceFile: String,
+)
+
+@Serializable
+internal data class CallsCoverageUniverseRecord(
+    val identity: CallsCoverageUniverseIdentity,
+    val universe: CallsCoverageUniverse,
+)
 
 @Serializable
 internal data class CallsCoverageCellIdentity(
@@ -25,6 +44,7 @@ internal data class CallsCoverageCellIdentity(
     val budgetMillis: Long,
     val solverLimitMillis: Long,
     val candidateCap: Int,
+    val coverageUniverseSha256: String,
 )
 
 @Serializable
@@ -40,6 +60,7 @@ internal data class CallsCoverageCheckpoint(
     val emittedCandidates: Int,
     val replayedCandidates: Int,
     val coveredStatements: Int,
+    val totalStatements: Int,
     val coveredIfArms: Int,
 )
 
@@ -49,8 +70,56 @@ internal data class CallsCoverageCellResult(
     val search: CallsCoverageSearchResult,
     val replayErrors: Int,
     val completionMismatches: Int,
+    val replayElapsedMillis: Long,
+    val cellElapsedMillis: Long,
     val checkpoints: List<CallsCoverageCheckpoint>,
 )
+
+internal fun runCoverageUniverse(
+    args: List<String>,
+    runtimeToolRevision: String = CallsBuildIdentity.toolRevision,
+    runtimeNativeFrontendRevision: String = CallsBuildIdentity.nativeFrontendRevision,
+    probeFunction: (CallsCoverageSource) -> CallsCoverageUniverse = { source ->
+        OriginalTypeScriptCoverageReplayer(
+            sourceRoot = source.sourceRoot,
+            function = source.function,
+        ).use { replayer -> replayer.probeUniverse(timeoutMillis = REPLAY_TIMEOUT_MILLIS) }
+    },
+) {
+    require(args.size == COVERAGE_UNIVERSE_ARGUMENT_COUNT) { "coverage-universe requires 4 arguments" }
+    val arguments = args.iterator()
+    val manifestArgument = arguments.next()
+    val projectIndex = arguments.next().toInt()
+    val functionIndex = arguments.next().toInt()
+    val source = CallsCoverageSource.load(
+        manifestPath = Path.of(manifestArgument),
+        projectIndex = projectIndex,
+        functionIndex = functionIndex,
+    )
+    val output = Path.of(arguments.next()).toAbsolutePath().normalize()
+    require(System.getenv("ETS_FRONTEND_SCRIPT") == null) { "ETS_FRONTEND_SCRIPT must be unset" }
+
+    Files.createDirectories(output)
+    require(Files.list(output).use { entries -> entries.findAny().isEmpty }) {
+        "Coverage universe output directory is not empty"
+    }
+    val identity = CallsCoverageUniverseIdentity(
+        toolRevision = runtimeToolRevision,
+        nativeFrontendRevision = runtimeNativeFrontendRevision,
+        sourceManifest = source.manifestPath.toString(),
+        sourceIdentity = source.identity,
+        projectIndex = projectIndex,
+        functionIndex = functionIndex,
+        sourceFile = source.function.sourceFile,
+    )
+    require(Regex("[0-9a-f]{40}").matches(identity.toolRevision)) { "Coverage build must be clean" }
+    source.verifyUnchanged()
+    val universe = probeFunction(source)
+    source.verifyUnchanged()
+    val record = CallsCoverageUniverseRecord(identity = identity, universe = universe)
+    atomicWrite(output.resolve("universe.json"), encode(record))
+    System.out.appendLine(encode(record))
+}
 
 internal fun runCoverageCell(
     args: List<String>,
@@ -58,6 +127,7 @@ internal fun runCoverageCell(
     runtimeNativeFrontendRevision: String = CallsBuildIdentity.nativeFrontendRevision,
     searchFunction: (CallsCoverageSearchRequest) -> CallsCoverageSearchResult = CurrentTsCallsCoverageEngine()::search,
 ) {
+    val cellStarted = TimeSource.Monotonic.markNow()
     val request = parseCoverageCellRequest(
         args = args,
         runtimeToolRevision = runtimeToolRevision,
@@ -96,7 +166,14 @@ internal fun runCoverageCell(
             events[index].replay?.completion != null &&
                 events[index].replay?.completion != search.candidates[index].completion
         },
-        checkpoints = coverageCheckpoints(search = search, events = events, budgetMillis = identity.budgetMillis),
+        replayElapsedMillis = events.sumOf { event -> event.replay?.replayElapsedMillis ?: 0L },
+        cellElapsedMillis = cellStarted.elapsedNow().inWholeMilliseconds,
+        checkpoints = coverageCheckpoints(
+            search = search,
+            events = events,
+            universe = request.universe,
+            budgetMillis = identity.budgetMillis,
+        ),
     )
     atomicWrite(output.resolve("result.json"), encode(result))
     System.out.appendLine(encode(result))
@@ -106,6 +183,7 @@ private data class CoverageCellRequest(
     val source: CallsCoverageSource,
     val identity: CallsCoverageCellIdentity,
     val output: Path,
+    val universe: CallsCoverageUniverse,
 )
 
 private fun parseCoverageCellRequest(
@@ -127,9 +205,28 @@ private fun parseCoverageCellRequest(
     val budgetMillis = arguments.next().toLong()
     val solverLimitMillis = arguments.next().toLong()
     val candidateCap = arguments.next().toInt()
+    val universeBytes = Files.readAllBytes(Path.of(arguments.next()).toRealPath())
+    val universeRecord = CallsExperimentJson.json.decodeFromString<CallsCoverageUniverseRecord>(
+        universeBytes.toString(Charsets.UTF_8),
+    )
     require(seed in source.manifest.seeds) { "Seed is outside the frozen source manifest" }
     require(budgetMillis > 0 && solverLimitMillis in 1..budgetMillis && candidateCap > 0)
     require(System.getenv("ETS_FRONTEND_SCRIPT") == null) { "ETS_FRONTEND_SCRIPT must be unset" }
+    val expectedUniverseIdentity = CallsCoverageUniverseIdentity(
+        toolRevision = runtimeToolRevision,
+        nativeFrontendRevision = runtimeNativeFrontendRevision,
+        sourceManifest = source.manifestPath.toString(),
+        sourceIdentity = source.identity,
+        projectIndex = projectIndex,
+        functionIndex = functionIndex,
+        sourceFile = source.function.sourceFile,
+    )
+    require(universeRecord.identity == expectedUniverseIdentity) { "Coverage universe identity differs" }
+    val universe = universeRecord.universe
+    require(source.function.sourceFile in universe.sourceFiles && universe.supportedStatementKeys.isNotEmpty()) {
+        "Coverage universe does not include the entry source statements"
+    }
+
 
     val identity = CallsCoverageCellIdentity(
         schemaVersion = 2,
@@ -144,9 +241,10 @@ private fun parseCoverageCellRequest(
         budgetMillis = budgetMillis,
         solverLimitMillis = solverLimitMillis,
         candidateCap = candidateCap,
+        coverageUniverseSha256 = coverageUniverseSha256(universeBytes),
     )
 
-    return CoverageCellRequest(source = source, identity = identity, output = output)
+    return CoverageCellRequest(source = source, identity = identity, output = output, universe = universe)
 }
 
 private fun loadOrRunCoverageSearch(
@@ -225,20 +323,28 @@ private fun replayCoverageCandidates(
 private fun coverageCheckpoints(
     search: CallsCoverageSearchResult,
     events: List<CallsCoverageReplayEvent>,
+    universe: CallsCoverageUniverse,
     budgetMillis: Long,
-): List<CallsCoverageCheckpoint> = COVERAGE_CHECKPOINT_MILLIS.filter { it <= budgetMillis }.map { checkpoint ->
-    val indices = search.candidates.indices.filter { index ->
-        search.candidates[index].emittedAtMillis <= checkpoint
+): List<CallsCoverageCheckpoint> {
+    return COVERAGE_CHECKPOINT_MILLIS.filter { it <= budgetMillis }.map { checkpoint ->
+        val indices = search.candidates.indices.filter { index ->
+            search.candidates[index].emittedAtMillis <= checkpoint
+        }
+        val replayed = indices.mapNotNull { index -> events[index].replay }
+        val coveredStatements = replayed.flatMap { it.coveredStatementKeys }.toSet()
+        val coveredIfArms = replayed.flatMap { it.coveredIfArmKeys }.toSet()
+        require(universe.supportedStatementKeys.containsAll(coveredStatements)) {
+            "Replayed statements extend beyond the frozen coverage universe"
+        }
+        CallsCoverageCheckpoint(
+            searchBudgetMillis = checkpoint,
+            emittedCandidates = indices.size,
+            replayedCandidates = replayed.size,
+            coveredStatements = coveredStatements.size,
+            totalStatements = universe.supportedStatementKeys.size,
+            coveredIfArms = coveredIfArms.size,
+        )
     }
-    val replayed = indices.mapNotNull { index -> events[index].replay }
-
-    CallsCoverageCheckpoint(
-        searchBudgetMillis = checkpoint,
-        emittedCandidates = indices.size,
-        replayedCandidates = replayed.size,
-        coveredStatements = replayed.flatMap { it.coveredStatementKeys }.toSet().size,
-        coveredIfArms = replayed.flatMap { it.coveredIfArmKeys }.toSet().size,
-    )
 }
 
 private inline fun <reified T> readLines(path: Path): List<T> = if (Files.exists(path)) {
@@ -271,7 +377,7 @@ private fun atomicWrite(path: Path, contents: String) {
     Files.move(temporary, path, StandardCopyOption.ATOMIC_MOVE)
 }
 
-private const val COVERAGE_CELL_ARGUMENT_COUNT = 9
+private const val COVERAGE_CELL_ARGUMENT_COUNT = 10
 private const val REPLAY_TIMEOUT_MILLIS = 20_000L
 private const val FIRST_CHECKPOINT_MILLIS = 30_000L
 private const val SECOND_CHECKPOINT_MILLIS = 60_000L
@@ -281,3 +387,9 @@ private val COVERAGE_CHECKPOINT_MILLIS = listOf(
     SECOND_CHECKPOINT_MILLIS,
     THIRD_CHECKPOINT_MILLIS,
 )
+
+private fun coverageUniverseSha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(bytes)
+    .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and UNSIGNED_BYTE_MASK) }
+
+private const val COVERAGE_UNIVERSE_ARGUMENT_COUNT = 4
+private const val UNSIGNED_BYTE_MASK = 0xff

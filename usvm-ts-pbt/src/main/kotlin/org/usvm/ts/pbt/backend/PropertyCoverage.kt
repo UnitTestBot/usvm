@@ -118,6 +118,7 @@ data class PropertyCoverageRequest(
     val scopes: Set<CoverageScope> = setOf(CoverageScope.SOURCE_UNDER_TEST),
     val includePatterns: List<String> = emptyList(),
     val excludePatterns: List<String> = emptyList(),
+    val includeUnexecutedSources: Boolean = false,
 ) {
     init {
         require(scopes.isNotEmpty()) { "At least one coverage scope is required" }

@@ -34,6 +34,19 @@ test('local closure follows reexports while ignoring unrelated effects and type 
   })
 })
 
+test('local closure follows emitted imports and omits imports used only as types', () => {
+  workspace({
+    'entry.ts': "import { Nullish } from './types'; import { helper } from './helper'; "
+      + 'export function entry(value: unknown): value is Nullish { return helper(value); }',
+    'types.ts': 'declare const OPAQUE_TAG: unique symbol; export type Nullish = null | undefined;',
+    'helper.ts': 'export function helper(value: unknown): boolean { return value == null; }',
+  }, root => {
+    assert.deepEqual(inspectLocalSourceClosure(root, path.join(root, 'entry.ts')), {
+      files: ['entry.ts', 'helper.ts'],
+    })
+  })
+})
+
 for (const [name, entry, helper, expected] of [
   ['external import', "import { x } from 'node:fs';", '', 'IMPORTED_CALLEES_UNSUPPORTED'],
   ['missing module', "import { helper } from './missing';", '', 'IMPORTED_CALLEES_UNSUPPORTED'],
