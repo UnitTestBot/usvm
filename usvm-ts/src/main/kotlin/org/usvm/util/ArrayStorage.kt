@@ -19,6 +19,7 @@ import org.usvm.machine.TsSizeSort
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.TsUnresolvedArrayKind
+import org.usvm.sizeSort
 
 /** Enumerates payload regions independently of whether an array was allocated or came from the input. */
 internal inline fun TsContext.forEachArrayPayloadRegion(arrayType: EtsArrayType, action: (EtsType, USort) -> Unit) {
