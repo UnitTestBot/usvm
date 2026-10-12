@@ -68,6 +68,25 @@ class TsErrorSourceSemanticsTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `throwing an Error through an any field preserves caught identity and payload`() {
+        discoverProperties<TsTestValue.TsBoolean>(
+            method = getMethod(methodName = "catchAnyFieldError", className = "ErrorEtsIr"),
+            { result -> result.value },
+            invariants = arrayOf({ result -> result.value }),
+        )
+    }
+
+    @Test
+    fun `conditional any thrown values preserve both Error and numeric kinds`() {
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+            method = getMethod(methodName = "catchConditionalErrorOrNumber", className = "ErrorEtsIr"),
+            { flag, result -> flag.value && result.number == 2.0 },
+            { flag, result -> !flag.value && result.number == 1.0 },
+            invariants = arrayOf({ flag, result -> result.number == if (flag.value) 2.0 else 1.0 }),
+        )
+    }
+
+    @Test
     fun `source name preserves Error string semantics`() {
         discoverProperties<TsTestValue.TsString>(
             method = getMethod(methodName = "name", className = "ErrorEtsIr"),

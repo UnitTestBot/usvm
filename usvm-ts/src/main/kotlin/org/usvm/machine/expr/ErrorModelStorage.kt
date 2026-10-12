@@ -5,11 +5,13 @@ import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsType
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.machine.TS_TYPE_ERROR_TYPE
 import org.usvm.machine.TsContext
 import org.usvm.machine.call.intrinsic.TsErrorEtsIrModelFamily
 import org.usvm.machine.interpreter.TsStepScope
@@ -19,6 +21,12 @@ import org.usvm.util.TsResolutionResult
 import org.usvm.util.resolveEtsField
 
 internal val builtInErrorSignature = EtsClassSignature.UNKNOWN.copy(name = "Error")
+
+/** Matches exact SDK identities and the interpreter's own TypeError, excluding source class shadows. */
+internal fun EtsType.isModeledErrorType(): Boolean =
+    this == EtsClassType(signature = builtInErrorSignature) ||
+        this == EtsClassType(signature = EtsClassSignature.UNKNOWN.copy(name = "TypeError")) ||
+        this == TS_TYPE_ERROR_TYPE
 
 internal const val ERROR_NAME_STORAGE_FIELD = "__usvmErrorName"
 internal const val ERROR_MESSAGE_STORAGE_FIELD = "__usvmErrorMessage"

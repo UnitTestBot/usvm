@@ -38,6 +38,7 @@ import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.callExpr
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.api.evalTypeEquals
@@ -47,6 +48,7 @@ import org.usvm.api.typeStreamOf
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.isTrue
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsGraph
@@ -69,9 +71,11 @@ import org.usvm.machine.expr.handleAssignToLocal
 import org.usvm.machine.expr.handleAssignToProperty
 import org.usvm.machine.expr.handleAssignToStaticField
 import org.usvm.machine.expr.handleDefineDataProperty
+import org.usvm.machine.expr.isModeledErrorType
 import org.usvm.machine.expr.mkNotNullOrUndefined
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.expr.readGlobal
+import org.usvm.machine.expr.resolveHeapRef
 import org.usvm.machine.expr.tryApproximateInstanceCall
 import org.usvm.machine.expr.writeGlobal
 import org.usvm.machine.state.TsMethodResult
@@ -91,6 +95,7 @@ import org.usvm.solver.UUnknownResult
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
 import org.usvm.types.single
+import org.usvm.types.singleOrNull
 import org.usvm.util.executableOverloadImplementation
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -727,9 +732,16 @@ class TsInterpreter(
 
         observer?.onThrowStatement(exprResolver.simpleValueResolver, stmt, scope)
 
-        val exception = exprResolver.resolve(stmt.exception) ?: return
+        val resolvedException = exprResolver.resolve(stmt.exception) ?: return
+        val exception = normalizeThrownValue(scope, resolvedException) ?: return
         val exceptionType: EtsType = when (exception.sort) {
-            ctx.addressSort -> EtsStringType // TODO: improve object type detection
+            ctx.addressSort -> {
+                val reference = exception as? UConcreteHeapRef
+                val runtimeType = reference?.let { ref ->
+                    scope.calcOnState { memory.typeStreamOf(ref).singleOrNull() }
+                }
+                runtimeType?.takeIf { type -> type.isModeledErrorType() } ?: EtsStringType
+            }
             ctx.fp64Sort -> EtsNumberType
             ctx.boolSort -> EtsBooleanType
             else -> EtsStringType
@@ -738,6 +750,30 @@ class TsInterpreter(
         scope.doWithState {
             methodResult = TsMethodResult.TsException(exception, exceptionType)
         }
+    }
+
+    private fun normalizeThrownValue(scope: TsStepScope, exception: UExpr<*>): UExpr<*>? = with(ctx) {
+        var value = exception
+        while (value.sort == addressSort) {
+            val reference = resolveHeapRef(scope, value.asExpr(addressSort)) ?: return null
+            if (!reference.isFakeObject()) return reference
+
+            val type = reference.getFakeType(scope)
+            val booleanKind = scope.calcOnState { models.first().eval(type.boolTypeExpr).isTrue }
+            val numberKind = scope.calcOnState { models.first().eval(type.fpTypeExpr).isTrue }
+            val selectedKind = when {
+                booleanKind -> type.boolTypeExpr
+                numberKind -> type.fpTypeExpr
+                else -> type.refTypeExpr
+            }
+            scope.fork(selectedKind) ?: return null
+            value = when {
+                booleanKind -> reference.extractBool(scope)
+                numberKind -> reference.extractFp(scope)
+                else -> reference.extractRef(scope)
+            }
+        }
+        value
     }
 
     private fun visitNopStmt(scope: TsStepScope, stmt: EtsNopStmt) {

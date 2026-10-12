@@ -40,6 +40,30 @@ export class ErrorEtsIr {
         return new Error("expected message").message;
     }
 
+    static throwAnyFieldError(): number {
+        const container: any = { value: new Error("field error") };
+        throw container.value;
+    }
+
+    static catchAnyFieldError(): boolean {
+        const container: any = { value: new Error("field error") };
+        try {
+            throw container.value;
+        } catch (error) {
+            return error === container.value && error.message === "field error" && error.name === "Error";
+        }
+    }
+
+    static catchConditionalErrorOrNumber(flag: boolean): number {
+        const container: any = { value: flag ? new Error("conditional error") : 7 };
+        try {
+            throw container.value;
+        } catch (error) {
+            if (typeof error === "number") return error === 7 ? 1 : -1;
+            return error.message === "conditional error" && error.name === "Error" ? 2 : -2;
+        }
+    }
+
     static throwError(): number {
         throw new Error("expected message");
     }
