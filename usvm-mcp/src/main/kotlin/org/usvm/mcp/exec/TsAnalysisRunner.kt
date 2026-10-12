@@ -13,6 +13,8 @@ import org.usvm.api.checkers.UncoveredIfSuccessors
 import org.usvm.api.checkers.UnreachableCodeDetector
 import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
+import org.usvm.machine.TsAnalysisResult
+import org.usvm.machine.TsAnalysisStopReason
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsState
@@ -25,6 +27,12 @@ private val logger = KotlinLogging.logger {}
 data class ResolvedCase(
     val test: TsTest?,
     val error: String?,
+)
+
+data class AnalysisOutcome<T>(
+    val result: T,
+    val stopReason: TsAnalysisStopReason,
+    val unsupportedPaths: List<String>,
 )
 
 data class ReachabilityOutcome(
@@ -43,12 +51,16 @@ class TsAnalysisRunner {
     private val mutex = Mutex()
 
     /** Explores the method and resolves every collected state to concrete inputs/outcome. */
-    suspend fun runTests(scene: EtsScene, method: EtsMethod, timeout: Duration): List<ResolvedCase> =
+    suspend fun runTests(
+        scene: EtsScene,
+        method: EtsMethod,
+        timeout: Duration,
+    ): AnalysisOutcome<List<ResolvedCase>> =
         withMachineLock {
             val options = AnalysisOptions.coverage(timeout)
             TsMachine(scene, options, TsOptions()).use { machine ->
-                val states = machine.analyze(listOf(method))
-                states.map { resolveState(method, it) }
+                val analysis = machine.analyzeWithOutcome(listOf(method))
+                analysis.withResult(analysis.states.map { resolveState(method, it) })
             }
         }
 
@@ -58,18 +70,20 @@ class TsAnalysisRunner {
         method: EtsMethod,
         target: EtsStmt,
         timeout: Duration,
-    ): ReachabilityOutcome = withMachineLock {
+    ): AnalysisOutcome<ReachabilityOutcome> = withMachineLock {
         val options = AnalysisOptions.targeted(timeout)
         val initialTarget = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
         initialTarget.addChild(TsReachabilityTarget.FinalPoint(target))
 
         TsMachine(scene, options, TsOptions(), machineObserver = ReachabilityObserver()).use { machine ->
-            val states = machine.analyze(listOf(method), listOf(initialTarget))
-            val witnessState = states.firstOrNull { target in it.pathNode.allStatements }
-            ReachabilityOutcome(
+            val analysis = machine.analyzeWithOutcome(listOf(method), listOf(initialTarget))
+            val witnessState = analysis.states.firstOrNull { target in it.pathNode.allStatements }
+            val reachability = ReachabilityOutcome(
                 reached = witnessState != null,
                 witness = witnessState?.let { resolveState(method, it) },
             )
+
+            analysis.withResult(reachability)
         }
     }
 
@@ -78,15 +92,15 @@ class TsAnalysisRunner {
         scene: EtsScene,
         methods: List<EtsMethod>,
         timeout: Duration,
-    ): Map<EtsMethod, List<UncoveredIfSuccessors>> = withMachineLock {
+    ): AnalysisOutcome<Map<EtsMethod, List<UncoveredIfSuccessors>>> = withMachineLock {
         val options = AnalysisOptions.coverage(timeout)
         val detector = UnreachableCodeDetector()
         // The detector observes both the machine and the interpreter, so it is passed twice.
         val tsOptions = TsOptions(interproceduralAnalysis = false)
         TsMachine(scene, options, tsOptions, detector, detector).use { machine ->
-            machine.analyze(methods)
+            val analysis = machine.analyzeWithOutcome(methods)
+            analysis.withResult(detector.result)
         }
-        detector.result
     }
 
     private fun resolveState(method: EtsMethod, state: TsState): ResolvedCase =
@@ -104,3 +118,9 @@ class TsAnalysisRunner {
             }
         }
 }
+
+private fun <T> TsAnalysisResult.withResult(result: T): AnalysisOutcome<T> = AnalysisOutcome(
+    result = result,
+    stopReason = stopReason,
+    unsupportedPaths = unsupportedPaths,
+)

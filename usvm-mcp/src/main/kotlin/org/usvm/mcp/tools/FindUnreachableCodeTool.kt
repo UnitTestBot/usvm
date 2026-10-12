@@ -7,6 +7,7 @@ import org.usvm.mcp.json.McpJson
 import org.usvm.mcp.json.StmtRefDto
 import org.usvm.mcp.json.UnreachableCodeResultDto
 import org.usvm.mcp.json.UnreachableFindingDto
+import org.usvm.mcp.json.toDiagnosticsDto
 import org.usvm.mcp.runTool
 import org.usvm.mcp.scene.MethodLookup
 import org.usvm.mcp.scene.MethodLookup.isAnalyzable
@@ -45,8 +46,8 @@ fun Server.registerFindUnreachableCodeTool(ctx: UsvmToolContext) {
                 throw McpToolException("No analyzable methods found. Use list_methods to inspect the file.")
             }
 
-            val result = ctx.runner.runUnreachableDetection(scene, methods, args.timeoutArg())
-            val findings = result.flatMap { (method, uncovered) ->
+            val outcome = ctx.runner.runUnreachableDetection(scene, methods, args.timeoutArg())
+            val findings = outcome.result.flatMap { (method, uncovered) ->
                 val stmts = method.cfg.stmts
                 uncovered.map { finding ->
                     UnreachableFindingDto(
@@ -64,6 +65,7 @@ fun Server.registerFindUnreachableCodeTool(ctx: UsvmToolContext) {
                     UnreachableCodeResultDto(
                         findings = findings,
                         analyzedMethods = methods.map { it.qualifiedName() },
+                        analysis = outcome.toDiagnosticsDto(),
                         note = "Findings are branches uncovered within the budget, not proofs of unreachability. " +
                             "Confirm each one with check_reachability on the successor statement index.",
                     )

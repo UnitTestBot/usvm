@@ -65,7 +65,7 @@ Analysis tools also accept `timeoutMs` (default 30000, max 300000).
 | `get_method_ir` | Dumps the CFG of a method: IR statements with indices and successor indices. **Statement indices are the only way to address a statement** (source line numbers are not preserved in the IR); pass them as `stmtIndex` to `check_reachability`. |
 | `generate_tests` | Symbolically executes a method and returns one test case per explored path: concrete `parameters`/`thisInstance` plus the expected return value or exception. |
 | `check_exceptions` | Same exploration, but reports only the paths that throw, together with the inputs that trigger them. |
-| `check_reachability` | Directed (targeted) search towards a given statement. Returns `REACHABLE` with a witness (concrete inputs) or `NOT_REACHED_WITHIN_BUDGET`. |
+| `check_reachability` | Directed search towards an IR statement. Returns `REACHABLE`, `NOT_REACHED_WITHIN_BUDGET`, or `INCOMPLETE_ANALYSIS`, with witness diagnostics. |
 | `find_unreachable_code` | Reports `if` branches never taken during exploration — dead-code candidates (statement indices match `get_method_ir`). |
 | `find_counterexample` | Tries to **falsify a boolean property function** written by the LLM: searches for inputs where it returns `false` (counterexamples) or throws (crashes). |
 
@@ -73,6 +73,10 @@ Analysis tools also accept `timeoutMs` (default 30000, max 300000).
 
 Analysis results are JSON. Concrete values map to JSON naturally; JS-specific values are
 tagged objects so nothing is ambiguous:
+
+Every analysis response includes `analysis.stopReason` (`EXHAUSTED` or `STOPPED`),
+`analysis.unsupportedPaths`, and `analysis.resolutionErrors`. Model exclusions and
+failed witness reconstruction are preserved even when no concrete test can be returned.
 
 ```json
 {
@@ -120,7 +124,13 @@ changed behavior.
 
 - Exploration is **bounded by a time budget**. `NOT_REACHED_WITHIN_BUDGET`,
   an empty `check_exceptions` result, or `NO_COUNTEREXAMPLE_WITHIN_BUDGET` are
-  *evidence*, not proofs. Retry with a larger `timeoutMs` when it matters.
+  *evidence*, not proofs. Check analysis diagnostics before retrying: a larger
+  timeout cannot repair an unsupported model or unresolved witness.
+- `find_counterexample` reports `INCOMPLETE_ANALYSIS` when no concrete failure is
+  found and search was stopped, a path was unsupported, or a witness failed to
+  resolve. A concrete false result still yields `COUNTEREXAMPLE_FOUND` when other
+  paths are incomplete; a concrete exception without a false result yields
+  `PROPERTY_CRASHED`.
 - The symbolic model **over-approximates JavaScript semantics** in places
   (e.g., number comparisons involving `NaN` and untyped values), so a `REACHABLE`
   witness may occasionally be spurious. The recommended hybrid loop is to

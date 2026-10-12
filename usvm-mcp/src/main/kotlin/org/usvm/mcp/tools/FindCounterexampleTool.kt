@@ -2,9 +2,15 @@ package org.usvm.mcp.tools
 
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.encodeToString
+import org.jacodb.ets.model.EtsMethod
 import org.usvm.api.TsTestValue
+import org.usvm.mcp.exec.AnalysisOutcome
+import org.usvm.mcp.exec.ResolvedCase
 import org.usvm.mcp.json.CounterexampleResultDto
 import org.usvm.mcp.json.McpJson
+import org.usvm.mcp.json.incomplete
+import org.usvm.mcp.json.resolutionErrorOrNull
+import org.usvm.mcp.json.toDiagnosticsDto
 import org.usvm.mcp.json.toTestCaseDto
 import org.usvm.mcp.runTool
 import org.usvm.mcp.scene.MethodLookup
@@ -26,8 +32,9 @@ fun Server.registerFindCounterexampleTool(ctx: UsvmToolContext) {
             - Equivalence of two implementations (e.g. original vs your refactoring): write
               `function equiv(x: number): boolean { return f(x) === g(x); }` and analyze 'equiv'.
 
-            The property and everything it calls must live in one .ts file. Verdict
-            NO_COUNTEREXAMPLE_WITHIN_BUDGET is NOT a proof: exploration may have missed paths.
+            The property and everything it calls must live in one .ts file. Stopped search,
+            unsupported paths or unresolved witnesses produce INCOMPLETE_ANALYSIS when no
+            concrete failure was found. NO_COUNTEREXAMPLE_WITHIN_BUDGET is NOT a proof.
         """.trimIndent(),
         inputSchema = toolSchema(required = listOf("file", "method")) {
             fileProp()
@@ -40,34 +47,45 @@ fun Server.registerFindCounterexampleTool(ctx: UsvmToolContext) {
             val args = request.arguments
             val scene = ctx.scenes.getScene(args.requireStringArg("file"))
             val method = MethodLookup.findMethod(scene, args.stringArg("class"), args.requireStringArg("method"))
-            val cases = ctx.runner.runTests(scene, method, args.timeoutArg())
-
-            val tests = cases.mapNotNull { it.test }
-            val counterexamples = tests
-                .filter { (it.returnValue as? TsTestValue.TsBoolean)?.value == false }
-                .map { it.toTestCaseDto() }
-            val crashes = tests
-                .filter { it.returnValue is TsTestValue.TsException }
-                .map { it.toTestCaseDto() }
+            val outcome = ctx.runner.runTests(scene, method, args.timeoutArg())
 
             textResult(
-                McpJson.encodeToString(
-                    CounterexampleResultDto(
-                        method = method.qualifiedName(),
-                        verdict = if (counterexamples.isNotEmpty()) {
-                            "COUNTEREXAMPLE_FOUND"
-                        } else {
-                            "NO_COUNTEREXAMPLE_WITHIN_BUDGET"
-                        },
-                        counterexamples = counterexamples,
-                        crashes = crashes,
-                        totalPathsExplored = cases.size,
-                        note = "A counterexample gives concrete inputs falsifying the property. " +
-                            "'crashes' are inputs on which the property itself threw. " +
-                            "No counterexample within budget is evidence, not a proof.",
-                    )
-                )
+                McpJson.encodeToString(outcome.toCounterexampleResult(method))
             )
         }
     }
+}
+
+internal fun AnalysisOutcome<List<ResolvedCase>>.toCounterexampleResult(method: EtsMethod): CounterexampleResultDto {
+    val tests = result.mapNotNull { it.test }
+    val counterexamples = tests
+        .filter { (it.returnValue as? TsTestValue.TsBoolean)?.value == false }
+        .map { it.toTestCaseDto() }
+    val crashes = tests
+        .filter { it.returnValue is TsTestValue.TsException }
+        .map { it.toTestCaseDto() }
+    val resolutionErrors = result.mapNotNull { it.resolutionErrorOrNull() }
+    val diagnostics = toDiagnosticsDto(resolutionErrors)
+    val hasCounterexamples = counterexamples.isNotEmpty()
+    val hasCrashes = crashes.isNotEmpty()
+    val incompleteAnalysis = diagnostics.incomplete
+    val verdict = when {
+        hasCounterexamples -> "COUNTEREXAMPLE_FOUND"
+        hasCrashes -> "PROPERTY_CRASHED"
+        incompleteAnalysis -> "INCOMPLETE_ANALYSIS"
+        else -> "NO_COUNTEREXAMPLE_WITHIN_BUDGET"
+    }
+
+    return CounterexampleResultDto(
+        method = method.qualifiedName(),
+        verdict = verdict,
+        counterexamples = counterexamples,
+        crashes = crashes,
+        totalPathsExplored = result.size,
+        analysis = diagnostics,
+        note = "A counterexample gives concrete inputs falsifying the property. " +
+            "'crashes' are inputs on which the property itself threw. " +
+            "Inspect analysis diagnostics for stopped search, unsupported paths or witness errors. " +
+            "No counterexample within budget is evidence, not a proof.",
+    )
 }

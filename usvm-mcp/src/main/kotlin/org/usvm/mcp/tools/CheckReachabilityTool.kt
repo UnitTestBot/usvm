@@ -5,6 +5,9 @@ import kotlinx.serialization.encodeToString
 import org.usvm.mcp.McpToolException
 import org.usvm.mcp.json.McpJson
 import org.usvm.mcp.json.ReachabilityResultDto
+import org.usvm.mcp.json.incomplete
+import org.usvm.mcp.json.resolutionErrorOrNull
+import org.usvm.mcp.json.toDiagnosticsDto
 import org.usvm.mcp.json.toTestCaseDto
 import org.usvm.mcp.json.unresolvedTestCase
 import org.usvm.mcp.runTool
@@ -46,25 +49,41 @@ fun Server.registerCheckReachabilityTool(ctx: UsvmToolContext) {
             }
             val target = stmts[stmtIndex]
             val outcome = ctx.runner.runReachability(scene, method, target, args.timeoutArg())
-            val witness = outcome.witness?.let { case ->
+            val reachability = outcome.result
+            val witness = reachability.witness?.let { case ->
                 case.test?.toTestCaseDto() ?: unresolvedTestCase(case.error ?: "unknown resolution error")
             }
+            val resolutionErrors = listOfNotNull(reachability.witness?.resolutionErrorOrNull())
+            val diagnostics = outcome.toDiagnosticsDto(resolutionErrors)
+            val incompleteAnalysis = diagnostics.incomplete
+            val status = when {
+                reachability.reached -> "REACHABLE"
+                incompleteAnalysis -> "INCOMPLETE_ANALYSIS"
+                else -> "NOT_REACHED_WITHIN_BUDGET"
+            }
+
             textResult(
                 McpJson.encodeToString(
                     ReachabilityResultDto(
                         method = method.qualifiedName(),
                         stmtIndex = stmtIndex,
                         statement = target.toString(),
-                        status = if (outcome.reached) "REACHABLE" else "NOT_REACHED_WITHIN_BUDGET",
+                        status = status,
                         witness = witness,
-                        note = if (outcome.reached) {
-                            "The witness inputs drive execution to the target statement " +
-                                "according to the symbolic model. The model over-approximates " +
-                                "JavaScript semantics in places; validate the witness by actually " +
-                                "running the method with these inputs (e.g. via node/ts-node)."
-                        } else {
-                            "The target was not reached within the budget. This suggests, " +
-                                "but does not prove, that it is unreachable. Try a larger timeoutMs."
+                        analysis = diagnostics,
+                        note = when {
+                            reachability.reached ->
+                                "The target was reached according to the symbolic model. " +
+                                    "Validate any resolved witness by running the method with its inputs. " +
+                                    "Inspect resolutionErrors when no concrete witness is available."
+
+                            incompleteAnalysis ->
+                                "The target was not reached in an incomplete analysis. " +
+                                    "Inspect stopped search, unsupported paths and witness errors."
+
+                            else ->
+                                "The target was not reached within the budget. " +
+                                    "This is evidence, not a proof of unreachability."
                         },
                     )
                 )

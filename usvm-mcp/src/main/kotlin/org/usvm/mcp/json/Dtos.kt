@@ -33,9 +33,17 @@ data class TestCaseDto(
 )
 
 @Serializable
+data class AnalysisDiagnosticsDto(
+    val stopReason: String,
+    val unsupportedPaths: List<String>,
+    val resolutionErrors: List<String>,
+)
+
+@Serializable
 data class GenerateTestsResultDto(
     val method: String,
     val testCases: List<TestCaseDto>,
+    val analysis: AnalysisDiagnosticsDto,
     val note: String,
 )
 
@@ -44,6 +52,7 @@ data class CheckExceptionsResultDto(
     val method: String,
     val exceptionalCases: List<TestCaseDto>,
     val totalPathsExplored: Int,
+    val analysis: AnalysisDiagnosticsDto,
     val note: String,
 )
 
@@ -52,8 +61,9 @@ data class ReachabilityResultDto(
     val method: String,
     val stmtIndex: Int,
     val statement: String,
-    val status: String, // REACHABLE | NOT_REACHED_WITHIN_BUDGET
+    val status: String, // REACHABLE | NOT_REACHED_WITHIN_BUDGET | INCOMPLETE_ANALYSIS
     val witness: TestCaseDto? = null,
+    val analysis: AnalysisDiagnosticsDto,
     val note: String,
 )
 
@@ -75,6 +85,7 @@ data class UnreachableFindingDto(
 data class UnreachableCodeResultDto(
     val findings: List<UnreachableFindingDto>,
     val analyzedMethods: List<String>,
+    val analysis: AnalysisDiagnosticsDto,
     val note: String,
 )
 
@@ -121,9 +132,10 @@ data class MethodIrResultDto(
 @Serializable
 data class CounterexampleResultDto(
     val method: String,
-    val verdict: String, // COUNTEREXAMPLE_FOUND | NO_COUNTEREXAMPLE_WITHIN_BUDGET
+    val verdict: String,
     val counterexamples: List<TestCaseDto>,
     val crashes: List<TestCaseDto>,
     val totalPathsExplored: Int,
+    val analysis: AnalysisDiagnosticsDto,
     val note: String,
 )
