@@ -4,10 +4,8 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.encodeToString
 import org.usvm.mcp.json.GenerateTestsResultDto
 import org.usvm.mcp.json.McpJson
-import org.usvm.mcp.json.resolutionErrorOrNull
 import org.usvm.mcp.json.toDiagnosticsDto
 import org.usvm.mcp.json.toTestCaseDto
-import org.usvm.mcp.json.unresolvedTestCase
 import org.usvm.mcp.runTool
 import org.usvm.mcp.scene.MethodLookup
 import org.usvm.mcp.scene.MethodLookup.qualifiedName
@@ -35,15 +33,13 @@ fun Server.registerGenerateTestsTool(ctx: UsvmToolContext) {
             val method = MethodLookup.findMethod(scene, args.stringArg("class"), args.requireStringArg("method"))
             val outcome = ctx.runner.runTests(scene, method, args.timeoutArg())
             val cases = outcome.result
-            val dtos = cases.map { case ->
-                case.test?.toTestCaseDto() ?: unresolvedTestCase(case.error ?: "unknown resolution error")
-            }
+            val dtos = cases.map { it.toTestCaseDto() }
             textResult(
                 McpJson.encodeToString(
                     GenerateTestsResultDto(
                         method = method.qualifiedName(),
                         testCases = dtos,
-                        analysis = outcome.toDiagnosticsDto(cases.mapNotNull { it.resolutionErrorOrNull() }),
+                        analysis = outcome.toDiagnosticsDto(dtos.mapNotNull { it.resolutionError }),
                         note = "Each test case corresponds to a distinct symbolic execution path. $BUDGET_NOTE",
                     )
                 )

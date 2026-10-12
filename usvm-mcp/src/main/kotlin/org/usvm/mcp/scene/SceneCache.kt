@@ -1,5 +1,6 @@
 package org.usvm.mcp.scene
 
+import kotlinx.coroutines.CancellationException
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
@@ -50,6 +51,10 @@ class SceneCache {
             // Type inference gives the machine precise `number`/`boolean` types,
             // significantly reducing spurious paths caused by untyped values.
             loadEtsFileAutoConvert(path, useArkAnalyzerTypeInference = 1, provider = provider)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: InterruptedException) {
+            throw e
         } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
             throw McpToolException(
                 "Failed to convert '$path' to ETS IR with $provider: ${e.message}. " +

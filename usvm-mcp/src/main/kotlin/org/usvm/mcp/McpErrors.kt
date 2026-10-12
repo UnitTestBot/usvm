@@ -2,6 +2,7 @@ package org.usvm.mcp
 
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import kotlinx.coroutines.CancellationException
 
 /**
  * An expected, user-facing tool failure. Its message is written as an
@@ -24,6 +25,11 @@ fun errorResult(text: String): CallToolResult =
 suspend fun runTool(block: suspend () -> CallToolResult): CallToolResult =
     try {
         block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: InterruptedException) {
+        Thread.currentThread().interrupt()
+        throw CancellationException("Tool execution interrupted").apply { initCause(e) }
     } catch (e: McpToolException) {
         errorResult(e.message ?: "Tool failed")
     } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {

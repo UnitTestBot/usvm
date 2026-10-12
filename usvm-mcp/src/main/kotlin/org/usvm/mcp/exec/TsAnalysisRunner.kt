@@ -1,5 +1,6 @@
 package org.usvm.mcp.exec
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.sync.Mutex
@@ -8,6 +9,7 @@ import mu.KotlinLogging
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
+import org.usvm.api.TsParametersState
 import org.usvm.api.TsTest
 import org.usvm.api.checkers.UncoveredIfSuccessors
 import org.usvm.api.checkers.UnreachableCodeDetector
@@ -15,26 +17,35 @@ import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
 import org.usvm.machine.TsAnalysisResult
 import org.usvm.machine.TsAnalysisStopReason
+import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.call.TsUnknownCallDecision
+import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.state.TsState
+import org.usvm.statistics.CompositeUMachineObserver
+import org.usvm.statistics.UMachineObserver
 import org.usvm.util.TsTestResolver
 import kotlin.time.Duration
 
 private val logger = KotlinLogging.logger {}
 
-/** A symbolic state either resolved to a concrete test or failed to resolve. */
+/** A collected state resolved to a complete test, entry inputs, or a witness error. */
 data class ResolvedCase(
     val test: TsTest?,
     val error: String?,
+    val inputs: TsParametersState? = null,
 )
 
+/** Results and diagnostics from one bounded symbolic analysis. */
 data class AnalysisOutcome<T>(
     val result: T,
     val stopReason: TsAnalysisStopReason,
     val unsupportedPaths: List<String>,
+    val executionErrors: List<String>,
 )
 
+/** Reaching the target does not require reaching a method return. */
 data class ReachabilityOutcome(
     val reached: Boolean,
     val witness: ResolvedCase?,
@@ -58,9 +69,10 @@ class TsAnalysisRunner {
     ): AnalysisOutcome<List<ResolvedCase>> =
         withMachineLock {
             val options = AnalysisOptions.coverage(timeout)
-            TsMachine(scene, options, TsOptions()).use { machine ->
+            val diagnostics = AnalysisObserver()
+            TsMachine(scene, options, TsOptions(), diagnostics, diagnostics).use { machine ->
                 val analysis = machine.analyzeWithOutcome(listOf(method))
-                analysis.withResult(analysis.states.map { resolveState(method, it) })
+                analysis.withResult(analysis.states.map { resolveState(method, it) }, diagnostics)
             }
         }
 
@@ -75,15 +87,26 @@ class TsAnalysisRunner {
         val initialTarget = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
         initialTarget.addChild(TsReachabilityTarget.FinalPoint(target))
 
-        TsMachine(scene, options, TsOptions(), machineObserver = ReachabilityObserver()).use { machine ->
+        val diagnostics = AnalysisObserver()
+        var reachedWitness: ResolvedCase? = null
+        val witnessObserver = object : UMachineObserver<TsState> {
+            override fun onStatePeeked(state: TsState) {
+                if (reachedWitness == null && state.currentStatement == target) {
+                    reachedWitness = resolveInputs(method, state)
+                }
+            }
+        }
+        val machineObserver = CompositeUMachineObserver(ReachabilityObserver(), witnessObserver, diagnostics)
+
+        TsMachine(scene, options, TsOptions(), machineObserver, diagnostics).use { machine ->
             val analysis = machine.analyzeWithOutcome(listOf(method), listOf(initialTarget))
             val witnessState = analysis.states.firstOrNull { target in it.pathNode.allStatements }
             val reachability = ReachabilityOutcome(
-                reached = witnessState != null,
-                witness = witnessState?.let { resolveState(method, it) },
+                reached = reachedWitness != null || witnessState != null,
+                witness = witnessState?.let { resolveState(method, it) } ?: reachedWitness,
             )
 
-            analysis.withResult(reachability)
+            analysis.withResult(reachability, diagnostics)
         }
     }
 
@@ -95,19 +118,40 @@ class TsAnalysisRunner {
     ): AnalysisOutcome<Map<EtsMethod, List<UncoveredIfSuccessors>>> = withMachineLock {
         val options = AnalysisOptions.coverage(timeout)
         val detector = UnreachableCodeDetector()
-        // The detector observes both the machine and the interpreter, so it is passed twice.
+        val diagnostics = AnalysisObserver()
+        val interpreterObserver = object : TsInterpreterObserver by detector {
+            override fun onUnknownCall(event: TsUnknownCallEvent) = diagnostics.onUnknownCall(event)
+            override fun onStepFailure(state: TsState, error: Throwable) = diagnostics.onStepFailure(state, error)
+        }
+        val machineObserver = CompositeUMachineObserver(detector, diagnostics)
         val tsOptions = TsOptions(interproceduralAnalysis = false)
-        TsMachine(scene, options, tsOptions, detector, detector).use { machine ->
+        TsMachine(scene, options, tsOptions, machineObserver, interpreterObserver).use { machine ->
             val analysis = machine.analyzeWithOutcome(methods)
-            analysis.withResult(detector.result)
+            analysis.withResult(detector.result, diagnostics)
         }
     }
 
     private fun resolveState(method: EtsMethod, state: TsState): ResolvedCase =
         try {
             ResolvedCase(test = TsTestResolver().resolve(method, state), error = null)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: InterruptedException) {
+            throw e
         } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
             logger.warn(e) { "Failed to resolve a symbolic state of ${method.name}" }
+            ResolvedCase(test = null, error = "${e::class.simpleName}: ${e.message}")
+        }
+
+    private fun resolveInputs(method: EtsMethod, state: TsState): ResolvedCase =
+        try {
+            ResolvedCase(test = null, error = null, inputs = TsTestResolver().resolveInputs(method, state))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: InterruptedException) {
+            throw e
+        } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
+            logger.warn(e) { "Failed to resolve entry inputs of ${method.name}" }
             ResolvedCase(test = null, error = "${e::class.simpleName}: ${e.message}")
         }
 
@@ -119,8 +163,25 @@ class TsAnalysisRunner {
         }
 }
 
-private fun <T> TsAnalysisResult.withResult(result: T): AnalysisOutcome<T> = AnalysisOutcome(
-    result = result,
-    stopReason = stopReason,
-    unsupportedPaths = unsupportedPaths,
-)
+private class AnalysisObserver : TsInterpreterObserver, UMachineObserver<TsState> {
+    val residualPaths = linkedSetOf<String>()
+    val executionErrors = linkedSetOf<String>()
+
+    override fun onUnknownCall(event: TsUnknownCallEvent) {
+        if (event.decision is TsUnknownCallDecision.ResidualFallback) {
+            residualPaths += "${event.callee}: ${event.failureReason} (${event.outcome}) at ${event.callSite}"
+        }
+    }
+
+    override fun onStepFailure(state: TsState, error: Throwable) {
+        executionErrors += "${error::class.simpleName}: ${error.message} at ${state.currentStatement}"
+    }
+}
+
+private fun <T> TsAnalysisResult.withResult(result: T, diagnostics: AnalysisObserver): AnalysisOutcome<T> =
+    AnalysisOutcome(
+        result = result,
+        stopReason = stopReason,
+        unsupportedPaths = (unsupportedPaths + diagnostics.residualPaths).distinct(),
+        executionErrors = diagnostics.executionErrors.toList(),
+    )

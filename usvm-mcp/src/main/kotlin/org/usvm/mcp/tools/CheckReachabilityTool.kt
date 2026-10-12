@@ -6,10 +6,8 @@ import org.usvm.mcp.McpToolException
 import org.usvm.mcp.json.McpJson
 import org.usvm.mcp.json.ReachabilityResultDto
 import org.usvm.mcp.json.incomplete
-import org.usvm.mcp.json.resolutionErrorOrNull
 import org.usvm.mcp.json.toDiagnosticsDto
 import org.usvm.mcp.json.toTestCaseDto
-import org.usvm.mcp.json.unresolvedTestCase
 import org.usvm.mcp.runTool
 import org.usvm.mcp.scene.MethodLookup
 import org.usvm.mcp.scene.MethodLookup.qualifiedName
@@ -50,10 +48,8 @@ fun Server.registerCheckReachabilityTool(ctx: UsvmToolContext) {
             val target = stmts[stmtIndex]
             val outcome = ctx.runner.runReachability(scene, method, target, args.timeoutArg())
             val reachability = outcome.result
-            val witness = reachability.witness?.let { case ->
-                case.test?.toTestCaseDto() ?: unresolvedTestCase(case.error ?: "unknown resolution error")
-            }
-            val resolutionErrors = listOfNotNull(reachability.witness?.resolutionErrorOrNull())
+            val witness = reachability.witness?.toTestCaseDto()
+            val resolutionErrors = listOfNotNull(witness?.resolutionError)
             val diagnostics = outcome.toDiagnosticsDto(resolutionErrors)
             val incompleteAnalysis = diagnostics.incomplete
             val status = when {
@@ -79,7 +75,7 @@ fun Server.registerCheckReachabilityTool(ctx: UsvmToolContext) {
 
                             incompleteAnalysis ->
                                 "The target was not reached in an incomplete analysis. " +
-                                    "Inspect stopped search, unsupported paths and witness errors."
+                                    "Inspect stopped search, unsupported paths, engine errors and witness errors."
 
                             else ->
                                 "The target was not reached within the budget. " +

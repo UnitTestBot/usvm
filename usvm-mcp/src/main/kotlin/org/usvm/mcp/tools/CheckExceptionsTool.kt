@@ -3,12 +3,10 @@ package org.usvm.mcp.tools
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.encodeToString
 import org.jacodb.ets.model.EtsMethod
-import org.usvm.api.TsTestValue
 import org.usvm.mcp.exec.AnalysisOutcome
 import org.usvm.mcp.exec.ResolvedCase
 import org.usvm.mcp.json.CheckExceptionsResultDto
 import org.usvm.mcp.json.McpJson
-import org.usvm.mcp.json.resolutionErrorOrNull
 import org.usvm.mcp.json.toDiagnosticsDto
 import org.usvm.mcp.json.toTestCaseDto
 import org.usvm.mcp.runTool
@@ -23,7 +21,7 @@ fun Server.registerCheckExceptionsTool(ctx: UsvmToolContext) {
             Searches for concrete inputs that make a TypeScript method throw an exception
             (crash). Runs the same path exploration as generate_tests but reports only the
             failing paths, together with the input values that trigger them. An empty result
-            must be read with analysis diagnostics: unsupported paths and unresolved
+            must be read with analysis diagnostics: unsupported paths, engine errors and unresolved
             witnesses can prevent a concrete crashing input from being reported. $BUDGET_NOTE
         """.trimIndent(),
         inputSchema = toolSchema(required = listOf("file", "method")) {
@@ -47,11 +45,9 @@ fun Server.registerCheckExceptionsTool(ctx: UsvmToolContext) {
 }
 
 internal fun AnalysisOutcome<List<ResolvedCase>>.toExceptionsResult(method: EtsMethod): CheckExceptionsResultDto {
-    val exceptional = result
-        .mapNotNull { it.test }
-        .filter { it.returnValue is TsTestValue.TsException }
-        .map { it.toTestCaseDto() }
-    val resolutionErrors = result.mapNotNull { it.resolutionErrorOrNull() }
+    val cases = result.map { it.toTestCaseDto() }
+    val exceptional = cases.filter { it.kind == "EXCEPTION" }
+    val resolutionErrors = cases.mapNotNull { it.resolutionError }
 
     return CheckExceptionsResultDto(
         method = method.qualifiedName(),

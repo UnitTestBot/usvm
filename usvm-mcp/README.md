@@ -75,8 +75,11 @@ Analysis results are JSON. Concrete values map to JSON naturally; JS-specific va
 tagged objects so nothing is ambiguous:
 
 Every analysis response includes `analysis.stopReason` (`EXHAUSTED` or `STOPPED`),
-`analysis.unsupportedPaths`, and `analysis.resolutionErrors`. Model exclusions and
-failed witness reconstruction are preserved even when no concrete test can be returned.
+`analysis.unsupportedPaths`, `analysis.executionErrors`, and `analysis.resolutionErrors`.
+Unknown-call residuals include the callee, fallback outcome, and failure reason.
+Unexpected engine failures are recorded separately from unsupported semantics. Both
+make an analysis incomplete, while concrete failures from supported sibling paths remain available.
+Failed witness reconstruction or JSON encoding is preserved even when no concrete test can be returned.
 
 ```json
 {
@@ -88,6 +91,19 @@ failed witness reconstruction are preserved even when no concrete test can be re
 ```
 
 Exceptional paths use `"kind": "EXCEPTION"` with an `exception` object instead of `returnValue`.
+A reached statement that has not returned uses `"kind": "INPUTS"`, with no return value or exception.
+Cyclic objects and shared references are encoded using `"$id"` and `{"$ref": id}`. Objects
+needing identity retain their ordinary object shape with an added `$id`; arrays needing identity
+use `{"$kind": "array", "$id": id, "values": [...]}`. Other arrays remain ordinary JSON arrays.
+IDs are scoped to one case and snapshot: the receiver and entry parameters share a context, while
+the return value has a separate context. Equal IDs across these contexts do not imply aliasing.
+The encoder preserves identities present in the resolved graph; it does not infer identities
+lost during reconstruction or connect objects across entry and return snapshots.
+Reconstruction/encoding failures produce `"kind": "UNRESOLVED"` and a resolution diagnostic
+for that case; other cases remain available.
+
+Request cancellation propagates through the tool boundary, including while waiting for the
+serialized runner. This does not guarantee immediate interruption of a native solver operation.
 
 ## Hybrid workflows
 

@@ -1,4 +1,44 @@
 class AnalysisFixture {
+    unknownProperty(): boolean {
+        return External.flag();
+    }
+
+    counterexampleBeforeUnknown(input: boolean): boolean {
+        if (input) return false;
+
+        return External.flag();
+    }
+
+    assignmentBeforeReturn(input: number): number {
+        const marker = input + 1;
+        return marker + 2;
+    }
+
+    assignmentBeforeLoop(input: number): number {
+        const marker = input + 1;
+        while (true) {}
+    }
+
+    engineFailure(): boolean {
+        const values = new Array<number[]>(1);
+        return values.length === 1;
+    }
+
+    counterexampleBeforeEngineFailure(input: boolean): boolean {
+        if (input) return false;
+
+        const values = new Array<number[]>(1);
+        return values.length === 1;
+    }
+
+    counterexampleBeforeCyclicObject(input: boolean): any {
+        if (input) return false;
+
+        const value = new LinkedNode();
+        value.next = value;
+        return value;
+    }
+
     unsupportedAccessor(): boolean {
         const object = { get value(): boolean { return true; } };
         return object.value;
@@ -38,4 +78,12 @@ class CyclicWitnessFixture {
 
         return false;
     }
+}
+
+declare class External {
+    static flag(): boolean;
+}
+
+class LinkedNode {
+    next: LinkedNode;
 }

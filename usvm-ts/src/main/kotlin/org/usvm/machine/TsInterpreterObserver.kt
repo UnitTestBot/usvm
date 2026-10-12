@@ -9,10 +9,16 @@ import org.usvm.UBoolExpr
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.expr.TsSimpleValueResolver
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.state.TsState
 import org.usvm.statistics.UInterpreterObserver
 
 @Suppress("unused")
 interface TsInterpreterObserver : UInterpreterObserver {
+    /** Called when an unexpected interpreter failure discards a state. */
+    fun onStepFailure(state: TsState, error: Throwable) {
+        // default empty implementation
+    }
+
     /**
      * Called after the dispatcher completes a model or fallback decision for an unknown call.
      * A model decision is reported once after all its satisfiable successor callbacks complete.

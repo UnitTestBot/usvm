@@ -1,10 +1,15 @@
 package org.usvm.mcp
 
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
@@ -18,6 +23,7 @@ import org.usvm.mcp.exec.TsAnalysisRunner
 import org.usvm.mcp.json.McpJson
 import org.usvm.mcp.json.incomplete
 import org.usvm.mcp.json.toDiagnosticsDto
+import org.usvm.mcp.json.toTestCaseDto
 import org.usvm.mcp.scene.MethodLookup
 import org.usvm.mcp.scene.SceneCache
 import org.usvm.mcp.tools.toCounterexampleResult
@@ -26,6 +32,8 @@ import java.nio.file.Path
 import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -161,6 +169,145 @@ class AnalysisOutcomeTest {
         assertEquals(expected = "PROPERTY_CRASHED", actual = result.verdict)
         assertEquals(expected = 1, actual = result.crashes.size)
         assertEquals(expected = result.crashes, actual = exceptionsResult.exceptionalCases)
+    }
+
+    @Test
+    fun `unknown calls remain incomplete in every analysis mode`() = runBlocking {
+        val (scene, method) = loadMethod(methodName = "unknownProperty")
+        val target = method.cfg.stmts.single { it is EtsReturnStmt }
+
+        val tests = runner.runTests(scene = scene, method = method, timeout = 5.seconds)
+        val reachability = runner.runReachability(scene, method, target, timeout = 5.seconds)
+        val unreachable = runner.runUnreachableDetection(scene, listOf(method), timeout = 5.seconds)
+
+        assertEquals(expected = "INCOMPLETE_ANALYSIS", actual = tests.toCounterexampleResult(method).verdict)
+        assertFalse(reachability.result.reached)
+        for (outcome in listOf(tests, reachability, unreachable)) {
+            val reason = outcome.unsupportedPaths.single()
+            assertTrue(reason.contains("flag"))
+            assertTrue(reason.contains("METHOD_BODY_UNAVAILABLE"))
+            assertTrue(reason.contains("PATH_STOPPED"))
+            assertTrue(outcome.toDiagnosticsDto().incomplete)
+        }
+    }
+
+    @Test
+    fun `supported counterexample survives an unknown call sibling`() = runBlocking {
+        val (scene, method) = loadMethod(methodName = "counterexampleBeforeUnknown")
+
+        val outcome = runner.runTests(scene, method, timeout = 5.seconds)
+        val result = outcome.toCounterexampleResult(method)
+
+        assertEquals(expected = "COUNTEREXAMPLE_FOUND", actual = result.verdict)
+        assertTrue(result.counterexamples.isNotEmpty())
+        assertTrue(result.analysis.unsupportedPaths.any { it.contains("flag") })
+    }
+
+    @Test
+    fun `nonterminal assignment produces entry inputs without a fabricated return`() = runBlocking {
+        assertAssignmentWitness(methodName = "assignmentBeforeReturn")
+    }
+
+    @Test
+    fun `assignment before a nonterminating loop remains reachable`() = runBlocking {
+        assertAssignmentWitness(methodName = "assignmentBeforeLoop")
+    }
+
+    @Test
+    fun `unexpected engine failure is diagnosed in every analysis mode`() = runBlocking {
+        val (scene, method) = loadMethod(methodName = "engineFailure")
+        val target = method.cfg.stmts.single { it is EtsReturnStmt }
+
+        val tests = runner.runTests(scene, method, timeout = 5.seconds)
+        val reachability = runner.runReachability(scene, method, target, timeout = 5.seconds)
+        val unreachable = runner.runUnreachableDetection(scene, listOf(method), timeout = 5.seconds)
+
+        assertEquals(expected = "INCOMPLETE_ANALYSIS", actual = tests.toCounterexampleResult(method).verdict)
+        assertFalse(reachability.result.reached)
+        for (outcome in listOf(tests, reachability, unreachable)) {
+            val diagnostics = outcome.toDiagnosticsDto()
+            assertTrue(diagnostics.executionErrors.any { it.contains("NotImplementedError") })
+            assertTrue(diagnostics.executionErrors.any { it.contains("Multidimensional arrays") })
+            assertTrue(diagnostics.incomplete)
+        }
+    }
+
+    @Test
+    fun `supported counterexample survives an engine failure sibling`() = runBlocking {
+        val (scene, method) = loadMethod(methodName = "counterexampleBeforeEngineFailure")
+
+        val outcome = runner.runTests(scene, method, timeout = 5.seconds)
+        val result = outcome.toCounterexampleResult(method)
+
+        assertEquals(expected = "COUNTEREXAMPLE_FOUND", actual = result.verdict)
+        assertTrue(result.counterexamples.isNotEmpty())
+        assertTrue(result.analysis.executionErrors.isNotEmpty())
+    }
+
+    @Test
+    fun `cyclic object encoding preserves good sibling cases and diagnostics`() = runBlocking {
+        val (scene, method) = loadMethod(methodName = "counterexampleBeforeCyclicObject")
+
+        val outcome = runner.runTests(scene, method, timeout = 5.seconds)
+        val cases = outcome.result.map { it.toTestCaseDto() }
+        val result = outcome.toCounterexampleResult(method)
+        val exceptions = outcome.toExceptionsResult(method)
+        val json = McpJson.encodeToString(result)
+
+        assertTrue(outcome.result.all { it.test != null })
+        assertTrue(cases.all { it.kind == "SUCCESS" })
+        val cyclicCase = cases.single { it.returnValue is kotlinx.serialization.json.JsonObject }
+        val cyclicObject = assertNotNull(cyclicCase.returnValue).jsonObject
+        val id = cyclicObject.getValue("\$id")
+        val next = cyclicObject.getValue("properties").jsonObject.getValue("next").jsonObject
+        assertEquals(expected = id, actual = next.getValue("\$ref"))
+        assertEquals(expected = "COUNTEREXAMPLE_FOUND", actual = result.verdict)
+        assertTrue(result.analysis.resolutionErrors.isEmpty())
+        assertEquals(expected = result.analysis.resolutionErrors, actual = exceptions.analysis.resolutionErrors)
+        assertTrue(json.contains("COUNTEREXAMPLE_FOUND"))
+    }
+
+    @Test
+    fun `cancelling a waiting tool propagates and leaves serialized runner usable`() = runBlocking {
+        val (scene, loopingMethod) = loadMethod(methodName = "nonterminatingProperty")
+        val method = MethodLookup.findMethod(scene, className = "AnalysisFixture", methodName = "supportedFalse")
+        val active = async(start = CoroutineStart.UNDISPATCHED) {
+            runner.runTests(scene, loopingMethod, timeout = 250.milliseconds)
+        }
+        var returnedFromCancelledTool = false
+        val waiting = async(start = CoroutineStart.UNDISPATCHED) {
+            runTool {
+                runner.runTests(scene, method, timeout = 5.seconds)
+                textResult("completed")
+            }
+            returnedFromCancelledTool = true
+        }
+
+        waiting.cancelAndJoin()
+        active.await()
+        val subsequent = runner.runTests(scene, method, timeout = 5.seconds)
+
+        assertTrue(waiting.isCancelled)
+        assertFalse(returnedFromCancelledTool)
+        assertEquals(expected = "COUNTEREXAMPLE_FOUND", actual = subsequent.toCounterexampleResult(method).verdict)
+    }
+
+    private suspend fun assertAssignmentWitness(methodName: String) {
+        val (scene, method) = loadMethod(methodName = methodName)
+        val target = method.cfg.stmts.filterIsInstance<EtsAssignStmt>().single {
+            (it.lhv as? EtsLocal)?.name == "marker"
+        }
+
+        val outcome = runner.runReachability(scene, method, target, timeout = 5.seconds)
+        val witness = assertNotNull(outcome.result.witness).toTestCaseDto()
+
+        assertTrue(outcome.result.reached)
+        assertEquals(expected = "INPUTS", actual = witness.kind)
+        assertEquals(expected = 1, actual = witness.parameters.size)
+        assertNull(witness.returnValue)
+        assertNull(witness.exception)
+        assertNull(witness.resolutionError)
+        assertTrue(outcome.executionErrors.isEmpty())
     }
 
     private fun loadMethod(methodName: String, className: String = "AnalysisFixture"): Pair<EtsScene, EtsMethod> {

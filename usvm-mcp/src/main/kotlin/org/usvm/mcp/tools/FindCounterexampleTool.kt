@@ -2,14 +2,13 @@ package org.usvm.mcp.tools
 
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.JsonPrimitive
 import org.jacodb.ets.model.EtsMethod
-import org.usvm.api.TsTestValue
 import org.usvm.mcp.exec.AnalysisOutcome
 import org.usvm.mcp.exec.ResolvedCase
 import org.usvm.mcp.json.CounterexampleResultDto
 import org.usvm.mcp.json.McpJson
 import org.usvm.mcp.json.incomplete
-import org.usvm.mcp.json.resolutionErrorOrNull
 import org.usvm.mcp.json.toDiagnosticsDto
 import org.usvm.mcp.json.toTestCaseDto
 import org.usvm.mcp.runTool
@@ -33,7 +32,7 @@ fun Server.registerFindCounterexampleTool(ctx: UsvmToolContext) {
               `function equiv(x: number): boolean { return f(x) === g(x); }` and analyze 'equiv'.
 
             The property and everything it calls must live in one .ts file. Stopped search,
-            unsupported paths or unresolved witnesses produce INCOMPLETE_ANALYSIS when no
+            unsupported paths, engine errors or unresolved witnesses produce INCOMPLETE_ANALYSIS when no
             concrete failure was found. NO_COUNTEREXAMPLE_WITHIN_BUDGET is NOT a proof.
         """.trimIndent(),
         inputSchema = toolSchema(required = listOf("file", "method")) {
@@ -57,14 +56,10 @@ fun Server.registerFindCounterexampleTool(ctx: UsvmToolContext) {
 }
 
 internal fun AnalysisOutcome<List<ResolvedCase>>.toCounterexampleResult(method: EtsMethod): CounterexampleResultDto {
-    val tests = result.mapNotNull { it.test }
-    val counterexamples = tests
-        .filter { (it.returnValue as? TsTestValue.TsBoolean)?.value == false }
-        .map { it.toTestCaseDto() }
-    val crashes = tests
-        .filter { it.returnValue is TsTestValue.TsException }
-        .map { it.toTestCaseDto() }
-    val resolutionErrors = result.mapNotNull { it.resolutionErrorOrNull() }
+    val cases = result.map { it.toTestCaseDto() }
+    val counterexamples = cases.filter { it.kind == "SUCCESS" && it.returnValue == JsonPrimitive(false) }
+    val crashes = cases.filter { it.kind == "EXCEPTION" }
+    val resolutionErrors = cases.mapNotNull { it.resolutionError }
     val diagnostics = toDiagnosticsDto(resolutionErrors)
     val hasCounterexamples = counterexamples.isNotEmpty()
     val hasCrashes = crashes.isNotEmpty()
@@ -85,7 +80,7 @@ internal fun AnalysisOutcome<List<ResolvedCase>>.toCounterexampleResult(method: 
         analysis = diagnostics,
         note = "A counterexample gives concrete inputs falsifying the property. " +
             "'crashes' are inputs on which the property itself threw. " +
-            "Inspect analysis diagnostics for stopped search, unsupported paths or witness errors. " +
+            "Inspect analysis diagnostics for stopped search, unsupported paths, engine errors or witness errors. " +
             "No counterexample within budget is evidence, not a proof.",
     )
 }

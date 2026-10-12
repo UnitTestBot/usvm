@@ -59,12 +59,29 @@ import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.types.first
+import java.util.concurrent.CancellationException
 
 /** A satisfying state lacks the modeled data needed to emit a concrete witness. */
 class TsUnsupportedWitnessException(message: String) : IllegalStateException(message)
 
 class TsTestResolver {
     private val resolvedLValuesToFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf()
+
+    /** Resolves entry inputs for a reached state that need not have returned yet. */
+    fun resolveInputs(method: EtsMethod, state: TsState): TsParametersState {
+        prepareForResolve(state)
+
+        val scope = MemoryScope(
+            ctx = state.ctx,
+            model = state.models.first(),
+            finalStateMemory = state.memory,
+            method = method,
+            resolvedLValuesToFakeObjects = resolvedLValuesToFakeObjects,
+            maxStringLength = state.maxStringLength,
+            propertyState = state,
+        )
+        return scope.withMode(ResolveMode.MODEL) { resolveState() }
+    }
 
     fun resolve(method: EtsMethod, state: TsState): TsTest = with(state.ctx) {
         val model = state.models.first()
@@ -179,6 +196,10 @@ class TsTestResolver {
                         TsTestValue.TsException.ObjectException(resolvedValue)
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: InterruptedException) {
+                throw e
             } catch (_: Exception) {
                 // Fallback to unknown exception if resolution fails
                 TsTestValue.TsException.UnknownException

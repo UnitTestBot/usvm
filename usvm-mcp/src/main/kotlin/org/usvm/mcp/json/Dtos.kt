@@ -24,7 +24,7 @@ data class ExceptionDto(
  */
 @Serializable
 data class TestCaseDto(
-    val kind: String, // SUCCESS | EXCEPTION | UNRESOLVED
+    val kind: String, // SUCCESS | EXCEPTION | INPUTS | UNRESOLVED
     val thisInstance: JsonElement? = null,
     val parameters: List<JsonElement> = emptyList(),
     val returnValue: JsonElement? = null,
@@ -36,6 +36,7 @@ data class TestCaseDto(
 data class AnalysisDiagnosticsDto(
     val stopReason: String,
     val unsupportedPaths: List<String>,
+    val executionErrors: List<String>,
     val resolutionErrors: List<String>,
 )
 
