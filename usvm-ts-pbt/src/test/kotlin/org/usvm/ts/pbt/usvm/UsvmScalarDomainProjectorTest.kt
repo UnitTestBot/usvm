@@ -29,8 +29,7 @@ import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.testResourcePath
 import org.usvm.util.mkArrayLengthLValue
-import org.usvm.util.mkStringBackingLValue
-import org.usvm.util.mkStringBackingLengthLValue
+import org.usvm.util.readStringLength
 import org.usvm.util.mkRegisterStackLValue
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -182,8 +181,7 @@ class UsvmScalarDomainProjectorTest {
 
             with(state.ctx) {
                 val value = projection.inputs.single().value.asExpr(addressSort)
-                val characters = state.memory.read(mkStringBackingLValue(value))
-                val projectedLength = state.memory.read(mkStringBackingLengthLValue(characters))
+                val projectedLength = state.readStringLength(value)
 
                 state.pathConstraints += mkEq(projectedLength, mkBv(length))
             }

@@ -1,7 +1,6 @@
 package org.usvm.ts.pbt.usvm
 
 import io.ksmt.utils.asExpr
-import io.ksmt.expr.KBitVec16Value
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsType
@@ -29,9 +28,7 @@ import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
-import org.usvm.util.mkStringBackingLValue
-import org.usvm.util.mkStringBackingLengthLValue
-import org.usvm.util.mkStringBackingElementLValue
+import org.usvm.util.resolveStringValue
 
 internal class UsvmCandidateInputResolver {
     fun resolve(
@@ -59,8 +56,11 @@ internal class UsvmCandidateInputResolver {
         etsType: EtsType,
         value: UExpr<out USort>,
     ): JsConcreteValue = with(state.ctx) {
-        if (value.isFakeObject()) {
-            return@with resolveFakeValue(state, domain, etsType, value)
+        if (value.sort == addressSort) {
+            val selectedReference = state.models.single().eval(value.asExpr(addressSort))
+            if (selectedReference.isFakeObject()) {
+                return@with resolveFakeValue(state, domain, etsType, selectedReference)
+            }
         }
 
         when (domain) {
@@ -127,29 +127,14 @@ internal class UsvmCandidateInputResolver {
         state: TsState,
         value: UExpr<out USort>,
         maxLength: Int,
-    ): JsConcreteValue.String = with(state.ctx) {
-        val model = state.models.single()
-        val string = value.asExpr(addressSort)
-        val concrete = model.eval(string) as? UConcreteHeapRef
-            ?: error("Symbolic string reference did not resolve to a concrete heap reference")
-        val constant = getStringConstantValue(concrete)
-        if (constant != null) {
-            return@with JsConcreteValue.String(constant)
-        }
+    ): JsConcreteValue.String {
+        val contents = state.resolveStringValue(
+            string = value.asExpr(state.ctx.addressSort),
+            model = state.models.single(),
+            maxLength = maxLength,
+        )
 
-        val characters = model.eval(state.memory.read(mkStringBackingLValue(string)))
-        val length = model.eval(state.memory.read(mkStringBackingLengthLValue(characters))).extractInt()
-        require(length in 0..maxLength) { "Resolved string length $length exceeds its declared domain" }
-
-        val contents = buildString(length) {
-            repeat(length) { index ->
-                val lValue = mkStringBackingElementLValue(characters, mkBv(index))
-                val character = model.eval(state.memory.read(lValue)) as KBitVec16Value
-                append(character.shortValue.toInt().toChar())
-            }
-        }
-
-        JsConcreteValue.String(contents)
+        return JsConcreteValue.String(contents)
     }
 
     private fun resolveTuple(

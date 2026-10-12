@@ -237,15 +237,7 @@ class UsvmProjectionCapabilityResolver {
         if (domain.maxLength > options.maxSymbolicCollectionLength) {
             return collectionTooLarge(domain.maxLength, options, path)
         }
-        if ((etsType as EtsArrayType).elementType is EtsArrayType) {
-            return unsupported(
-                code = PbtDiagnosticCode.USVM_DOMAIN_ARRAY_NESTED_UNSUPPORTED,
-                message = "Nested EtsIR arrays are not supported by the current TypeScript heap model",
-                path = path,
-            )
-        }
-
-        val elementType = etsType.elementType
+        val elementType = (etsType as EtsArrayType).elementType
 
         return domainCapabilityForProjector(domain.element, elementType, "$path.element", options)
     }

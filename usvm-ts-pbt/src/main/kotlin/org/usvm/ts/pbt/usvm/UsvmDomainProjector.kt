@@ -6,8 +6,6 @@ import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.ets.model.EtsArrayType
-import org.jacodb.ets.model.EtsStringType
-import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnionType
@@ -18,7 +16,6 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.initializeArrayLength
-import org.usvm.api.initializeArray
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.state.TsState
@@ -38,7 +35,7 @@ import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkRegisterStackLValue
-import org.usvm.util.mkStringBackingLValue
+import org.usvm.util.mkSymbolicString
 
 /** One symbolic input written to the mapped EtsIR stack slot. */
 data class UsvmProjectedInput(
@@ -155,35 +152,8 @@ class UsvmDomainProjector(
             value
         }
 
-        private fun materializeString(domain: StringDomain): UConcreteHeapRef = with(state.ctx) {
-            val value = state.memory.allocConcrete(EtsStringType)
-            val charactersType = EtsArrayType(EtsNumberType, dimensions = 1)
-            val characters = state.memory.allocConcrete(charactersType)
-            val length = state.makeSymbolicPrimitive(sizeSort)
-            val minimumLength = mkBv(domain.minLength)
-            val maximumLength = mkBv(domain.maxLength)
-            val meetsMinimum = mkBvSignedGreaterOrEqualExpr(length, minimumLength)
-            val meetsMaximum = mkBvSignedLessOrEqualExpr(length, maximumLength)
-            val contents = sequence {
-                repeat(domain.maxLength) {
-                    yield(state.makeSymbolicPrimitive(bv16Sort))
-                }
-            }
-
-            state.memory.initializeArray(
-                arrayHeapRef = characters,
-                type = charactersType,
-                sort = bv16Sort,
-                sizeSort = sizeSort,
-                contents = contents,
-            )
-            state.memory.initializeArrayLength(characters, charactersType, sizeSort, length)
-            state.memory.write(mkStringBackingLValue(value), characters, guard = trueExpr)
-            state.pathConstraints += mkAnd(meetsMinimum, meetsMaximum)
-            state.boundedStringBackingRefs += value
-
-            value
-        }
+        private fun materializeString(domain: StringDomain): UConcreteHeapRef =
+            state.mkSymbolicString(minLength = domain.minLength, maxLength = domain.maxLength)
 
         private fun materializeConstant(value: JsConcreteValue): UExpr<out USort> = with(state.ctx) {
             when (value) {
