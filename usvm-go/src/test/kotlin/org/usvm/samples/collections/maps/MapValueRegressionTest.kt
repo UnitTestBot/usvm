@@ -135,16 +135,20 @@ class MapValueRegressionTest : GoNativeTestRunner() {
         assertTrue(executions.all { it.result.isSuccess })
         if (needsAdditionalEntry) {
             val hasAdditionalEntry = executions.any {
-                val input = it.arguments.single() as? Map<*, *>
-                input?.size == 2 && input.containsKey(observedKey) &&
-                    it.result.long == (input[observedKey] as Number).toLong()
+                val input = mapReplayEntries(it.arguments.single())
+                val observed = input?.firstOrNull { entry ->
+                    val key = entry.first
+                    if (key is Double && observedKey is Double) key == observedKey else key == observedKey
+                }
+                input?.size == 2 && observed != null &&
+                    it.result.long == (observed.second as Number).toLong()
             }
             assertTrue(hasAdditionalEntry, message = "A witness must retain an observed key and an unobserved entry")
         }
 
         val inputs = buildJsonArray {
             executions.forEach { execution ->
-                val input = execution.arguments.single() as? Map<*, *>
+                val input = mapReplayEntries(execution.arguments.single())
                 add(buildJsonObject {
                     put("nil", input == null)
                     put("entries", buildJsonArray {
@@ -164,6 +168,13 @@ class MapValueRegressionTest : GoNativeTestRunner() {
         }
         val outputs = replayMapWitnesses(method = method, inputs = inputs)
         assertEquals(executions.map { it.result.long }, outputs)
+    }
+
+    private fun mapReplayEntries(value: Any?): List<Pair<Any?, Any?>>? = when (value) {
+        null -> null
+        is GoMapEntries -> value.entries.map { it.key to it.value }
+        is Map<*, *> -> value.entries.map { it.key to it.value }
+        else -> error("Unsupported map witness $value")
     }
 
     private fun replayMapOutputs(method: String, executions: List<GoExecution>, expectedSummary: Long) {

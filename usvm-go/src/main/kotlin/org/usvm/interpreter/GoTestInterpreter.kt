@@ -376,12 +376,7 @@ class GoTestInterpreter(
                 } else {
                     convertExpr(key, keyStorageType)
                 }
-                // Go equates signed zeros; JVM boxed floating-point keys do not.
-                when {
-                    value is Double && value == 0.0 -> 0.0
-                    value is Float && value == 0.0f -> 0.0f
-                    else -> value
-                }
+                value
             }
             val addToMap: (MutableMap<Any?, Any?>, Set<ULValue<*, UBoolSort>>) -> Unit = { m, s ->
                 m.putAll(
@@ -409,7 +404,8 @@ class GoTestInterpreter(
                         if (usesRepresentatives) {
                             val concrete = model.eval(key.asExpr(addressSort))
                             if (!seenRepresentatives.add(concrete)) return@mapNotNull null
-                            needsLosslessWitness = !seenValueKeys.add(decodedKey) || needsLosslessWitness
+                            needsLosslessWitness = needsGoMapEntryIdentity(decodedKey) ||
+                                !seenValueKeys.add(decodedKey) || needsLosslessWitness
                         }
 
                         val lvalue = if (isRefSet) {
