@@ -1,6 +1,7 @@
 package org.usvm.ts.calls
 
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyInput
@@ -108,6 +109,7 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
         fun search(
             modelIds: Set<String>,
             unknownCallEventSink: ((TsUnknownCallEvent) -> Unit)? = null,
+            runtimeLimitationEventSink: ((TsRuntimeFeatureLimitationEvent) -> Unit)? = null,
             profile: CallsExperimentProfile = CallsExperimentProfile.FROZEN_STOP,
         ): CallsSymbolicSearchResult = engine.search(
             CallsSymbolicSearchRequest(
@@ -121,6 +123,7 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
                 seed = 0,
                 budget = 10.seconds,
                 unknownCallEventSink = unknownCallEventSink,
+                runtimeLimitationEventSink = runtimeLimitationEventSink,
             )
         )
 
