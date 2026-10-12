@@ -110,17 +110,17 @@ export function nestedArrayProperty(value: number[][]): boolean {
   return value[0][0] !== 2;
 }
 
-export function unsupportedArrayGrowth(value: number): boolean {
+export function unsupportedComputedProperty(value: number): boolean {
   const values = { present: 1 };
   return values[value] === 1;
 }
 
-export function mixedArrayGrowth(value: number): boolean {
+export function mixedComputedProperty(value: number): boolean {
   if (value === 0) {
     return false;
   }
 
-  return unsupportedArrayGrowth(value);
+  return unsupportedComputedProperty(value);
 }
 
 export function stringArrayMutationProperty(values: string[]): boolean {

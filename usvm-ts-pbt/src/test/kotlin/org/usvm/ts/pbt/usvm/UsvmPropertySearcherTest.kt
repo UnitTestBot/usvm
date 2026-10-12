@@ -198,9 +198,9 @@ class UsvmPropertySearcherTest {
 
     @Test
     fun `preserves engine limitation reasons and a reached candidate`() {
-        val unsupported = search(manifest(predicateExport = "unsupportedArrayGrowth"))
+        val unsupported = search(manifest(predicateExport = "unsupportedComputedProperty"))
         val mixed = search(
-            manifest(predicateExport = "mixedArrayGrowth", domain = IntegerDomain(min = 0, max = 1)),
+            manifest(predicateExport = "mixedComputedProperty", domain = IntegerDomain(min = 0, max = 1)),
         )
 
         assertEquals(UsvmPropertySearchStatus.UNSUPPORTED, unsupported.status)

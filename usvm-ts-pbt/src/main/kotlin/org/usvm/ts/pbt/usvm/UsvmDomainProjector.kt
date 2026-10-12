@@ -249,7 +249,7 @@ class UsvmDomainProjector(
             val meetsMinimum = mkBvSignedGreaterOrEqualExpr(length, minimumLength)
             val meetsMaximum = mkBvSignedLessOrEqualExpr(length, maximumLength)
 
-            state.memory.initializeArrayLength(array, descriptor, sizeSort, length)
+            state.memory.initializeArrayLength(array, arrayDescriptorOf(etsType), sizeSort, length)
             state.pathConstraints += mkAnd(meetsMinimum, meetsMaximum)
 
             repeat(domain.maxLength) { index ->
