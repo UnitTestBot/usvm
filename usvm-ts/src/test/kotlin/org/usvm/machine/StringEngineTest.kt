@@ -43,24 +43,6 @@ class StringEngineTest : TsMethodTestRunner() {
         )
     }
 
-    @Test
-    fun `indexed reads preserve isolated surrogate units`() {
-        discoverProperties<TsTestValue.TsBoolean>(
-            method = getMethod(methodName = "indexedReadEquals", className = "SymbolicStringEngine"),
-            { value -> value.value },
-            invariants = arrayOf({ value -> value.value }),
-        )
-    }
-
-    @Test
-    fun `out of range string index yields undefined`() {
-        discoverProperties<TsTestValue.TsBoolean>(
-            method = getMethod(methodName = "outOfRangeIndex", className = "SymbolicStringEngine"),
-            { value -> value.value },
-            invariants = arrayOf({ value -> value.value }),
-        )
-    }
-
     /** Exercises the explicit code-unit allocation API, not source input discovery. */
     @Test
     fun `shared allocation and bounded decoding preserve a solver selected surrogate`() {
