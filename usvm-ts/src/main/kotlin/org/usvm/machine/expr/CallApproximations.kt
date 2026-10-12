@@ -21,6 +21,7 @@ import org.usvm.api.memcpy
 import org.usvm.api.readArrayIndex
 import org.usvm.getIntValue
 import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.isFalse
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.call.TsUnknownCallFailureReason
@@ -45,6 +46,7 @@ import org.usvm.util.forEachArrayPayloadRegion
 import org.usvm.util.initializeArrayKind
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.readTypedArrayElement
 import org.usvm.util.resolveEtsMethods
 
 private val logger = KotlinLogging.logger {}
@@ -582,10 +584,15 @@ private fun TsExprResolver.removeArrayElement(
     scope.calcOnState {
         val newLength = mkBvSubExpr(length, mkBv(1))
         val index = if (first) mkBv(0) else newLength
-        val removed = if (typeToSort(arrayType.elementType) is TsUnresolvedSort) {
+        val removed = if (elementSort is TsUnresolvedSort) {
             mkFakeValue(scope, readUnresolvedArrayElement(memory, array, index))
         } else {
-            memory.read(mkArrayIndexLValue(elementSort, array, index, arrayType))
+            val element = readTypedArrayElement(array, index, arrayType)
+            if (element.hasBoxedValue.isFalse) {
+                element.nativeValue
+            } else {
+                mkFakeValue(scope, element.unresolvedValue)
+            }
         }
 
         if (first) {
