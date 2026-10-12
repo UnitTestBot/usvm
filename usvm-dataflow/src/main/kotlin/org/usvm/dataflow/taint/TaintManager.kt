@@ -291,7 +291,7 @@ open class TaintManager<Method, Statement>(
         scope: CoroutineScope,
         handler: (TaintEdge<Statement>) -> Unit,
     ) {
-        summaryEdgesStorage.subscribe(method) { handler(it.edge) }
+        summaryEdgesStorage.subscribe(method = method, scope = scope) { handler(it.edge) }
     }
 
     fun vulnerabilityTraceGraph(

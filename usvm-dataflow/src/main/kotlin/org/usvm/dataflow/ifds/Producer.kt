@@ -28,6 +28,35 @@ fun interface Consumer<in T> {
     fun consume(event: T)
 }
 
+/** Clearing the reference releases the captured callback even from an in-flight consumer snapshot. */
+internal class CancellableConsumer<T>(consumer: Consumer<T>) : Consumer<T> {
+    private val callback = AtomicReference<Consumer<T>?>(consumer)
+
+    val isActive: Boolean
+        get() = callback.get() != null
+
+    fun cancel() {
+        callback.set(null)
+    }
+
+    override fun consume(event: T) {
+        callback.get()?.consume(event)
+    }
+}
+
+private fun <T> Consumer<T>.isCancelled(): Boolean = this is CancellableConsumer<*> && !isActive
+
+private fun <T> ConsList<Consumer<T>>.withoutCancelledConsumers(): ConsList<Consumer<T>> {
+    val containsCancelledConsumer = any { it.isCancelled() }
+    if (!containsCancelledConsumer) return this
+
+    var result: ConsList<Consumer<T>> = Nil
+    for (consumer in filterNot { it.isCancelled() }.asReversed()) {
+        result = Cons(consumer, result)
+    }
+    return result
+}
+
 class SyncProducer<T> : Producer<T> {
     private val consumers: MutableList<Consumer<T>> = mutableListOf()
     private val events: MutableList<T> = mutableListOf()
@@ -42,10 +71,13 @@ class SyncProducer<T> : Producer<T> {
 
     @Synchronized
     override fun subscribe(consumer: Consumer<T>) {
+        if (consumer.isCancelled()) return
+        consumers.removeAll { it.isCancelled() }
+
         for (event in events) {
             consumer.consume(event)
         }
-        consumers.add(consumer)
+        if (!consumer.isCancelled()) consumers.add(consumer)
     }
 }
 
@@ -128,6 +160,8 @@ class ConcurrentProducer<T> : Producer<T> {
     }
 
     override fun subscribe(consumer: Consumer<T>) {
+        if (consumer.isCancelled()) return
+
         var last: NonBlockingQueue.Node<T>? = null
         while (true) {
             val start = if (last != null) last.next else events.head
@@ -141,7 +175,8 @@ class ConcurrentProducer<T> : Producer<T> {
             val currentConsumers = consumers.get() ?: continue
             if (!consumers.compareAndSet(currentConsumers, null)) continue
             if (events.tail.get() === last) {
-                val newConsumers = Cons(consumer, currentConsumers)
+                val retainedConsumers = currentConsumers.withoutCancelledConsumers()
+                val newConsumers = if (consumer.isCancelled()) retainedConsumers else Cons(consumer, retainedConsumers)
                 check(consumers.compareAndSet(null, newConsumers))
                 break
             } else {

@@ -16,6 +16,9 @@
 
 package org.usvm.dataflow.ifds
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.InternalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import org.jacodb.api.common.CommonMethod
@@ -124,5 +127,15 @@ class SummaryStorageWithProducers<T : Summary<*>>(
     fun subscribe(method: CommonMethod, handler: (T) -> Unit) {
         val producer = getProducer(method)
         producer.subscribe(handler)
+    }
+
+    /** Historical summaries remain available; only this consumer ends with its owner job. */
+    @OptIn(InternalCoroutinesApi::class)
+    fun subscribe(method: CommonMethod, scope: CoroutineScope, handler: (T) -> Unit) {
+        val consumer = CancellableConsumer(Consumer<T>(handler))
+        val job = scope.coroutineContext[Job]
+        job?.invokeOnCompletion(onCancelling = true, invokeImmediately = true) { consumer.cancel() }
+
+        getProducer(method).subscribe(consumer)
     }
 }
