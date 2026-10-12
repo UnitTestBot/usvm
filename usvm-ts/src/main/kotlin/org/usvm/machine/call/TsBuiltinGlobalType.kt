@@ -1,6 +1,7 @@
 package org.usvm.machine.call
 
 import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsLocal
@@ -41,3 +42,18 @@ private fun EtsValue.isLegacyBuiltinGlobal(
     name == expectedName &&
     type == EtsUnknownType &&
     callee.enclosingClass == EtsClassSignature.UNKNOWN.copy(name = expectedName)
+
+internal fun EtsType.isBuiltinArrayGlobalType(): Boolean {
+    val functionType = this as? EtsFunctionType ?: return false
+    val signature = functionType.signature
+    val parameter = signature.parameters.singleOrNull() ?: return false
+    val returnType = signature.returnType as? EtsArrayType ?: return false
+
+    return signature.enclosingClass.file == EtsClassSignature.UNKNOWN.file &&
+        signature.name.isEmpty() &&
+        parameter.type == EtsNumberType &&
+        parameter.isOptional &&
+        !parameter.isRest &&
+        returnType.elementType == EtsAnyType &&
+        returnType.dimensions == 1
+}

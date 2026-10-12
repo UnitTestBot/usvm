@@ -1,0 +1,90 @@
+package org.usvm.machine.call.intrinsic
+
+import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsUnknownType
+import org.usvm.UBoolExpr
+import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.UIteExpr
+import org.usvm.machine.call.TsUnknownCall
+import org.usvm.machine.call.TsUnknownCallModelCompletion
+import org.usvm.machine.call.TsUnknownCallModelExecution
+import org.usvm.machine.call.TsUnknownCallModelSuccessor
+import org.usvm.machine.call.TsUnknownCallTarget
+import org.usvm.machine.call.isBuiltinArrayGlobalType
+import org.usvm.machine.state.TsState
+
+/** Exact `Array.isArray` semantics for the genuine global `Array` built-in. */
+internal object TsArrayIsArrayIntrinsicModel : TsBuiltInUnknownCallModel {
+    const val MODEL_ID: String = "ts.array.isArray"
+
+    private val anyArrayType = EtsArrayType(elementType = EtsUnknownType, dimensions = 1)
+
+    override val id: String = MODEL_ID
+    override val target = TsUnknownCallTarget(
+        methodName = "isArray",
+    )
+
+    override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
+        if (!call.hasGlobalArrayOwner()) {
+            return null
+        }
+
+        if (call.arguments.isEmpty()) {
+            return state.normalExecution(state.ctx.falseExpr)
+        }
+
+        val value = call.arguments.first().resolved ?: return null
+        val result = state.isArray(value)
+
+        return state.normalExecution(result)
+    }
+
+    private fun TsUnknownCall.hasGlobalArrayOwner(): Boolean {
+        val owner = receiver?.source as? EtsLocal ?: return false
+        return owner.name == "Array" && owner.type.isBuiltinArrayGlobalType()
+    }
+
+    private fun TsState.isArray(value: UExpr<*>): UBoolExpr = with(ctx) {
+        when {
+            value is UIteExpr<*> -> {
+                val trueResult = isArray(value.trueBranch)
+                val falseResult = isArray(value.falseBranch)
+
+                mkIte(value.condition, trueResult, falseResult)
+            }
+
+            value.isFakeObject() -> {
+                val fakeType = value.getFakeType(memory)
+                val reference = value.extractRef(memory)
+
+                mkAnd(
+                    fakeType.refTypeExpr,
+                    isNonNullArrayReference(reference),
+                )
+            }
+
+            value.sort == addressSort -> isNonNullArrayReference(value.asExpr(addressSort))
+            else -> falseExpr
+        }
+    }
+
+    private fun TsState.isNonNullArrayReference(reference: UHeapRef): UBoolExpr = with(ctx) {
+        val isDefined = mkNot(mkEq(reference, mkUndefinedValue()))
+        val isNonNull = mkNot(mkEq(reference, mkTsNullValue()))
+
+        mkAnd(isDefined, isNonNull, memory.types.evalIsSubtype(reference, anyArrayType))
+    }
+
+    private fun TsState.normalExecution(result: UExpr<*>): TsUnknownCallModelExecution = with(ctx) {
+        val successor = TsUnknownCallModelSuccessor(
+            guard = trueExpr,
+            completion = TsUnknownCallModelCompletion.Normal { result },
+        )
+
+        TsUnknownCallModelExecution(successors = listOf(successor))
+    }
+
+}

@@ -19,6 +19,7 @@ import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
+import org.usvm.machine.call.isBuiltinArrayGlobalType
 import org.usvm.machine.call.isBuiltinGlobalType
 import org.usvm.machine.state.lastStmt
 import org.usvm.util.getAllFields
@@ -155,6 +156,10 @@ private fun isImplicitModeledGlobal(source: EtsLocal, callee: EtsMethodSignature
     if (source.type.isBuiltinGlobalType(expectedName = "Math") ||
         source.type.isBuiltinGlobalType(expectedName = "Number")
     ) {
+        return true
+    }
+
+    if (source.name == "Array" && source.type.isBuiltinArrayGlobalType()) {
         return true
     }
 
