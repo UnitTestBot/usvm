@@ -20,6 +20,7 @@ import org.usvm.machine.call.TsUnknownCallModelExecution
 import org.usvm.machine.call.TsUnknownCallModelSuccessor
 import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.call.loadBundledEtsIrUnknownCallModelArtifact
+import org.usvm.machine.call.resolvedInstanceInputs
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.state.TsState
 import org.usvm.sizeSort
@@ -222,7 +223,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     }
 
     private val variadicMutationAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
-        val inputs = call.resolvedInstanceInputs() ?: return@TsEtsIrUnknownCallModelInputAdapter null
+        val inputs = call.resolvedInstanceInputs(maxArgumentCount = call.arguments.size) ?: return@TsEtsIrUnknownCallModelInputAdapter null
         val arguments = inputs.drop(1)
         if (arguments.size > MAX_VARIADIC_ARGUMENTS) {
             return@TsEtsIrUnknownCallModelInputAdapter null
@@ -239,7 +240,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     }
 
     private val fillAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
-        val inputs = call.resolvedInstanceInputs() ?: return@TsEtsIrUnknownCallModelInputAdapter null
+        val inputs = call.resolvedInstanceInputs(maxArgumentCount = call.arguments.size) ?: return@TsEtsIrUnknownCallModelInputAdapter null
         val arguments = inputs.drop(1)
         if (arguments.isEmpty() || arguments.size > MAX_FILL_ARGUMENTS) {
             return@TsEtsIrUnknownCallModelInputAdapter null
@@ -262,7 +263,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     }
 
     private val sliceAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
-        val inputs = call.resolvedInstanceInputs() ?: return@TsEtsIrUnknownCallModelInputAdapter null
+        val inputs = call.resolvedInstanceInputs(maxArgumentCount = call.arguments.size) ?: return@TsEtsIrUnknownCallModelInputAdapter null
         val arguments = inputs.drop(1)
         if (arguments.size > 2 || arguments.any { value ->
                 value != state.ctx.mkUndefinedValue() && value.sort != state.ctx.fp64Sort
@@ -281,7 +282,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     }
 
     private val noArgumentsAdapter = TsEtsIrUnknownCallModelInputAdapter { _, call ->
-        if (call.arguments.isEmpty()) call.resolvedInstanceInputs() else null
+        if (call.arguments.isEmpty()) call.resolvedInstanceInputs(maxArgumentCount = call.arguments.size) else null
     }
 
     override val models: List<TsUnknownCallModel> by lazy {
@@ -527,13 +528,6 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             successors = listOf(successor),
             residualGuard = guard.takeUnless { it == trueExpr }?.let(::mkNot),
         )
-    }
-
-    private fun TsUnknownCall.resolvedInstanceInputs(): List<UExpr<*>>? {
-        val resolvedReceiver = receiver?.resolved ?: return null
-        val resolvedArguments = arguments.map { argument -> argument.resolved ?: return null }
-
-        return listOf(resolvedReceiver) + resolvedArguments
     }
 
     private class ArrayPrimitiveModel(
