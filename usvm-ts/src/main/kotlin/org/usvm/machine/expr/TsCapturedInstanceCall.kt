@@ -19,6 +19,7 @@ import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
+import org.usvm.machine.call.isBuiltinGlobalType
 import org.usvm.machine.state.lastStmt
 import org.usvm.util.getAllFields
 import org.usvm.util.mkFieldLValue
@@ -151,6 +152,12 @@ private fun originalReceiver(local: EtsLocal, assignments: List<EtsAssignStmt>):
 
 /** Builtin objects handled by existing approximations have no input heap object to dereference. */
 private fun isImplicitModeledGlobal(source: EtsLocal, callee: EtsMethodSignature, method: EtsMethod): Boolean {
+    if (source.type.isBuiltinGlobalType(expectedName = "Math") ||
+        source.type.isBuiltinGlobalType(expectedName = "Number")
+    ) {
+        return true
+    }
+
     val modeled = when (source.name) {
         "Logger" -> true
         "Number" -> callee.name == "isNaN"

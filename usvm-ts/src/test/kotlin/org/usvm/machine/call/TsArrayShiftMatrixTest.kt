@@ -66,9 +66,15 @@ class TsArrayShiftMatrixTest {
                     }
 
                 val actual = values.map { assertIs<TsTestValue.TsNumber>(it).number }
+                val removalDecision = TsUnknownCallDecision.ModelApplied(modelId = "ts.array.$methodName")
+                val allowedDecisions = setOf(
+                    removalDecision,
+                    TsUnknownCallDecision.ModelApplied(modelId = "ts.number.isNaN"),
+                )
+
                 assertEquals(listOf(expected[index].toDouble()), actual)
-                assertEquals(case.shiftCount, events.size)
-                assertTrue(events.all { it.decision == TsUnknownCallDecision.ModelApplied("ts.array.$methodName") })
+                assertEquals(case.shiftCount, events.count { it.decision == removalDecision })
+                assertTrue(events.all { it.decision in allowedDecisions })
             }
         }
     }

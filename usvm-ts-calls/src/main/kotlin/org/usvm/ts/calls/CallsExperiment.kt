@@ -244,15 +244,24 @@ internal object CallsExperimentJson {
 }
 
 internal object CallsBuildIdentity {
-    val toolRevision: String by lazy {
+    private val properties: Properties by lazy {
         val properties = Properties()
         val resource = checkNotNull(javaClass.getResourceAsStream("/org/usvm/ts/calls/build.properties")) {
             "Missing calls build identity"
         }
         resource.use(properties::load)
 
+        properties
+    }
+
+    val toolRevision: String by lazy {
         checkNotNull(properties.getProperty("tool.revision")).takeIf(String::isNotBlank)
             ?: error("Missing tool revision in calls build identity")
+    }
+
+    val nativeFrontendRevision: String by lazy {
+        checkNotNull(properties.getProperty("native.frontend.revision")).takeIf(String::isNotBlank)
+            ?: error("Missing native frontend revision in calls build identity")
     }
 }
 
