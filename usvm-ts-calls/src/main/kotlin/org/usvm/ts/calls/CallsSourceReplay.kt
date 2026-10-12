@@ -1,10 +1,5 @@
 package org.usvm.ts.calls
 
-import java.nio.file.Files
-import java.nio.file.LinkOption
-import java.nio.file.Path
-import java.nio.file.StandardCopyOption
-import java.util.UUID
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -26,6 +21,11 @@ import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.model.encodeToUtf8SafeString
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
+import java.util.UUID
 
 @Serializable
 internal enum class CallsReplayStatus {
