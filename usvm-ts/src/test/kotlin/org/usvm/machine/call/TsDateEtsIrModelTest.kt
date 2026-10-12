@@ -130,6 +130,13 @@ class TsDateEtsIrModelTest {
     }
 
     @Test
+    fun `Date casts do not give unrelated objects Date storage`() {
+        val states = analyze(method("castForeignReceiver"))
+
+        assertTrue(states.isEmpty())
+    }
+
+    @Test
     fun `UTC minute and millisecond setters execute through source models`() {
         assertNumber(methodName = "utcMinuteSetters", expected = 7_318_000.0)
     }
@@ -145,6 +152,11 @@ class TsDateEtsIrModelTest {
     @Test
     fun `setter updates the shared Date timestamp slot`() {
         assertNumber(methodName = "setter", expected = 951_782_400_029.0)
+    }
+
+    @Test
+    fun `deleting a public timestamp property preserves the private Date value`() {
+        assertNumber(methodName = "deletePublicTimestamp", expected = 456.0)
     }
 
     @Test

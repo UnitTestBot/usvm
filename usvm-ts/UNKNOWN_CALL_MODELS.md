@@ -302,7 +302,8 @@ In contrast, `Array.pop` is expressed as the TypeScript body shown above.
 
 The built-in Date family keeps Gregorian calendar arithmetic, component overflow, leap years, and TimeClip in
 `DateModels.ts`. Kotlin only routes calls, injects the experiment clock, and exposes the model's numeric timestamp
-slot on a Date receiver.
+slot on a Date receiver. This private storage is separate from ordinary JavaScript properties, so deleting a
+user-visible `timestamp` property cannot change the modeled instant.
 
 The current experiment has these explicit limits:
 

@@ -121,6 +121,10 @@ internal fun TsContext.resolveField(
 ): UExpr<*>? {
     checkNotFake(instance)
     val receiver = resolveHeapRef(scope, instance) ?: return null
+    if (isDateModelTimestamp(scope = scope, instance = receiver, field = field)) {
+        val timestamp = dateModelTimestampLValue(receiver)
+        return scope.calcOnState { memory.read(timestamp) }
+    }
 
     // Input fields have symbolic initial presence. Allocations use their declaration and later writes.
     return if (!isAllocatedConcreteHeapRef(receiver) && instanceLocal?.type !is EtsArrayType) {
@@ -165,8 +169,7 @@ private fun TsContext.resolveDeclaredField(
         (resolvedField as? TsResolutionResult.Unique)?.property?.type
     }
 
-    val requiresDeclaredPresence = !wasWritten && !field.isDateModelTimestamp()
-    if (requiresDeclaredPresence) {
+    if (!wasWritten) {
         val fieldExists = scope.calcOnState {
             memory.types.evalIsSubtype(instance, EtsAuxiliaryType(properties = setOf(field.name)))
         }
@@ -446,6 +449,3 @@ private val NATIVE_TYPED_ARRAY_NAMES = setOf(
     "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array",
     "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "BigInt64Array", "BigUint64Array",
 )
-
-private fun EtsFieldSignature.isDateModelTimestamp(): Boolean =
-    enclosingClass.name == "DateValue" && enclosingClass.file.fileName == "DateModels.ts" && name == "timestamp"

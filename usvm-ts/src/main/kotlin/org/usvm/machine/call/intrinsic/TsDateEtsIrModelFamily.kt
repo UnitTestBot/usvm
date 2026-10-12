@@ -3,6 +3,7 @@ package org.usvm.machine.call.intrinsic
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsStringType
@@ -83,6 +84,10 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             entryPointMethodName = "construct",
         )
     }
+
+    internal fun ownsStorageDefinitionField(field: EtsFieldSignature): Boolean =
+        field.name == "timestamp" && field.enclosingClass.name == "DateValue" &&
+            field.enclosingClass.file == artifact.file.signature
 
     override val models: List<TsUnknownCallModel> by lazy {
         buildList {
@@ -241,7 +246,8 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         domainGuard = numericGuard(minArgs = 0, numericArgs = 0),
         inputAdapter = TsEtsIrUnknownCallModelInputAdapter { state, _ ->
             with(state.ctx) {
-                listOf(mkFp64(dateNowMilliseconds ?: return@TsEtsIrUnknownCallModelInputAdapter null))
+                val nowMilliseconds = dateNowMilliseconds ?: return@TsEtsIrUnknownCallModelInputAdapter null
+                listOf(mkFp64(nowMilliseconds))
             }
         },
     )
@@ -251,9 +257,9 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         methodName = "UTC",
         entryPointName = "utc",
         domainGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, _ ->
-            if (call.hasBuiltinDateStaticOwner() &&
+            val hasSupportedInputs = call.hasBuiltinDateStaticOwner() &&
                 call.hasNumericOrUndefinedArguments(maxArgs = MAX_CONSTRUCTOR_ARGUMENTS, state = state)
-            ) {
+            if (hasSupportedInputs) {
                 state.ctx.trueExpr
             } else {
                 state.ctx.falseExpr
@@ -262,7 +268,8 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         inputAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
             with(state.ctx) {
                 val arguments = call.arguments.take(MAX_CONSTRUCTOR_ARGUMENTS).map { argument ->
-                    when (val resolved = argument.resolved ?: return@TsEtsIrUnknownCallModelInputAdapter null) {
+                    val resolved = argument.resolved ?: return@TsEtsIrUnknownCallModelInputAdapter null
+                    when (resolved) {
                         mkUndefinedValue() -> mkFp64NaN()
                         else -> resolved
                     }
@@ -331,12 +338,11 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     ) = TsEtsIrUnknownCallModelDomainGuard { state, call, _ ->
         with(state.ctx) {
             val receiver = call.receiver
-            val receiverValue = receiver?.resolved
-            if (
-                call.callee.enclosingClass != builtinDateSignature ||
-                receiverValue?.sort != addressSort ||
+            val receiverValue = receiver?.resolved ?: return@TsEtsIrUnknownCallModelDomainGuard falseExpr
+            val unsupportedReceiver = call.callee.enclosingClass != builtinDateSignature ||
+                receiverValue.sort != addressSort ||
                 receiverValue.asExpr(addressSort).hasFakeValueBranch()
-            ) {
+            if (unsupportedReceiver) {
                 falseExpr
             } else if (!call.hasNumericArguments(minArgs = minArgs, numericArgs = numericArgs, state = state)) {
                 falseExpr
@@ -355,9 +361,9 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         minArgs: Int,
         numericArgs: Int,
     ) = TsEtsIrUnknownCallModelDomainGuard { state, call, _ ->
-        if (call.hasBuiltinDateStaticOwner() &&
+        val hasSupportedInputs = call.hasBuiltinDateStaticOwner() &&
             call.hasNumericArguments(minArgs = minArgs, numericArgs = numericArgs, state = state)
-        ) {
+        if (hasSupportedInputs) {
             state.ctx.trueExpr
         } else {
             state.ctx.falseExpr

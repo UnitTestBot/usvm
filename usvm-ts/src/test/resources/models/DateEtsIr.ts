@@ -75,6 +75,12 @@ export class DateEtsIr {
         return timestamp + date.getUTCDate();
     }
 
+    deletePublicTimestamp(): number {
+        const date: any = new Date(456);
+        delete date.timestamp;
+        return date.getTime();
+    }
+
     symbolicRoundTrip(timestamp: number): number {
         if (timestamp === 123.9) {
             return new Date(timestamp).valueOf();

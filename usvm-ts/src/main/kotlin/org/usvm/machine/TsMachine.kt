@@ -91,7 +91,6 @@ class TsMachine(
         // Model bodies are reachable only through their dispatcher and its domain guards.
         applicationAndSdkClasses = scene.projectClasses + runtimeScene.sdkClasses,
         dateNowMilliseconds = tsOptions.dateNowMilliseconds,
-
     )
     private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsModelUnknownCallDispatcher(
         models = requireNotNull(resolvedUnknownCallModels),

@@ -171,6 +171,12 @@ fun TsContext.assignToInstanceField(
 ): Unit? {
     // Unwrap to get non-fake reference.
     val unwrappedInstance = resolveHeapRef(scope, instance.unwrapRef(scope)) ?: return null
+    if (isDateModelTimestamp(scope = scope, instance = unwrappedInstance, field = field)) {
+        val timestamp = dateModelTimestampLValue(unwrappedInstance)
+        return scope.doWithState {
+            memory.write(timestamp, expr.asExpr(fp64Sort), guard = trueExpr)
+        }
+    }
 
     if (!isAllocatedConcreteHeapRef(unwrappedInstance) && instanceLocal.type !is EtsArrayType) {
         trackInputProperty(scope, unwrappedInstance, instanceLocal, field.name, hierarchy) ?: return null
@@ -184,8 +190,7 @@ fun TsContext.assignToInstanceField(
 
     // An object literal can acquire a new own property after creation. Requiring its
     // allocation type to declare the field would reject that valid JavaScript write.
-    val requiresDeclaredPresence = objectLiteralClass == null && !field.isDateModelTimestamp()
-    if (requiresDeclaredPresence) {
+    if (objectLiteralClass == null) {
         val fieldExists = scope.calcOnState {
             val supertype = EtsAuxiliaryType(properties = setOf(field.name))
             memory.types.evalIsSubtype(unwrappedInstance, supertype)
@@ -314,6 +319,3 @@ fun TsContext.assignToStaticField(
         }
     }
 }
-
-private fun EtsFieldSignature.isDateModelTimestamp(): Boolean =
-    enclosingClass.name == "DateValue" && enclosingClass.file.fileName == "DateModels.ts" && name == "timestamp"
