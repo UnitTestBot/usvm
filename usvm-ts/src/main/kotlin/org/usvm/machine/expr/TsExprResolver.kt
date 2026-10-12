@@ -1318,19 +1318,10 @@ class TsExprResolver(
 
                     val callee = scope.calcOnState { associatedFunction[ptr] }
                     if (callee == null) {
-                        val resolvedArguments = if (expr.isBuiltInArrayConstructor()) {
-                            val argument = resolve(expr.args.single()) ?: return null
-                            listOf(argument)
-                        } else {
-                            List(expr.args.size) { null }
-                        }
-                        unknownCallDispatcher.dispatch(
-                            scope = scope,
-                            call = expr,
-                            callSite = scope.calcOnState { lastStmt },
-                            failureReason = TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND,
-                            resolvedReceiver = ptr,
-                            resolvedArguments = resolvedArguments,
+                        dispatchUnresolvedPointer(
+                            expr = expr,
+                            pointer = ptr,
+                            fallbackReason = TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND,
                         )
                         return null
                     }
@@ -1345,44 +1336,65 @@ class TsExprResolver(
                         TsExprApproximationResult.NoApproximation -> {}
                     }
 
+                    val explicitReceiver = expr.receiver
+                    val boundInstance = callee.thisInstance
+                    val instance = if (boundInstance != null) {
+                        boundInstance
+                    } else if (explicitReceiver != null) {
+                        val resolvedReceiver = resolve(explicitReceiver) ?: return null
+                        resolvedReceiver.asExpr(addressSort)
+                    } else {
+                        ctx.mkUndefinedValue()
+                    }
+
                     val concreteCall = TsConcreteMethodCallStmt(
                         callee = callee.method,
                         call = expr,
                         resolvedReceiver = ptr,
-                        instance = callee.thisInstance
-                            ?: expr.receiver?.let { resolve(it)?.asExpr(addressSort) ?: return null }
-                            ?: ctx.mkUndefinedValue(),
+                        instance = instance,
                         args = resolvedArgs,
                         returnSite = scope.calcOnState { lastStmt },
                     )
                     scope.doWithState { newStmt(concreteCall) }
                 } else {
-                    val builtinArrayConstructor = expr.isBuiltInArrayConstructor()
-                    val failureReason = if (builtinArrayConstructor) {
-                        TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND
-                    } else {
-                        TsUnknownCallFailureReason.NON_REFERENCE_POINTER
-                    }
-                    val resolvedArguments = if (builtinArrayConstructor) {
-                        val argument = resolve(expr.args.single()) ?: return null
-                        listOf(argument)
-                    } else {
-                        List(expr.args.size) { null }
-                    }
-
-                    unknownCallDispatcher.dispatch(
-                        scope = scope,
-                        call = expr,
-                        callSite = scope.calcOnState { lastStmt },
-                        failureReason = failureReason,
-                        resolvedReceiver = ptr,
-                        resolvedArguments = resolvedArguments,
+                    dispatchUnresolvedPointer(
+                        expr = expr,
+                        pointer = ptr,
+                        fallbackReason = TsUnknownCallFailureReason.NON_REFERENCE_POINTER,
                     )
                 }
 
                 null
             }
         }
+    }
+
+    private fun dispatchUnresolvedPointer(
+        expr: EtsPtrCallExpr,
+        pointer: UExpr<*>,
+        fallbackReason: TsUnknownCallFailureReason,
+    ) {
+        val builtinArrayConstructor = expr.isBuiltInArrayConstructor()
+        val failureReason = if (builtinArrayConstructor) {
+            TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND
+        } else {
+            fallbackReason
+        }
+        val resolvedArguments = if (builtinArrayConstructor) {
+            val argument = resolve(expr.args.single()) ?: return
+            listOf(argument)
+        } else {
+            List(expr.args.size) { null }
+        }
+
+        unknownCallDispatcher.dispatch(
+            scope = scope,
+            call = expr,
+            callSite = scope.calcOnState { lastStmt },
+            failureReason = failureReason,
+            resolvedReceiver = pointer,
+            resolvedArguments = resolvedArguments,
+        )
     }
 
     private fun EtsPtrCallExpr.isBuiltInArrayConstructor(): Boolean {

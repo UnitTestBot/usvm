@@ -23,9 +23,9 @@ import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.arrayStorageType
+import org.usvm.util.boxArrayValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
-import org.usvm.util.boxArrayValue
 import org.usvm.util.resolveEtsField
 import org.usvm.util.truncateKnownArrayIndices
 
@@ -178,6 +178,25 @@ private fun TsContext.assignToArrayLength(
     }
 }
 
+private fun TsContext.writeErrorModelStorageField(
+    scope: TsStepScope,
+    instance: UHeapRef,
+    field: EtsFieldSignature,
+    storageField: ErrorStorageField,
+    value: UExpr<*>,
+) {
+    val payload = boxArrayValue(scope, value)
+    scope.doWithState {
+        memory.write(
+            mkErrorModelStorageLValue(addressSort, instance, storageField),
+            payload.asExpr(addressSort),
+            guard = trueExpr,
+        )
+        memory.write(deletedFieldLValue(instance, field), falseExpr, guard = trueExpr)
+        writtenConcreteFields += instance to field.name
+    }
+}
+
 fun TsContext.assignToInstanceField(
     scope: TsStepScope,
     instanceLocal: EtsLocal,
@@ -209,16 +228,13 @@ fun TsContext.assignToInstanceField(
         hierarchy = hierarchy,
     ).storageField
     if (errorStorageField != null) {
-        val payload = boxArrayValue(scope, expr)
-        return scope.doWithState {
-            memory.write(
-                mkErrorModelStorageLValue(addressSort, unwrappedInstance, errorStorageField),
-                payload.asExpr(addressSort),
-                guard = trueExpr,
-            )
-            memory.write(deletedFieldLValue(unwrappedInstance, field), falseExpr, guard = trueExpr)
-            writtenConcreteFields += unwrappedInstance to field.name
-        }
+        return writeErrorModelStorageField(
+            scope = scope,
+            instance = unwrappedInstance,
+            field = field,
+            storageField = errorStorageField,
+            value = expr,
+        )
     }
 
     val objectLiteralClass = objectLiteralClass(scope, unwrappedInstance, hierarchy)

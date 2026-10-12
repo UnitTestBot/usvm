@@ -1,12 +1,11 @@
 package org.usvm.machine.call.intrinsic
 
+import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UConcreteHeapRef
-import io.ksmt.utils.asExpr
-import org.usvm.machine.expr.builtInErrorSignature
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.typeStreamOf
 import org.usvm.machine.call.TsEtsIrUnknownCallModel
@@ -16,6 +15,7 @@ import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModel
 import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.call.loadBundledEtsIrUnknownCallModelArtifact
+import org.usvm.machine.expr.builtInErrorSignature
 import org.usvm.types.single
 
 /** Narrow built-in `Error(message: string)` constructor model. */
