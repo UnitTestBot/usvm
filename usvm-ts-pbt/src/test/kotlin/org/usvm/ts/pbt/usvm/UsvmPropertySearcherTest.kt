@@ -142,7 +142,7 @@ class UsvmPropertySearcherTest {
     }
 
     @Test
-    fun `reports exception handlers and optional collections as unsupported`() {
+    fun `executes exception handlers and optional collections`() {
         val caughtDirect = search(manifest(predicateExport = "caughtDirectProperty"))
         val caughtHelper = search(manifest(predicateExport = "caughtHelperProperty"))
         val optionalArray = search(
@@ -158,12 +158,10 @@ class UsvmPropertySearcherTest {
             ),
         )
 
-        listOf(caughtDirect, caughtHelper).forEach { result ->
-            assertEquals(UsvmPropertySearchStatus.UNSUPPORTED, result.status)
-            assertTrue(result.diagnostics.any { it.code == "usvm.exception-handler.unsupported" })
+        listOf(caughtDirect, caughtHelper, optionalArray).forEach { result ->
+            assertEquals(UsvmPropertySearchStatus.NO_VIOLATION_REACHED, result.status)
+            assertNull(result.target)
         }
-        assertEquals(UsvmPropertySearchStatus.UNSUPPORTED, optionalArray.status)
-        assertTrue(optionalArray.diagnostics.any { it.code == "usvm.domain.optional-reference.unsupported" })
     }
 
     @Test

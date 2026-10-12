@@ -187,6 +187,18 @@ class UsvmPropertySearcher(
                 ),
             )
         }
+        if (analysis.unsupportedPaths.isNotEmpty()) {
+            return result(
+                manifest = manifest,
+                status = UsvmPropertySearchStatus.UNSUPPORTED,
+                capability = capability,
+                additionalDiagnostic = diagnostic(
+                    code = PbtDiagnosticCode.USVM_EXECUTION_UNSUPPORTED,
+                    message = analysis.unsupportedPaths.joinToString(),
+                    path = "predicate",
+                ),
+            )
+        }
         if (analysis.unsupportedCall) {
             return result(
                 manifest = manifest,

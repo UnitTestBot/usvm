@@ -81,7 +81,7 @@ class UsvmProjectionCapabilityTest {
     }
 
     @Test
-    fun `optional references and exception handlers are unsupported`() {
+    fun `optional references and exception handlers are supported`() {
         val optionalArray = resolve(
             domain = OptionalDomain(ArrayDomain(IntegerDomain(), minLength = 1, maxLength = 1)),
             exportName = "acceptsOptionalNumberArray",
@@ -99,13 +99,10 @@ class UsvmProjectionCapabilityTest {
             concreteCapability = exact(),
         )
 
-        assertEquals(ProjectionLevel.UNSUPPORTED, optionalArray.symbolic.level)
-        assertEquals("usvm.domain.optional-reference.unsupported", optionalArray.symbolic.diagnostics.single().code)
-        assertEquals(ProjectionLevel.UNSUPPORTED, caughtDirect.symbolic.level)
-        assertEquals("usvm.exception-handler.unsupported", caughtDirect.symbolic.diagnostics.single().code)
-        assertEquals(ProjectionLevel.UNSUPPORTED, caughtHelper.symbolic.level)
-        assertEquals(ProjectionLevel.UNSUPPORTED, caughtPrecondition.precondition.level)
-        assertEquals("usvm.exception-handler.unsupported", caughtPrecondition.precondition.diagnostics.single().code)
+        assertEquals(ProjectionLevel.EXACT, optionalArray.symbolic.level)
+        assertEquals(ProjectionLevel.EXACT, caughtDirect.symbolic.level)
+        assertEquals(ProjectionLevel.EXACT, caughtHelper.symbolic.level)
+        assertEquals(ProjectionLevel.EXACT, caughtPrecondition.precondition.level)
     }
 
     @Test

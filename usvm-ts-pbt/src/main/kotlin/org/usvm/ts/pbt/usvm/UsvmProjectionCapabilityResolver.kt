@@ -3,7 +3,6 @@ package org.usvm.ts.pbt.usvm
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
-import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberLiteralType
 import org.jacodb.ets.model.EtsNumberType
@@ -57,7 +56,6 @@ class UsvmProjectionCapabilityResolver {
                 path = "predicate",
             )
 
-            predicateTarget?.method?.hasExceptionHandler() == true -> unsupportedExceptionHandler("predicate")
             else -> exact()
         }
         val inputCapabilities = manifest.inputs.mapIndexed { index, input ->
@@ -138,11 +136,6 @@ class UsvmProjectionCapabilityResolver {
         )
         val target = mappedPrecondition.exactTargetOrNull()
             ?: return mappingCapability
-        val exceptionHandlerCapability = if (target.method.hasExceptionHandler()) {
-            unsupportedExceptionHandler("precondition")
-        } else {
-            exact()
-        }
         val inputCapabilities = manifest.inputs.mapIndexed { index, input ->
             val parameterType = target.bindings.inputs
                 .getOrNull(index)
@@ -161,7 +154,7 @@ class UsvmProjectionCapabilityResolver {
         }
 
         return aggregateProjectionCapabilities(
-            listOf(mappingCapability, exceptionHandlerCapability) + inputCapabilities,
+            listOf(mappingCapability) + inputCapabilities,
         )
     }
 
@@ -197,20 +190,12 @@ class UsvmProjectionCapabilityResolver {
             BooleanDomain, is IntegerDomain, is NumberDomain -> exact()
             is StringDomain -> approximateString(path)
             is ConstantDomain -> constantCapability(domain.value, path)
-            is OptionalDomain -> if (domain.value.isReferenceDomain()) {
-                unsupported(
-                    code = PbtDiagnosticCode.USVM_DOMAIN_OPTIONAL_REFERENCE_UNSUPPORTED,
-                    message = "Optional reference domains are not supported by the TypeScript heap model",
-                    path = path,
-                )
-            } else {
-                domainCapabilityForProjector(
-                    domain = domain.value,
-                    etsType = nestedOptionalType(domain, etsType),
-                    path = "$path.value",
-                    options = options,
-                )
-            }
+            is OptionalDomain -> domainCapabilityForProjector(
+                domain = domain.value,
+                etsType = nestedOptionalType(domain, etsType),
+                path = "$path.value",
+                options = options,
+            )
 
             is TupleDomain -> tupleCapability(domain, etsType, path, options)
             is ArrayDomain -> arrayCapability(domain, etsType, path, options)
@@ -273,12 +258,6 @@ class UsvmProjectionCapabilityResolver {
         code = PbtDiagnosticCode.USVM_DOMAIN_COLLECTION_TOO_LARGE,
         message = "Collection length $actualLength exceeds the symbolic cap " +
             options.maxSymbolicCollectionLength,
-        path = path,
-    )
-
-    private fun unsupportedExceptionHandler(path: String) = unsupported(
-        code = PbtDiagnosticCode.USVM_EXCEPTION_HANDLER_UNSUPPORTED,
-        message = "TypeScript exception handlers are not supported by symbolic execution",
         path = path,
     )
 
@@ -369,17 +348,6 @@ class UsvmProjectionCapabilityResolver {
     }
 
     private fun exact() = ProjectionCapability(level = ProjectionLevel.EXACT)
-}
-
-private fun EtsMethod.hasExceptionHandler(): Boolean = cfg.stmts.any { statement ->
-    statement.location.origin?.nodeKind == "TryStatement"
-}
-
-private fun PropertyDomain.isReferenceDomain(): Boolean = when (this) {
-    is StringDomain, is TupleDomain, is ArrayDomain -> true
-    is ConstantDomain -> value is JsConcreteValue.String || value is JsConcreteValue.Array
-    is OptionalDomain -> value.isReferenceDomain()
-    BooleanDomain, is IntegerDomain, is NumberDomain -> false
 }
 
 internal fun EtsMappingResult<EtsEntryPointTarget>.exactTargetOrNull(): EtsEntryPointTarget? =
