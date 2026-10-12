@@ -168,14 +168,14 @@ fun TsContext.assignToInstanceField(
     field: EtsFieldSignature,
     expr: UExpr<*>,
     hierarchy: EtsHierarchy,
-) {
+): Unit? {
     // Unwrap to get non-fake reference.
-    val unwrappedInstance = resolveHeapRef(scope, instance.unwrapRef(scope)) ?: return
+    val unwrappedInstance = resolveHeapRef(scope, instance.unwrapRef(scope)) ?: return null
 
     if (!isAllocatedConcreteHeapRef(unwrappedInstance) && instanceLocal.type !is EtsArrayType) {
-        trackInputProperty(scope, unwrappedInstance, instanceLocal, field.name, hierarchy) ?: return
+        trackInputProperty(scope, unwrappedInstance, instanceLocal, field.name, hierarchy) ?: return null
         writeInputPropertyValue(scope, unwrappedInstance, field.name, expr)
-        return
+        return Unit
     }
 
     val objectLiteralClass = objectLiteralClass(scope, unwrappedInstance, hierarchy)
@@ -189,15 +189,16 @@ fun TsContext.assignToInstanceField(
             val supertype = EtsAuxiliaryType(properties = setOf(field.name))
             memory.types.evalIsSubtype(unwrappedInstance, supertype)
         }
-        scope.assert(fieldExists) ?: return
+        scope.assert(fieldExists) ?: return null
     }
 
     // Determine the field sort.
     val sort = when {
         declaredObjectLiteralField != null -> typeToSort(declaredObjectLiteralField.type)
         newObjectLiteralField -> {
-            // The receiver has no declared field. A scene-wide same-name field is unrelated.
-            expr.sort
+            // An undeclared own property accepts any runtime kind. A fake wrapper
+            // has address storage even when its payload is a number or boolean.
+            if (expr.isFakeObject()) unresolvedSort else expr.sort
         }
 
         else -> when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
@@ -205,7 +206,6 @@ fun TsContext.assignToInstanceField(
             is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
             is TsResolutionResult.Ambiguous -> resolveAmbiguousFieldSort(
                 scope = scope,
-                instanceLocal = instanceLocal,
                 instance = unwrappedInstance,
                 fields = etsField.properties,
                 hierarchy = hierarchy,
@@ -227,7 +227,7 @@ fun TsContext.assignToInstanceField(
             blockOnFalseState = {
                 terminateAsUnsupported(reason = "Assignment changes runtime sort of field '${field.name}'")
             },
-        ) ?: return
+        ) ?: return null
     }
 
     if (sort !is TsUnresolvedSort && expr.sort != sort && !expr.isFakeObject()) {
@@ -236,7 +236,7 @@ fun TsContext.assignToInstanceField(
 
     // If the field type is unknown, we create a fake object for the expr and assign it.
     // Otherwise, assign expr directly.
-    scope.doWithState {
+    return scope.doWithState {
         if (sort is TsUnresolvedSort) {
             val fakeObject = expr.toFakeObject(scope)
             val lValue = mkFieldLValue(addressSort, unwrappedInstance, field)

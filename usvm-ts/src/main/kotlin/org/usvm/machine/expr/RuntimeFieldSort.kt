@@ -2,8 +2,6 @@ package org.usvm.machine.expr
 
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsField
-import org.jacodb.ets.model.EtsLocal
-import org.jacodb.ets.model.EtsUnionType
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.typeStreamOf
@@ -15,14 +13,13 @@ import org.usvm.util.EtsHierarchy
 
 internal fun TsContext.resolveAmbiguousFieldSort(
     scope: TsStepScope,
-    instanceLocal: EtsLocal?,
     instance: UHeapRef,
     fields: List<EtsField>,
     hierarchy: EtsHierarchy,
 ): USort {
-    // A dynamic constructor leaves the local union-typed after allocating one concrete class.
-    // Keep the existing representation for other ambiguous and any-typed fields.
-    if (instanceLocal?.type !is EtsUnionType || !isAllocatedConcreteHeapRef(instance)) {
+    // The allocated class determines storage even when a union or any-typed local
+    // (including a computed property access) leaves the frontend field ambiguous.
+    if (!isAllocatedConcreteHeapRef(instance)) {
         return unresolvedSort
     }
 

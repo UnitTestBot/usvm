@@ -119,6 +119,63 @@ class RuntimeNew {
         return value instanceof NewA && (value as NewA).value === 7 && selected === NewB ? 1 : 0;
     }
 
+    writeAddedFieldFromBoxedValue(useNumber: boolean): boolean {
+        const source: any = { payload: useNumber ? 7 : false };
+        const target: any = { marker: 1 };
+
+        target.value = source.payload;
+
+        return useNumber ? target.value === 7 : target.value === false;
+    }
+
+    writeTypedPrimitiveFromBoxedValue(useNumber: boolean): boolean {
+        const source: any = { payload: useNumber ? 7 : false };
+        const target = new NewTypedFields();
+        const value = source.payload;
+
+        if (useNumber) {
+            target.count = value;
+            return target.count === 7;
+        }
+
+        target.enabled = value;
+        return target.enabled === false;
+    }
+
+    writeTypedReferenceFromBoxedValue(hasArray: boolean): boolean {
+        const source: any = { payload: hasArray ? [7] : undefined };
+        const target = new NewTypedFields();
+
+        target.values = source.payload;
+        const alias = target.values;
+
+        return hasArray ? alias.length === 1 && alias[0] === 7 : alias === undefined;
+    }
+
+    writeIncompatibleBoxedValue(useNumber: boolean): boolean {
+        const source: any = { payload: useNumber ? 7 : false };
+        const target = new NewTypedFields();
+
+        target.count = source.payload;
+
+        return target.count === 7;
+    }
+
+    writeIncompatibleBoxedValueByKey(useNumber: boolean): boolean {
+        const source: any = { payload: useNumber ? 7 : false };
+        const target: any = new NewTypedFields();
+
+        target["count"] = source.payload;
+
+        return target.count === 7;
+    }
+
+    nonConstructableWithHasInstance(): boolean {
+        const selected: any = new NewHasInstanceObject();
+        new selected();
+        return false;
+    }
+
     direct(): number {
         const value = new NewA(7);
         return value instanceof NewA && value.value === 7 ? 1 : 0;
@@ -165,4 +222,14 @@ class RuntimeNew {
     unknownConstructor(selected: any): number {
         return new selected(7).value;
     }
+}
+
+class NewTypedFields {
+    count: number = 0;
+    enabled: boolean = true;
+    values: number[] = [];
+}
+
+class NewHasInstanceObject {
+    [Symbol.hasInstance](_value: unknown): boolean { return true; }
 }

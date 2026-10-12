@@ -328,6 +328,86 @@ class RuntimeNewTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `field writes preserve all runtime value kinds`() {
+        val addedFieldOutcome = analyze(methodName = "writeAddedFieldFromBoxedValue")
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, addedFieldOutcome.stopReason)
+        assertTrue(addedFieldOutcome.unsupportedPaths.isEmpty(), "${addedFieldOutcome.unsupportedPaths}")
+
+        val methods = listOf(
+            "writeAddedFieldFromBoxedValue",
+            "writeTypedPrimitiveFromBoxedValue",
+            "writeTypedReferenceFromBoxedValue",
+        )
+
+        methods.forEach { methodName ->
+            withOptions(options = options.copy(stateCollectionStrategy = StateCollectionStrategy.ALL, stopOnCoverage = 0)) {
+                discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean>(
+                    method = getMethod(methodName = methodName, className = "RuntimeNew"),
+                    { input, result -> input.value && result.value },
+                    { input, result -> !input.value && result.value },
+                    invariants = arrayOf({ _, result -> result.value }),
+                )
+            }
+        }
+
+        replay(methods.flatMap { methodName ->
+            listOf(
+                "if (!new RuntimeNew().$methodName(true)) throw Error('$methodName(true)');",
+                "if (!new RuntimeNew().$methodName(false)) throw Error('$methodName(false)');",
+            )
+        })
+    }
+
+    @Test
+    fun `incompatible boxed field writes stop the step and remain explicit`() {
+        val methods = listOf("writeIncompatibleBoxedValue", "writeIncompatibleBoxedValueByKey")
+
+        methods.forEach { methodName ->
+            val method = getMethod(methodName = methodName, className = "RuntimeNew")
+            val outcome = analyze(methodName)
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+            assertTrue(outcome.unsupportedPaths.any { "Assignment changes runtime sort" in it },
+                "$methodName: ${outcome.unsupportedPaths}")
+            val inputs = outcome.states.map { state ->
+                assertIs<TsMethodResult.Success>(state.methodResult)
+                val test = TsTestResolver().resolve(method, state)
+                assertEquals(true, assertIs<TsTestValue.TsBoolean>(test.returnValue).value,
+                    "$methodName: ${test.before.parameters}")
+                assertIs<TsTestValue.TsBoolean>(test.before.parameters.single()).value
+            }
+            assertEquals(setOf(true), inputs.toSet(), methodName)
+        }
+
+        replay(methods.flatMap { methodName ->
+            listOf(
+                "if (!new RuntimeNew().$methodName(true)) throw Error('$methodName(true)');",
+                "if (new RuntimeNew().$methodName(false)) throw Error('$methodName(false)');",
+            )
+        })
+    }
+
+    @Test
+    fun `an object hasInstance method does not make it constructable`() {
+        val outcome = analyze(methodName = "nonConstructableWithHasInstance")
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.isEmpty(), "${outcome.unsupportedPaths}")
+        assertTrue(outcome.states.isNotEmpty())
+        outcome.states.forEach { state ->
+            val exception = assertIs<TsMethodResult.TsException>(state.methodResult)
+            assertEquals("TypeError", exception.type.typeName)
+        }
+
+        replay(listOf(
+            "let caught = false; try { new RuntimeNew().nonConstructableWithHasInstance(); } " +
+                "catch (error) { caught = error instanceof TypeError; } " +
+                "if (!caught) throw Error('hasInstance is not a constructor');"
+        ))
+    }
+
+    @Test
     fun `unmodeled constructor identity is explicitly unsupported`() {
         val method = getMethod(methodName = "symbolicConstructor", className = "RuntimeNew")
         val outcome = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->

@@ -138,7 +138,6 @@ private fun TsContext.resolveDeclaredField(
     val declaredLiteralSort = declaredLiteralField?.let { typeToSort(it.type) }
     val sort = writtenSort ?: declaredLiteralSort ?: resolvedFieldSort(
         scope = scope,
-        instanceLocal = local,
         instance = instance,
         field = field,
         resolved = resolvedField,
@@ -172,7 +171,6 @@ private fun TsContext.resolveDeclaredField(
 
 private fun TsContext.resolvedFieldSort(
     scope: TsStepScope,
-    instanceLocal: EtsLocal?,
     instance: UHeapRef,
     field: EtsFieldSignature,
     resolved: TsResolutionResult<EtsField>,
@@ -181,7 +179,6 @@ private fun TsContext.resolvedFieldSort(
     is TsResolutionResult.Unique -> typeToSort(resolved.property.type)
     is TsResolutionResult.Ambiguous -> resolveAmbiguousFieldSort(
         scope = scope,
-        instanceLocal = instanceLocal,
         instance = instance,
         fields = resolved.properties,
         hierarchy = hierarchy,
