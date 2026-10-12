@@ -10,7 +10,7 @@ import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 
-internal abstract class CurrentTsCallsSymbolicEngineTestSupport {
+internal open class CurrentTsCallsSymbolicEngineTestSupport {
     @TempDir
     lateinit var directory: Path
 
