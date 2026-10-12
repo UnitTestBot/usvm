@@ -50,6 +50,24 @@ class TsStringIndexingTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `indexed reads preserve isolated surrogate units`() {
+        discoverProperties<TsTestValue.TsBoolean>(
+            method = method("indexedReadEquals"),
+            { value -> value.value },
+            invariants = arrayOf({ value -> value.value }),
+        )
+    }
+
+    @Test
+    fun `out of range string index yields undefined`() {
+        discoverProperties<TsTestValue.TsBoolean>(
+            method = method("outOfRangeIndex"),
+            { value -> value.value },
+            invariants = arrayOf({ value -> value.value }),
+        )
+    }
+
+    @Test
     fun `indexing reads individual UTF-16 code units`() {
         discoverProperties<TsTestValue.TsBoolean>(
             method = method("literalUtf16"),

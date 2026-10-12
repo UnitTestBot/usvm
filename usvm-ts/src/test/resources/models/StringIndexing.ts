@@ -1,4 +1,12 @@
 export class StringIndexing {
+    indexedReadEquals(): boolean {
+        return "\udc00"[0] === "\udc00";
+    }
+
+    outOfRangeIndex(): boolean {
+        return "x"[1] === undefined;
+    }
+
     literalUtf16(): boolean {
         const value = "A\u0000\u03a9\ud83d\ude00";
         return value[0] === "A" && value[1] === "\u0000" && value[2] === "\u03a9" &&
