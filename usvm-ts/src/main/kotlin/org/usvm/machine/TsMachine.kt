@@ -88,7 +88,8 @@ class TsMachine(
     private val ctx = TsContext(
         scene = runtimeScene,
         components = components,
-        applicationAndSdkClasses = runtimeScene.projectAndSdkClasses,
+        // Model bodies are reachable only through their dispatcher and its domain guards.
+        applicationAndSdkClasses = scene.projectClasses + runtimeScene.sdkClasses,
     )
     private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsModelUnknownCallDispatcher(
         models = requireNotNull(resolvedUnknownCallModels),
