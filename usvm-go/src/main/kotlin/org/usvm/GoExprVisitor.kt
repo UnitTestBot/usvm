@@ -127,6 +127,7 @@ import org.usvm.state.GoMethodResult
 import org.usvm.state.GoState.Companion.POINTER_FIELD
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.type.GoBasicTypes
+import org.usvm.type.mapKeyStorageType
 import org.usvm.type.underlying
 import org.usvm.types.first
 import org.usvm.util.isInit
@@ -455,7 +456,7 @@ class GoExprVisitor(
     override fun visitGoLookupExpr(expr: GoLookupExpr): UExpr<out USort> {
         val map = unboxNamedRef(expr.instance.accept(this).asExpr(ctx.addressSort), expr.instance.type)
         val mapType = expr.instance.type.underlying() as MapType
-        val key = expr.index.accept(this)
+        val key = resolveMapKey(expr.index)
 
         val isRefKey = key.sort == ctx.addressSort
         val commaOk = expr.commaOk
@@ -535,9 +536,10 @@ class GoExprVisitor(
 
                     val length = symbolicObjectMapSize(collection, collectionType)
                     val ok = ctx.mkAnd(notNull, ctx.mkBvSignedGreaterExpr(length, ctx.mkBv(0)))
-                    val isPrimitiveKey = collectionType.keyType.underlying() is BasicType
+                    val keySort = ctx.typeToSort(collectionType.keyType.mapKeyStorageType())
+                    val isPrimitiveKey = keySort != ctx.addressSort
                     val (key, value) = if (isPrimitiveKey) {
-                        val k = symbolicPrimitiveMapAnyKey(collection, collectionType, ctx.typeToSort(collectionType.keyType), USizeExprKeyInfo())
+                        val k = symbolicPrimitiveMapAnyKey(collection, collectionType, keySort, USizeExprKeyInfo())
                         val v = symbolicPrimitiveMapGet(collection, k, collectionType, ctx.typeToSort(collectionType.valueType), USizeExprKeyInfo())
                         symbolicPrimitiveMapRemove(collection, k, collectionType, USizeExprKeyInfo())
                         k to v
@@ -550,7 +552,7 @@ class GoExprVisitor(
 
                     mkTuple(
                         TupleType(listOf(GoBasicTypes.BOOL, collectionType.keyType, collectionType.valueType)),
-                        ok, key, value
+                        ok, if (isPrimitiveKey) tryBox(key, collectionType.keyType) else key, value
                     )
                 }
 
@@ -843,6 +845,14 @@ class GoExprVisitor(
         return unbox(expr.asExpr(ctx.addressSort), ctx.typeToSort(type.underlying()))
     }
 
+    internal fun resolveMapKey(value: GoValue): UExpr<out USort> {
+        val key = value.accept(this)
+        val storageType = value.type.mapKeyStorageType()
+        if (storageType == value.type) return key
+
+        return unboxNamedPrimitive(key, value.type)
+    }
+
     private fun tryBox(expr: UExpr<out USort>, targetType: GoType): UExpr<out USort> {
         return if (targetType is NamedType) box(expr, targetType) else expr
     }
@@ -907,9 +917,9 @@ class GoExprVisitor(
 
             "delete" -> {
                 val map = unboxNamedRef(args[0].accept(this).asExpr(ctx.addressSort), args[0].type)
-                val key = args[1].accept(this)
+                val key = resolveMapKey(args[1])
                 val mapType = args[0].type.underlying() as MapType
-                val keySort = ctx.typeToSort(mapType.keyType)
+                val keySort = ctx.typeToSort(mapType.keyType.mapKeyStorageType())
 
                 scope.ensureObjectMapSizeCorrect(map, mapType) ?: throw IllegalStateException()
                 scope.doWithState {
@@ -975,7 +985,7 @@ class GoExprVisitor(
         checkNotNull(srcMap) ?: throw IllegalStateException()
         scope.ensureObjectMapSizeCorrect(srcMap, mapType) ?: throw IllegalStateException()
 
-        val keySort = typeToSort(mapType.keyType)
+        val keySort = typeToSort(mapType.keyType.mapKeyStorageType())
         val valueSort = typeToSort(mapType.valueType)
         val isRefSet = keySort == addressSort
         return scope.calcOnState {

@@ -59,6 +59,7 @@ import org.usvm.state.GoMethodResult
 import org.usvm.state.GoState
 import org.usvm.type.GoBasicTypes
 import org.usvm.type.GoVoidSort
+import org.usvm.type.mapKeyStorageType
 import org.usvm.type.underlying
 import org.usvm.types.first
 import java.nio.ByteBuffer
@@ -204,7 +205,8 @@ class GoTestInterpreter(
                 return null
             }
 
-            val keySort = typeToSort(keyType)
+            val keyStorageType = keyType.mapKeyStorageType()
+            val keySort = typeToSort(keyStorageType)
             val valueSort = typeToSort(valueType)
 
             val isRefSet = keySort == addressSort
@@ -223,7 +225,7 @@ class GoTestInterpreter(
                         UMapEntryLValue(keySort, valueSort, map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
                     }
                     val value = memory.read(lvalue)
-                    convertExpr(key, keyType) to convertExpr(value, valueType)
+                    convertExpr(key, keyStorageType) to convertExpr(value, valueType)
                 })
             }
             val getEntries: (UHeapRef) -> Set<ULValue<*, UBoolSort>> = {
@@ -242,12 +244,12 @@ class GoTestInterpreter(
 
             if (length > result.size) {
                 val diff = length - result.size
-                val rng = RNG(keyType as BasicType)
+                val rng = if (isRefSet) null else RNG(keyStorageType as BasicType)
                 for (i in 0 until diff) {
                     val key = if (isRefSet) {
                         convertExpr(state.symbolicObjectMapAnyKey(map, mapType), keyType)
                     } else {
-                        rng.generateUniqueMapKey(result)
+                        requireNotNull(rng).generateUniqueMapKey(result)
                     }
                     val value = convertExpr(valueSort.sampleUValue(), valueType)
                     result[key] = value

@@ -131,7 +131,7 @@ class GoInstVisitor(
     override fun visitGoMapUpdateInst(inst: GoMapUpdateInst): GoInst {
         val map = exprVisitor.unboxNamedRef(inst.map.accept(exprVisitor).asExpr(ctx.addressSort), inst.map.type)
         val type = inst.map.type.underlying()
-        val key = inst.key.accept(exprVisitor)
+        val key = exprVisitor.resolveMapKey(inst.key)
         val value = inst.value.accept(exprVisitor)
         val isRefKey = key.sort == ctx.addressSort
 
