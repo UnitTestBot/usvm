@@ -308,8 +308,8 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     add(PRIMITIVE_CODE_UNIT_AT_ID)
                 }
             }
-            if (methodName in setOf("slice", "substring", "trim", "trimStart", "trimEnd")) {
-                add(PRIMITIVE_COPY_RANGE_ID)
+            if (methodName in setOf("trim", "trimStart", "trimEnd")) {
+                add(PRIMITIVE_CODE_UNIT_AT_ID)
             }
         },
     )

@@ -77,16 +77,16 @@ export class StringModels {
     }
 
     static substring(receiver: string, start: number, end: number): string {
-        const length = StringModelPrimitives.length(receiver);
+        const length = receiver.length;
         const from = StringModels.normalizePosition(start, length);
         const to = StringModels.normalizePosition(end, length);
         return from <= to
-            ? StringModelPrimitives.copyRange(receiver, from, to)
-            : StringModelPrimitives.copyRange(receiver, to, from);
+            ? StringModels.slice(receiver, from, to)
+            : StringModels.slice(receiver, to, from);
     }
 
     static trim(receiver: string): string {
-        const length = StringModelPrimitives.length(receiver);
+        const length = receiver.length;
         let start = 0;
         let end = length;
         while (start < end && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, start))) {
@@ -95,24 +95,24 @@ export class StringModels {
         while (end > start && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, end - 1))) {
             end--;
         }
-        return StringModelPrimitives.copyRange(receiver, start, end);
+        return StringModels.slice(receiver, start, end);
     }
 
     static trimStart(receiver: string): string {
-        const length = StringModelPrimitives.length(receiver);
+        const length = receiver.length;
         let start = 0;
         while (start < length && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, start))) {
             start++;
         }
-        return StringModelPrimitives.copyRange(receiver, start, length);
+        return StringModels.slice(receiver, start, length);
     }
 
     static trimEnd(receiver: string): string {
-        let end = StringModelPrimitives.length(receiver);
+        let end = receiver.length;
         while (end > 0 && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, end - 1))) {
             end--;
         }
-        return StringModelPrimitives.copyRange(receiver, 0, end);
+        return StringModels.slice(receiver, 0, end);
     }
 
     private static isWhitespace(codeUnit: number): boolean {
