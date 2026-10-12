@@ -1,7 +1,81 @@
 // @ts-nocheck
 // noinspection JSUnusedGlobalSymbols
 
+declare class StringModelPrimitives {
+    static codeUnitAt(receiver: string, index: number): number;
+    static fromCodeUnit(codeUnit: number): string;
+}
+
 export class SequenceEtsIr {
+    unrelatedCodeUnitAtDeclaration(): number {
+        return StringModelPrimitives.codeUnitAt("AZ", 1);
+    }
+
+    unrelatedFromCodeUnitDeclaration(): string {
+        return StringModelPrimitives.fromCodeUnit(65);
+    }
+
+    arrayPopEvaluatesIgnoredArguments(): number {
+        const values = [1, 2];
+
+        const popped = values.pop(values.push(3), { ignored: true });
+
+        return popped * 10 + values.length;
+    }
+
+    arraySearchesEvaluateIgnoredArguments(): boolean {
+        const values = [1, 2, 1];
+        const effects: number[] = [];
+
+        const index = values.indexOf(3, 0, values.push(3));
+        const includes = values.includes(1, undefined, effects.push(1));
+        const lastOmitted = values.lastIndexOf(1);
+        const lastUndefined = values.lastIndexOf(1, undefined, effects.push(2));
+        const lastNumeric = values.lastIndexOf(1, 3, { ignored: true });
+
+        return index === 3 && includes && lastOmitted === 2 && lastUndefined === 0
+            && lastNumeric === 2 && effects.length === 2;
+    }
+
+    stringIndexesEvaluateIgnoredArguments(): boolean {
+        const effects: number[] = [];
+
+        const character = "abc".charAt(undefined, effects.push(1));
+        const codeUnit = "abc".charCodeAt(1, effects.push(2));
+
+        return character === "a" && codeUnit === 98 && effects.length === 2;
+    }
+
+    stringSearchesEvaluateIgnoredArguments(): boolean {
+        const effects: number[] = [];
+
+        const index = "abc".indexOf("b", undefined, effects.push(1));
+        const includes = "abc".includes("c", 1, effects.push(2));
+        const starts = "abc".startsWith("b", 1, { ignored: true });
+        const ends = "abc".endsWith("c", undefined, effects.push(3));
+        const last = "ababa".lastIndexOf("ba", undefined, effects.push(4));
+
+        return index === 1 && includes && starts && ends && last === 3 && effects.length === 4;
+    }
+
+    stringSliceEvaluatesIgnoredArguments(): boolean {
+        const effects: number[] = [];
+
+        const suffix = "abc".slice(1, undefined, effects.push(1));
+        const middle = "abc".slice(1, 2, { ignored: true });
+
+        return suffix === "bc" && middle === "b" && effects.length === 1;
+    }
+
+    stringCaseConversionEvaluatesIgnoredArguments(): boolean {
+        const effects: number[] = [];
+
+        const upper = "ab".toUpperCase(effects.push(1), { ignored: true });
+        const lower = "CD".toLowerCase(effects.push(2));
+
+        return upper === "AB" && lower === "cd" && effects.length === 2;
+    }
+
     arrayIndexOfUsesStrictEqualityAndOffsets(): number {
         const values = [NaN, 2, 3, 2];
         return values.indexOf(NaN) * 1000

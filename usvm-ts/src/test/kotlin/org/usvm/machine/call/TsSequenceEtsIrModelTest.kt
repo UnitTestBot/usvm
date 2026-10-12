@@ -28,6 +28,81 @@ class TsSequenceEtsIrModelTest {
     private val scene = EtsScene(listOf(sourceFile))
 
     @Test
+    fun `unrelated codeUnitAt declaration uses residual fallback`() {
+        val result = analyze(methodName = "unrelatedCodeUnitAtDeclaration")
+
+        assertTrue(result.values.isEmpty())
+        assertTrue(result.modelIds.isEmpty())
+        assertEquals(TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE, result.events.single().failureReason)
+        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.single().outcome)
+    }
+
+    @Test
+    fun `unrelated fromCodeUnit declaration uses residual fallback`() {
+        val result = analyze(methodName = "unrelatedFromCodeUnitDeclaration")
+
+        assertTrue(result.values.isEmpty())
+        assertTrue(result.modelIds.isEmpty())
+        assertEquals(TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE, result.events.single().failureReason)
+        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.single().outcome)
+    }
+
+    @Test
+    fun `array pop evaluates ignored arguments before reading the receiver`() {
+        val result = analyze(methodName = "arrayPopEvaluatesIgnoredArguments")
+
+        assertEquals(32.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+        assertTrue("ts.array.pop" in result.modelIds)
+    }
+
+    @Test
+    fun `array searches ignore evaluated extras and preserve undefined lastIndexOf semantics`() {
+        val result = analyze(methodName = "arraySearchesEvaluateIgnoredArguments")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertTrue(setOf("ts.array.indexOf", "ts.array.includes", "ts.array.lastIndexOf").all(result.modelIds::contains))
+    }
+
+    @Test
+    fun `string indexes evaluate ignored arguments`() {
+        val result = analyze(methodName = "stringIndexesEvaluateIgnoredArguments")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertTrue(setOf("ts.string.charAt", "ts.string.charCodeAt").all(result.modelIds::contains))
+    }
+
+    @Test
+    fun `string searches evaluate ignored arguments and default undefined positions`() {
+        val result = analyze(methodName = "stringSearchesEvaluateIgnoredArguments")
+        val expectedModels = setOf(
+            "ts.string.indexOf",
+            "ts.string.includes",
+            "ts.string.startsWith",
+            "ts.string.endsWith",
+            "ts.string.lastIndexOf",
+        )
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertTrue(expectedModels.all(result.modelIds::contains))
+    }
+
+    @Test
+    fun `string slice evaluates ignored arguments`() {
+        val result = analyze(methodName = "stringSliceEvaluatesIgnoredArguments")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertTrue("ts.string.slice" in result.modelIds)
+    }
+
+    @Test
+    fun `string case conversion evaluates ignored arguments`() {
+        val result = analyze(methodName = "stringCaseConversionEvaluatesIgnoredArguments")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertTrue(setOf("ts.string.toUpperCase", "ts.string.toLowerCase").all(result.modelIds::contains))
+    }
+
+    @Test
     fun `array indexOf uses strict equality and offsets`() {
         val result = analyze(methodName = "arrayIndexOfUsesStrictEqualityAndOffsets")
 

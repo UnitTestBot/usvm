@@ -2,16 +2,15 @@ package org.usvm.machine.call.intrinsic
 
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
-import org.usvm.UExpr
 import org.usvm.machine.call.TsEtsIrUnknownCallModel
 import org.usvm.machine.call.TsEtsIrUnknownCallModelArtifact
 import org.usvm.machine.call.TsEtsIrUnknownCallModelDomainGuard
 import org.usvm.machine.call.TsEtsIrUnknownCallModelInputAdapter
-import org.usvm.machine.call.TsUnknownCall
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModel
 import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.call.loadBundledEtsIrUnknownCallModelArtifact
+import org.usvm.machine.call.resolvedInstanceInputs
 import org.usvm.util.arrayStorageType
 
 /** Built-in Array algorithms implemented by ordinary TypeScript bodies. */
@@ -37,14 +36,14 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             } else {
                 val array = receiver.asExpr(addressSort)
                 val receiverType = state.arrayStorageType(array, staticType) as? EtsArrayType
+                    ?: return@TsEtsIrUnknownCallModelDomainGuard falseExpr
                 val searchElement = inputs.getOrNull(1)
                 val searchRef = searchElement
                     ?.takeIf { it.sort == addressSort }
                     ?.asExpr(addressSort)
-                if (
-                    array.hasFakeValueBranch() || receiverType?.dimensions != 1 ||
+                val hasUnsupportedArrayShape = array.hasFakeValueBranch() || receiverType.dimensions != 1 ||
                     searchRef?.hasFakeValueBranch() == true
-                ) {
+                if (hasUnsupportedArrayShape) {
                     falseExpr
                 } else {
                     val elementSort = typeToSort(receiverType.elementType)
@@ -78,31 +77,38 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         }
     }
 
-    private val optionalFromIndexAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
-        call.resolvedInstanceInputs()?.let { inputs ->
-            when {
-                call.arguments.size == 1 -> inputs + state.ctx.mkFp64(0.0)
-                call.arguments.size == 2 && inputs.last() == state.ctx.mkUndefinedValue() -> {
-                    inputs.dropLast(1) + state.ctx.mkFp64(0.0)
-                }
+    private val receiverOnlyAdapter = TsEtsIrUnknownCallModelInputAdapter { _, call ->
+        call.resolvedInstanceInputs(maxArgumentCount = 0)
+    }
 
-                call.arguments.size == 2 && inputs.last().sort == state.ctx.fp64Sort -> inputs
-                else -> null
-            }
+    private val optionalFromIndexAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
+        val inputs = call.resolvedInstanceInputs(maxArgumentCount = 2)
+            ?: return@TsEtsIrUnknownCallModelInputAdapter null
+        if (inputs.size < 2) {
+            return@TsEtsIrUnknownCallModelInputAdapter null
+        }
+
+        val fromIndex = inputs.getOrNull(2)
+        when {
+            fromIndex == null || fromIndex == state.ctx.mkUndefinedValue() -> inputs.take(2) + state.ctx.mkFp64(0.0)
+            fromIndex.sort == state.ctx.fp64Sort -> inputs
+            else -> null
         }
     }
 
     private val optionalLastIndexAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
-        call.resolvedInstanceInputs()?.let { inputs ->
-            when {
-                call.arguments.size == 1 -> inputs + state.ctx.mkFpInf(signBit = false, state.ctx.fp64Sort)
-                call.arguments.size == 2 && inputs.last() == state.ctx.mkUndefinedValue() -> {
-                    inputs.dropLast(1) + state.ctx.mkFp64(0.0)
-                }
+        val inputs = call.resolvedInstanceInputs(maxArgumentCount = 2)
+            ?: return@TsEtsIrUnknownCallModelInputAdapter null
+        if (inputs.size < 2) {
+            return@TsEtsIrUnknownCallModelInputAdapter null
+        }
 
-                call.arguments.size == 2 && inputs.last().sort == state.ctx.fp64Sort -> inputs
-                else -> null
-            }
+        val fromIndex = inputs.getOrNull(2)
+        when {
+            fromIndex == null -> inputs + state.ctx.mkFpInf(signBit = false, state.ctx.fp64Sort)
+            fromIndex == state.ctx.mkUndefinedValue() -> inputs.take(2) + state.ctx.mkFp64(0.0)
+            fromIndex.sort == state.ctx.fp64Sort -> inputs
+            else -> null
         }
     }
 
@@ -111,6 +117,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             sourceModel(
                 id = "ts.array.pop",
                 methodName = "pop",
+                inputAdapter = receiverOnlyAdapter,
             ),
             sourceModel(
                 id = "ts.array.indexOf",
@@ -133,7 +140,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private fun sourceModel(
         id: String,
         methodName: String,
-        inputAdapter: TsEtsIrUnknownCallModelInputAdapter = TsEtsIrUnknownCallModelInputAdapter.IDENTITY,
+        inputAdapter: TsEtsIrUnknownCallModelInputAdapter,
     ): TsUnknownCallModel {
         val target = TsUnknownCallTarget(
             methodName = methodName,
@@ -159,13 +166,6 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             .single { it.name == methodName }
 
         return artifact.copy(entryPoint = entryPoint)
-    }
-
-    private fun TsUnknownCall.resolvedInstanceInputs(): List<UExpr<*>>? {
-        val resolvedReceiver = receiver?.resolved ?: return null
-        val resolvedArguments = arguments.map { argument -> argument.resolved ?: return null }
-
-        return listOf(resolvedReceiver) + resolvedArguments
     }
 
     private const val MATH_FLOOR_MODEL_ID = "ts.math.floor"

@@ -222,8 +222,11 @@ class TsArrayPopEtsIrModelTest {
     }
 
     @Test
-    fun `arity mismatch uses fallback`() {
-        assertUsesResidualFallback(methodName = "popWithArguments")
+    fun `pop ignores extra arguments`() {
+        val result = analyze(methodName = "popWithArguments")
+
+        assertEquals(49.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+        assertEquals(listOf("ts.array.pop"), result.modelIds)
     }
 
     @Test
