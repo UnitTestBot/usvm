@@ -1,6 +1,7 @@
 package org.usvm.ts.pbt.usvm
 
 import io.ksmt.utils.asExpr
+import io.ksmt.expr.KBitVec16Value
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsType
@@ -28,6 +29,9 @@ import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.mkStringBackingLValue
+import org.usvm.util.mkStringBackingLengthLValue
+import org.usvm.util.mkStringBackingElementLValue
 
 internal class UsvmCandidateInputResolver {
     fun resolve(
@@ -68,7 +72,7 @@ internal class UsvmCandidateInputResolver {
                 state.models.single().eval(value.asExpr(fp64Sort)).extractDouble(),
             )
 
-            is StringDomain -> resolveString(state, value)
+            is StringDomain -> resolveString(state, value, maxLength = domain.maxLength)
             is ConstantDomain -> domain.value
             is OptionalDomain -> resolveOptional(state, domain, etsType, value)
             is TupleDomain -> resolveTuple(state, domain, etsType, value)
@@ -119,13 +123,33 @@ internal class UsvmCandidateInputResolver {
         resolveValue(state, domain.value, nestedType, value)
     }
 
-    private fun resolveString(state: TsState, value: UExpr<out USort>): JsConcreteValue.String = with(state.ctx) {
-        val ref = state.models.single().eval(value.asExpr(addressSort)) as? UConcreteHeapRef
+    private fun resolveString(
+        state: TsState,
+        value: UExpr<out USort>,
+        maxLength: Int,
+    ): JsConcreteValue.String = with(state.ctx) {
+        val model = state.models.single()
+        val string = value.asExpr(addressSort)
+        val concrete = model.eval(string) as? UConcreteHeapRef
             ?: error("Symbolic string reference did not resolve to a concrete heap reference")
-        val concrete = getStringConstantValue(ref)
-            ?: error("Symbolic string contents are unavailable")
+        val constant = getStringConstantValue(concrete)
+        if (constant != null) {
+            return@with JsConcreteValue.String(constant)
+        }
 
-        JsConcreteValue.String(concrete)
+        val characters = model.eval(state.memory.read(mkStringBackingLValue(string)))
+        val length = model.eval(state.memory.read(mkStringBackingLengthLValue(characters))).extractInt()
+        require(length in 0..maxLength) { "Resolved string length $length exceeds its declared domain" }
+
+        val contents = buildString(length) {
+            repeat(length) { index ->
+                val lValue = mkStringBackingElementLValue(characters, mkBv(index))
+                val character = model.eval(state.memory.read(lValue)) as KBitVec16Value
+                append(character.shortValue.toInt().toChar())
+            }
+        }
+
+        JsConcreteValue.String(contents)
     }
 
     private fun resolveTuple(
@@ -162,7 +186,7 @@ internal class UsvmCandidateInputResolver {
         val length = state.models.single()
             .eval(state.memory.read(lengthLValue).asExpr(sizeSort))
             .extractInt()
-        val elementSort = typeToSort(arrayDescriptorOf(etsType).let { it as EtsArrayType }.elementType)
+        val elementSort = typeToSort(arrayDescriptorOf(etsType).elementType)
         val elements = (0 until length).map { index ->
             val element = if (elementSort is TsUnresolvedSort) {
                 state.memory.read(mkArrayIndexLValue(addressSort, ref, mkBv(index), etsType))

@@ -101,3 +101,25 @@ export function nonBooleanProperty(value: number): number {
 export async function asyncValidProperty(value: number): Promise<boolean> {
   return value === value;
 }
+
+export function stringContentProperty(value: string): boolean {
+  return value !== "a";
+}
+
+export function nestedArrayProperty(value: number[][]): boolean {
+  return value[0][0] !== 2;
+}
+
+export function unsupportedArrayGrowth(value: number): boolean {
+  const values = [value];
+  values.length = 2;
+  return true;
+}
+
+export function mixedArrayGrowth(value: number): boolean {
+  if (value === 0) {
+    return false;
+  }
+
+  return unsupportedArrayGrowth(value);
+}

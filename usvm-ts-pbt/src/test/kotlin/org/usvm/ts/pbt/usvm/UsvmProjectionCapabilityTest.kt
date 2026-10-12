@@ -34,7 +34,7 @@ class UsvmProjectionCapabilityTest {
             Case(BooleanDomain, "acceptsBoolean", ProjectionLevel.EXACT, emptyList()),
             Case(IntegerDomain(min = -2, max = 3), "acceptsNumber", ProjectionLevel.EXACT, emptyList()),
             Case(NumberDomain(allowNaN = false), "acceptsNumber", ProjectionLevel.EXACT, emptyList()),
-            Case(StringDomain(maxLength = 4), "acceptsString", ProjectionLevel.APPROXIMATE, listOf("inputs[0].domain")),
+            Case(StringDomain(maxLength = 4), "acceptsString", ProjectionLevel.EXACT, emptyList()),
             Case(
                 ConstantDomain(JsConcreteValue.Boolean(value = true)),
                 "acceptsBoolean",
@@ -73,8 +73,8 @@ class UsvmProjectionCapabilityTest {
         )
 
         assertEquals(ProjectionLevel.EXACT, optional.symbolic.level)
-        assertEquals(ProjectionLevel.APPROXIMATE, tuple.symbolic.level)
-        assertEquals(listOf("inputs[0].domain.elements[1]"), tuple.symbolic.diagnostics.map { it.path })
+        assertEquals(ProjectionLevel.EXACT, tuple.symbolic.level)
+        assertEquals(emptyList(), tuple.symbolic.diagnostics)
         assertEquals(ProjectionLevel.EXACT, array.symbolic.level)
         assertEquals(ProjectionLevel.UNSUPPORTED, oversizedArray.symbolic.level)
         assertEquals(listOf("inputs[0].domain"), oversizedArray.symbolic.diagnostics.map { it.path })

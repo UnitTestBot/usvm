@@ -112,7 +112,7 @@ class UsvmPropertySearcherTest {
     }
 
     @Test
-    fun `preserves a reached target when symbolic input resolution fails`() {
+    fun `resolves a symbolic string after reaching a violation`() {
         val manifest = manifest(
             predicateExport = "falseStringProperty",
             domain = StringDomain(minLength = 0, maxLength = 3),
@@ -120,10 +120,48 @@ class UsvmPropertySearcherTest {
 
         val result = search(manifest)
 
-        assertEquals(UsvmPropertySearchStatus.FAILED_INPUT_RESOLUTION, result.status)
+        assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, result.status)
         assertEquals(UsvmPropertyViolationTarget.PREDICATE_FALSE, result.target)
-        assertNull(result.inputs)
-        assertTrue(result.diagnostics.any { it.code == "usvm.input.resolution.failed" })
+        val inputs = assertNotNull(result.inputs)
+        assertTrue(inputs.single() in StringDomain(minLength = 0, maxLength = 3))
+    }
+
+    @Test
+    fun `resolves string contents and nested array inputs`() {
+        val stringDomain = StringDomain(minLength = 1, maxLength = 1)
+        val nestedDomain = ArrayDomain(
+            element = ArrayDomain(
+                element = ConstantDomain(JsConcreteValue.number(2.0)),
+                minLength = 1,
+                maxLength = 1,
+            ),
+            minLength = 1,
+            maxLength = 1,
+        )
+        val innerArray = JsConcreteValue.Array(elements = listOf(JsConcreteValue.number(2.0)))
+        val expectedNested = listOf(JsConcreteValue.Array(elements = listOf(innerArray)))
+
+        val string = search(manifest(predicateExport = "stringContentProperty", domain = stringDomain))
+        val nested = search(manifest(predicateExport = "nestedArrayProperty", domain = nestedDomain))
+
+        assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, string.status)
+        assertEquals(listOf(JsConcreteValue.String(value = "a")), string.inputs)
+        assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, nested.status)
+        assertEquals(expectedNested, nested.inputs)
+    }
+
+    @Test
+    fun `preserves engine limitation reasons and a reached candidate`() {
+        val unsupported = search(manifest(predicateExport = "unsupportedArrayGrowth"))
+        val mixed = search(
+            manifest(predicateExport = "mixedArrayGrowth", domain = IntegerDomain(min = 0, max = 1)),
+        )
+
+        assertEquals(UsvmPropertySearchStatus.UNSUPPORTED, unsupported.status)
+        assertTrue(unsupported.diagnostics.any { it.code == "usvm.execution.unsupported" })
+        assertEquals(UsvmPropertySearchStatus.UNSUPPORTED, mixed.status)
+        assertEquals(UsvmPropertyViolationTarget.PREDICATE_FALSE, mixed.target)
+        assertEquals(listOf(JsConcreteValue.number(0.0)), mixed.inputs)
     }
 
     @Test

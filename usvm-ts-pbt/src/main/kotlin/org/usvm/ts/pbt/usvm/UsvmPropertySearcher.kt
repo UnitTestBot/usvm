@@ -188,13 +188,15 @@ class UsvmPropertySearcher(
             )
         }
         if (analysis.unsupportedPaths.isNotEmpty()) {
+            val unsupportedMessage = analysis.unsupportedPaths.joinToString()
+
             return result(
                 manifest = manifest,
                 status = UsvmPropertySearchStatus.UNSUPPORTED,
                 capability = capability,
                 additionalDiagnostic = diagnostic(
                     code = PbtDiagnosticCode.USVM_EXECUTION_UNSUPPORTED,
-                    message = analysis.unsupportedPaths.joinToString(),
+                    message = unsupportedMessage,
                     path = "predicate",
                 ),
             )

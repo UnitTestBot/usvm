@@ -188,8 +188,8 @@ class UsvmProjectionCapabilityResolver {
 
         return when (domain) {
             BooleanDomain, is IntegerDomain, is NumberDomain -> exact()
-            is StringDomain -> approximateString(path)
-            is ConstantDomain -> constantCapability(domain.value, path)
+            is StringDomain -> exact()
+            is ConstantDomain -> exact()
             is OptionalDomain -> domainCapabilityForProjector(
                 domain = domain.value,
                 etsType = nestedOptionalType(domain, etsType),
@@ -317,25 +317,6 @@ class UsvmProjectionCapabilityResolver {
         JsConcreteValue.Null -> EtsNullType
         JsConcreteValue.Undefined -> EtsUndefinedType
         else -> null
-    }
-
-    private fun constantCapability(value: JsConcreteValue, path: String): ProjectionCapability = when (value) {
-        is JsConcreteValue.String -> approximateString(path)
-        else -> exact()
-    }
-
-    private fun approximateString(path: String): ProjectionCapability {
-        val diagnostic = CapabilityDiagnostic(
-            code = PbtDiagnosticCode.USVM_DOMAIN_STRING_APPROXIMATE,
-            message = "Over-approximation: USVM constrains string type and length, " +
-                "but leaves UTF-16 contents unconstrained",
-            path = path,
-        )
-
-        return ProjectionCapability(
-            level = ProjectionLevel.APPROXIMATE,
-            diagnostics = listOf(diagnostic),
-        )
     }
 
     private fun unsupported(code: String, message: String, path: String): ProjectionCapability {
