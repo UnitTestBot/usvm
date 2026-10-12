@@ -152,6 +152,37 @@ class UsvmPropertySearcherTest {
     }
 
     @Test
+    fun `preserves nested and optional array inputs through writes`() {
+        val nestedDomain = ArrayDomain(
+            element = ArrayDomain(
+                element = ConstantDomain(JsConcreteValue.number(2.0)),
+                minLength = 1,
+                maxLength = 1,
+            ),
+            minLength = 1,
+            maxLength = 1,
+        )
+        val optionalDomain = ArrayDomain(
+            element = OptionalDomain(value = ConstantDomain(JsConcreteValue.number(2.0))),
+            minLength = 1,
+            maxLength = 1,
+        )
+        val innerArray = JsConcreteValue.Array(elements = listOf(JsConcreteValue.number(2.0)))
+        val expectedNested = JsConcreteValue.Array(elements = listOf(innerArray))
+        val expectedOptional = JsConcreteValue.Array(elements = listOf(JsConcreteValue.number(2.0)))
+
+        val nested = search(manifest(predicateExport = "nestedArrayMutationProperty", domain = nestedDomain))
+        val optional = search(
+            manifest(predicateExport = "optionalNumberArrayMutationProperty", domain = optionalDomain),
+        )
+
+        assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, nested.status)
+        assertEquals(listOf(expectedNested), nested.inputs)
+        assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, optional.status)
+        assertEquals(listOf(expectedOptional), optional.inputs)
+    }
+
+    @Test
     fun `resolves string array snapshots and preserves UTF-16 code units`() {
         val arrayDomain = ArrayDomain(
             element = StringDomain(minLength = 1, maxLength = 1),

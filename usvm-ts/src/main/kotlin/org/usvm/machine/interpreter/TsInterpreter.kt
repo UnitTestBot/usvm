@@ -12,25 +12,19 @@ import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsCopyDataPropertiesStmt
 import org.jacodb.ets.model.EtsDefineAccessorStmt
 import org.jacodb.ets.model.EtsDefineDataPropertyStmt
-import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLValue
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNopStmt
-import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsPropertyRef
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStmt
-import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsThrowStmt
-import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsUndefinedType
-import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
@@ -39,11 +33,9 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UExpr
 import org.usvm.UInterpreter
-import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
 import org.usvm.api.targets.TsTarget
 import org.usvm.api.typeStreamOf
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsConcreteMethodCallStmt
@@ -58,7 +50,6 @@ import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.dispatch
 import org.usvm.machine.expr.TsExprApproximationResult
 import org.usvm.machine.expr.TsExprResolver
-import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.assignToInstanceField
 import org.usvm.machine.expr.checkUndefinedOrNullPropertyRead
 import org.usvm.machine.expr.ensureTruthinessSupported
@@ -69,39 +60,27 @@ import org.usvm.machine.expr.handleAssignToLocal
 import org.usvm.machine.expr.handleAssignToProperty
 import org.usvm.machine.expr.handleAssignToStaticField
 import org.usvm.machine.expr.handleDefineDataProperty
-import org.usvm.machine.expr.mkNotNullOrUndefined
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.expr.normalizeThrownValue
 import org.usvm.machine.expr.readGlobal
 import org.usvm.machine.expr.thrownValueType
 import org.usvm.machine.expr.tryApproximateInstanceCall
 import org.usvm.machine.expr.writeGlobal
-import org.usvm.machine.state.TsEntryPointGuardOutcome
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
-import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.prepareRefinedStringBackings
 import org.usvm.machine.state.returnValue
-import org.usvm.machine.state.symbolicStringBackingConstraint
-import org.usvm.machine.types.initialInputType
-import org.usvm.machine.types.mkFakeValue
-import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
-import org.usvm.solver.UUnknownResult
-import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
 import org.usvm.types.single
 import org.usvm.util.executableOverloadImplementation
-import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
-import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveDeclaredConstructor
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.type
-import org.usvm.utils.ensureSat
 
 private val logger = KotlinLogging.logger {}
 private typealias Reason = TsUnknownCallFailureReason
@@ -170,7 +149,7 @@ class TsInterpreter(
             when (stmt) {
                 is TsVirtualMethodCallStmt -> visitVirtualMethodCall(scope, stmt)
                 is TsConcreteMethodCallStmt -> visitConcreteMethodCall(scope, stmt)
-                is TsEntryPointGuardResultStmt -> visitEntryPointGuardResult(scope, stmt)
+                is TsEntryPointGuardResultStmt -> ctx.visitEntryPointGuardResult(scope, stmt)
                 is EtsIfStmt -> visitIfStmt(scope, stmt)
                 is EtsReturnStmt -> visitReturnStmt(scope, stmt)
                 is EtsAssignStmt -> visitAssignStmt(scope, stmt)
@@ -213,46 +192,6 @@ class TsInterpreter(
         }
 
         return scope.stepResult()
-    }
-
-    private fun visitEntryPointGuardResult(
-        scope: TsStepScope,
-        stmt: TsEntryPointGuardResultStmt,
-    ) = with(ctx) {
-        val result = scope.calcOnState { methodResult }
-        if (result !is TsMethodResult.Success) {
-            scope.doWithState {
-                entryPointGuardActive = false
-                entryPointGuardOutcome = TsEntryPointGuardOutcome.ERROR
-                callStack.pop()
-            }
-            return@with
-        }
-
-        val guard = result.value.takeIf { it.sort == boolSort }?.asExpr(boolSort)
-        if (guard == null) {
-            scope.doWithState {
-                entryPointGuardActive = false
-                entryPointGuardOutcome = TsEntryPointGuardOutcome.ERROR
-                callStack.pop()
-            }
-            return@with
-        }
-
-        scope.fork(
-            condition = guard,
-            blockOnTrueState = {
-                methodResult = TsMethodResult.NoCall
-                entryPointGuardActive = false
-                entryPointGuardOutcome = TsEntryPointGuardOutcome.NONE
-                newStmt(stmt.entryPoint)
-            },
-            blockOnFalseState = {
-                entryPointGuardActive = false
-                entryPointGuardOutcome = TsEntryPointGuardOutcome.REJECTED
-                callStack.pop()
-            },
-        )
     }
 
     private fun visitVirtualMethodCall(scope: TsStepScope, stmt: TsVirtualMethodCallStmt) = with(ctx) {
@@ -811,123 +750,9 @@ class TsInterpreter(
         method: EtsMethod,
         targets: List<TsTarget>,
         configureState: TsState.() -> Unit = {},
-    ): TsState = with(ctx) {
-        val state = TsState(
-            ctx = ctx,
-            ownership = MutabilityOwnership(),
-            entrypoint = method,
-            maxStringLength = options.maxArraySize,
-            inputPropertyPresence = options.inputPropertyPresence,
-            targets = UTargetsSet.from(targets),
-        )
-
-        state.callStack.push(method, returnSite = null)
-        state.memory.stack.push(method.parametersWithThisCount, method.localsCount)
-        state.newStmt(method.cfg.instructions.first())
-
-        state.memory.types.allocate(mkTsNullValue().address, EtsNullType)
-
-        // TODO check for statics
-        val thisIdx = 0
-        val thisInstanceRef = mkRegisterStackLValue(addressSort, thisIdx)
-        val thisRef = state.memory.read(thisInstanceRef).asExpr(addressSort)
-
-        state.pathConstraints += mkNotNullOrUndefined(thisRef)
-
-        // TODO not equal but subtype for abstract/interfaces
-        state.pathConstraints += state.memory.types.evalTypeEquals(thisRef, method.enclosingClass!!.type)
-
-        val genericParameters = method.typeParameters.filterIsInstance<EtsGenericType>().associateBy { it.typeName }
-        method.parameters.forEachIndexed { i, param ->
-            val idx = i + 1 // +1 because 0 is reserved for `this`
-            val ref by lazy {
-                val lValue = mkRegisterStackLValue(addressSort, idx)
-                state.memory.read(lValue).asExpr(addressSort)
-            }
-
-            val parameterType = param.type.initialInputType(genericParameters)
-            if (parameterType is EtsRefType) {
-                run {
-                    state.pathConstraints += mkNotNullOrUndefined(ref)
-
-                    if (parameterType is EtsArrayType) {
-                        state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
-
-                        val lengthLValue = mkArrayLengthLValue(ref, parameterType)
-                        val length = state.memory.read(lengthLValue).asExpr(sizeSort)
-                        state.pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
-                        state.pathConstraints += mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize))
-
-                        return@run
-                    }
-
-                    // Tuple inputs are materialized as fixed-size arrays by domain-aware initial-state configurators.
-                    if (parameterType is EtsTupleType) {
-                        return@run
-                    }
-
-                    val resolvedParameterType = graph.hierarchy.classesForType(parameterType)
-
-                    if (resolvedParameterType.isEmpty()) {
-                        logger.error("Cannot resolve class for parameter type: $parameterType")
-                        return@run // TODO should be an error
-                    }
-
-                    // Because of structural equality in TS we cannot determine the exact type
-                    // Therefore, we create information about the fields the type must consist
-                    val types = resolvedParameterType.mapNotNull { it.type.toAuxiliaryType(graph.hierarchy) }
-                    val auxiliaryType = EtsUnionType(types) // TODO error
-                    state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
-                }
-            }
-            if (parameterType == EtsNullType) {
-                state.pathConstraints += mkHeapRefEq(ref, mkTsNullValue())
-            }
-            if (parameterType == EtsUndefinedType) {
-                state.pathConstraints += mkHeapRefEq(ref, mkUndefinedValue())
-            }
-            if (parameterType == EtsStringType) {
-                state.pathConstraints += mkNotNullOrUndefined(ref)
-
-                state.pathConstraints += state.memory.types.evalTypeEquals(ref, EtsStringType)
-
-                state.pathConstraints += state.symbolicStringBackingConstraint(ref)
-                state.boundedStringBackingRefs += ref to state.maxStringLength
-            }
-
-            val parameterSort = typeToSort(parameterType)
-            if (parameterSort is TsUnresolvedSort) {
-                // If the parameter type is unresolved, we create a fake object for it
-                val bool = mkRegisterReading(idx, boolSort)
-                val fp = mkRegisterReading(idx, fp64Sort)
-                val ref = mkRegisterReading(idx, addressSort)
-                val fakeObject = state.mkFakeValue(null, bool, fp, ref)
-                val lValue = mkRegisterStackLValue(addressSort, idx)
-                state.memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
-                state.saveSortForLocal(idx, addressSort)
-            } else {
-                state.saveSortForLocal(idx, parameterSort)
-            }
-        }
-
-        state.configureState()
-        state.initializeModel(method)
-
-        state
-    }
+    ): TsState = createInitialState(ctx, graph, options, method, targets, configureState)
 
     // TODO: expand with interpreter implementation
     private val EtsStmt.nextStmt: EtsStmt?
         get() = graph.successors(this).firstOrNull()
-}
-
-private fun TsState.initializeModel(method: EtsMethod) {
-    val solver = ctx.solver<EtsType>()
-    val solverResult = solver.check(pathConstraints)
-    if (solverResult is UUnknownResult) {
-        throw TsInitialStateSolverUnknownException(method)
-    }
-
-    val model = solverResult.ensureSat().model
-    models = listOf(model)
 }

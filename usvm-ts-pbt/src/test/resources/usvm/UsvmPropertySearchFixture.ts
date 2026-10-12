@@ -136,3 +136,15 @@ export function loneSurrogateProperty(value: string): boolean {
 export function supplementaryProperty(value: string): boolean {
   return value !== "\uD83D\uDE00";
 }
+
+export function nestedArrayMutationProperty(values: number[][]): boolean {
+  const old = values[0][0];
+  values[0] = [3];
+  return old !== 2 || values[0][0] !== 3;
+}
+
+export function optionalNumberArrayMutationProperty(values: (number | undefined)[]): boolean {
+  const old = values[0];
+  values[0] = undefined;
+  return old !== 2;
+}

@@ -1,9 +1,7 @@
 package org.usvm.ts.pbt.usvm
 
 import io.ksmt.utils.asExpr
-import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.BeforeAll
@@ -28,9 +26,8 @@ import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.testResourcePath
-import org.usvm.util.mkArrayLengthLValue
-import org.usvm.util.readStringLength
 import org.usvm.util.mkRegisterStackLValue
+import org.usvm.util.readStringLength
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 

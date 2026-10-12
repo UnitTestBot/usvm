@@ -1,7 +1,7 @@
 package org.usvm.ts.pbt.usvm
 
-import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.machine.TsOptions
+import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.ts.pbt.backend.PropertyCapabilityLevel
 
 /** Bounds resource usage while recursively materializing symbolic property inputs. */

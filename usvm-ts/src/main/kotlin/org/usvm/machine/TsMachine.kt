@@ -160,14 +160,7 @@ class TsMachine(
         val (initialStates, unsupportedPaths) = createInitialStates(methods, targets, configureInitialState)
 
         if (initialStates.isEmpty()) {
-            return TsMachineAnalysisResult(
-                states = emptyList(),
-                stopReason = TsAnalysisStopReason.EXHAUSTED,
-                timedOut = false,
-                unsupportedCall = false,
-                engineFailed = false,
-                unsupportedPaths = unsupportedPaths.toList(),
-            )
+            return emptyAnalysisResult(unsupportedPaths)
         }
 
         val methodsToTrackCoverage =
@@ -268,19 +261,7 @@ class TsMachine(
         }
 
         val supportedObserver = CompositeUMachineObserver(observers)
-        val outcomeObserver = object : UMachineObserver<TsState> by supportedObserver {
-            override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
-                val unsupportedReason = state.unsupportedReason
-                if (unsupportedReason != null) {
-                    if (stateReachable) {
-                        unsupportedPaths += unsupportedReason
-                    }
-                    return
-                }
-
-                supportedObserver.onStateTerminated(state, stateReachable)
-            }
-        }
+        val outcomeObserver = UnsupportedPathsObserver(supportedObserver, unsupportedPaths)
 
         run(
             interpreter,
@@ -305,6 +286,15 @@ class TsMachine(
             unsupportedPaths = unsupportedPaths.toList(),
         )
     }
+
+    private fun emptyAnalysisResult(unsupportedPaths: Set<String>) = TsMachineAnalysisResult(
+        states = emptyList(),
+        stopReason = TsAnalysisStopReason.EXHAUSTED,
+        timedOut = false,
+        unsupportedCall = false,
+        engineFailed = false,
+        unsupportedPaths = unsupportedPaths.toList(),
+    )
 
     private fun createInitialStates(
         methods: List<EtsMethod>,
@@ -353,5 +343,23 @@ private class FailureTrackingUnknownCallObserver(
 
     fun reset() {
         pathStopped = false
+    }
+}
+
+/** Keeps excluded satisfiable paths out of the ordinary witness collector. */
+private class UnsupportedPathsObserver(
+    private val delegate: UMachineObserver<TsState>,
+    private val unsupportedPaths: MutableSet<String>,
+) : UMachineObserver<TsState> by delegate {
+    override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
+        val unsupportedReason = state.unsupportedReason
+        if (unsupportedReason != null) {
+            if (stateReachable) {
+                unsupportedPaths += unsupportedReason
+            }
+            return
+        }
+
+        delegate.onStateTerminated(state, stateReachable)
     }
 }

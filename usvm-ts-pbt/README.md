@@ -208,11 +208,12 @@ backend diagnostics are copied without reinterpretation.
 ## USVM projection and property search
 
 `UsvmProjectionCapabilityResolver` compares the declared domains with the exact EtsIR parameter bindings.
-Booleans, bounded integers and numbers, supported primitive constants, primitive optionals, bounded tuples, and
-bounded arrays are projected by `UsvmDomainProjector`. Strings are an explicit over-approximation: USVM constrains
-their type and UTF-16 length but not their contents. Optional reference domains, nested arrays, incompatible EtsIR
-types, and collections above `UsvmProjectionOptions.maxSymbolicCollectionLength` are unsupported with stable
-diagnostics.
+Booleans, bounded integers and numbers, supported primitive constants, optional domains, bounded tuples, and
+nested bounded arrays are projected by `UsvmDomainProjector`. Strings contain symbolic UTF-16 code units, including
+lone surrogates, and use private backing storage. Candidates are reconstructed from the initial input memory,
+including nested arrays and dynamic payloads, so predicate mutations do not overwrite the input witness.
+Incompatible EtsIR types and inputs above the configured string or collection bounds are rejected with stable
+diagnostics before allocation. Search caps these bounds by the engine's array capacity.
 
 `UsvmPropertySearcher` evaluates the mapped precondition and predicate in one symbolic state. A false precondition
 is `PRECONDITION_REJECTED` when it excludes the complete projected domain. A precondition exception or non-boolean
@@ -220,7 +221,7 @@ result is `PROPERTY_ERROR`. Predicate `false` and escaping predicate exceptions 
 non-boolean predicate is `PROPERTY_ERROR`. Timeout, solver uncertainty, unsupported execution, engine failure, and
 input-resolution failure retain distinct statuses and are never treated as proof. A reached target and any resolved
 inputs remain attached when another explored path ends with unsupported execution or an engine failure. TypeScript
-exception handlers are unsupported until the symbolic interpreter can preserve catch semantics.
+exception handlers use the interpreter's catch semantics; escaping exceptions remain predicate violations.
 
 The shared fixture in `usvm-ts-fast-check/src/test/resources/properties/contract/PropertyExecutionContract.ts` is
 executed by both

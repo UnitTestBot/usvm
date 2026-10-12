@@ -43,7 +43,7 @@ fun TsState.mkSymbolicString(minLength: Int, maxLength: Int): UConcreteHeapRef =
     memory.initializeArrayLength(characters, stringBackingArrayDescriptor, sizeSort, length)
     memory.write(mkStringBackingLValue(string), characters, guard = trueExpr)
     pathConstraints += mkAnd(meetsMinimum, meetsMaximum)
-    boundedStringBackingRefs += string
+    boundedStringBackingRefs += string to maxLength
 
     string
 }

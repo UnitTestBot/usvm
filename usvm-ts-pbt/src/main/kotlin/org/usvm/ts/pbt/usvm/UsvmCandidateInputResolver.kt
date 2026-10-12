@@ -16,7 +16,6 @@ import org.usvm.machine.expr.toConcreteBoolValue
 import org.usvm.machine.state.TsState
 import org.usvm.sizeSort
 import org.usvm.ts.pbt.model.ArrayDomain
-import org.usvm.util.componentType
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
@@ -27,6 +26,7 @@ import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TupleDomain
+import org.usvm.util.componentType
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.resolveStringValue
