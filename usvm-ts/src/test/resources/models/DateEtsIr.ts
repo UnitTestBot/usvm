@@ -149,11 +149,11 @@ export class DateEtsIr {
         const date = new Date(Date.UTC(2024, 0, 2, 3, 4, 5, 6));
 
         date.setUTCFullYear(2025);
+        const afterYearChange = date.getTime();
         date.setUTCHours(8);
 
-        return date.getUTCFullYear() === 2025 && date.getUTCMonth() === 0 && date.getUTCDate() === 2
-            && date.getUTCHours() === 8 && date.getUTCMinutes() === 4
-            && date.getUTCSeconds() === 5 && date.getUTCMilliseconds() === 6;
+        return afterYearChange === Date.UTC(2025, 0, 2, 3, 4, 5, 6)
+            && date.getTime() === Date.UTC(2025, 0, 2, 8, 4, 5, 6);
     }
 
     copiedDateKeepsItsOwnTimestamp(): number {
@@ -174,37 +174,38 @@ export class DateEtsIr {
     }
 
     boxedConstructorArgument(useNumber: boolean): number {
-        const values: any[] = [123, undefined];
-        return new Date(values[useNumber ? 0 : 1]).getTime();
+        const box = new DateArgumentBox(useNumber ? 123 : undefined);
+        return new Date(box.value).getTime();
     }
 
     boxedSetterArgument(useNumber: boolean): number {
         const date = new Date(0);
-        const values: any[] = [123, undefined];
+        const box = new DateArgumentBox(useNumber ? 123 : undefined);
 
-        const result = date.setTime(values[useNumber ? 0 : 1]);
+        const result = date.setTime(box.value);
 
         return result + date.getTime();
     }
 
     boxedPrimitiveComponents(): number {
-        const values: any[] = [true, null];
+        const boolean = new DateArgumentBox(true);
+        const nullish = new DateArgumentBox(null);
         const date = new Date(0);
 
-        date.setUTCSeconds(values[0], values[1]);
+        date.setUTCSeconds(boolean.value, nullish.value);
 
-        return date.getTime() + Date.UTC(1970, values[1], values[0]);
+        return date.getTime() + Date.UTC(1970, nullish.value, boolean.value);
     }
 
     boxedUnsupportedArgument(useNumber: boolean): number {
-        const values: any[] = [123, new DateImpostor()];
-        return new Date(values[useNumber ? 0 : 1]).getTime();
+        const box = new DateArgumentBox(useNumber ? 123 : new DateImpostor());
+        return new Date(box.value).getTime();
     }
 
     boxedDateCopy(): number {
         const original = new Date(123);
-        const values: any[] = [original, false];
-        const copy = new Date(values[0]);
+        const box = new DateArgumentBox(original);
+        const copy = new Date(box.value);
 
         original.setTime(456);
 
@@ -218,3 +219,11 @@ export class DateEtsIr {
 }
 
 class DateImpostor {}
+
+class DateArgumentBox {
+    value: any;
+
+    constructor(value: any) {
+        this.value = value;
+    }
+}

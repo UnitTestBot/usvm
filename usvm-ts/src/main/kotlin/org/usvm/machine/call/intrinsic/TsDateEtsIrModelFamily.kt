@@ -11,6 +11,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
+import org.usvm.UNullRef
 import org.usvm.api.typeStreamOf
 import org.usvm.machine.call.TsEtsIrUnknownCallModel
 import org.usvm.machine.call.TsEtsIrUnknownCallModelArtifact
@@ -69,11 +70,14 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         return canonicalCall
     }
 
-    internal fun isDateReceiver(state: TsState, receiver: UExpr<*>?): Boolean {
-        if (receiver?.sort != state.ctx.addressSort) return false
+    internal fun isDateReceiver(state: TsState, receiver: UExpr<*>?): Boolean = with(state.ctx) {
+        if (receiver?.sort != addressSort) return@with false
 
-        val runtimeType = state.memory.typeStreamOf(receiver.asExpr(state.ctx.addressSort)).singleOrNull()
-        return runtimeType == builtinDateType
+        val isNullish = receiver is UNullRef || receiver == mkTsNullValue()
+        if (isNullish) return@with false
+
+        val runtimeType = state.memory.typeStreamOf(receiver.asExpr(addressSort)).singleOrNull()
+        runtimeType == builtinDateType
     }
 
     private val artifact by lazy {
