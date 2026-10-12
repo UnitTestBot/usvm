@@ -296,5 +296,4 @@ internal class CurrentTsCallsExtendedInputDomainsTest : CurrentTsCallsSymbolicEn
         )
         fixture.assertReplayConfirmed(inputs)
     }
-
 }

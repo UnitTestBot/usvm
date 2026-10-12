@@ -90,13 +90,19 @@ private fun TsState.initializeInput(
     val input = materializeCallsInput(domain)
     when (input.value.sort) {
         boolSort -> memory.write(
-            mkRegisterStackLValue(boolSort, stackSlot), input.value.asExpr(boolSort), guard = trueExpr,
+            mkRegisterStackLValue(boolSort, stackSlot),
+            input.value.asExpr(boolSort),
+            guard = trueExpr,
         )
         fp64Sort -> memory.write(
-            mkRegisterStackLValue(fp64Sort, stackSlot), input.value.asExpr(fp64Sort), guard = trueExpr,
+            mkRegisterStackLValue(fp64Sort, stackSlot),
+            input.value.asExpr(fp64Sort),
+            guard = trueExpr,
         )
         addressSort -> memory.write(
-            mkRegisterStackLValue(addressSort, stackSlot), input.value.asExpr(addressSort), guard = trueExpr,
+            mkRegisterStackLValue(addressSort, stackSlot),
+            input.value.asExpr(addressSort),
+            guard = trueExpr,
         )
         else -> error("Unsupported Calls input sort: ${input.value.sort}")
     }

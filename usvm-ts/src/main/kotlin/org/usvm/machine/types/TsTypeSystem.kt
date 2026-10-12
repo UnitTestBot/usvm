@@ -1,6 +1,5 @@
 package org.usvm.machine.types
 
-import kotlin.time.Duration
 import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
@@ -38,6 +37,7 @@ import org.usvm.util.getAllFields
 import org.usvm.util.getAllProperties
 import org.usvm.util.getAllPropertiesCombined
 import org.usvm.util.type
+import kotlin.time.Duration
 
 // TODO this is draft, should be replaced with real implementation
 class TsTypeSystem(

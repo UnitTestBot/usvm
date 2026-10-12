@@ -36,8 +36,6 @@ import org.usvm.util.allocateBoundedString
 import org.usvm.util.componentType
 import org.usvm.util.mkArrayIndexLValue
 
-internal data class MaterializedCallsInput(val value: UExpr<*>, val snapshot: CallsInputSnapshot)
-
 internal fun TsState.materializeCallsInput(domain: PropertyDomain): MaterializedCallsInput = with(ctx) {
     when (domain) {
         BooleanDomain -> {
@@ -58,13 +56,21 @@ internal fun TsState.materializeCallsInput(domain: PropertyDomain): Materialized
             val reference = allocateBoundedString(length = length, codeUnits = codeUnits)
             MaterializedCallsInput(reference, StringInputSnapshot(length = length, codeUnits = codeUnits))
         }
-        is ConstantDomain -> MaterializedCallsInput(
-            value = materializeCallsConstant(domain.value),
-            snapshot = ConstantInputSnapshot(domain.value),
-        )
-        is OptionalDomain -> materializeCallsOptional(domain)
-        is ArrayDomain -> materializeCallsArray(domain)
-        else -> error("Unsupported Calls input domain: $domain")
+        is ConstantDomain -> {
+            MaterializedCallsInput(
+                value = materializeCallsConstant(domain.value),
+                snapshot = ConstantInputSnapshot(domain.value),
+            )
+        }
+        is OptionalDomain -> {
+            materializeCallsOptional(domain)
+        }
+        is ArrayDomain -> {
+            materializeCallsArray(domain)
+        }
+        else -> {
+            error("Unsupported Calls input domain: $domain")
+        }
     }
 }
 
@@ -126,9 +132,15 @@ private fun TsState.materializeCallsOptional(domain: OptionalDomain): Materializ
 }
 
 private fun PropertyDomain.callsRuntimeType(): EtsType = when (this) {
-    BooleanDomain -> EtsBooleanType
-    is IntegerDomain, is NumberDomain -> EtsNumberType
-    is StringDomain -> EtsStringType
+    BooleanDomain -> {
+        EtsBooleanType
+    }
+    is IntegerDomain, is NumberDomain -> {
+        EtsNumberType
+    }
+    is StringDomain -> {
+        EtsStringType
+    }
     is ArrayDomain -> {
         val nestedType = element.callsRuntimeType()
         if (nestedType is EtsArrayType) {
@@ -142,15 +154,19 @@ private fun PropertyDomain.callsRuntimeType(): EtsType = when (this) {
         val nilType = ConstantDomain(nil).callsRuntimeType()
         EtsUnionType(types = listOf(nestedType, nilType))
     }
-    is ConstantDomain -> when (value) {
-        is JsConcreteValue.Boolean -> EtsBooleanType
-        is JsConcreteValue.Number -> EtsNumberType
-        is JsConcreteValue.String -> EtsStringType
-        JsConcreteValue.Null -> EtsNullType
-        JsConcreteValue.Undefined -> EtsUndefinedType
-        is JsConcreteValue.Array -> error("Array constants are not primitive domains")
+    is ConstantDomain -> {
+        when (value) {
+            is JsConcreteValue.Boolean -> EtsBooleanType
+            is JsConcreteValue.Number -> EtsNumberType
+            is JsConcreteValue.String -> EtsStringType
+            JsConcreteValue.Null -> EtsNullType
+            JsConcreteValue.Undefined -> EtsUndefinedType
+            is JsConcreteValue.Array -> error("Array constants are not primitive domains")
+        }
     }
-    else -> error("Unsupported array element domain: $this")
+    else -> {
+        error("Unsupported array element domain: $this")
+    }
 }
 
 private fun TsState.materializeCallsArray(domain: ArrayDomain): MaterializedCallsInput = with(ctx) {
