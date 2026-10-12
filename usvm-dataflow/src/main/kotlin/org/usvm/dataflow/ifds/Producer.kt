@@ -16,7 +16,6 @@
 
 package org.usvm.dataflow.ifds
 
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 interface Producer<T> {
@@ -63,10 +62,12 @@ class SyncProducer<T> : Producer<T> {
 
     @Synchronized
     override fun produce(event: T) {
-        for (consumer in consumers) {
+        events.add(event)
+        val currentConsumers = consumers.toList()
+
+        for (consumer in currentConsumers) {
             consumer.consume(event)
         }
-        events.add(event)
     }
 
     @Synchronized
@@ -74,9 +75,12 @@ class SyncProducer<T> : Producer<T> {
         if (consumer.isCancelled()) return
         consumers.removeAll { it.isCancelled() }
 
-        for (event in events) {
+        var nextEventIndex = 0
+        while (nextEventIndex < events.size) {
+            val event = events[nextEventIndex++]
             consumer.consume(event)
         }
+
         if (!consumer.isCancelled()) consumers.add(consumer)
     }
 }
@@ -119,7 +123,6 @@ class NonBlockingQueue<T> {
     var head: Node<T>? = null
         private set
     val tail: AtomicReference<Node<T>> = AtomicReference(head)
-    val size: AtomicInteger = AtomicInteger(0)
 
     fun add(element: T) {
         val node = Node(element)
@@ -133,7 +136,6 @@ class NonBlockingQueue<T> {
         } else {
             head = node
         }
-        size.incrementAndGet()
     }
 }
 
@@ -150,12 +152,12 @@ class ConcurrentProducer<T> : Producer<T> {
 
         events.add(event)
 
-        try {
-            for (consumer in currentConsumers) {
-                consumer.consume(event)
-            }
-        } finally {
-            check(consumers.compareAndSet(null, currentConsumers))
+        // Publication and subscription stay atomic; callbacks remain synchronous
+        // but may publish summaries or subscribe without holding this lock.
+        check(consumers.compareAndSet(null, currentConsumers))
+
+        for (consumer in currentConsumers) {
+            consumer.consume(event)
         }
     }
 
