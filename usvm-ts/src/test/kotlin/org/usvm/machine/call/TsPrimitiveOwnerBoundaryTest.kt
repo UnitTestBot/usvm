@@ -34,7 +34,8 @@ class TsPrimitiveOwnerBoundaryTest {
 
     private fun assertForeignHelperResidual(methodName: String) {
         val method = scene.projectClasses.single { it.name == "ForeignPrimitiveHelpers" }
-            .methods.single { it.name == methodName }
+            .methods
+            .single { it.name == methodName }
         val observer = RecordingObserver()
 
         val states = TsMachine(
