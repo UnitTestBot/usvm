@@ -21,7 +21,6 @@ import org.usvm.machine.call.TsUnknownCallModelSuccessor
 import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.call.loadBundledEtsIrUnknownCallModelArtifact
 import org.usvm.machine.call.resolvedInstanceInputs
-import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.state.TsState
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
@@ -223,7 +222,9 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     }
 
     private val variadicMutationAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
-        val inputs = call.resolvedInstanceInputs(maxArgumentCount = call.arguments.size) ?: return@TsEtsIrUnknownCallModelInputAdapter null
+        val inputs = call.resolvedInstanceInputs(
+            maxArgumentCount = call.arguments.size,
+        ) ?: return@TsEtsIrUnknownCallModelInputAdapter null
         val arguments = inputs.drop(1)
         if (arguments.size > MAX_VARIADIC_ARGUMENTS) {
             return@TsEtsIrUnknownCallModelInputAdapter null
@@ -240,7 +241,9 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     }
 
     private val fillAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
-        val inputs = call.resolvedInstanceInputs(maxArgumentCount = call.arguments.size) ?: return@TsEtsIrUnknownCallModelInputAdapter null
+        val inputs = call.resolvedInstanceInputs(
+            maxArgumentCount = call.arguments.size,
+        ) ?: return@TsEtsIrUnknownCallModelInputAdapter null
         val arguments = inputs.drop(1)
         if (arguments.isEmpty() || arguments.size > MAX_FILL_ARGUMENTS) {
             return@TsEtsIrUnknownCallModelInputAdapter null
@@ -263,7 +266,9 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     }
 
     private val sliceAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
-        val inputs = call.resolvedInstanceInputs(maxArgumentCount = call.arguments.size) ?: return@TsEtsIrUnknownCallModelInputAdapter null
+        val inputs = call.resolvedInstanceInputs(
+            maxArgumentCount = call.arguments.size,
+        ) ?: return@TsEtsIrUnknownCallModelInputAdapter null
         val arguments = inputs.drop(1)
         if (arguments.size > 2 || arguments.any { value ->
                 value != state.ctx.mkUndefinedValue() && value.sort != state.ctx.fp64Sort
