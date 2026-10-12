@@ -178,12 +178,20 @@ class TsUnknownCallModelCatalogTest {
         val catalog = TsBuiltInUnknownCallModels.catalog()
 
         val expectedModelIds = listOf(
+            "ts.array.concat",
+            "ts.array.fill",
             "ts.array.includes",
             "ts.array.indexOf",
             "ts.array.isArray",
             "ts.array.lastIndexOf",
             "ts.array.pop",
+            "ts.array.primitive.allocateLike",
+            "ts.array.primitive.grow",
+            "ts.array.push",
+            "ts.array.reverse",
             TsArrayShiftIntrinsicModel.MODEL_ID,
+            "ts.array.slice",
+            "ts.array.unshift",
             TsNumericIntrinsicModelFamily.MATH_ABS_ID,
             TsNumericIntrinsicModelFamily.MATH_CEIL_ID,
             TsNumericIntrinsicModelFamily.MATH_FLOOR_ID,
@@ -206,8 +214,12 @@ class TsUnknownCallModelCatalogTest {
             "ts.string.primitive.fromCodeUnit",
             "ts.string.slice",
             "ts.string.startsWith",
+            "ts.string.substring",
             "ts.string.toLowerCase",
             "ts.string.toUpperCase",
+            "ts.string.trim",
+            "ts.string.trimEnd",
+            "ts.string.trimStart",
         )
 
         assertEquals(expectedModelIds, catalog.modelIds.filterNot { it.startsWith("ts.date.") })

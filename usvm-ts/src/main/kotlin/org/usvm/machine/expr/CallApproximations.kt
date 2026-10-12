@@ -52,6 +52,7 @@ import org.usvm.util.typedArrayBoxedLValue
 import org.usvm.util.typedArrayOverrideLValue
 
 private val logger = KotlinLogging.logger {}
+private val modeledArrayMethods = setOf("concat", "fill", "push", "reverse", "slice", "unshift")
 
 private val modeledStringMethods = setOf(
     "substring",
@@ -185,6 +186,13 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         val elementSort = typeToSort(instanceType.componentType)
             .takeIf { it !is TsUnresolvedSort }
             ?: addressSort
+
+        val usesSemanticArrayModel = expr.callee.name in modeledArrayMethods &&
+            unknownCallDispatcher is TsUnknownCallModelDispatcher
+        if (usesSemanticArrayModel) {
+            dispatchArrayModel(stmt)
+            return TsExprApproximationResult.ResolveFailure
+        }
 
         // Handle 'Array.push()' method calls
         if (expr.callee.name == "push") {
