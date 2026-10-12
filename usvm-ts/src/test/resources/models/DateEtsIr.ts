@@ -92,8 +92,9 @@ export class DateEtsIr {
         return new Date(timestamp).valueOf();
     }
 
-    castForeignReceiver(): number {
-        return (new DateImpostor() as unknown as Date).getTime();
+    foreignReceiverThroughAny(): number {
+        const impostor: any = new DateImpostor();
+        return impostor.getTime();
     }
 }
 

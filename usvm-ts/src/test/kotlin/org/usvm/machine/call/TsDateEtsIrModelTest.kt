@@ -130,8 +130,8 @@ class TsDateEtsIrModelTest {
     }
 
     @Test
-    fun `Date casts do not give unrelated objects Date storage`() {
-        val states = analyze(method("castForeignReceiver"))
+    fun `unrelated objects do not acquire Date behavior through any aliases`() {
+        val states = analyze(method("foreignReceiverThroughAny"))
 
         assertTrue(states.isEmpty())
     }
