@@ -2,6 +2,7 @@ package org.usvm.ts.calls
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
+import org.usvm.SolverType
 import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
@@ -37,6 +38,7 @@ internal data class CallsCoverageCellIdentity(
     val nativeFrontendRevision: String,
     val sourceManifest: String,
     val sourceIdentity: CallsCoverageSourceIdentity,
+    val solver: String,
     val projectIndex: Int,
     val functionIndex: Int,
     val profile: CallsExperimentProfile,
@@ -95,6 +97,11 @@ internal fun runCoverageUniverse(
         manifestPath = Path.of(manifestArgument),
         projectIndex = projectIndex,
         functionIndex = functionIndex,
+    )
+    validateCoverageManifestBuild(
+        manifest = source.manifest,
+        runtimeToolRevision = runtimeToolRevision,
+        runtimeNativeFrontendRevision = runtimeNativeFrontendRevision,
     )
     val output = Path.of(arguments.next()).toAbsolutePath().normalize()
     require(System.getenv("ETS_FRONTEND_SCRIPT") == null) { "ETS_FRONTEND_SCRIPT must be unset" }
@@ -199,6 +206,11 @@ private fun parseCoverageCellRequest(
     val projectIndex = arguments.next().toInt()
     val functionIndex = arguments.next().toInt()
     val source = CallsCoverageSource.load(manifestPath, projectIndex = projectIndex, functionIndex = functionIndex)
+    validateCoverageManifestBuild(
+        manifest = source.manifest,
+        runtimeToolRevision = runtimeToolRevision,
+        runtimeNativeFrontendRevision = runtimeNativeFrontendRevision,
+    )
     val profile = CallsExperimentProfile.valueOf(arguments.next())
     val seed = arguments.next().toLong()
     val output = Path.of(arguments.next()).toAbsolutePath().normalize()
@@ -229,11 +241,12 @@ private fun parseCoverageCellRequest(
 
 
     val identity = CallsCoverageCellIdentity(
-        schemaVersion = 2,
+        schemaVersion = 3,
         toolRevision = runtimeToolRevision,
         nativeFrontendRevision = runtimeNativeFrontendRevision,
         sourceManifest = source.manifestPath.toString(),
         sourceIdentity = source.identity,
+        solver = source.manifest.solver,
         projectIndex = projectIndex,
         functionIndex = functionIndex,
         profile = profile,
@@ -271,6 +284,7 @@ private fun loadOrRunCoverageSearch(
             seed = identity.seed,
             budget = identity.budgetMillis.milliseconds,
             solverQueryLimit = identity.solverLimitMillis.milliseconds,
+            solverType = SolverType.valueOf(identity.solver),
             candidateCap = identity.candidateCap,
             onCandidate = { candidate -> appendDurably(candidatePath, encode(candidate)) },
         )
@@ -344,6 +358,19 @@ private fun coverageCheckpoints(
             totalStatements = universe.supportedStatementKeys.size,
             coveredIfArms = coveredIfArms.size,
         )
+    }
+}
+
+private fun validateCoverageManifestBuild(
+    manifest: CallsExperimentManifest,
+    runtimeToolRevision: String,
+    runtimeNativeFrontendRevision: String,
+) {
+    require(manifest.toolRevision == runtimeToolRevision) {
+        "Coverage manifest tool revision differs from the running build"
+    }
+    require(manifest.nativeFrontendRevision == runtimeNativeFrontendRevision) {
+        "Coverage manifest frontend revision differs from the running build"
     }
 }
 
