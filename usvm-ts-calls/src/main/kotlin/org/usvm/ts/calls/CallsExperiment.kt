@@ -7,8 +7,6 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 import java.util.Properties
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -19,6 +17,8 @@ import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.model.encodeToUtf8SafeString
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 internal val CALLS_PATH_SELECTION_STRATEGY = PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM
 internal const val CALLS_STOP_ON_COVERAGE = 0
