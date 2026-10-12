@@ -1,7 +1,6 @@
 package org.usvm.util
 
 import io.ksmt.sort.KBv16Sort
-import io.ksmt.sort.KBv16Sort
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
