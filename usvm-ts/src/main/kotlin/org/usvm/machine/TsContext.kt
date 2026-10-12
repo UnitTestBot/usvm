@@ -2,6 +2,8 @@ package org.usvm.machine
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
@@ -54,9 +56,8 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.types.single
+import org.usvm.util.componentType
 import org.usvm.util.mkFieldLValue
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.contract
 
 typealias TsSizeSort = UBv32Sort
 
@@ -193,10 +194,10 @@ class TsContext(
     }
 
     fun arrayDescriptorOf(type: EtsArrayType): EtsType {
-        return when (type.elementType) {
+        val storageElement = type.componentType
+        return when (storageElement) {
             is EtsBooleanType -> EtsArrayType(EtsBooleanType, dimensions = 1)
             is EtsNumberType -> EtsArrayType(EtsNumberType, dimensions = 1)
-            is EtsArrayType -> TODO("Unsupported yet: $type")
             else -> EtsArrayType(EtsUnknownType, dimensions = 1)
         }
     }

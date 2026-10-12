@@ -102,3 +102,11 @@ fun <Sort : USort> mkRegisterStackLValue(
     sort: Sort,
     idx: Int,
 ): URegisterStackLValue<Sort> = URegisterStackLValue(sort, idx)
+
+/** The immediate array element retains every remaining TypeScript array dimension. */
+val EtsArrayType.componentType: EtsType
+    get() = if (dimensions > 1) {
+        EtsArrayType(elementType = elementType, dimensions = dimensions - 1)
+    } else {
+        elementType
+    }
