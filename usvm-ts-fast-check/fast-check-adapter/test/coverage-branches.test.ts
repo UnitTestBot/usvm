@@ -260,3 +260,32 @@ subject(1);
     await rm(fixture.root, { recursive: true, force: true });
   }
 });
+
+test('declaration-first arms use arm entries rather than nested function invocation counts', async () => {
+  const fixture = await runCoverage(`
+export function declaredFirst(value: number): string {
+  if (value > 0) {
+    function positive(): string { return 'yes'; }
+    positive();
+    return positive();
+  } else {
+    function negative(): string { return 'no'; }
+    if (value === 0) negative();
+    return 'no';
+  }
+}
+declaredFirst(1);
+declaredFirst(0);
+declaredFirst(-1);
+`);
+
+  try {
+    const report = await convertV8IfBranches(fixture.raw, [fixture.root]);
+    const outer = report.files[0]?.branches.find(branch => branch.location.start.line === 3);
+
+    assert.notEqual(outer, undefined, JSON.stringify(report.diagnostics));
+    assert.deepEqual(outer?.arms.map(arm => arm.hits), [1, 2]);
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
