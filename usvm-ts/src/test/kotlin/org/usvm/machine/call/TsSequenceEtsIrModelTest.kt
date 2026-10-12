@@ -153,7 +153,7 @@ class TsSequenceEtsIrModelTest {
     }
 
     @Test
-    fun `selecting charAt also enables its primitives`() {
+    fun `selecting charAt only enables position normalization`() {
         val result = analyze(
             methodName = "stringCharAtHandlesBounds",
             tsOptions = TsOptions(
@@ -166,9 +166,6 @@ class TsSequenceEtsIrModelTest {
             setOf(
                 "ts.string.charAt",
                 "ts.math.floor",
-                "ts.string.primitive.codeUnitAt",
-                "ts.string.primitive.fromCodeUnit",
-                "ts.string.primitive.length",
             ),
             result.modelIds.toSet(),
         )
@@ -211,11 +208,14 @@ class TsSequenceEtsIrModelTest {
     }
 
     @Test
-    fun `symbolic charAt falls back until string value equality is modeled`() {
+    fun `symbolic charAt explores in-range and out-of-range positions`() {
         val result = analyze(methodName = "symbolicCharAt")
+        val values = result.values.map { value -> assertIs<TsTestValue.TsString>(value).value }.toSet()
 
-        assertTrue(result.values.isEmpty())
-        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.last().outcome)
+        assertTrue("" in values)
+        assertTrue(values.any { value -> value.isNotEmpty() })
+        assertTrue(values.all { value -> value in setOf("", "a", "b", "c") })
+        assertTrue(result.events.all { event -> event.outcome == TsUnknownCallOutcome.MODEL_APPLIED })
     }
 
     @Test
@@ -362,6 +362,7 @@ class TsSequenceEtsIrModelTest {
         val machineOptions = UMachineOptions(
             pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
             stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = 0,
             exceptionsPropagation = true,
             throwExceptionOnStepFailure = true,
             timeout = Duration.INFINITE,

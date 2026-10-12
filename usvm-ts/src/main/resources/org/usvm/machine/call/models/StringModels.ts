@@ -1,25 +1,22 @@
 declare class StringModelPrimitives {
-    static length(receiver: string): number;
     static codeUnitAt(receiver: string, index: number): number;
     static fromCodeUnit(codeUnit: number): string;
-    static copyRange(receiver: string, start: number, end: number): string;
 }
 
 export class StringModels {
     static charAt(receiver: string, index: number): string {
-        const length = StringModelPrimitives.length(receiver);
+        const length = receiver.length;
         const integerIndex = StringModels.normalizeCharIndex(index, length);
         if (integerIndex < 0 || integerIndex >= length) {
             return "";
         }
 
-        const codeUnit = StringModelPrimitives.codeUnitAt(receiver, integerIndex);
-        return StringModelPrimitives.fromCodeUnit(codeUnit);
+        return receiver[integerIndex];
     }
 
     static indexOf(receiver: string, searchString: string, position: number): number {
-        const length = StringModelPrimitives.length(receiver);
-        const searchLength = StringModelPrimitives.length(searchString);
+        const length = receiver.length;
+        const searchLength = searchString.length;
         const start = StringModels.normalizePosition(position, length);
 
         if (searchLength === 0) {
@@ -29,11 +26,14 @@ export class StringModels {
         let index = start;
         while (index + searchLength <= length) {
             let searchIndex = 0;
-            while (
-                searchIndex < searchLength &&
-                StringModelPrimitives.codeUnitAt(receiver, index + searchIndex) ===
-                    StringModelPrimitives.codeUnitAt(searchString, searchIndex)
-            ) {
+            while (searchIndex < searchLength) {
+                const character = receiver[index + searchIndex];
+                const expectedCharacter = searchString[searchIndex];
+                const matches = character === expectedCharacter;
+                if (!matches) {
+                    break;
+                }
+
                 searchIndex++;
             }
 
@@ -52,7 +52,7 @@ export class StringModels {
     }
 
     static charCodeAt(receiver: string, index: number): number {
-        const length = StringModelPrimitives.length(receiver);
+        const length = receiver.length;
         const integerIndex = StringModels.normalizeCharIndex(index, length);
         if (integerIndex < 0 || integerIndex >= length) {
             return NaN;
@@ -62,14 +62,22 @@ export class StringModels {
     }
 
     static slice(receiver: string, start: number, end: number): string {
-        const length = StringModelPrimitives.length(receiver);
+        const length = receiver.length;
         const from = StringModels.normalizeSliceIndex(start, length);
         const to = StringModels.normalizeSliceIndex(end, length);
-        return StringModelPrimitives.copyRange(receiver, from, to < from ? from : to);
+
+        let result = "";
+        let index = from;
+        while (index < to) {
+            result += receiver[index];
+            index++;
+        }
+
+        return result;
     }
 
     static toUpperCase(receiver: string): string {
-        const length = StringModelPrimitives.length(receiver);
+        const length = receiver.length;
         let result = "";
         let index = 0;
         while (index < length) {
@@ -84,7 +92,7 @@ export class StringModels {
     }
 
     static toLowerCase(receiver: string): string {
-        const length = StringModelPrimitives.length(receiver);
+        const length = receiver.length;
         let result = "";
         let index = 0;
         while (index < length) {
@@ -99,8 +107,8 @@ export class StringModels {
     }
 
     static startsWith(receiver: string, searchString: string, position: number): boolean {
-        const length = StringModelPrimitives.length(receiver);
-        const searchLength = StringModelPrimitives.length(searchString);
+        const length = receiver.length;
+        const searchLength = searchString.length;
         const start = StringModels.normalizePosition(position, length);
         if (start + searchLength > length) {
             return false;
@@ -108,10 +116,10 @@ export class StringModels {
 
         let searchIndex = 0;
         while (searchIndex < searchLength) {
-            if (
-                StringModelPrimitives.codeUnitAt(receiver, start + searchIndex) !==
-                StringModelPrimitives.codeUnitAt(searchString, searchIndex)
-            ) {
+            const character = receiver[start + searchIndex];
+            const expectedCharacter = searchString[searchIndex];
+            const matches = character === expectedCharacter;
+            if (!matches) {
                 return false;
             }
 
@@ -122,8 +130,8 @@ export class StringModels {
     }
 
     static endsWith(receiver: string, searchString: string, endPosition: number): boolean {
-        const length = StringModelPrimitives.length(receiver);
-        const searchLength = StringModelPrimitives.length(searchString);
+        const length = receiver.length;
+        const searchLength = searchString.length;
         const end = StringModels.normalizePosition(endPosition, length);
         const start = end - searchLength;
         if (start < 0) {
@@ -132,10 +140,10 @@ export class StringModels {
 
         let searchIndex = 0;
         while (searchIndex < searchLength) {
-            if (
-                StringModelPrimitives.codeUnitAt(receiver, start + searchIndex) !==
-                StringModelPrimitives.codeUnitAt(searchString, searchIndex)
-            ) {
+            const character = receiver[start + searchIndex];
+            const expectedCharacter = searchString[searchIndex];
+            const matches = character === expectedCharacter;
+            if (!matches) {
                 return false;
             }
 
@@ -146,8 +154,8 @@ export class StringModels {
     }
 
     static lastIndexOf(receiver: string, searchString: string, position: number): number {
-        const length = StringModelPrimitives.length(receiver);
-        const searchLength = StringModelPrimitives.length(searchString);
+        const length = receiver.length;
+        const searchLength = searchString.length;
         let index = StringModels.normalizeLastPosition(position, length);
         if (index + searchLength > length) {
             index = length - searchLength;
@@ -155,11 +163,14 @@ export class StringModels {
 
         while (index >= 0) {
             let searchIndex = 0;
-            while (
-                searchIndex < searchLength &&
-                StringModelPrimitives.codeUnitAt(receiver, index + searchIndex) ===
-                    StringModelPrimitives.codeUnitAt(searchString, searchIndex)
-            ) {
+            while (searchIndex < searchLength) {
+                const character = receiver[index + searchIndex];
+                const expectedCharacter = searchString[searchIndex];
+                const matches = character === expectedCharacter;
+                if (!matches) {
+                    break;
+                }
+
                 searchIndex++;
             }
 

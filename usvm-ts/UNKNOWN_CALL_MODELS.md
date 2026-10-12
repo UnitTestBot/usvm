@@ -242,12 +242,22 @@ numeric and boolean search values use a guarded model branch outside the typed d
 unsupported default. Fake-wrapped dynamic search values use fallback. Position normalization depends on
 `ts.math.floor`.
 
-The String source family implements `charAt`, `charCodeAt`, `indexOf`, `lastIndexOf`, `includes`, `startsWith`, and
-`endsWith`. Its TypeScript algorithms depend on atomic length, UTF-16 code-unit read, and one-code-unit construction
-models, plus `ts.math.floor` for positions. Current symbolic String parameters do not initialize backing character
-storage, so receivers and search strings must be initialized concrete constants. `charAt` also requires a concrete
-index because a dynamically constructed one-code-unit String does not yet participate in value-based String equality.
-Numeric-result and predicate methods can still use symbolic numeric positions over concrete strings.
+The String source family implements `charAt`, `charCodeAt`, `indexOf`, `lastIndexOf`, `includes`, `startsWith`,
+`endsWith`, `slice`, and ASCII case conversion. Character access, search, and slicing use ordinary `.length`,
+`receiver[index]`, comparisons, loops, and concatenation in TypeScript/EtsIR. Only numeric UTF-16 code-unit reads
+and one-code-unit construction remain intrinsic helpers for `charCodeAt` and case conversion. Position
+normalization depends on `ts.math.floor`; case conversion needs only the two code-unit helpers.
+
+String indexing accepts canonical integral numeric positions and canonical numeric string keys. It returns one
+UTF-16 code unit in range and `undefined` out of range, for fractions, or for non-finite numeric positions. Numeric
+property-key conversion preserves symbolic numbers internally until the string property read; general object
+properties still require concrete converted keys. String index writes and other unmodeled String properties
+remain unsupported.
+
+Typed symbolic String parameters initialize bounded backing storage, so model guards accept symbolic receivers
+and search strings with known backing, as well as constructed strings. `charAt` accepts symbolic positions, and
+created character strings participate in value-based equality. ASCII case conversion retains its guarded length
+limit of 16 code units and uses residual fallback for non-ASCII inputs.
 
 The entry point must be static and have a non-empty body. After its input adapter handles optional arguments or drops
 non-semantic namespace receivers, its parameter count must equal the adapted input count. Unresolved required inputs

@@ -342,6 +342,12 @@ class TsExprResolver(
                 else -> throw UnsupportedOperationException("Symbolic property key conversion: ${expr.arg}")
             }
         }
+        // Keep a symbolic numeric key in numeric form until the property read. String indexing can then
+        // test canonical integer positions directly; object properties still require a concrete string key.
+        if (value.sort == fp64Sort && value !is KFp64Value) {
+            return value
+        }
+
         val key = concreteStringValue(value)
             ?: throw UnsupportedOperationException("Unmodeled property key conversion: ${expr.arg}")
         mkStringConstant(key, scope)

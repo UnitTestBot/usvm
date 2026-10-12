@@ -2,7 +2,6 @@ package org.usvm.machine.call.intrinsic
 
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
-import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.machine.call.TsEtsIrUnknownCallModel
 import org.usvm.machine.call.TsEtsIrUnknownCallModelArtifact
@@ -14,7 +13,6 @@ import org.usvm.machine.call.TsUnknownCallModel
 import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.call.loadBundledEtsIrUnknownCallModelArtifact
 import org.usvm.util.arrayStorageType
-import org.usvm.util.isUnmodifiedDenseInputArray
 
 /** Built-in Array algorithms implemented by ordinary TypeScript bodies. */
 internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
@@ -50,24 +48,22 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     falseExpr
                 } else {
                     val elementSort = typeToSort(receiverType.elementType)
-                    val hasNoMissingSlots = array is UConcreteHeapRef &&
-                        state.isUnmodifiedDenseInputArray(array, receiverType)
                     val excludesMissingSlot = when {
                         searchElement == mkUndefinedValue() &&
                             (
                                 call.callee.name in setOf("indexOf", "lastIndexOf") ||
                                     elementSort == fp64Sort || elementSort == boolSort
-                                ) -> mkBool(hasNoMissingSlots)
+                                ) -> falseExpr
 
                         elementSort == fp64Sort && searchElement?.sort == fp64Sort -> {
                             val searchNumber = searchElement.asExpr(fp64Sort)
                             val zero = mkFp64(0.0)
 
-                            mkOr(mkBool(hasNoMissingSlots), mkNot(mkFpEqualExpr(searchNumber, zero)))
+                            mkNot(mkFpEqualExpr(searchNumber, zero))
                         }
 
                         elementSort == boolSort && searchElement?.sort == boolSort -> {
-                            mkOr(mkBool(hasNoMissingSlots), searchElement.asExpr(boolSort))
+                            searchElement.asExpr(boolSort)
                         }
 
                         else -> trueExpr

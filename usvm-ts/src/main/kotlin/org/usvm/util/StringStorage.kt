@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import io.ksmt.sort.KBv16Sort
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
@@ -9,12 +10,11 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.api.initializeArrayLength
-import org.usvm.api.memcpy
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.state.TsState
 import org.usvm.sizeSort
 
-internal val STRING_CHARACTER_ARRAY_TYPE = EtsArrayType(EtsNumberType, dimensions = 1)
+private val STRING_CHARACTER_ARRAY_TYPE = EtsArrayType(EtsNumberType, dimensions = 1)
 
 internal fun TsState.stringCharacters(receiver: UHeapRef): UHeapRef = with(ctx) {
     memory.read(mkStringBackingLValue(receiver)).asExpr(addressSort)
@@ -25,20 +25,9 @@ internal fun TsState.stringLength(receiver: UHeapRef): UExpr<TsSizeSort> {
     return memory.read(mkStringBackingLengthLValue(characters))
 }
 
-fun TsState.markStringMaxLength(
-    string: UConcreteHeapRef,
-    maxLength: Int,
-) {
-    require(maxLength >= 0) { "String maximum length must be non-negative" }
-    boundedStringBackingRefs += string to maxLength
-}
-
-private fun TsState.trackedStringMaxLength(string: UHeapRef): Int? =
-    boundedStringBackingRefs[string]
-
-internal fun TsState.allocateString(
+private fun TsState.allocateString(
     length: UExpr<TsSizeSort>,
-    maxLength: Int? = null,
+    maxLength: Int,
 ): Pair<UConcreteHeapRef, UConcreteHeapRef> = with(ctx) {
     val string = memory.allocConcrete(EtsStringType)
     val characters = memory.allocConcrete(STRING_CHARACTER_ARRAY_TYPE.elementType)
@@ -53,44 +42,28 @@ internal fun TsState.allocateString(
         characters,
         guard = trueExpr,
     )
-    if (maxLength != null) {
-        markStringMaxLength(string = string, maxLength = maxLength)
-    }
+    boundedStringBackingRefs += string to maxLength
 
     string to characters
 }
 
-internal fun TsState.copyStringRange(
-    receiver: UHeapRef,
-    from: UExpr<TsSizeSort>,
-    length: UExpr<TsSizeSort>,
-): UConcreteHeapRef = with(ctx) {
-    val source = stringCharacters(receiver)
-    val (result, destination) = allocateString(length, maxLength = trackedStringMaxLength(receiver))
-    memory.memcpy(
-        source,
-        destination,
-        stringBackingArrayDescriptor,
-        bv16Sort,
-        fromSrc = from,
-        fromDst = mkBv(0),
-        length = length,
-    )
-    result
-}
-
 internal fun TsState.stringFromCodeUnit(codeUnit: UExpr<KFp64Sort>): UConcreteHeapRef = with(ctx) {
-    val (result, characters) = allocateString(mkBv(1), maxLength = 1)
     val value = mkFpToBvExpr(
         roundingMode = fpRoundingModeSortDefaultValue(),
         value = codeUnit,
         bvSize = bv16Sort.sizeBits.toInt(),
         isSigned = false,
     ).asExpr(bv16Sort)
+
+    stringFromUtf16CodeUnit(value)
+}
+
+internal fun TsState.stringFromUtf16CodeUnit(codeUnit: UExpr<KBv16Sort>): UConcreteHeapRef = with(ctx) {
+    val (result, characters) = allocateString(length = mkBv(1), maxLength = 1)
     val character = mkStringBackingElementLValue(ref = characters, index = mkBv(0))
     memory.write(
         character,
-        value,
+        codeUnit,
         guard = trueExpr,
     )
     result
