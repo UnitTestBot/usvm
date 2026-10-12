@@ -107,6 +107,26 @@ class TsArrayIsArrayIntrinsicModelTest {
         assertTrue(result.modelIds.isEmpty())
     }
 
+    @Test
+    fun `aliases keep the genuine builtin identity`() {
+        val result = analyze("arrayAliasKeepsBuiltinIdentity", "builtinAliasSurvivesLocalShadow")
+
+        result.values.values.forEach { values ->
+            assertTrue(assertIs<TsTestValue.TsBoolean>(values.single()).value)
+        }
+        assertEquals(List(size = 3) { TsArrayIsArrayIntrinsicModel.MODEL_ID }, result.modelIds)
+    }
+
+    @Test
+    fun `constructor typed source shadows and reassigned aliases preserve their implementation`() {
+        val result = analyze("typedSourceShadowKeepsItsImplementation", "reassignedAliasKeepsItsImplementation")
+
+        result.values.values.forEach { values ->
+            assertFalse(assertIs<TsTestValue.TsBoolean>(values.single()).value)
+        }
+        assertTrue(result.modelIds.isEmpty())
+    }
+
     private fun analyze(vararg methodNames: String): AnalysisResult {
         val methods = methodNames.associateWith(::method)
         val observer = RecordingUnknownCallObserver()

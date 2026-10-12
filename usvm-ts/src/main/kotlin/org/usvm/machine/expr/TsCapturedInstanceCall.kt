@@ -19,7 +19,7 @@ import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
-import org.usvm.machine.call.isBuiltinArrayGlobalType
+import org.usvm.machine.call.isBuiltinArrayConstructor
 import org.usvm.machine.call.isBuiltinGlobalType
 import org.usvm.machine.state.lastStmt
 import org.usvm.util.getAllFields
@@ -54,8 +54,8 @@ internal fun TsExprResolver.tryCaptureInstanceCall(
 
     val priorAssignments = method.cfg.stmts.takeWhile { it !== assignment }.filterIsInstance<EtsAssignStmt>()
     val source = originalReceiver(requireNotNull(call.receiver), priorAssignments)
-    val implicitGlobal = isImplicitModeledGlobal(source, call.callee, method)
     val receiver = resolve(field.instance) ?: return TsExprApproximationResult.ResolveFailure
+    val implicitGlobal = isBuiltinArrayConstructor(receiver) || isImplicitModeledGlobal(source, call.callee, method)
     val reference = when {
         implicitGlobal -> null
         receiver.isFakeObject() -> receiver.extractRef(scope)
@@ -156,10 +156,6 @@ private fun isImplicitModeledGlobal(source: EtsLocal, callee: EtsMethodSignature
     if (source.type.isBuiltinGlobalType(expectedName = "Math") ||
         source.type.isBuiltinGlobalType(expectedName = "Number")
     ) {
-        return true
-    }
-
-    if (source.name == "Array" && source.type.isBuiltinArrayGlobalType()) {
         return true
     }
 

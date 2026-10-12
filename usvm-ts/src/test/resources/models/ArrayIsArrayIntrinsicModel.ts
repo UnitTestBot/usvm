@@ -45,3 +45,33 @@ export function sourceShadowKeepsItsImplementation(): boolean {
     const Array = { isArray: (_value: unknown): boolean => false };
     return Array.isArray([]);
 }
+
+export function arrayAliasKeepsBuiltinIdentity(): boolean {
+    const Alias = Array;
+    const SecondAlias = Alias;
+    return Alias.isArray([]) && SecondAlias.isArray([1]);
+}
+
+type GlobalArrayConstructor = typeof Array;
+
+export function typedSourceShadowKeepsItsImplementation(): boolean {
+    // @ts-expect-error A type annotation must not replace this incomplete source object with the SDK constructor.
+    const Array: GlobalArrayConstructor = { isArray: (_value: unknown): boolean => false };
+    return Array.isArray([]);
+}
+
+export function reassignedAliasKeepsItsImplementation(): boolean {
+    let Alias = Array;
+    // @ts-expect-error Deliberately replace the constructor with an object exposing the same method.
+    Alias = { isArray: (_value: unknown): boolean => false };
+    return Alias.isArray([]);
+}
+
+export function builtinAliasSurvivesLocalShadow(): boolean {
+    const Alias = Array;
+    {
+        // @ts-expect-error A local annotation does not change the already captured builtin.
+        const Array: GlobalArrayConstructor = { isArray: (_value: unknown): boolean => false };
+        return Alias.isArray([]) && !Array.isArray([]);
+    }
+}

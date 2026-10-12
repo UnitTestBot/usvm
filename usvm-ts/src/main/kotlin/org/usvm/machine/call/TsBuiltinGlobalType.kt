@@ -1,7 +1,6 @@
 package org.usvm.machine.call
 
 import org.jacodb.ets.model.EtsAnyType
-import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsLocal
@@ -11,6 +10,10 @@ import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
+import org.usvm.machine.TsContext
+import org.usvm.util.EtsHierarchy
 
 internal fun hasBuiltinGlobalOwner(
     owner: EtsValue,
@@ -43,17 +46,9 @@ private fun EtsValue.isLegacyBuiltinGlobal(
     type == EtsUnknownType &&
     callee.enclosingClass == EtsClassSignature.UNKNOWN.copy(name = expectedName)
 
-internal fun EtsType.isBuiltinArrayGlobalType(): Boolean {
-    val functionType = this as? EtsFunctionType ?: return false
-    val signature = functionType.signature
-    val parameter = signature.parameters.singleOrNull() ?: return false
-    val returnType = signature.returnType as? EtsArrayType ?: return false
+internal fun TsContext.isBuiltinArrayConstructor(value: UExpr<*>): Boolean {
+    val reference = value as? UConcreteHeapRef ?: return false
+    val signature = classConstructorSignature(reference) ?: return false
 
-    return signature.enclosingClass.file == EtsClassSignature.UNKNOWN.file &&
-        signature.name.isEmpty() &&
-        parameter.type == EtsNumberType &&
-        parameter.isOptional &&
-        !parameter.isRest &&
-        returnType.elementType == EtsAnyType &&
-        returnType.dimensions == 1
+    return signature.name == "Array" && signature.file == EtsHierarchy.OBJECT_CLASS.signature.file
 }
