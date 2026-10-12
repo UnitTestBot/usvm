@@ -1,7 +1,7 @@
 package org.usvm.machine.call.intrinsic
 
-import org.usvm.UExpr
 import org.jacodb.ets.model.EtsClassSignature
+import org.usvm.UExpr
 import org.usvm.machine.call.TsUnknownCall
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModel
@@ -29,7 +29,8 @@ internal class TsPrimitiveUnknownCallModel(
 
     override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
         val helperOwnerMatches = call.callee.enclosingClass == helperClassSignature()
-        val sourceCallerMatches = call.callSite.location.method.signature.enclosingClass == sourceClassSignature()
+        val callerSignature = call.callSite.location.method.signature
+        val sourceCallerMatches = callerSignature.enclosingClass == sourceClassSignature()
         val sourceModelIsActive = owningModelIds().any(state::isUnknownCallModelActive)
         if (!helperOwnerMatches || !sourceCallerMatches || !sourceModelIsActive) return null
 
