@@ -35,7 +35,7 @@ val logger = object : KLogging() {}.logger
 
 class GoMachine(
     private val program: GoProgram,
-    private val options: UMachineOptions,
+    override val options: UMachineOptions,
     private val customOptions: GoMachineOptions
 ) : UMachine<GoState>() {
     private val typeSystem = GoTypeSystem(options.typeOperationsTimeout, program.types.values)

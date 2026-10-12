@@ -30,8 +30,6 @@ import org.usvm.ULValuePointer
 import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.UState
-import org.usvm.api.allocateArray
-import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.readField
 import org.usvm.api.writeArrayLength
 import org.usvm.api.writeField
@@ -49,6 +47,8 @@ import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.type.GoBasicTypes
 import org.usvm.type.underlying
+import org.usvm.memory.allocateGoArray as allocateArray
+import org.usvm.memory.allocateGoArrayInitialized as allocateArrayInitialized
 
 class GoState(
     ctx: GoContext,

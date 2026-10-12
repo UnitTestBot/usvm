@@ -91,7 +91,6 @@ import org.usvm.api.UnknownBinaryOperationException
 import org.usvm.api.UnknownFunctionException
 import org.usvm.api.UnknownUnaryOperationException
 import org.usvm.api.UnsupportedUnaryOperationException
-import org.usvm.api.allocateArray
 import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
 import org.usvm.api.collection.ObjectMapCollectionApi.mkSymbolicObjectMap
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapAnyKey
@@ -131,6 +130,7 @@ import org.usvm.type.GoBasicTypes
 import org.usvm.type.underlying
 import org.usvm.types.first
 import org.usvm.util.isInit
+import org.usvm.memory.allocateGoArray as allocateArray
 
 class GoExprVisitor(
     private val ctx: GoContext,
