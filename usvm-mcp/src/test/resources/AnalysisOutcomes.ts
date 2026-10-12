@@ -1,7 +1,3 @@
-function callback(): boolean {
-    return false;
-}
-
 class AnalysisFixture {
     unsupportedAccessor(): boolean {
         const object = { get value(): boolean { return true; } };
@@ -15,8 +11,8 @@ class AnalysisFixture {
         return object.value;
     }
 
-    callbackValue(): () => boolean {
-        return callback;
+    nonterminatingProperty(): boolean {
+        while (true) {}
     }
 
     supportedTrue(): boolean {
@@ -29,5 +25,17 @@ class AnalysisFixture {
 
     crashingProperty(): boolean {
         throw "property failure";
+    }
+}
+
+class CyclicWitnessFixture {
+    value: any[];
+
+    cyclicProperty(): boolean {
+        const value: any[] = [null];
+        value[0] = value;
+        this.value = value;
+
+        return false;
     }
 }

@@ -27,7 +27,7 @@ import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class AnalysisOutcomeTest {
@@ -74,9 +74,9 @@ class AnalysisOutcomeTest {
 
     @Test
     fun `stopped search is preserved separately from unsupported semantics`() = runBlocking {
-        val (scene, method) = loadMethod(methodName = "supportedTrue")
+        val (scene, method) = loadMethod(methodName = "nonterminatingProperty")
 
-        val outcome = runner.runTests(scene = scene, method = method, timeout = Duration.ZERO)
+        val outcome = runner.runTests(scene = scene, method = method, timeout = 10.milliseconds)
         val result = outcome.toCounterexampleResult(method)
 
         assertEquals(expected = TsAnalysisStopReason.STOPPED, actual = outcome.stopReason)
@@ -87,8 +87,8 @@ class AnalysisOutcomeTest {
     }
 
     @Test
-    fun `unresolved callable witness is preserved in filtering responses`() = runBlocking {
-        val (scene, method) = loadMethod(methodName = "callbackValue")
+    fun `unresolved cyclic array witness is preserved in filtering responses`() = runBlocking {
+        val (scene, method) = loadMethod(methodName = "cyclicProperty", className = "CyclicWitnessFixture")
 
         val outcome = runner.runTests(scene = scene, method = method, timeout = 5.seconds)
         val result = outcome.toCounterexampleResult(method)
@@ -96,6 +96,7 @@ class AnalysisOutcomeTest {
         val json = McpJson.parseToJsonElement(McpJson.encodeToString(result)).jsonObject
 
         assertTrue(outcome.result.isNotEmpty())
+        assertTrue(outcome.unsupportedPaths.isEmpty())
         assertTrue(outcome.result.all { it.test == null && it.error != null })
         assertTrue(result.analysis.resolutionErrors.isNotEmpty())
         assertEquals(expected = result.analysis.resolutionErrors, actual = exceptionsResult.analysis.resolutionErrors)
@@ -162,13 +163,13 @@ class AnalysisOutcomeTest {
         assertEquals(expected = result.crashes, actual = exceptionsResult.exceptionalCases)
     }
 
-    private fun loadMethod(methodName: String): Pair<EtsScene, EtsMethod> {
+    private fun loadMethod(methodName: String, className: String = "AnalysisFixture"): Pair<EtsScene, EtsMethod> {
         val resource = requireNotNull(javaClass.getResourceAsStream("/AnalysisOutcomes.ts"))
         val sourceText = resource.bufferedReader().use { it.readText() }
         val source = directory.resolve("AnalysisOutcomes.ts")
         source.writeText(sourceText)
         val scene = SceneCache().getScene(source.toString())
-        val method = MethodLookup.findMethod(scene = scene, className = "AnalysisFixture", methodName = methodName)
+        val method = MethodLookup.findMethod(scene = scene, className = className, methodName = methodName)
 
         return scene to method
     }
