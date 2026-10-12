@@ -6,6 +6,7 @@ import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsNullType
@@ -36,6 +37,7 @@ import org.usvm.machine.types.TsUnresolvedValue
 import org.usvm.machine.types.iteUnresolvedValue
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.machine.types.mkFakeValue
+import org.usvm.machine.types.requiresConstructorWitness
 import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
@@ -225,6 +227,20 @@ private fun TsContext.prepareInitialInputField(
     activeInitial: UBoolExpr,
     hierarchy: EtsHierarchy,
 ): TsUnresolvedValue? {
+    // A write, deletion or absent property can make the declared initial value irrelevant.
+    // Do not reject the entire input object just because another field needs a constructor witness.
+    val unsupportedInitial = when {
+        declaration?.type?.requiresConstructorWitness() == true -> "Constructor-typed input field"
+        declaration?.type is EtsGenericType -> "Unresolved generic input field"
+        else -> null
+    }
+    if (unsupportedInitial != null) {
+        scope.fork(mkNot(activeInitial), blockOnFalseState = {
+            terminateAsUnsupported(reason = "$unsupportedInitial is not modeled")
+        }) ?: return null
+        return value
+    }
+
     val optional = declaration?.optional == true
     val sort = declaration?.let { typeToSort(it.type) } ?: unresolvedSort
     val expectedKind = when (sort) {

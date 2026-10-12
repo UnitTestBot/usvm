@@ -21,6 +21,7 @@ import org.jacodb.ets.model.EtsCaughtExceptionRef
 import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsClassValueRef
 import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
@@ -92,6 +93,7 @@ import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.NAMED_FUNCTION_REFERENCE_PREFIX
 import org.jacodb.ets.utils.getDeclaredLocals
+import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -101,10 +103,12 @@ import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.memcpy
+import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
+import org.usvm.machine.TS_TYPE_ERROR_TYPE
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsOptions
@@ -120,6 +124,8 @@ import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
 import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
+import org.usvm.machine.runtimeFunctionType
+import org.usvm.machine.sdkConstructorForGlobal
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
@@ -233,6 +239,8 @@ class TsExprResolver(
     override fun visit(value: EtsLocal): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
     }
+
+    override fun visit(value: EtsClassValueRef): UExpr<out USort> = ctx.classConstructorRef(value.signature)
 
     override fun visit(value: EtsParameterRef): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
@@ -396,6 +404,11 @@ class TsExprResolver(
 
     override fun visit(expr: EtsCastExpr): UExpr<*>? = with(ctx) {
         val resolvedExpr = resolve(expr.arg) ?: return@with null
+        if (resolvedExpr is UConcreteHeapRef && classConstructorSignature(resolvedExpr) != null) {
+            // TypeScript assertions do not change the identity of a constructor at runtime.
+            return@with resolvedExpr
+        }
+
         return when (resolvedExpr.sort) {
             fp64Sort -> {
                 logger.error("Unsupported cast from fp ${expr.arg} to ${expr.type}")
@@ -474,6 +487,9 @@ class TsExprResolver(
         }
 
         val functionValue = mkStringConstant("function", scope)
+        val isClassConstructor = ref is UConcreteHeapRef && classConstructorSignature(ref) != null
+        if (isClassConstructor) return functionValue
+
         val isKnownFunction = scope.calcOnState {
             ref is UConcreteHeapRef && (
                 associatedFunction[ref] != null ||
@@ -1151,12 +1167,146 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? = with(ctx) {
-        val arg = resolve(expr.arg)?.asExpr(addressSort) ?: return null
-        val checkType = expr.checkType as? EtsRefType ?: return falseExpr
+        val arg = resolve(expr.arg) ?: return null
+        val checkValue = expr.checkValue
 
-        scope.calcOnState {
-            memory.types.evalIsSubtype(arg, EtsNominalType(checkType))
+        val checkType = if (checkValue == null) {
+            // Legacy EtsIR contains only a static target. New frontend IR always evaluates the RHS.
+            expr.checkType as? EtsRefType
+                ?: return falseExpr
+        } else {
+            resolveRuntimeConstructor(checkValue, operation = RuntimeConstructorOperation.INSTANCEOF) ?: return null
         }
+
+        if (arg.sort != addressSort || arg == mkUndefinedValue() || arg == mkTsNullValue()) return falseExpr
+        if (arg.isFakeObject()) {
+            val fakeType = arg.getFakeType(scope)
+            val refValue = arg.extractRef(scope)
+            val isInstance = referenceInstanceof(refValue, checkType)
+
+            return mkAnd(fakeType.refTypeExpr, isInstance)
+        }
+
+        referenceInstanceof(arg.asExpr(addressSort), checkType)
+    }
+
+    private fun referenceInstanceof(ref: UHeapRef, checkType: EtsRefType): UBoolExpr = with(ctx) {
+        if (ref == mkUndefinedValue() || ref == mkTsNullValue()) return falseExpr
+        if (ref is UIteExpr<*>) {
+            val trueValue = referenceInstanceof(ref.trueBranch.asExpr(addressSort), checkType)
+            val falseValue = referenceInstanceof(ref.falseBranch.asExpr(addressSort), checkType)
+            return mkIte(ref.condition, trueValue, falseValue)
+        }
+
+        // Wrappers and conditional values retain the represented function's identity.
+        val isFunctionObject = ref is UConcreteHeapRef && (
+            classConstructorSignature(ref) != null || scope.calcOnState { associatedFunction[ref] != null }
+            )
+        if (isFunctionObject) return runtimeInstanceof(scene.runtimeFunctionType(), checkType)
+
+        if (isAllocatedConcreteHeapRef(ref) && checkType is EtsClassType) {
+            // allocConcrete records one runtime type, even when the frontend local has a union type.
+            // The stream utility keeps absent, ambiguous or timed-out identities unresolved instead of choosing one.
+            val objectType = scope.calcOnState { memory.typeStreamOf(ref).singleOrNull() } as? EtsClassType
+            if (objectType != null) return runtimeInstanceof(objectType, checkType)
+        }
+
+        val isInstance = scope.calcOnState { memory.types.evalIsSubtype(ref, EtsNominalType(checkType)) }
+        mkAnd(mkNotNullOrUndefined(ref), isInstance)
+    }
+
+    private fun runtimeInstanceof(objectType: EtsRefType, checkType: EtsRefType): UBoolExpr = with(ctx) {
+        val objectClass = hierarchy.classesForType(objectType).singleOrNull()
+            ?: throw UnsupportedOperationException("Unknown instanceof receiver class: $objectType")
+        val constructorClass = hierarchy.classesForType(checkType).singleOrNull()
+            ?: throw UnsupportedOperationException("Unknown instanceof constructor class: $checkType")
+        mkBool(constructorClass in hierarchy.getAncestors(objectClass))
+    }
+
+    /**
+     * Resolve the evaluated identity once. `instanceof` can invoke a custom Symbol.hasInstance on its RHS,
+     * whereas `new` requires [[Construct]]; an ordinary object with that symbol is still not constructable.
+     */
+    private fun resolveRuntimeConstructor(
+        value: EtsEntity,
+        operation: RuntimeConstructorOperation,
+    ): EtsClassType? = with(ctx) {
+        val constructor = resolve(value) ?: return null
+        if (constructor.sort == fp64Sort || constructor.sort == boolSort) return throwTypeError()
+        if (constructor == mkTsNullValue() || constructor == mkUndefinedValue()) return throwTypeError()
+
+        if (constructor.sort != addressSort || constructor.isFakeObject()) {
+            val target = if (operation == RuntimeConstructorOperation.INSTANCEOF) {
+                "instanceof RHS"
+            } else {
+                "new constructor"
+            }
+            throw UnsupportedOperationException("Unresolved $target callability is not modeled")
+        }
+
+        val constructorRef = constructor as? UConcreteHeapRef
+            ?: throw UnsupportedOperationException("Symbolic ${operation.operator} constructor identity is not modeled")
+        if (getStringConstantValue(constructorRef) != null) return throwTypeError()
+
+        val signature = classConstructorSignature(constructorRef)
+            ?: return rejectNonConstructorValue(constructorRef, operation)
+        val clazz = hierarchy.classesForType(EtsClassType(signature)).singleOrNull()
+            ?: throw UnsupportedOperationException("Unknown or ambiguous ${operation.operator} class: $signature")
+        val hasPotentialCustomHasInstance = hierarchy.getAncestors(clazz).any { ancestor ->
+            ancestor.methods.any { method ->
+                method.modifiers.isStatic && (method.name == "%computed" || method.name == "Symbol.hasInstance")
+            } || ancestor.fields.any { field ->
+                field.modifiers.isStatic && (field.name == "%computed" || field.name == "Symbol.hasInstance")
+            }
+        }
+        val hasUnsupportedInstanceOverride = operation == RuntimeConstructorOperation.INSTANCEOF &&
+            hasPotentialCustomHasInstance
+        if (hasUnsupportedInstanceOverride) {
+            throw UnsupportedOperationException("Custom Symbol.hasInstance may override instanceof for $signature")
+        }
+
+        EtsClassType(clazz.signature)
+    }
+
+    private fun rejectNonConstructorValue(
+        ref: UConcreteHeapRef,
+        operation: RuntimeConstructorOperation,
+    ): Nothing? = with(ctx) {
+        val objectType = if (isAllocatedConcreteHeapRef(ref)) {
+            scope.calcOnState { memory.typeStreamOf(ref).singleOrNull() }
+        } else {
+            null
+        }
+        if (objectType == EtsStringType) return throwTypeError()
+
+        val objectClass = (objectType as? EtsClassType)?.let { type ->
+            hierarchy.classesForType(type).singleOrNull()
+        }
+        if (objectClass != null) {
+            // Computed members may include Symbol.hasInstance, so their instances need a separate model.
+            val ordinaryObject = objectClass.category == EtsClassCategory.CLASS ||
+                objectClass.category == EtsClassCategory.OBJECT
+            val hasComputedMember = hierarchy.getAncestors(objectClass).any { ancestor ->
+                ancestor.methods.any { it.name == "%computed" || it.name == "Symbol.hasInstance" } ||
+                    ancestor.fields.any { it.name == "%computed" || it.name == "Symbol.hasInstance" }
+            }
+            val isFunction = scope.calcOnState { associatedFunction[ref] != null }
+
+            val mayHandleInstanceof = operation == RuntimeConstructorOperation.INSTANCEOF && hasComputedMember
+            val isKnownNonConstructor = ordinaryObject && !mayHandleInstanceof && !isFunction
+            if (isKnownNonConstructor) return throwTypeError()
+        }
+
+        throw UnsupportedOperationException("Unknown ${operation.operator} constructor value: $ref")
+    }
+
+    private fun throwTypeError(): Nothing? {
+        scope.doWithState {
+            val exception = memory.allocConcrete(TS_TYPE_ERROR_TYPE)
+            methodResult = TsMethodResult.TsException(exception, TS_TYPE_ERROR_TYPE)
+        }
+
+        return null
     }
 
     // endregion
@@ -1582,6 +1732,12 @@ class TsSimpleValueResolver(
 
         val currentMethod = scope.calcOnState { lastEnteredMethod }
         if (local !in currentMethod.getDeclaredLocals()) {
+            val isParameter = currentMethod.parameters.any { it.name == local.name }
+            if (!isParameter && local.type is EtsFunctionType) {
+                val sdkConstructor = ctx.scene.sdkConstructorForGlobal(local)
+                if (sdkConstructor != null) return ctx.classConstructorRef(sdkConstructor.signature)
+            }
+
             if (local.type is EtsFunctionType) {
                 // TODO: function pointers should be "singletons"
                 return scope.calcOnState { memory.allocConcrete(local.type) }
@@ -1598,6 +1754,8 @@ class TsSimpleValueResolver(
     override fun visit(value: EtsThis): UExpr<out USort>? {
         return resolveLocal(value)
     }
+
+    override fun visit(value: EtsClassValueRef): UExpr<out USort> = ctx.classConstructorRef(value.signature)
 
     override fun visit(value: EtsConstant): UExpr<out USort> = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
@@ -1647,4 +1805,10 @@ class TsSimpleValueResolver(
     override fun visit(value: EtsClosureFieldRef): UExpr<out USort>? {
         error("Should not be called")
     }
+}
+
+/** The RHS protocols differ: instanceof uses @@hasInstance, while new requires [[Construct]]. */
+private enum class RuntimeConstructorOperation(val operator: String) {
+    INSTANCEOF(operator = "instanceof"),
+    NEW(operator = "new"),
 }

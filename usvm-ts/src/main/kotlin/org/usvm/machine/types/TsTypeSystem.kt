@@ -25,6 +25,7 @@ import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsVoidType
+import org.usvm.machine.isCoreRuntimePrototypeIdentity
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
@@ -271,7 +272,7 @@ class TsTypeSystem(
             is EtsArrayType -> isInstantiable(t.elementType)         // array if elements instantiable
             is EtsTupleType -> t.types.all { isInstantiable(it) }    // tuple if each element instantiable
             is EtsFunctionType -> true   // function literals always possible
-            is EtsClassType -> true   // class instantiation possible
+            is EtsClassType -> !t.isCoreRuntimePrototypeIdentity()
             else -> false
         }
     }
