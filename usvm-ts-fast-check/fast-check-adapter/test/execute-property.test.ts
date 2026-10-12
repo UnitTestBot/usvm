@@ -183,6 +183,60 @@ test('observation limits report dropped invocations and points without changing 
   assert.equal(recorder.result.droppedInvocations, 1);
 });
 
+test('observation stops nested value traversal when the byte budget is exhausted', () => {
+  const request: ObservationRequest = {
+    points: [], sources: [], maxInvocations: 1, maxPointsPerInvocation: 1,
+    maxArrayElements: 32, maxBytes: 1024,
+  };
+  const large = 'x'.repeat(262_144);
+  let getterCalls = 0;
+  const lateAccessor: unknown[] = [0];
+  Object.defineProperty(lateAccessor, '0', {
+    get: () => { getterCalls += 1; throw new Error('Observation invoked an accessor'); },
+  });
+  const values: unknown[] = [large, [[large], lateAccessor], [[large], Symbol('later unsupported value')]];
+
+  for (const value of values) {
+    const recorder = new ObservationRecorder('property', request);
+
+    const returned = recorder.run([value], 'unknown', () => value);
+
+    assert.equal(returned, value);
+    assert.deepEqual(recorder.result.invocations[0]?.input, { status: 'truncated', reason: 'byte-budget' });
+    assert.ok(Buffer.byteLength(JSON.stringify(recorder.result), 'utf8') <= request.maxBytes);
+  }
+
+  assert.equal(getterCalls, 0);
+});
+
+test('observation budgets JSON escapes and UTF-16 strings before building their encoding', () => {
+  const request: ObservationRequest = {
+    points: [], sources: [], maxInvocations: 1, maxPointsPerInvocation: 1,
+    maxArrayElements: 4, maxBytes: 1024,
+  };
+  const fitting = ['x'.repeat(300), '\b\f\n\r\t"\\', 'é界😀', '\ud800x\udfff'];
+  const oversized = ['\u0000'.repeat(300), '\ud800'.repeat(300), '\udfff'.repeat(300),
+    '界'.repeat(300), '😀'.repeat(300)];
+
+  for (const value of fitting) {
+    const recorder = new ObservationRecorder('property', request);
+
+    recorder.run([value], 'unknown', () => true);
+
+    assert.deepEqual(recorder.result.invocations[0]?.input, { status: 'captured', value: encodeJsValue([value]) });
+    assert.ok(Buffer.byteLength(JSON.stringify(recorder.result), 'utf8') <= request.maxBytes);
+  }
+
+  for (const value of oversized) {
+    const recorder = new ObservationRecorder('property', request);
+
+    recorder.run([value], 'unknown', () => true);
+
+    assert.deepEqual(recorder.result.invocations[0]?.input, { status: 'truncated', reason: 'byte-budget' });
+    assert.ok(Buffer.byteLength(JSON.stringify(recorder.result), 'utf8') <= request.maxBytes);
+  }
+});
+
 test('observation does not invoke inherited toJSON inside the original predicate', async () => {
   await withPropertyModule(async (sourceRoot) => {
     const cases = ['observesThrowingObjectToJson', 'observesThrowingArrayToJson',

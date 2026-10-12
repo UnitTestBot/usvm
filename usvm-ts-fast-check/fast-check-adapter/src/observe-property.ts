@@ -193,16 +193,9 @@ export class ObservationRecorder {
   private snapshot(value: unknown): ObservationValue {
     const startedAt = performance.now();
     try {
-      const reason = unsafeReason(value, this.request.maxArrayElements, new WeakSet(), 0);
-      if (reason !== undefined) return { status: 'unsupported', reason };
+      const budget = { remaining: this.request.maxBytes - this.reservedArtifactBytes() };
 
-      const tagged = encodeJsValue(value);
-      const bytes = Buffer.byteLength(stringifyProtocolJson(tagged), 'utf8');
-      if (this.reservedArtifactBytes() + bytes > this.request.maxBytes) {
-        return { status: 'truncated', reason: 'byte-budget' };
-      }
-
-      return { status: 'captured', value: tagged };
+      return captureValue(value, this.request.maxArrayElements, new WeakSet(), 0, budget);
     } finally {
       this.artifact.captureTimeMillis = Math.min(
         Number.MAX_SAFE_INTEGER,
@@ -234,28 +227,98 @@ function incrementCounter(value: number): number {
   return Math.min(Number.MAX_SAFE_INTEGER, value + 1);
 }
 
-function unsafeReason(value: unknown, maxArrayElements: number, seen: WeakSet<object>, depth: number): string | undefined {
-  if (value === null || value === undefined || ['boolean', 'string', 'number'].includes(typeof value)) return undefined;
-  if (types.isProxy(value)) return 'proxy';
-  if (!Array.isArray(value)) return 'unsupported-type';
-  if (depth >= 4) return 'depth-limit';
-  if (Object.getPrototypeOf(value) !== Array.prototype) return 'array-prototype';
-  if (seen.has(value)) return 'alias-or-cycle';
-  if (value.length > maxArrayElements) return 'array-element-limit';
+interface CaptureBudget {
+  remaining: number;
+}
+
+type CaptureResult =
+  | { status: 'captured'; value: TaggedJsValue }
+  | { status: 'unsupported' | 'truncated'; reason: string };
+
+const stringCodeUnit = Function.prototype.call.bind(String.prototype.charCodeAt) as
+  (value: string, index: number) => number;
+
+function captureValue(
+  value: unknown,
+  maxArrayElements: number,
+  seen: WeakSet<object>,
+  depth: number,
+  budget: CaptureBudget,
+): CaptureResult {
+  if (budget.remaining < 0) return { status: 'truncated', reason: 'byte-budget' };
+
+  if (typeof value === 'string') {
+    budget.remaining -= '{"kind":"string","value":}'.length;
+    if (!reserveJsonString(value, budget)) return { status: 'truncated', reason: 'byte-budget' };
+
+    return { status: 'captured', value: { kind: 'string', value } };
+  }
+  if (value === null || value === undefined || typeof value === 'boolean' || typeof value === 'number') {
+    const tagged = encodeJsValue(value);
+    budget.remaining -= stringifyProtocolJson(tagged).length;
+    if (budget.remaining < 0) return { status: 'truncated', reason: 'byte-budget' };
+
+    return { status: 'captured', value: tagged };
+  }
+
+  if (types.isProxy(value)) return { status: 'unsupported', reason: 'proxy' };
+  if (!Array.isArray(value)) return { status: 'unsupported', reason: 'unsupported-type' };
+  if (depth >= 4) return { status: 'unsupported', reason: 'depth-limit' };
+  if (Object.getPrototypeOf(value) !== Array.prototype) return { status: 'unsupported', reason: 'array-prototype' };
+  if (seen.has(value)) return { status: 'unsupported', reason: 'alias-or-cycle' };
+  if (value.length > maxArrayElements) return { status: 'unsupported', reason: 'array-element-limit' };
+
+  budget.remaining -= '{"kind":"array","elements":[]}'.length;
+  if (budget.remaining < 0) return { status: 'truncated', reason: 'byte-budget' };
 
   seen.add(value);
-  const descriptors = Object.getOwnPropertyDescriptors(value);
-  if (Object.keys(descriptors).some((key) => key !== 'length' && !/^(0|[1-9]\d*)$/.test(key))) {
-    return 'array-extra-property';
-  }
+  const elements: TaggedJsValue[] = [];
   for (let index = 0; index < value.length; index += 1) {
-    const descriptor = descriptors[String(index)];
-    if (descriptor === undefined) return 'sparse-array';
-    if (!('value' in descriptor)) return 'accessor';
+    if (index > 0) budget.remaining -= 1;
+    if (budget.remaining < 0) return { status: 'truncated', reason: 'byte-budget' };
 
-    const reason = unsafeReason(descriptor.value, maxArrayElements, seen, depth + 1);
-    if (reason !== undefined) return reason;
+    const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+    if (descriptor === undefined) return { status: 'unsupported', reason: 'sparse-array' };
+    if (!('value' in descriptor)) return { status: 'unsupported', reason: 'accessor' };
+
+    const captured = captureValue(descriptor.value, maxArrayElements, seen, depth + 1, budget);
+    if (captured.status !== 'captured') return captured;
+
+    elements.push(captured.value);
   }
 
-  return undefined;
+  // Inspect names only after the bounded value walk, rather than allocating every descriptor up front.
+  const hasExtraProperty = Object.getOwnPropertyNames(value)
+    .some((key) => key !== 'length' && !/^(0|[1-9]\d*)$/.test(key));
+  if (hasExtraProperty) return { status: 'unsupported', reason: 'array-extra-property' };
+
+  return { status: 'captured', value: { kind: 'array', elements } };
+}
+
+function reserveJsonString(value: string, budget: CaptureBudget): boolean {
+  // Count the actual JSON UTF-8 cost without allocating its escaped representation.
+  // Stop at the first excess: a large string or nested array never requires a full serialization.
+  budget.remaining -= 2;
+  for (let index = 0; index < value.length && budget.remaining >= 0; index += 1) {
+    const unit = stringCodeUnit(value, index);
+    if (unit === 0x22 || unit === 0x5c || unit === 0x08 || unit === 0x09
+      || unit === 0x0a || unit === 0x0c || unit === 0x0d) {
+      budget.remaining -= 2;
+    } else if (unit < 0x20) {
+      budget.remaining -= 6;
+    } else if (unit < 0x80) {
+      budget.remaining -= 1;
+    } else if (unit < 0x800) {
+      budget.remaining -= 2;
+    } else if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = stringCodeUnit(value, index + 1);
+      const isSurrogatePair = next >= 0xdc00 && next <= 0xdfff;
+      budget.remaining -= isSurrogatePair ? 4 : 6;
+      if (isSurrogatePair) index += 1;
+    } else {
+      budget.remaining -= unit >= 0xdc00 && unit <= 0xdfff ? 6 : 3;
+    }
+  }
+
+  return budget.remaining >= 0;
 }
