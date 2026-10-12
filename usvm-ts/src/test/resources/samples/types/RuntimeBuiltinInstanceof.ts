@@ -10,6 +10,16 @@ class RuntimeBuiltinInstanceof {
     functionObject(): number { const fn = () => 1; return fn instanceof Object ? 1 : 0; }
     functionFunction(): number { const fn = () => 1; return fn instanceof Function ? 1 : 0; }
     functionProjectClass(): number { const fn = () => 1; return fn instanceof BuiltinProjectClass ? 1 : 0; }
+    boxedConstructorFunction(): number {
+        const box: any = { value: BuiltinProjectClass };
+        return box.value instanceof Function ? 1 : 0;
+    }
+
+    boxedFunctionFunction(): number {
+        const box: any = { value: () => 1 };
+        return box.value instanceof Function ? 1 : 0;
+    }
+
     instanceObject(): number { return new BuiltinProjectClass() instanceof Object ? 1 : 0; }
     instanceFunction(): number { return new BuiltinProjectClass() instanceof Function ? 1 : 0; }
     arrayObject(): number { return [] instanceof Object ? 1 : 0; }
@@ -21,6 +31,16 @@ class RuntimeBuiltinInstanceof {
     conditionalBuiltin(useFunction: boolean): number {
         const ctor = useFunction ? Function : Object;
         return BuiltinProjectClass instanceof ctor ? 1 : 0;
+    }
+
+    boxedConstructorChoice(useFunction: boolean): number {
+        const box: any = { value: useFunction ? BuiltinProjectClass : 42 };
+        return box.value instanceof Function ? 1 : 0;
+    }
+
+    boxedFunctionChoice(useFunction: boolean): number {
+        const box: any = { value: useFunction ? (() => 1) : 42 };
+        return box.value instanceof Function ? 1 : 0;
     }
 
     localShadow(): number {

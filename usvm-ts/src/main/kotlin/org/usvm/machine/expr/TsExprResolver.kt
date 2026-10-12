@@ -93,6 +93,7 @@ import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.NAMED_FUNCTION_REFERENCE_PREFIX
 import org.jacodb.ets.utils.getDeclaredLocals
+import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -1178,38 +1179,43 @@ class TsExprResolver(
         }
 
         if (arg.sort != addressSort || arg == mkUndefinedValue() || arg == mkTsNullValue()) return falseExpr
-        val isFunctionObject = arg is UConcreteHeapRef && (
-            classConstructorSignature(arg) != null || scope.calcOnState { associatedFunction[arg] != null }
-            )
-        if (isFunctionObject) return runtimeInstanceof(scene.runtimeFunctionType(), checkType)
-
         if (arg.isFakeObject()) {
             val fakeType = arg.getFakeType(scope)
             val refValue = arg.extractRef(scope)
-            val isInstance = scope.calcOnState {
-                memory.types.evalIsSubtype(refValue, EtsNominalType(checkType))
-            }
+            val isInstance = referenceInstanceof(refValue, checkType)
 
-            return mkAnd(
-                fakeType.refTypeExpr,
-                mkNotNullOrUndefined(refValue),
-                isInstance,
-            )
+            return mkAnd(fakeType.refTypeExpr, isInstance)
         }
 
-        val objectRef = arg.asExpr(addressSort)
-        if (isAllocatedConcreteHeapRef(objectRef) && checkType is EtsClassType) {
+        referenceInstanceof(arg.asExpr(addressSort), checkType)
+    }
+
+    private fun referenceInstanceof(ref: UHeapRef, checkType: EtsRefType): UBoolExpr = with(ctx) {
+        if (ref == mkUndefinedValue() || ref == mkTsNullValue()) return falseExpr
+        if (ref is UIteExpr<*>) {
+            val trueValue = referenceInstanceof(ref.trueBranch.asExpr(addressSort), checkType)
+            val falseValue = referenceInstanceof(ref.falseBranch.asExpr(addressSort), checkType)
+            return mkIte(ref.condition, trueValue, falseValue)
+        }
+
+        // Wrappers and conditional values retain the represented function's identity.
+        val isFunctionObject = ref is UConcreteHeapRef && (
+            classConstructorSignature(ref) != null || scope.calcOnState { associatedFunction[ref] != null }
+            )
+        if (isFunctionObject) return runtimeInstanceof(scene.runtimeFunctionType(), checkType)
+
+        if (isAllocatedConcreteHeapRef(ref) && checkType is EtsClassType) {
             // allocConcrete records one runtime type, even when the frontend local has a union type.
             // The stream utility keeps absent, ambiguous or timed-out identities unresolved instead of choosing one.
-            val objectType = scope.calcOnState { memory.typeStreamOf(objectRef).singleOrNull() } as? EtsClassType
+            val objectType = scope.calcOnState { memory.typeStreamOf(ref).singleOrNull() } as? EtsClassType
             if (objectType != null) return runtimeInstanceof(objectType, checkType)
         }
 
-        val isInstance = scope.calcOnState { memory.types.evalIsSubtype(objectRef, EtsNominalType(checkType)) }
-        mkAnd(mkNotNullOrUndefined(objectRef), isInstance)
+        val isInstance = scope.calcOnState { memory.types.evalIsSubtype(ref, EtsNominalType(checkType)) }
+        mkAnd(mkNotNullOrUndefined(ref), isInstance)
     }
 
-    private fun runtimeInstanceof(objectType: EtsRefType, checkType: EtsRefType): UExpr<out USort> = with(ctx) {
+    private fun runtimeInstanceof(objectType: EtsRefType, checkType: EtsRefType): UBoolExpr = with(ctx) {
         val objectClass = hierarchy.classesForType(objectType).singleOrNull()
             ?: throw UnsupportedOperationException("Unknown instanceof receiver class: $objectType")
         val constructorClass = hierarchy.classesForType(checkType).singleOrNull()

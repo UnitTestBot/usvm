@@ -29,6 +29,8 @@ class RuntimeBuiltinInstanceofTest : TsMethodTestRunner() {
             "functionObject" to 1.0,
             "functionFunction" to 1.0,
             "functionProjectClass" to 0.0,
+            "boxedConstructorFunction" to 1.0,
+            "boxedFunctionFunction" to 1.0,
             "instanceObject" to 1.0,
             "instanceFunction" to 0.0,
             "arrayObject" to 1.0,
@@ -66,6 +68,27 @@ class RuntimeBuiltinInstanceofTest : TsMethodTestRunner() {
             "if (new RuntimeBuiltinInstanceof().conditionalBuiltin(true) !== 1) throw Error('Function alias');",
             "if (new RuntimeBuiltinInstanceof().conditionalBuiltin(false) !== 1) throw Error('Object alias');"
         ))
+    }
+
+    @Test
+    fun `boxed conditional functions preserve runtime membership`() {
+        val methods = listOf("boxedConstructorChoice", "boxedFunctionChoice")
+
+        methods.forEach { methodName ->
+            discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+                method = getMethod(methodName = methodName, className = "RuntimeBuiltinInstanceof"),
+                { input, result -> input.value && result.number == 1.0 },
+                { input, result -> !input.value && result.number == 0.0 },
+                invariants = arrayOf({ input, result -> result.number == if (input.value) 1.0 else 0.0 }),
+            )
+        }
+
+        replay(methods.flatMap { methodName ->
+            listOf(
+                "if (new RuntimeBuiltinInstanceof().$methodName(true) !== 1) throw Error('$methodName(true)');",
+                "if (new RuntimeBuiltinInstanceof().$methodName(false) !== 0) throw Error('$methodName(false)');",
+            )
+        })
     }
 
     private fun replay(assertions: List<String>) {
