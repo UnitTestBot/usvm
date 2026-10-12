@@ -359,6 +359,9 @@ class RuntimeNewTest : TsMethodTestRunner() {
             "writeAddedFieldFromBoxedValue",
             "writeTypedPrimitiveFromBoxedValue",
             "writeTypedReferenceFromBoxedValue",
+            "writeAddedReferenceFromBoxedValue",
+            "writeAddedNullishFromBoxedValue",
+            "writeAddedFunctionFromBoxedValue",
         )
 
         methods.forEach { methodName ->

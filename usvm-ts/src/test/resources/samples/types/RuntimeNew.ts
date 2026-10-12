@@ -166,6 +166,35 @@ class RuntimeNew {
         return hasArray ? alias.length === 1 && alias[0] === 7 : alias === undefined;
     }
 
+    writeAddedReferenceFromBoxedValue(hasArray: boolean): boolean {
+        const source: any = { payload: hasArray ? [7] : new NewA(7) };
+        const target: any = { marker: 1 };
+
+        target.value = source.payload;
+        const alias = target.value;
+
+        return hasArray ? alias.length === 1 && alias[0] === 7 : alias instanceof NewA && alias.value === 7;
+    }
+
+    writeAddedNullishFromBoxedValue(useNull: boolean): boolean {
+        const source: any = { payload: useNull ? null : undefined };
+        const target: any = { marker: 1 };
+
+        target.value = source.payload;
+
+        return useNull ? target.value === null : target.value === undefined;
+    }
+
+    writeAddedFunctionFromBoxedValue(useFunction: boolean): boolean {
+        const source: any = { payload: useFunction ? (() => 7) : "text" };
+        const target: any = { marker: 1 };
+
+        target["value"] = source.payload;
+        const alias = target.value;
+
+        return useFunction ? typeof alias === "function" && alias instanceof Function : alias === "text";
+    }
+
     writeIncompatibleBoxedValue(useNumber: boolean): boolean {
         const source: any = { payload: useNumber ? 7 : false };
         const target = new NewTypedFields();
