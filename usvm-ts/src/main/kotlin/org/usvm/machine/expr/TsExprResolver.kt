@@ -111,7 +111,6 @@ import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
-import org.usvm.machine.TS_TYPE_ERROR_TYPE
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsInterpreterObserver
@@ -136,6 +135,7 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.throwTypeError
 import org.usvm.machine.types.EtsNominalType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
@@ -1291,8 +1291,7 @@ class TsExprResolver(
 
     private fun throwTypeError(): Nothing? {
         scope.doWithState {
-            val exception = memory.allocConcrete(TS_TYPE_ERROR_TYPE)
-            methodResult = TsMethodResult.TsException(exception, TS_TYPE_ERROR_TYPE)
+            this.throwTypeError()
         }
 
         return null

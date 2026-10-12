@@ -251,8 +251,13 @@ normalization depends on `ts.math.floor`; case conversion needs only the two cod
 String indexing accepts canonical integral numeric positions and canonical numeric string keys. It returns one
 UTF-16 code unit in range and `undefined` out of range, for fractions, or for non-finite numeric positions. Numeric
 property-key conversion preserves symbolic numbers internally until the string property read; general object
-properties still require concrete converted keys. String index writes and other unmodeled String properties
-remain unsupported.
+properties still require concrete converted keys. Primitive String property writes preserve string contents and
+length. The executing method's lexical `isStrictMode` metadata controls the failed write: strict code produces a
+runtime `TypeError`, while sloppy code ignores the write. The assignment expression still yields its right-hand
+value in sloppy mode, and right-hand side effects or exceptions occur before the write in either mode. This
+applies to indexed, named, compound, and update assignments. Callers do not override the callee's strictness.
+Legacy EtsIR without strictness metadata reports these writes as unsupported instead of guessing a mode.
+Other unmodeled String property reads remain unsupported.
 
 Typed symbolic String parameters initialize bounded backing storage, so model guards accept symbolic receivers
 and search strings with known backing, as well as constructed strings. `charAt` accepts symbolic positions, and
