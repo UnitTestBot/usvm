@@ -3,6 +3,7 @@ package org.usvm.ts.pbt.mapping
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStaticFieldRef
@@ -18,9 +19,90 @@ import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.testResourcePath
 import java.nio.file.Path
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class PropertyEtsExportResolutionTest {
+    @Test
+    fun `exported arrow binds source input after its hidden builtin capture`() {
+        val source = testResourcePath("/mapping/exports/CapturedBuiltinArrow.ts")
+        val mapper = mapper(source)
+
+        val artifact = mapper.map(
+            manifest(module = source.fileName.toString(), exportName = "usesCapturedBuiltins"),
+        )
+
+        assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
+        val target = artifact.predicate.targets.single()
+        val lexicalEnvironment = assertNotNull(target.bindings.lexicalEnvironment)
+        val hiddenCapture = lexicalEnvironment.parameter
+        val captureType = hiddenCapture.type as EtsLexicalEnvType
+        val input = target.bindings.inputs.single()
+        assertEquals(expected = 0, actual = hiddenCapture.index)
+        assertEquals(expected = 1, actual = lexicalEnvironment.stackSlot)
+        assertEquals(listOf("Number", "Error"), captureType.closures.map { closure -> closure.name })
+        assertEquals(expected = "value", actual = input.parameter.name)
+        assertEquals(expected = 1, actual = input.parameter.index)
+        assertEquals(expected = 2, actual = input.stackSlot)
+    }
+
+    @Test
+    fun `arbitrary captured runtime value remains explicit in lexical environment binding`() {
+        val source = testResourcePath("/mapping/exports/CapturedBuiltinArrow.ts")
+        val mapper = mapper(source)
+
+        val artifact = mapper.map(
+            manifest(module = source.fileName.toString(), exportName = "capturesModuleValue"),
+        )
+
+        assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
+        val bindings = artifact.predicate.targets.single().bindings
+        val lexicalEnvironment = assertNotNull(bindings.lexicalEnvironment)
+        val captureType = lexicalEnvironment.parameter.type as EtsLexicalEnvType
+        assertEquals(listOf("threshold"), captureType.closures.map { closure -> closure.name })
+        assertEquals(expected = 1, actual = lexicalEnvironment.stackSlot)
+        assertEquals(expected = 2, actual = bindings.inputs.single().stackSlot)
+    }
+
+    @Test
+    fun `captured expression arrow preserves multiple source inputs in order`() {
+        val source = testResourcePath("/mapping/exports/CapturedBuiltinArrow.ts")
+        val mapper = mapper(source)
+        val manifest = manifest(
+            module = source.fileName.toString(),
+            exportName = "capturedBuiltinsWithTwoInputs",
+        ).copy(
+            inputs = listOf(
+                PropertyInput(name = "first", domain = IntegerDomain()),
+                PropertyInput(name = "second", domain = IntegerDomain()),
+            ),
+        )
+
+        val artifact = mapper.map(manifest)
+
+        assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
+        val bindings = artifact.predicate.targets.single().bindings
+        assertNotNull(bindings.lexicalEnvironment)
+        assertEquals(listOf("first", "second"), bindings.inputs.map { input -> input.propertyInputName })
+        assertEquals(listOf("left", "right"), bindings.inputs.map { input -> input.parameter.name })
+        assertEquals(listOf(2, 3), bindings.inputs.map { input -> input.stackSlot })
+    }
+
+    @Test
+    fun `hidden builtin capture does not conceal unmatched source parameters`() {
+        val source = testResourcePath("/mapping/exports/CapturedBuiltinArrow.ts")
+        val mapper = mapper(source)
+
+        val artifact = mapper.map(
+            manifest(module = source.fileName.toString(), exportName = "capturedBuiltinsWithTwoInputs"),
+        )
+
+        assertEquals(EtsMappingStatus.UNSUPPORTED, artifact.predicate.status)
+        assertEquals(emptyList(), artifact.predicate.targets)
+        assertEquals("mapping.entry-point.bindings.unsupported", artifact.predicate.diagnostics.single().code)
+    }
+
     @Test
     fun `named default declaration resolves only through the default export name`() {
         val source = testResourcePath("/mapping/exports/NamedDefaultDeclaration.ts")
@@ -116,9 +198,12 @@ class PropertyEtsExportResolutionTest {
         val artifact = mapper.map(manifest(module = source.fileName.toString(), exportName = "arrowPredicate"))
 
         assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
-        val method = artifact.predicate.targets.single().method
+        val target = artifact.predicate.targets.single()
+        val method = target.method
         assertTrue(method.name.startsWith("%AM"))
         assertEquals(listOf("value"), method.parameters.map { parameter -> parameter.name })
+        assertNull(target.bindings.lexicalEnvironment)
+        assertEquals(expected = 1, actual = target.bindings.inputs.single().stackSlot)
     }
 
     @Test
