@@ -79,7 +79,7 @@ internal object TsDenseArrayPrimitives {
             if (value.isFakeObject()) {
                 val kind = value.getFakeType(state.memory)
                 val ref = value.extractRef(state.memory)
-                val nullish = mkOr(mkEq(ref, mkUndefinedValue()), mkEq(ref, nullRef))
+                val nullish = mkOr(mkEq(ref, mkUndefinedValue()), mkEq(ref, mkTsNullValue()))
                 val referenceGuard = if (kind.refTypeExpr.isFalse || state.hasUnsafeStringReference(ref)) {
                     falseExpr
                 } else {
@@ -122,7 +122,7 @@ internal object TsDenseArrayPrimitives {
                 value.sort == addressSort -> {
                     val ref = value.asExpr(addressSort)
                     if (state.hasUnsafeStringReference(ref)) return null
-                    val nullish = mkOr(mkEq(ref, mkUndefinedValue()), mkEq(ref, nullRef))
+                    val nullish = mkOr(mkEq(ref, mkUndefinedValue()), mkEq(ref, mkTsNullValue()))
                     val guard = mkOr(nullish, state.memory.types.evalTypeEquals(ref, EtsStringType))
                     execution(guard = guard) { ctx.mkIte(nullish, mkInitializedStringConstant(""), ref) }
                 }

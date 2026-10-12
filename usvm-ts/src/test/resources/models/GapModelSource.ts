@@ -49,6 +49,13 @@ export class GapModelSource {
         return values.join("-");
     }
 
+    symbolicNullish(flag: boolean): string {
+        const values = "a,b".split(",") as any[];
+        values[0] = flag ? true : null;
+        values[1] = flag ? undefined : false;
+        return values.join("|");
+    }
+
     reduceMutation(): number {
         const values = this.numbers();
         const multiplier = 2;

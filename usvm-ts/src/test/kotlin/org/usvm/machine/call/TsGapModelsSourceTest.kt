@@ -36,11 +36,28 @@ class TsGapModelsSourceTest : TsMethodTestRunner() {
     override val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
     override val tsOptions = TsOptions(maxArraySize = 16)
     override val runner: (EtsMethod, UMachineOptions) -> List<TsTest> = { method, machineOptions ->
-        TsMachine(scene = scene, options = machineOptions, tsOptions = tsOptions).use { machine ->
-            val analysis = machine.analyzeWithOutcome(listOf(method))
+        val calls = mutableListOf<TsUnknownCallEvent>()
+        val limitations = mutableListOf<TsRuntimeFeatureLimitationEvent>()
+        val observer = object : TsInterpreterObserver {
+            override fun onUnknownCall(event: TsUnknownCallEvent) {
+                calls += event
+            }
 
-            assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
-            assertTrue(analysis.unsupportedPaths.isEmpty(), "${method.name}: ${analysis.unsupportedPaths}")
+            override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
+                limitations += event
+            }
+        }
+        TsMachine(scene = scene, options = machineOptions, tsOptions = tsOptions, observer = observer).use { machine ->
+            val analysis = machine.analyzeWithOutcome(listOf(method))
+            val residualCalls = calls.filter { event -> event.outcome == TsUnknownCallOutcome.PATH_STOPPED }
+            val diagnostics = "${method.name}: stop=${analysis.stopReason}, states=${analysis.states.size}, " +
+                "unsupported=${analysis.unsupportedPaths}, residual=$residualCalls, limitations=$limitations"
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason, diagnostics)
+            assertTrue(analysis.states.isNotEmpty(), diagnostics)
+            assertTrue(analysis.unsupportedPaths.isEmpty(), diagnostics)
+            assertTrue(residualCalls.isEmpty(), diagnostics)
+            assertTrue(limitations.isEmpty(), diagnostics)
             analysis.states.map { state -> TsTestResolver().resolve(method, state) }
         }
     }
@@ -103,7 +120,7 @@ class TsGapModelsSourceTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `join keeps symbolic boolean kinds and source selected lengths`() {
+    fun `join keeps symbolic boolean nullish kinds and source selected lengths`() {
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsString>(
             method = method("symbolicBooleans"),
             { first, second, both, result ->
@@ -115,6 +132,13 @@ class TsGapModelsSourceTest : TsMethodTestRunner() {
 
                 result.value == expected
             }),
+        )
+
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsString>(
+            method = method("symbolicNullish"),
+            { flag, result -> flag.value && result.value == "true|" },
+            { flag, result -> !flag.value && result.value == "|false" },
+            invariants = arrayOf({ flag, result -> result.value == if (flag.value) "true|" else "|false" }),
         )
     }
 
@@ -169,7 +193,7 @@ class TsGapModelsSourceTest : TsMethodTestRunner() {
         val methodNames = listOf(
             "splitEdges", "reduceAliases", "reduceEmptyError", "ignoredArguments", "composedMutations",
             "independentArrays", "joinRuntimeKinds", "reduceMutation", "reduceOmitted", "reduceUndefined",
-            "reduceInitialEmpty", "reduceThrows", "symbolicBooleans",
+            "reduceInitialEmpty", "reduceThrows", "symbolicBooleans", "symbolicNullish",
         )
         val script = buildString {
             appendLine(source.readText())
