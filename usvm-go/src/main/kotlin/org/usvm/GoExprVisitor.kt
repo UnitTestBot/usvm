@@ -134,8 +134,8 @@ import org.usvm.operator.GoUnaryOperator
 import org.usvm.operator.mkNarrow
 import org.usvm.state.GoArrayCopyOperation
 import org.usvm.state.GoArrayValueCopy
-import org.usvm.state.GoMethodResult
 import org.usvm.state.GoMapKeyRepresentative
+import org.usvm.state.GoMethodResult
 import org.usvm.state.GoState.Companion.POINTER_FIELD
 import org.usvm.state.copyValue
 import org.usvm.state.decodeUtf8Rune

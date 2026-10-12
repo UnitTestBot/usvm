@@ -367,7 +367,7 @@ class GoTestInterpreter(
                     if (known != null) {
                         keyScope.convertExpr(known.snapshot, keyType)
                     } else {
-                        convertExpr(memory.readField(reference, 0, typeToSort(keyType)), keyType)
+                        convertExpr(memory.readField(reference, field = 0, sort = typeToSort(keyType)), keyType)
                     }
                 } else {
                     convertExpr(key, keyStorageType)
@@ -448,7 +448,9 @@ class GoTestInterpreter(
                 val canGenerateKey = !isRefSet || floatingKey || stringKey
                 val rng = if (canGenerateKey) RNG(underlyingKey as BasicType) else null
                 if (usesRepresentatives && !canGenerateKey) {
-                    throw UnsupportedOperationException("Go value-key map has unmaterialized symbolic entries ($keyType)")
+                    throw UnsupportedOperationException(
+                        "Go value-key map has unmaterialized symbolic entries ($keyType)",
+                    )
                 }
                 for (i in 0 until diff) {
                     val key = if (isRefSet && !canGenerateKey) {
