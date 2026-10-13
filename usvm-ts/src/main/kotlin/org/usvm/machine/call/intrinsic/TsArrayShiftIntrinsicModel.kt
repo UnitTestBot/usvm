@@ -75,10 +75,6 @@ internal object TsArrayShiftIntrinsicModel : TsBuiltInUnknownCallModel {
     }
 
     private fun resolveInput(state: TsState, call: TsUnknownCall): ArrayShiftInput? = with(state.ctx) {
-        if (call.arguments.isNotEmpty()) {
-            return@with null
-        }
-
         val receiver = call.receiver ?: return@with null
         val receiverValue = receiver.resolved ?: return@with null
         if (receiverValue.sort != addressSort) {

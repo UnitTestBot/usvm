@@ -756,10 +756,6 @@ private fun TsExprResolver.handleArrayShift(
     arrayType: EtsArrayType,
     array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    check(stmt.args.isEmpty()) {
-        "Array.shift() should have no arguments, but got ${stmt.args.size}"
-    }
-
     removeArrayElement(stmt, array, arrayType, first = true)
 }
 

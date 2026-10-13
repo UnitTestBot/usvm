@@ -249,8 +249,22 @@ class TsArrayShiftIntrinsicModelTest {
     }
 
     @Test
-    fun `array shift with arguments uses residual fallback`() {
-        assertUsesResidualFallback(methodName = "shiftWithArguments")
+    fun `array shift ignores arguments through the registered model`() {
+        val result = analyze(methodName = "shiftWithArguments")
+
+        assertEquals(48.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+        assertEquals(listOf(TsUnknownCallOutcome.MODEL_APPLIED), result.events.map { it.outcome })
+    }
+
+    @Test
+    fun `compatibility dispatcher also ignores shift arguments`() {
+        val result = analyze(
+            methodName = "shiftWithArguments",
+            dispatcher = TsCompatibilityUnknownCallDispatcher,
+        )
+
+        assertEquals(48.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+        assertTrue(result.events.isEmpty())
     }
 
     @Test
@@ -328,13 +342,6 @@ class TsArrayShiftIntrinsicModelTest {
                 events = observer.events.toList(),
             )
         }
-    }
-
-    private fun assertUsesResidualFallback(methodName: String) {
-        val result = analyze(methodName)
-
-        assertTrue(result.values.isEmpty())
-        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.single().outcome)
     }
 
     private fun makeFakeReceiver(state: TsState): UConcreteHeapRef {
