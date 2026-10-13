@@ -3,6 +3,7 @@ package org.usvm.ts.pbt.usvm
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsType
+import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.TsTarget
@@ -30,7 +31,7 @@ import org.usvm.ts.pbt.model.PropertyId
 /** Searches mapped TypeScript predicates for concrete property violations with USVM. */
 class UsvmPropertySearcher(
     private val scene: EtsScene,
-    machineOptions: UMachineOptions = UMachineOptions(),
+    machineOptions: UMachineOptions = UMachineOptions(solverType = SolverType.YICES),
     private val tsOptions: TsOptions = TsOptions(),
     projectionOptions: UsvmProjectionOptions = UsvmProjectionOptions(),
 ) {

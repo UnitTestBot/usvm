@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.usvm.PathSelectionStrategy
+import org.usvm.SolverType
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.call.TsResidualCallPolicy
 import org.usvm.machine.call.TsUnknownCallEvent
@@ -77,7 +78,7 @@ internal data class CallsExperimentManifest(
         require(seeds.isNotEmpty() && seeds.distinct().size == seeds.size) { "Seeds must be non-empty and unique" }
         require(perTargetBudgetMillis > 0) { "Per-target budget must be positive" }
         require(projects.isNotEmpty()) { "At least one project is required" }
-        require(solver == "Z3") { "The frozen calls experiment requires the Z3 solver" }
+        require(solver == "YICES" || solver == "Z3") { "Unsupported calls experiment solver: $solver" }
         require(searchPolicy == CALLS_PATH_SELECTION_STRATEGY.name) {
             "The frozen calls experiment requires ${CALLS_PATH_SELECTION_STRATEGY.name} search"
         }
@@ -135,6 +136,7 @@ internal data class CallsSymbolicSearchRequest(
     val expectedNativeFrontendRevision: String,
     val seed: Long,
     val budget: Duration,
+    val solverType: SolverType = SolverType.YICES,
     val unknownCallEventSink: ((TsUnknownCallEvent) -> Unit)? = null,
     val runtimeLimitationEventSink: ((TsRuntimeFeatureLimitationEvent) -> Unit)? = null,
 )
@@ -421,6 +423,7 @@ internal class CallsExperimentRunner(
             expectedNativeFrontendRevision = manifest.nativeFrontendRevision,
             seed = seed,
             budget = manifest.perTargetBudgetMillis.milliseconds,
+            solverType = SolverType.valueOf(manifest.solver),
         )
         val eventWrites = CallsEventWriteTracker()
         val unknownCallSink = callsUnknownCallEventSink(

@@ -8,6 +8,7 @@ import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
+import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.checkers.UnreachableCodeDetector
 import org.usvm.machine.TsMachine
@@ -26,7 +27,7 @@ class UnreachableCodeDetectorTest {
         )
         EtsScene(listOf(file))
     }
-    val options = UMachineOptions()
+    val options = UMachineOptions(solverType = SolverType.YICES)
     val tsOptions = TsOptions(interproceduralAnalysis = false)
 
     @Test

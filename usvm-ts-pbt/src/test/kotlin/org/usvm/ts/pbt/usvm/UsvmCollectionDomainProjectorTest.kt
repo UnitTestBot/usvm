@@ -9,6 +9,7 @@ import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UConcreteHeapRef
 import org.usvm.UMachineOptions
@@ -187,7 +188,10 @@ class UsvmCollectionDomainProjectorTest {
     ) {
         TsMachine(
             scene = scene,
-            options = UMachineOptions(stateCollectionStrategy = StateCollectionStrategy.ALL),
+            options = UMachineOptions(
+                solverType = SolverType.YICES,
+                stateCollectionStrategy = StateCollectionStrategy.ALL
+            ),
             tsOptions = TsOptions(),
         ).use { machine ->
             machine.analyze(

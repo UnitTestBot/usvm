@@ -5,6 +5,7 @@ import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.machine.TsOptions
 import org.usvm.ts.pbt.backend.ProjectionCapability
@@ -327,7 +328,7 @@ class UsvmPropertySearcherTest {
         val manifest = manifest(predicateExport = "validProperty")
         val zeroTimeoutSearcher = UsvmPropertySearcher(
             scene = scene,
-            machineOptions = UMachineOptions(timeout = Duration.ZERO),
+            machineOptions = UMachineOptions(solverType = SolverType.YICES, timeout = Duration.ZERO),
         )
 
         val result = zeroTimeoutSearcher.search(

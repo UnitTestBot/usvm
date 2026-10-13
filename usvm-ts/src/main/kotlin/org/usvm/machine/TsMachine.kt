@@ -5,6 +5,7 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
 import org.usvm.CoverageZone
+import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
@@ -72,7 +73,7 @@ data class TsMachineAnalysisResult(
 
 class TsMachine(
     scene: EtsScene,
-    override val options: UMachineOptions,
+    override val options: UMachineOptions = UMachineOptions(solverType = SolverType.YICES),
     private val tsOptions: TsOptions,
     private val machineObserver: UMachineObserver<TsState>? = null,
     observer: TsInterpreterObserver? = null,

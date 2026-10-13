@@ -2,6 +2,7 @@ package org.usvm.ts.calls
 
 import kotlinx.serialization.decodeFromString
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.SolverType
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.NumberDomain
 import org.usvm.ts.pbt.model.PropertyInput
@@ -32,6 +33,102 @@ class CallsCoverageSourceTest {
         )
         assertEquals(emptySearch, result.search)
         assertEquals(fixture.source.identity, result.identity.sourceIdentity)
+        assertEquals(3, result.identity.schemaVersion)
+        assertEquals("YICES", result.identity.solver)
+    }
+
+    @Test
+    fun `coverage cell forwards the explicit manifest solver to search`() {
+        val fixture = fixture(solver = "Z3")
+        val solvers = mutableListOf<SolverType>()
+
+        fixture.runCell(searchFunction = { request ->
+            solvers += request.solverType
+            emptySearch
+        })
+
+        val result = CallsExperimentJson.json.decodeFromString<CallsCoverageCellResult>(
+            Files.readString(fixture.output.resolve("result.json")),
+        )
+        assertEquals(listOf(SolverType.Z3), solvers)
+        assertEquals("Z3", result.identity.solver)
+    }
+
+    @Test
+    fun `resumed search rejects a persisted identity from a different solver`() {
+        val fixture = fixture()
+        fixture.persistSearch(solver = "Z3")
+
+        val failure = assertFailsWith<IllegalArgumentException> { fixture.runCell() }
+
+        assertEquals("Cell identity changed", failure.message)
+        fixture.assertNoReplayOrCompletion()
+    }
+
+    @Test
+    fun `resumed search rejects the prior cell schema`() {
+        val fixture = fixture()
+        fixture.persistSearch(schemaVersion = 2)
+
+        val failure = assertFailsWith<IllegalArgumentException> { fixture.runCell() }
+
+        assertEquals("Cell identity changed", failure.message)
+        fixture.assertNoReplayOrCompletion()
+    }
+
+    @Test
+    fun `build mismatch rejects search and universe collection before callbacks`() {
+        val fixture = fixture()
+        var searched = false
+        var probed = false
+        val otherRevision = "2222222222222222222222222222222222222222"
+
+        val searchFailure = assertFailsWith<IllegalArgumentException> {
+            fixture.runCell(runtimeToolRevision = otherRevision, searchFunction = {
+                searched = true
+                emptySearch
+            })
+        }
+        val universeFailure = assertFailsWith<IllegalArgumentException> {
+            fixture.runUniverse(runtimeToolRevision = otherRevision, probeFunction = {
+                probed = true
+                sampleUniverse
+            })
+        }
+
+        assertEquals("Coverage manifest tool revision differs from the running build", searchFailure.message)
+        assertEquals(searchFailure.message, universeFailure.message)
+        assertFalse(searched)
+        assertFalse(probed)
+        assertFalse(Files.exists(fixture.output.resolve("identity.json")))
+        assertFalse(Files.exists(directory.resolve("universe-output/universe.json")))
+    }
+
+    @Test
+    fun `frontend mismatch rejects search and universe collection before callbacks`() {
+        val fixture = fixture()
+        var searched = false
+        var probed = false
+
+        val searchFailure = assertFailsWith<IllegalArgumentException> {
+            fixture.runCell(runtimeNativeFrontendRevision = "bundled:other", searchFunction = {
+                searched = true
+                emptySearch
+            })
+        }
+        val universeFailure = assertFailsWith<IllegalArgumentException> {
+            fixture.runUniverse(runtimeNativeFrontendRevision = "bundled:other", probeFunction = {
+                probed = true
+                sampleUniverse
+            })
+        }
+
+        assertEquals("Coverage manifest frontend revision differs from the running build", searchFailure.message)
+        assertEquals(searchFailure.message, universeFailure.message)
+        assertFalse(searched)
+        assertFalse(probed)
+        assertFalse(Files.exists(fixture.output.resolve("identity.json")))
+        assertFalse(Files.exists(directory.resolve("universe-output/universe.json")))
     }
 
     @Test
@@ -189,7 +286,7 @@ class CallsCoverageSourceTest {
         assertFalse(Files.exists(directory.resolve("universe-output/universe.json")))
     }
 
-    private fun fixture(): Fixture {
+    private fun fixture(solver: String = "YICES"): Fixture {
         val sourceRoot = Files.createDirectory(directory.resolve("source"))
         val sourceFile = sourceRoot.resolve("Fixture.ts")
         Files.writeString(sourceFile, "export function first(flag: boolean): boolean { return flag; }")
@@ -218,7 +315,7 @@ class CallsCoverageSourceTest {
             experimentId = "coverage-identity",
             toolRevision = TOOL_REVISION,
             nativeFrontendRevision = FRONTEND_REVISION,
-            solver = "Z3",
+            solver = solver,
             searchPolicy = CALLS_PATH_SELECTION_STRATEGY.name,
             modelSet = CallsModelSetIdentity(ids = emptySet(), toolRevision = TOOL_REVISION),
             seeds = listOf(17L),
@@ -255,25 +352,30 @@ class CallsCoverageSourceTest {
             Files.writeString(universePath, CallsExperimentJson.json.encodeToUtf8SafeString(record))
         }
 
-        fun runUniverse(probeFunction: (CallsCoverageSource) -> CallsCoverageUniverse): Path {
+        fun runUniverse(
+            runtimeToolRevision: String = TOOL_REVISION,
+            runtimeNativeFrontendRevision: String = FRONTEND_REVISION,
+            probeFunction: (CallsCoverageSource) -> CallsCoverageUniverse,
+        ): Path {
             val output = manifestPath.resolveSibling("universe-output")
             runCoverageUniverse(
                 args = listOf(manifestPath.toString(), "0", "0", output.toString()),
-                runtimeToolRevision = TOOL_REVISION,
-                runtimeNativeFrontendRevision = FRONTEND_REVISION,
+                runtimeToolRevision = runtimeToolRevision,
+                runtimeNativeFrontendRevision = runtimeNativeFrontendRevision,
                 probeFunction = probeFunction,
             )
 
             return output
         }
 
-        fun persistSearch() {
+        fun persistSearch(schemaVersion: Int = 3, solver: String = source.manifest.solver) {
             val identity = CallsCoverageCellIdentity(
-                schemaVersion = 2,
+                schemaVersion = schemaVersion,
                 toolRevision = TOOL_REVISION,
                 nativeFrontendRevision = FRONTEND_REVISION,
                 sourceManifest = manifestPath.toRealPath().toString(),
                 sourceIdentity = source.identity,
+                solver = solver,
                 projectIndex = 0,
                 functionIndex = 0,
                 profile = CallsExperimentProfile.EMPTY_STOP,
@@ -295,6 +397,8 @@ class CallsCoverageSourceTest {
         }
 
         fun runCell(
+            runtimeToolRevision: String = TOOL_REVISION,
+            runtimeNativeFrontendRevision: String = FRONTEND_REVISION,
             searchFunction: (CallsCoverageSearchRequest) -> CallsCoverageSearchResult = {
                 error("Must resume persisted search")
             },
@@ -312,8 +416,8 @@ class CallsCoverageSourceTest {
                     "8",
                     universePath.toString(),
                 ),
-                runtimeToolRevision = TOOL_REVISION,
-                runtimeNativeFrontendRevision = FRONTEND_REVISION,
+                runtimeToolRevision = runtimeToolRevision,
+                runtimeNativeFrontendRevision = runtimeNativeFrontendRevision,
                 searchFunction = searchFunction,
             )
         }

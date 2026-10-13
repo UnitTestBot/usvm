@@ -3,6 +3,7 @@ package org.usvm.samples.arrays
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsInterpreterObserver
@@ -153,7 +154,7 @@ class AllocatedArrays : TsMethodTestRunner() {
         val observer = RecordingObserver()
         val states = TsMachine(
             scene = scene,
-            options = UMachineOptions(),
+            options = UMachineOptions(solverType = SolverType.YICES),
             tsOptions = TsOptions(),
             observer = observer,
         ).use { machine ->
