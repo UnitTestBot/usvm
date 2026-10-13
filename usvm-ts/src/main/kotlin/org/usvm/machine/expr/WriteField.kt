@@ -197,6 +197,32 @@ private fun TsContext.writeErrorModelStorageField(
     }
 }
 
+private fun TsContext.writeModeledErrorField(
+    scope: TsStepScope,
+    instanceLocal: EtsLocal,
+    instance: UHeapRef,
+    field: EtsFieldSignature,
+    value: UExpr<*>,
+    hierarchy: EtsHierarchy,
+): Boolean {
+    val storageField = resolveModelStorageField(
+        scope = scope,
+        instanceLocal = instanceLocal,
+        instance = instance,
+        field = field,
+        hierarchy = hierarchy,
+    ).storageField ?: return false
+
+    writeErrorModelStorageField(
+        scope = scope,
+        instance = instance,
+        field = field,
+        storageField = storageField,
+        value = value,
+    )
+    return true
+}
+
 fun TsContext.assignToInstanceField(
     scope: TsStepScope,
     instanceLocal: EtsLocal,
@@ -220,22 +246,15 @@ fun TsContext.assignToInstanceField(
         return Unit
     }
 
-    val errorStorageField = resolveModelStorageField(
+    val wroteModeledErrorField = writeModeledErrorField(
         scope = scope,
         instanceLocal = instanceLocal,
         instance = unwrappedInstance,
         field = field,
+        value = expr,
         hierarchy = hierarchy,
-    ).storageField
-    if (errorStorageField != null) {
-        return writeErrorModelStorageField(
-            scope = scope,
-            instance = unwrappedInstance,
-            field = field,
-            storageField = errorStorageField,
-            value = expr,
-        )
-    }
+    )
+    if (wroteModeledErrorField) return Unit
 
     val objectLiteralClass = objectLiteralClass(scope, unwrappedInstance, hierarchy)
     val declaredObjectLiteralField = objectLiteralClass?.fields?.singleOrNull { it.name == field.name }

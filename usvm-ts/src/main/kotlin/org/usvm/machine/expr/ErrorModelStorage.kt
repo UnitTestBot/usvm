@@ -1,16 +1,22 @@
 package org.usvm.machine.expr
 
+import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.isTrue
 import org.usvm.machine.TS_TYPE_ERROR_TYPE
 import org.usvm.machine.TsContext
 import org.usvm.machine.call.intrinsic.TsErrorEtsIrModelFamily
@@ -111,3 +117,41 @@ internal fun TsContext.resolveModelStorageField(
         isModelStorageField = storageField != null,
     )
 }
+
+internal fun TsContext.normalizeThrownValue(scope: TsStepScope, exception: UExpr<*>): UExpr<*>? {
+    var value = exception
+    while (value.sort == addressSort) {
+        val reference = resolveHeapRef(scope, value.asExpr(addressSort)) ?: return null
+        if (!reference.isFakeObject()) return reference
+
+        val type = reference.getFakeType(scope)
+        val booleanKind = scope.calcOnState { models.first().eval(type.boolTypeExpr).isTrue }
+        val numberKind = scope.calcOnState { models.first().eval(type.fpTypeExpr).isTrue }
+        val selectedKind = when {
+            booleanKind -> type.boolTypeExpr
+            numberKind -> type.fpTypeExpr
+            else -> type.refTypeExpr
+        }
+        scope.fork(selectedKind) ?: return null
+        value = when {
+            booleanKind -> reference.extractBool(scope)
+            numberKind -> reference.extractFp(scope)
+            else -> reference.extractRef(scope)
+        }
+    }
+    return value
+}
+
+internal fun TsContext.thrownValueType(scope: TsStepScope, exception: UExpr<*>): EtsType =
+    when (exception.sort) {
+        addressSort -> {
+            val reference = exception as? UConcreteHeapRef
+            val runtimeType = reference?.let { ref ->
+                scope.calcOnState { memory.typeStreamOf(ref).singleOrNull() }
+            }
+            runtimeType?.takeIf { type -> type.isModeledErrorType() } ?: EtsStringType
+        }
+        fp64Sort -> EtsNumberType
+        boolSort -> EtsBooleanType
+        else -> EtsStringType
+    }

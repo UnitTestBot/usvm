@@ -6,7 +6,6 @@ import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
-import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsClosureFieldRef
@@ -21,7 +20,6 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
-import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsPropertyRef
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
@@ -38,7 +36,6 @@ import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.callExpr
 import org.usvm.StepResult
 import org.usvm.StepScope
-import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.api.evalTypeEquals
@@ -48,7 +45,6 @@ import org.usvm.api.typeStreamOf
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.isAllocatedConcreteHeapRef
-import org.usvm.isTrue
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsGraph
@@ -71,11 +67,11 @@ import org.usvm.machine.expr.handleAssignToLocal
 import org.usvm.machine.expr.handleAssignToProperty
 import org.usvm.machine.expr.handleAssignToStaticField
 import org.usvm.machine.expr.handleDefineDataProperty
-import org.usvm.machine.expr.isModeledErrorType
 import org.usvm.machine.expr.mkNotNullOrUndefined
 import org.usvm.machine.expr.mkTruthyExpr
+import org.usvm.machine.expr.normalizeThrownValue
 import org.usvm.machine.expr.readGlobal
-import org.usvm.machine.expr.resolveHeapRef
+import org.usvm.machine.expr.thrownValueType
 import org.usvm.machine.expr.tryApproximateInstanceCall
 import org.usvm.machine.expr.writeGlobal
 import org.usvm.machine.state.TsMethodResult
@@ -95,7 +91,6 @@ import org.usvm.solver.UUnknownResult
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
 import org.usvm.types.single
-import org.usvm.types.singleOrNull
 import org.usvm.util.executableOverloadImplementation
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -733,47 +728,12 @@ class TsInterpreter(
         observer?.onThrowStatement(exprResolver.simpleValueResolver, stmt, scope)
 
         val resolvedException = exprResolver.resolve(stmt.exception) ?: return
-        val exception = normalizeThrownValue(scope, resolvedException) ?: return
-        val exceptionType: EtsType = when (exception.sort) {
-            ctx.addressSort -> {
-                val reference = exception as? UConcreteHeapRef
-                val runtimeType = reference?.let { ref ->
-                    scope.calcOnState { memory.typeStreamOf(ref).singleOrNull() }
-                }
-                runtimeType?.takeIf { type -> type.isModeledErrorType() } ?: EtsStringType
-            }
-            ctx.fp64Sort -> EtsNumberType
-            ctx.boolSort -> EtsBooleanType
-            else -> EtsStringType
-        }
+        val exception = ctx.normalizeThrownValue(scope, resolvedException) ?: return
+        val exceptionType = ctx.thrownValueType(scope, exception)
 
         scope.doWithState {
             methodResult = TsMethodResult.TsException(exception, exceptionType)
         }
-    }
-
-    private fun normalizeThrownValue(scope: TsStepScope, exception: UExpr<*>): UExpr<*>? = with(ctx) {
-        var value = exception
-        while (value.sort == addressSort) {
-            val reference = resolveHeapRef(scope, value.asExpr(addressSort)) ?: return null
-            if (!reference.isFakeObject()) return reference
-
-            val type = reference.getFakeType(scope)
-            val booleanKind = scope.calcOnState { models.first().eval(type.boolTypeExpr).isTrue }
-            val numberKind = scope.calcOnState { models.first().eval(type.fpTypeExpr).isTrue }
-            val selectedKind = when {
-                booleanKind -> type.boolTypeExpr
-                numberKind -> type.fpTypeExpr
-                else -> type.refTypeExpr
-            }
-            scope.fork(selectedKind) ?: return null
-            value = when {
-                booleanKind -> reference.extractBool(scope)
-                numberKind -> reference.extractFp(scope)
-                else -> reference.extractRef(scope)
-            }
-        }
-        value
     }
 
     private fun visitNopStmt(scope: TsStepScope, stmt: EtsNopStmt) {
