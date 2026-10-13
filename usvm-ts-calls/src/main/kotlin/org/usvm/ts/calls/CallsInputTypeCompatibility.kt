@@ -145,7 +145,15 @@ private fun PropertyDomain.inputTypeLimitation(
             )
         }
         is EtsUnionType -> {
-            type.types.any { member -> inputTypeLimitation(member, genericParameters, path, hierarchy, visitedGenerics) == null }
+            type.types.any { member ->
+                inputTypeLimitation(
+                    type = member,
+                    genericParameters = genericParameters,
+                    path = path,
+                    hierarchy = hierarchy,
+                    visitedGenerics = visitedGenerics,
+                ) == null
+            }
         }
         is EtsIntersectionType -> {
             for (member in type.types) {

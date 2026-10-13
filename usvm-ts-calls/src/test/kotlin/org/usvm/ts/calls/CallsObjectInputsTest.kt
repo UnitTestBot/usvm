@@ -31,13 +31,17 @@ internal class CallsObjectInputsTest : CurrentTsCallsSymbolicEngineTestSupport()
                 }
             """.trimIndent(),
             exportName = "accepts",
-            inputs = listOf(PropertyInput(
-                name = "input",
-                domain = ObjectDomain(mapOf(
-                    "score" to NumberDomain(),
-                    "enabled" to BooleanDomain,
-                )),
-            )),
+            inputs = listOf(
+                PropertyInput(
+                    name = "input",
+                    domain = ObjectDomain(
+                        mapOf(
+                            "score" to NumberDomain(),
+                            "enabled" to BooleanDomain,
+                        ),
+                    ),
+                ),
+            ),
             targetStatement = "return true;",
         )
 
@@ -335,10 +339,12 @@ internal class CallsObjectInputsTest : CurrentTsCallsSymbolicEngineTestSupport()
                 }
             """.trimIndent(),
             exportName = "accepts",
-            inputs = listOf(PropertyInput(
-                name = "input",
-                domain = ObjectDomain(mapOf("score" to NumberDomain())),
-            )),
+            inputs = listOf(
+                PropertyInput(
+                    name = "input",
+                    domain = ObjectDomain(mapOf("score" to NumberDomain())),
+                ),
+            ),
             targetStatement = "return true;",
         )
 
@@ -369,16 +375,20 @@ internal class CallsObjectInputsTest : CurrentTsCallsSymbolicEngineTestSupport()
                 }
             """.trimIndent(),
             exportName = "accepts",
-            inputs = listOf(PropertyInput(
-                name = "input",
-                domain = ObjectDomain(mapOf(
-                    "items" to ArrayDomain(
-                        element = ObjectDomain(mapOf("score" to IntegerDomain(min = 6, max = 8))),
-                        minLength = 1,
-                        maxLength = 1,
+            inputs = listOf(
+                PropertyInput(
+                    name = "input",
+                    domain = ObjectDomain(
+                        mapOf(
+                            "items" to ArrayDomain(
+                                element = ObjectDomain(mapOf("score" to IntegerDomain(min = 6, max = 8))),
+                                minLength = 1,
+                                maxLength = 1,
+                            ),
+                        ),
                     ),
-                )),
-            )),
+                ),
+            ),
             targetStatement = "return true;",
         )
 
@@ -402,15 +412,19 @@ internal class CallsObjectInputsTest : CurrentTsCallsSymbolicEngineTestSupport()
                 }
             """.trimIndent(),
             exportName = "accepts",
-            inputs = listOf(PropertyInput(
-                name = "input",
-                domain = ObjectDomain(mapOf(
-                    "detail" to OptionalDomain(
-                        value = ObjectDomain(mapOf("score" to IntegerDomain(min = 6, max = 8))),
-                        nil = JsConcreteValue.Null,
+            inputs = listOf(
+                PropertyInput(
+                    name = "input",
+                    domain = ObjectDomain(
+                        mapOf(
+                            "detail" to OptionalDomain(
+                                value = ObjectDomain(mapOf("score" to IntegerDomain(min = 6, max = 8))),
+                                nil = JsConcreteValue.Null,
+                            ),
+                        ),
                     ),
-                )),
-            )),
+                ),
+            ),
             targetStatement = "return true;",
         )
 

@@ -252,10 +252,12 @@ class CallsCoverageExperimentTest {
                 }
             """.trimIndent(),
             exportName = "increment",
-            inputs = listOf(PropertyInput(
-                name = "input",
-                domain = ObjectDomain(mapOf("score" to NumberDomain())),
-            )),
+            inputs = listOf(
+                PropertyInput(
+                    name = "input",
+                    domain = ObjectDomain(mapOf("score" to NumberDomain())),
+                ),
+            ),
         )
         val inputs = listOf(JsConcreteValue.Object(mapOf("score" to JsConcreteValue.number(3.0))))
 
