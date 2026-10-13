@@ -33,6 +33,7 @@ import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.callExpr
@@ -258,6 +259,21 @@ class TsInterpreter(
 
                 scope.doWithState { newStmt(concreteCall) }
                 return
+            }
+
+            // Constructor calls, including super(), target their declared owner rather than an override.
+            if (callee.name == CONSTRUCTOR_NAME) {
+                val ownerType = EtsClassType(callee.enclosingClass)
+                val constructors = graph.hierarchy.classesForType(ownerType)
+                    .flatMap { owner -> owner.methods }
+                    .filter { method -> method.name == CONSTRUCTOR_NAME }
+                    .map { method -> method.executableOverloadImplementation() }
+                    .distinct()
+                val constructor = constructors.singleOrNull()
+                if (constructor != null) {
+                    scope.doWithState { newStmt(stmt.toConcrete(constructor)) }
+                    return
+                }
             }
 
             val type = scope.calcOnState { memory.typeStreamOf(receiver) }.single()
