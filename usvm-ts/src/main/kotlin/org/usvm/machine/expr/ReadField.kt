@@ -43,6 +43,7 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.requiresConstructorWitness
 import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.util.EtsHierarchy
+import org.usvm.util.InputPropertyDeclaration
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.arrayStorageType
 import org.usvm.util.createFakeField
