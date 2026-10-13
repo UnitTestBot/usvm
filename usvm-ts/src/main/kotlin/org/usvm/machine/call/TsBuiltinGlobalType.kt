@@ -10,6 +10,10 @@ import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
+import org.usvm.machine.TsContext
+import org.usvm.util.EtsHierarchy
 
 internal fun hasBuiltinGlobalOwner(
     owner: EtsValue,
@@ -41,3 +45,10 @@ private fun EtsValue.isLegacyBuiltinGlobal(
     name == expectedName &&
     type == EtsUnknownType &&
     callee.enclosingClass == EtsClassSignature.UNKNOWN.copy(name = expectedName)
+
+internal fun TsContext.isBuiltinArrayConstructor(value: UExpr<*>): Boolean {
+    val reference = value as? UConcreteHeapRef ?: return false
+    val signature = classConstructorSignature(reference) ?: return false
+
+    return signature.name == "Array" && signature.file == EtsHierarchy.OBJECT_CLASS.signature.file
+}

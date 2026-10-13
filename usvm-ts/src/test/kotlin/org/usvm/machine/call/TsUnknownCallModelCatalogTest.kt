@@ -152,6 +152,7 @@ class TsUnknownCallModelCatalogTest {
         val catalog = TsBuiltInUnknownCallModels.catalog()
 
         val expectedModelIds = listOf(
+            "ts.array.isArray",
             "ts.array.pop",
             TsArrayShiftIntrinsicModel.MODEL_ID,
             TsNumericIntrinsicModelFamily.MATH_ABS_ID,

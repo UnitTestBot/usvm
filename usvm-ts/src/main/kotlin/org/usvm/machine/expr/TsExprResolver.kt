@@ -92,6 +92,7 @@ import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.NAMED_FUNCTION_REFERENCE_PREFIX
 import org.jacodb.ets.utils.getDeclaredLocals
@@ -1799,17 +1800,21 @@ class TsSimpleValueResolver(
         }
 
         val currentMethod = scope.calcOnState { lastEnteredMethod }
-        if (local !in currentMethod.getDeclaredLocals()) {
+        if (local !in currentMethod.getDeclaredLocals() && local.type is EtsFunctionType) {
+            val currentFile = currentMethod.enclosingClass?.declaringFile
+            val defaultClass = currentFile?.classes?.firstOrNull { it.name == DEFAULT_ARK_CLASS_NAME }
+            val defaultMethod = defaultClass?.methods?.firstOrNull { it.name == DEFAULT_ARK_METHOD_NAME }
             val isParameter = currentMethod.parameters.any { it.name == local.name }
-            if (!isParameter && local.type is EtsFunctionType) {
-                val sdkConstructor = ctx.scene.sdkConstructorForGlobal(local)
-                if (sdkConstructor != null) return ctx.classConstructorRef(sdkConstructor.signature)
-            }
+            val isGlobal = defaultMethod?.getDeclaredLocals()?.any { it.name == local.name } == true
+            val isImported = currentFile?.importInfos?.any { it.name == local.name } == true
+            val hasSourceBinding = isParameter || isGlobal || isImported
+            if (hasSourceBinding) return resolveLocal(local)
 
-            if (local.type is EtsFunctionType) {
-                // TODO: function pointers should be "singletons"
-                return scope.calcOnState { memory.allocConcrete(local.type) }
-            }
+            val sdkConstructor = ctx.scene.sdkConstructorForGlobal(local)
+            if (sdkConstructor != null) return ctx.classConstructorRef(sdkConstructor.signature)
+
+            // TODO: function pointers should be "singletons"
+            return scope.calcOnState { memory.allocConcrete(local.type) }
         }
 
         return resolveLocal(local)
