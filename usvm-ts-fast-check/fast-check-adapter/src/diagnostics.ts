@@ -54,6 +54,7 @@ export const adapterDiagnostic = {
   entryPointModuleNotFound: entryPoint('entrypoint.module.not-found'),
   entryPointModuleAmbiguous: entryPoint('entrypoint.module.ambiguous'),
   entryPointModuleImportFailed: entryPoint('entrypoint.module.import-failed'),
+  entryPointSourceHashMismatch: entryPoint('entrypoint.source-hash.mismatch'),
   entryPointExecutionKindMismatch: entryPoint('entrypoint.execution-kind.mismatch'),
   entryPointResultInvalid: entryPoint('entrypoint.result.invalid'),
   entryPointPreconditionThrew: entryPoint('entrypoint.precondition.threw'),

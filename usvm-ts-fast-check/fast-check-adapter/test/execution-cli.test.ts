@@ -40,6 +40,27 @@ test('execution CLI reports malformed JSON without crashing', async () => {
   assert.equal(response.diagnostics[0]?.code, 'protocol.json.invalid');
 });
 
+test('execution CLI keeps one JSON response after a predicate adds inherited toJSON', async () => {
+  const sourceRoot = await realpath(await mkdtemp(path.join(tmpdir(), 'usvm-execution-cli-')));
+  try {
+    await writeFile(sourceRoot + '/property.ts', `
+export function predicate(value: boolean) {
+  Object.prototype.toJSON = () => { throw new Error('sentinel toJSON'); };
+  return value;
+}
+`);
+
+    const invocation = await invokeCli(JSON.stringify(executionRequest(sourceRoot)));
+    const response = JSON.parse(invocation.stdout) as Record<string, unknown>;
+
+    assert.equal(invocation.exitCode, 0);
+    assert.equal(invocation.stdout.trim().split('\n').length, 1);
+    assert.equal(response.status, 'ok');
+  } finally {
+    await rm(sourceRoot, { recursive: true, force: true });
+  }
+});
+
 test('execution CLI keeps user logging outside the protocol response', async () => {
   const sourceRoot = await realpath(await mkdtemp(path.join(tmpdir(), 'usvm-execution-cli-')));
   try {

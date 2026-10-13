@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { tsImport } from 'tsx/esm/api';
+import { installObservationHook, ObservationRecorder, type ObservationRequest } from '../src/observe-property.js';
 import { encodeJsValue, ProtocolError } from '../src/js-value.js';
 import {
   executeProperty,
@@ -97,6 +99,331 @@ test('rejects array-index manifests that conflict with declared input domains be
 
       await assert.rejects(executeProperty(request), (error: unknown) =>
         error instanceof ProtocolError && error.path === 'manifest.generator');
+    }
+  });
+});
+
+test('bounded explicit observation preserves special values and refuses proxies, accessors, and aliases', () => {
+  const request: ObservationRequest = {
+    points: [{
+      id: 'result',
+      assertionId: 'assertion',
+      operandId: 'result',
+      source: { module: 'property.ts', line: 1, column: 1 },
+      callSite: { module: 'property.ts', line: 1, column: 1 },
+      kind: 'intermediate',
+    }],
+    sources: [{ module: 'property.ts', sha256: 'a'.repeat(64) }],
+    maxInvocations: 2,
+    maxPointsPerInvocation: 4,
+    maxArrayElements: 4,
+    maxBytes: 65_536,
+  };
+  const recorder = new ObservationRecorder('property', request);
+  installObservationHook();
+  const hook = (globalThis as Record<symbol, unknown>)[Symbol.for('org.usvm.ts.pbt.observe')] as
+    (pointId: string, value: unknown) => unknown;
+  const proxy = new Proxy([1], {});
+  let getterCalls = 0;
+  const accessor = [1];
+  Object.defineProperty(accessor, '0', { get: () => { getterCalls += 1; return 1; } });
+  const shared = [1];
+
+  recorder.run([Number.NaN, -0], 'unknown', () => {
+    assert.equal(hook('result', Number.POSITIVE_INFINITY), Number.POSITIVE_INFINITY);
+    assert.equal(hook('result', proxy), proxy);
+    assert.equal(hook('result', accessor), accessor);
+    hook('result', [shared, shared]);
+  });
+  hook('result', 7);
+
+  const [first] = recorder.result.invocations;
+  assert.ok(first);
+  assert.deepEqual(first.input.value, { kind: 'array', elements: [
+    { kind: 'number', value: 'nan' },
+    { kind: 'number', value: 'finite', bits: '8000000000000000' },
+  ] });
+  assert.deepEqual(first.points.map((event) => event.value.status),
+    ['captured', 'unsupported', 'unsupported', 'unsupported']);
+  assert.deepEqual(first.points.slice(1).map((event) => event.value.reason),
+    ['proxy', 'accessor', 'alias-or-cycle']);
+  assert.equal(getterCalls, 0);
+  assert.equal(recorder.result.invocations.length, 1);
+});
+
+test('observation limits report dropped invocations and points without changing returned values', () => {
+  const request: ObservationRequest = {
+    points: [{
+      id: 'point', assertionId: 'assertion', operandId: 'point',
+      source: { module: 'property.ts', line: 1, column: 1 },
+      callSite: { module: 'property.ts', line: 1, column: 1 },
+      kind: 'intermediate',
+    }],
+    sources: [{ module: 'property.ts', sha256: 'a'.repeat(64) }],
+    maxInvocations: 1,
+    maxPointsPerInvocation: 1,
+    maxArrayElements: 2,
+    maxBytes: 1024,
+  };
+  const recorder = new ObservationRecorder('property', request);
+  installObservationHook();
+  const hook = (globalThis as Record<symbol, unknown>)[Symbol.for('org.usvm.ts.pbt.observe')] as
+    (pointId: string, value: unknown) => unknown;
+
+  recorder.run([1], 'unknown', () => {
+    const large = 'x'.repeat(2048);
+    assert.equal(hook('point', large), large);
+    hook('point', 4);
+  });
+  recorder.run([2], 'unknown', () => hook('point', 5));
+
+  assert.equal(recorder.result.invocations[0]?.input.status, 'captured');
+  assert.equal(recorder.result.invocations[0]?.points[0]?.value.status, 'truncated');
+  assert.equal(recorder.result.droppedPoints, 1);
+  assert.equal(recorder.result.droppedInvocations, 1);
+});
+
+test('observation stops nested value traversal when the byte budget is exhausted', () => {
+  const request: ObservationRequest = {
+    points: [], sources: [], maxInvocations: 1, maxPointsPerInvocation: 1,
+    maxArrayElements: 32, maxBytes: 1024,
+  };
+  const large = 'x'.repeat(262_144);
+  let getterCalls = 0;
+  const lateAccessor: unknown[] = [0];
+  Object.defineProperty(lateAccessor, '0', {
+    get: () => { getterCalls += 1; throw new Error('Observation invoked an accessor'); },
+  });
+  const values: unknown[] = [large, [[large], lateAccessor], [[large], Symbol('later unsupported value')]];
+
+  for (const value of values) {
+    const recorder = new ObservationRecorder('property', request);
+
+    const returned = recorder.run([value], 'unknown', () => value);
+
+    assert.equal(returned, value);
+    assert.deepEqual(recorder.result.invocations[0]?.input, { status: 'truncated', reason: 'byte-budget' });
+    assert.ok(Buffer.byteLength(JSON.stringify(recorder.result), 'utf8') <= request.maxBytes);
+  }
+
+  assert.equal(getterCalls, 0);
+});
+
+test('observation budgets JSON escapes and UTF-16 strings before building their encoding', () => {
+  const request: ObservationRequest = {
+    points: [], sources: [], maxInvocations: 1, maxPointsPerInvocation: 1,
+    maxArrayElements: 4, maxBytes: 1024,
+  };
+  const fitting = ['x'.repeat(300), '\b\f\n\r\t"\\', 'é界😀', '\ud800x\udfff'];
+  const oversized = ['\u0000'.repeat(300), '\ud800'.repeat(300), '\udfff'.repeat(300),
+    '界'.repeat(300), '😀'.repeat(300)];
+
+  for (const value of fitting) {
+    const recorder = new ObservationRecorder('property', request);
+
+    recorder.run([value], 'unknown', () => true);
+
+    assert.deepEqual(recorder.result.invocations[0]?.input, { status: 'captured', value: encodeJsValue([value]) });
+    assert.ok(Buffer.byteLength(JSON.stringify(recorder.result), 'utf8') <= request.maxBytes);
+  }
+
+  for (const value of oversized) {
+    const recorder = new ObservationRecorder('property', request);
+
+    recorder.run([value], 'unknown', () => true);
+
+    assert.deepEqual(recorder.result.invocations[0]?.input, { status: 'truncated', reason: 'byte-budget' });
+    assert.ok(Buffer.byteLength(JSON.stringify(recorder.result), 'utf8') <= request.maxBytes);
+  }
+});
+
+test('observation does not invoke inherited toJSON inside the original predicate', async () => {
+  await withPropertyModule(async (sourceRoot) => {
+    const cases = ['observesThrowingObjectToJson', 'observesThrowingArrayToJson',
+      'observesSideEffectingObjectToJson', 'observesSideEffectingArrayToJson'];
+
+    for (const exportName of cases) {
+      const request = executionRequest(sourceRoot, exportName, { inputDomain: constantDomain(1) });
+      request.numRuns = 1;
+      request.examples = [[encodeJsValue(1)]];
+      const baseline = await executeProperty(request);
+
+      enableObservation(request);
+      const observed = await executeProperty(request);
+
+      const { observations, ...result } = observed.result;
+      assert.equal(baseline.result.status, 'success', exportName);
+      assert.deepEqual(semanticResult(result), semanticResult(baseline.result), exportName);
+      assert.ok(observations);
+      assert.equal(observations.invocations[0]?.points[0]?.value.status, 'captured', exportName);
+      assert.deepEqual(observations.invocations[0]?.points[0]?.value.value, encodeJsValue([1]), exportName);
+    }
+  });
+});
+
+test('oversized observation identity and source metadata are rejected before importing the predicate', async () => {
+  await withPropertyModule(async (sourceRoot) => {
+    const source = "throw new Error('predicate module was imported');\n" + PROPERTY_MODULE_SOURCE;
+    await writeFile(path.join(sourceRoot, 'properties.ts'), source);
+    const sourceHash = createHash('sha256').update(source).digest('hex');
+    const emptyHash = createHash('sha256').update('').digest('hex');
+
+    for (const oversized of ['identity', 'sources']) {
+      const request = executionRequest(sourceRoot, 'alwaysTrue');
+      enableObservation(request);
+      const observation = request.observationRequest!;
+      observation.maxBytes = 1024;
+      observation.sources = [{ module: 'properties.ts', sha256: sourceHash }];
+      if (oversized === 'identity') {
+        request.manifest.propertyId = 'x'.repeat(2048);
+      } else {
+        for (let index = 0; index < 16; index += 1) {
+          const module = `extra-${index}.ts`;
+          await writeFile(path.join(sourceRoot, module), '');
+          observation.sources.push({ module, sha256: emptyHash });
+        }
+      }
+
+      await assert.rejects(executeProperty(request), (error: unknown) =>
+        error instanceof ProtocolError && error.code === 'protocol.request.invalid'
+          && error.path === 'observationRequest.maxBytes', oversized);
+      assert.equal(request.manifest.propertyId, oversized === 'identity' ? 'x'.repeat(2048) : 'example.alwaysTrue');
+    }
+  });
+});
+
+test('the complete observation artifact stays within edge budgets after outcomes and drop counters grow', () => {
+  installObservationHook();
+  const hook = (globalThis as Record<symbol, unknown>)[Symbol.for('org.usvm.ts.pbt.observe')] as
+    (pointId: string, value: unknown) => unknown;
+  const propertyId = 'property.' + 'p'.repeat(256);
+  const point = { module: 'property.ts', line: 1, column: 1 };
+  let capturedPoints = 0;
+
+  const requestWithBudget = (maxBytes: number): ObservationRequest => ({
+    points: [{ id: 'point', assertionId: 'assertion', operandId: 'point',
+      source: point, callSite: point, kind: 'intermediate' }],
+    sources: [{ module: 'property.ts', sha256: 'a'.repeat(64) }],
+    maxInvocations: 1, maxPointsPerInvocation: 1, maxArrayElements: 2, maxBytes,
+  });
+  const recordAndDrop = (recorder: ObservationRecorder): void => {
+    recorder.run([1], 'explicit', () => {
+      hook('point', 'x'.repeat(32));
+      for (let index = 0; index < 10; index += 1) hook('point', index);
+      recorder.finish('rejected', 'skipped');
+    });
+    for (let index = 0; index < 10; index += 1) recorder.run([index], 'generation', () => true);
+  };
+  const probe = new ObservationRecorder(propertyId, requestWithBudget(65_536));
+  recordAndDrop(probe);
+  const completeBytes = Buffer.byteLength(JSON.stringify(probe.result), 'utf8');
+
+  for (let maxBytes = Math.max(1024, completeBytes - 64); maxBytes <= completeBytes + 64; maxBytes += 1) {
+    const request = requestWithBudget(maxBytes);
+    const recorder = new ObservationRecorder(propertyId, request);
+
+    recordAndDrop(recorder);
+
+    const artifact = recorder.result;
+    const bytes = Buffer.byteLength(JSON.stringify(artifact), 'utf8');
+    assert.ok(bytes <= maxBytes, `${bytes} bytes exceed the ${maxBytes} byte budget`);
+    assert.equal(artifact.propertyId, propertyId);
+    assert.deepEqual(artifact.verifiedSources, request.sources);
+    assert.equal(artifact.invocations[0]?.admission, 'rejected');
+    assert.equal(artifact.invocations[0]?.outcome, 'skipped');
+    assert.equal(artifact.droppedInvocations, 10);
+    assert.ok(artifact.droppedPoints >= 10);
+    capturedPoints += artifact.invocations[0]?.points.length ?? 0;
+  }
+
+  assert.ok(capturedPoints > 0, 'The byte budget must still permit capture when a complete point fits');
+});
+
+test('repeated point occurrences and a numeric tested return stay distinct from predicate outcome', async () => {
+  await withPropertyModule(async (sourceRoot) => {
+    const baselineRequest = executionRequest(sourceRoot, 'repeatedPoint');
+    baselineRequest.examples = [[encodeJsValue(2)]];
+    baselineRequest.numRuns = 1;
+    const point = { module: 'properties.ts', line: 1, column: 1 };
+    baselineRequest.manifest.assertions = [{
+      id: 'loop-result', source: point, testedCall: point,
+      operands: [{ id: 'input', source: point }, { id: 'step', source: point },
+        { id: 'tested-return', source: point }],
+    }];
+    const observedRequest: FastCheckExecutionRequest = {
+      ...baselineRequest,
+      observationRequest: {
+        points: [
+          { id: 'input', assertionId: 'loop-result', operandId: 'input', source: point, callSite: point,
+            kind: 'argument', inputIndex: 0 },
+          { id: 'step', assertionId: 'loop-result', operandId: 'step', source: point, callSite: point,
+            kind: 'intermediate' },
+          { id: 'tested-return', assertionId: 'loop-result', operandId: 'tested-return',
+            source: point, callSite: point, kind: 'return' },
+        ],
+        sources: [{ module: 'properties.ts', sha256: createHash('sha256').update(PROPERTY_MODULE_SOURCE).digest('hex') }],
+        maxInvocations: 64, maxPointsPerInvocation: 8, maxArrayElements: 16, maxBytes: 65_536,
+      },
+    };
+
+    const baseline = await executeProperty(baselineRequest);
+    const observed = await executeProperty(observedRequest);
+
+    const { observations, ...observedResult } = observed.result;
+    assert.deepEqual(semanticResult(observedResult), semanticResult(baseline.result));
+    assert.ok(observations);
+    const first = observations.invocations[0];
+    assert.ok(first);
+    assert.equal(first.phase, 'explicit');
+    assert.equal(first.outcome, 'false');
+    assert.deepEqual(first.points.map((event) => [event.pointId, event.occurrence, event.eventOrdinal]), [
+      ['input', 0, 0], ['step', 0, 1], ['step', 1, 2], ['step', 2, 3], ['tested-return', 0, 4],
+    ]);
+    assert.deepEqual(first.points.map((event) => event.value.value), [
+      encodeJsValue(2), encodeJsValue(0), encodeJsValue(1), encodeJsValue(3), encodeJsValue(42),
+    ]);
+  });
+});
+
+test('observation preserves mutation, special values, throws, and short-circuit outcomes', async () => {
+  await withPropertyModule(async (sourceRoot) => {
+    const nestedArray = { kind: 'array', element: { kind: 'array',
+      element: { kind: 'integer', min: 1, max: 1 }, minLength: 1, maxLength: 1 },
+      minLength: 1, maxLength: 1 };
+    const cases = [
+      { exportName: 'mutatesNestedArrayToObject', domain: nestedArray },
+      { exportName: 'throwsInput', domain: constantDomain('thrown-value') },
+      { exportName: 'recognizesNegativeZero', domain: constantDomain(-0) },
+      { exportName: 'shortCircuitsObservation', domain: constantDomain(1) },
+    ];
+    const point = { module: 'properties.ts', line: 1, column: 1 };
+    const sourceHash = createHash('sha256').update(PROPERTY_MODULE_SOURCE).digest('hex');
+
+    for (const entry of cases) {
+      const baselineRequest = executionRequest(sourceRoot, entry.exportName, { inputDomain: entry.domain });
+      baselineRequest.numRuns = 1;
+      baselineRequest.manifest.assertions = [{ id: 'case', source: point, testedCall: point,
+        operands: [{ id: 'side-effect', source: point }] }];
+      const observedRequest: FastCheckExecutionRequest = {
+        ...baselineRequest,
+        observationRequest: {
+          points: [{ id: 'side-effect', assertionId: 'case', operandId: 'side-effect',
+            source: point, callSite: point, kind: 'intermediate' }],
+          sources: [{ module: 'properties.ts', sha256: sourceHash }],
+          maxInvocations: 64, maxPointsPerInvocation: 8, maxArrayElements: 16, maxBytes: 65_536,
+        },
+      };
+
+      const baseline = await executeProperty(baselineRequest);
+      const observed = await executeProperty(observedRequest);
+
+      const { observations, ...observedResult } = observed.result;
+      assert.deepEqual(semanticResult(observedResult), semanticResult(baseline.result), entry.exportName);
+      assert.ok(observations);
+      assert.equal(observations.invocations[0]?.input.status, 'captured');
+      if (entry.exportName === 'shortCircuitsObservation') {
+        assert.equal(observations.invocations[0]?.points.length, 0);
+      }
     }
   });
 });
@@ -455,6 +782,29 @@ test('reports asynchronous predicate timeout as a structured timeout failure', a
   });
 });
 
+test('an interrupted asynchronous observation keeps an explicit pending state', async () => {
+  await withPropertyModule(async (sourceRoot) => {
+    const request = executionRequest(sourceRoot, 'neverCompletes', { predicateExecutionKind: 'async' });
+    const point = { module: 'properties.ts', line: 1, column: 1 };
+    request.manifest.assertions = [{ id: 'timeout', source: point, testedCall: point,
+      operands: [{ id: 'unreached', source: point }] }];
+    request.observationRequest = {
+      points: [{ id: 'unreached', assertionId: 'timeout', operandId: 'unreached',
+        source: point, callSite: point, kind: 'intermediate' }],
+      sources: [{ module: 'properties.ts', sha256: createHash('sha256').update(PROPERTY_MODULE_SOURCE).digest('hex') }],
+      maxInvocations: 1, maxPointsPerInvocation: 1, maxArrayElements: 4, maxBytes: 4096,
+    };
+    request.timeoutMillis = 20;
+    request.numRuns = 1;
+
+    const result = await executeProperty(request);
+
+    assert.equal(result.result.failure?.kind, 'timeout');
+    assert.equal(result.result.observations?.invocations[0]?.admission, 'pending');
+    assert.equal(result.result.observations?.invocations[0]?.outcome, 'pending');
+  });
+});
+
 test('keeps a counterexample classified as a property failure when shrinking is interrupted', async () => {
   await withPropertyModule(async (sourceRoot) => {
     const request = executionRequest(sourceRoot, 'slowFailure', {
@@ -617,6 +967,18 @@ function constantDomain(value: unknown): unknown {
   return { kind: 'constant', value: encodeJsValue(value) };
 }
 
+function enableObservation(request: FastCheckExecutionRequest): void {
+  const point = { module: 'properties.ts', line: 1, column: 1 };
+  request.manifest.assertions = [{ id: 'case', source: point, testedCall: point,
+    operands: [{ id: 'side-effect', source: point }] }];
+  request.observationRequest = {
+    points: [{ id: 'side-effect', assertionId: 'case', operandId: 'side-effect',
+      source: point, callSite: point, kind: 'intermediate' }],
+    sources: [{ module: 'properties.ts', sha256: createHash('sha256').update(PROPERTY_MODULE_SOURCE).digest('hex') }],
+    maxInvocations: 64, maxPointsPerInvocation: 8, maxArrayElements: 16, maxBytes: 65_536,
+  };
+}
+
 async function withPropertyModule(block: (sourceRoot: string) => Promise<void>): Promise<void> {
   const workspace = await realpath(await mkdtemp(path.join(tmpdir(), 'usvm-execute-property-')));
   const sourceRoot = path.join(workspace, 'src');
@@ -672,6 +1034,69 @@ export function mutatesArrayToCycle(value: unknown[]): boolean {
 
 export function throwsInput(value: unknown): never {
   throw value;
+}
+
+export function recognizesNegativeZero(value: number): boolean {
+  return Object.is(value, -0);
+}
+
+export function shortCircuitsObservation(_value: number): boolean {
+  const hook = (globalThis as Record<symbol, unknown>)[Symbol.for('org.usvm.ts.pbt.observe')];
+  const skipped = false && typeof hook === 'function' && Boolean((hook as (id: string, value: number) => number)('side-effect', 1));
+
+  return skipped === false;
+}
+
+export function repeatedPoint(value: number): boolean {
+  const hook = (globalThis as Record<symbol, unknown>)[Symbol.for('org.usvm.ts.pbt.observe')];
+  if (typeof hook === 'function') (hook as (id: string, result: number) => void)('input', value);
+  let total = 0;
+  for (let index = 0; index < 3; index += 1) {
+    total += index;
+    if (typeof hook === 'function') (hook as (id: string, result: number) => void)('step', total);
+  }
+  const testedReturn = (() => 42)();
+  if (typeof hook === 'function') (hook as (id: string, result: number) => void)('tested-return', testedReturn);
+
+  return value !== 2;
+}
+
+function observesInheritedToJson(value: number, arrayPrototype: boolean, throwing: boolean): boolean {
+  const prototype = arrayPrototype ? Array.prototype : Object.prototype;
+  const descriptor = Object.getOwnPropertyDescriptor(prototype, 'toJSON');
+  let serialized = 0;
+  Object.defineProperty(prototype, 'toJSON', { configurable: true, value: () => {
+    serialized += 1;
+    if (throwing) throw new Error('observation called user toJSON');
+    return null;
+  } });
+
+  try {
+    const values = [value];
+    const hook = (globalThis as Record<symbol, unknown>)[Symbol.for('org.usvm.ts.pbt.observe')];
+    const observed = typeof hook === 'function' ? hook('side-effect', values) : values;
+
+    return observed === values && serialized === 0;
+  } finally {
+    if (descriptor === undefined) delete (prototype as { toJSON?: unknown }).toJSON;
+    else Object.defineProperty(prototype, 'toJSON', descriptor);
+  }
+}
+
+export function observesThrowingObjectToJson(value: number): boolean {
+  return observesInheritedToJson(value, false, true);
+}
+
+export function observesThrowingArrayToJson(value: number): boolean {
+  return observesInheritedToJson(value, true, true);
+}
+
+export function observesSideEffectingObjectToJson(value: number): boolean {
+  return observesInheritedToJson(value, false, false);
+}
+
+export function observesSideEffectingArrayToJson(value: number): boolean {
+  return observesInheritedToJson(value, true, false);
 }
 `.trimStart();
 

@@ -5,6 +5,8 @@ import kotlinx.serialization.Serializable
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
+import org.usvm.ts.pbt.observation.PropertyObservationArtifact
+import org.usvm.ts.pbt.observation.PropertyObservationRequest
 
 /** Executes validated Kotlin property definitions through one concrete PBT engine. */
 interface PropertyBasedTestingBackend {
@@ -26,6 +28,7 @@ data class PropertyRunConfiguration(
     val timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS,
     val examples: List<List<JsConcreteValue>> = emptyList(),
     val coverageRequest: PropertyCoverageRequest? = null,
+    val observationRequest: PropertyObservationRequest? = null,
 ) {
     init {
         require(numRuns > 0) { "Number of runs must be positive" }
@@ -96,6 +99,7 @@ data class PropertyRunResult(
     val failure: PropertyFailureDetails?,
     val executionTimeMillis: Long,
     val coverage: PropertyCoverageArtifact? = null,
+    val observations: PropertyObservationArtifact? = null,
 ) {
     init {
         require(numRuns >= 0) { "Run count must not be negative" }
@@ -104,6 +108,9 @@ data class PropertyRunResult(
         require(executionTimeMillis >= 0) { "Execution time must not be negative" }
         require(coverage == null || coverage.propertyId == propertyId) {
             "Coverage property ID must match the run result"
+        }
+        require(observations == null || observations.propertyId == propertyId) {
+            "Observation property ID must match the run result"
         }
 
         when (status) {
