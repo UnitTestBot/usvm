@@ -368,9 +368,15 @@ class GoTestInterpreter(
             val losslessEntries = mutableListOf<GoMapEntry>()
             val observedKeys = mutableSetOf<UHeapRef>()
             var needsLosslessWitness = false
-            val addToMap: (MutableMap<Any?, Any?>, Set<ULValue<*, UBoolSort>>) -> Unit = { m, s ->
-                m.putAll(
-                    s.mapNotNull { entry ->
+            val addToMap: (
+                MutableMap<Any?, Any?>,
+                Set<ULValue<*, UBoolSort>>,
+                UWritableMemory<GoType>,
+                UHeapRef,
+            ) -> Unit = { destination, entries, entryMemory, entryMap ->
+                val entryScope = if (entryMemory === memory) this@MemoryScope else MemoryScope(ctx, state, model, entryMemory)
+                destination.putAll(
+                    entries.mapNotNull { entry ->
                         val key = when (entry) {
                             is URefSetEntryLValue<*> -> {
                                 entry.setElement
@@ -384,13 +390,13 @@ class GoTestInterpreter(
                         }
 
                         val membership = if (isRefSet) {
-                            URefSetEntryLValue(map, key.asExpr(addressSort), mapType)
+                            URefSetEntryLValue(entryMap, key.asExpr(addressSort), mapType)
                         } else {
-                            USetEntryLValue(keySort, map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
+                            USetEntryLValue(keySort, entryMap, key.asExpr(keySort), mapType, USizeExprKeyInfo())
                         }
                         if (usesRepresentatives) observedKeys += key.asExpr(addressSort)
-                        if (!resolveBool(memory.read(membership))) return@mapNotNull null
-                        val decodedKey = decodeMapKey(map, key, mapType, keyType)
+                        if (!resolveBool(entryMemory.read(membership))) return@mapNotNull null
+                        val decodedKey = entryScope.decodeMapKey(entryMap, key, mapType, keyType)
                         if (usesRepresentatives) {
                             val concrete = model.eval(key.asExpr(addressSort))
                             if (!seenRepresentatives.add(concrete)) return@mapNotNull null
@@ -398,12 +404,8 @@ class GoTestInterpreter(
                                 !seenValueKeys.add(decodedKey) || needsLosslessWitness
                         }
 
-                        val lvalue = if (isRefSet) {
-                            URefMapEntryLValue(valueSort, map, key.asExpr(addressSort), mapType)
-                        } else {
-                            UMapEntryLValue(keySort, valueSort, map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
-                        }
-                        val value = convertExpr(memory.read(lvalue), valueType)
+                        val lvalue = mapValueLValue(entryMap, key, mapType, keySort, valueSort)
+                        val value = entryScope.convertExpr(entryMemory.read(lvalue), valueType)
                         if (usesRepresentatives) {
                             losslessEntries += GoMapEntry(decodedKey, value, identity = model.eval(key).toString())
                         }
@@ -415,8 +417,9 @@ class GoTestInterpreter(
             val length = resolveLength(lengthExpression)
 
             val result = mutableMapOf<Any?, Any?>()
-            getMapEntries(memory, map, mapType, keySort).also { addToMap(result, it) }
-            getMapEntries(model, model.eval(map), mapType, keySort).also { addToMap(result, it) }
+            getMapEntries(memory, map, mapType, keySort).also { addToMap(result, it, memory, map) }
+            val concreteMap = model.eval(map)
+            getMapEntries(model, concreteMap, mapType, keySort).also { addToMap(result, it, model, concreteMap) }
 
             if (usesRepresentatives) {
                 ensureMapEntriesMaterialized(
@@ -446,6 +449,21 @@ class GoTestInterpreter(
             }
 
             return result
+        }
+
+        private fun mapValueLValue(
+            map: UHeapRef,
+            key: UExpr<out USort>,
+            mapType: GoType,
+            keySort: USort,
+            valueSort: USort,
+        ): ULValue<*, USort> {
+            val isReferenceKey = keySort == ctx.addressSort
+            return if (isReferenceKey) {
+                URefMapEntryLValue(valueSort, map, key.asExpr(ctx.addressSort), mapType)
+            } else {
+                UMapEntryLValue(keySort, valueSort, map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
+            }
         }
 
         private fun getMapEntries(
