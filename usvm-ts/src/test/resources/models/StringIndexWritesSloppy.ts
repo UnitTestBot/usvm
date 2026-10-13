@@ -51,7 +51,11 @@ function sloppySymbolicUpdate(value: string): number {
     }
 
     // Expose conversion witnesses through source branches rather than relying on one arbitrary solver model.
-    if (value === " " || oldValue === 7) {
+    if (value === " ") {
+        return oldValue;
+    }
+
+    if (oldValue === 7) {
         return oldValue;
     }
 
