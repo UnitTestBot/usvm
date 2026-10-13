@@ -105,5 +105,48 @@ class FreshStringMockSourceTest : TsMethodTestRunner() {
         )
     }
 
+    @Test
+    fun `opaque string literal union retains exactly its allowed values`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method("stringUnion"),
+            { result -> result.number == 1.0 },
+            { result -> result.number == 2.0 },
+            invariants = arrayOf({ result -> result.number in setOf(1.0, 2.0) }),
+        )
+    }
+
+    @Test
+    fun `opaque finite union preserves string number boolean and nullish kinds`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method("finiteUnion"),
+            { result -> result.number == 1.0 },
+            { result -> result.number == 2.0 },
+            { result -> result.number == 3.0 },
+            { result -> result.number == 4.0 },
+            { result -> result.number == 5.0 },
+            invariants = arrayOf({ result -> result.number in setOf(1.0, 2.0, 3.0, 4.0, 5.0) }),
+        )
+    }
+
+    @Test
+    fun `opaque boolean union preserves both boolean values`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method("booleanUnion"),
+            { result -> result.number == 1.0 },
+            { result -> result.number == 2.0 },
+            { result -> result.number == 3.0 },
+            invariants = arrayOf({ result -> result.number in setOf(1.0, 2.0, 3.0) }),
+        )
+    }
+
+    @Test
+    fun `opaque primitive literals retain their exact declared values`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method("exactPrimitiveLiterals"),
+            { result -> result.number == 1.0 },
+            invariants = arrayOf({ result -> result.number == 1.0 }),
+        )
+    }
+
     private fun method(name: String): EtsMethod = getMethod(methodName = name, className = "FreshStringMock")
 }
