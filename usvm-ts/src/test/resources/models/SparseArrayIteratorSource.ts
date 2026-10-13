@@ -1,4 +1,20 @@
 export class SparseArrayIteratorSource {
+    static reverseAsymmetricHoles(): number {
+        const values = [, 7, 11];
+        const alias = values.reverse();
+        const copy = [...values];
+        return alias === values && copy.length === 3 && copy[0] === 11 &&
+            copy[1] === 7 && copy[2] === undefined ? 1 : 0;
+    }
+
+    static unshiftHoles(): number {
+        const values = [, 11];
+        const length = values.unshift(7);
+        const copy = [...values];
+        return length === 3 && copy.length === 3 && copy[0] === 7 &&
+            copy[1] === undefined && copy[2] === 11 ? 1 : 0;
+    }
+
     static literalHoles(): number {
         const values = [7, , 11];
         const copy = [...values];
@@ -175,9 +191,16 @@ export class SparseArrayIteratorSource {
         return [...values].length;
     }
 
-    static unsupportedFillStorage(): number {
+    static fillAllHoles(): number {
         const values = new Array<number>(2);
         values.fill(7);
+        const copy = [...values];
+        return copy.length === 2 && copy[0] === 7 && copy[1] === 7 ? 1 : 0;
+    }
+
+    static unprovenPartialFillStorage(): number {
+        const values = new Array<number>(2);
+        values.fill(7, 0, 1);
         return [...values].length;
     }
 }

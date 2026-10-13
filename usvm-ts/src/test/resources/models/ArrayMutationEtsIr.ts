@@ -77,7 +77,7 @@ export class ArrayMutationEtsIr {
             + result[3];
     }
 
-    sparseReverseUsesResidual(): number[] {
-        return new Array<number>(2).reverse();
+    unprovenReverseUsesResidual(values: number[]): number[] {
+        return values.reverse();
     }
 }

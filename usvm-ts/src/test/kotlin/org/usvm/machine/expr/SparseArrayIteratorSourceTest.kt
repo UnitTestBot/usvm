@@ -16,6 +16,9 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
+import org.usvm.machine.call.TsUnknownCallEvent
+import org.usvm.machine.call.TsUnknownCallFailureReason
+import org.usvm.machine.call.TsUnknownCallOutcome
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
 import org.usvm.util.assertNodeReplay
@@ -120,12 +123,17 @@ class SparseArrayIteratorSourceTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `unknown array storage retains explicit iterator limitations`() {
-        for (name in listOf("unknownCopiedStorage", "unsupportedFillStorage")) {
+    fun `unproven copy and fill storage stop at the source model boundary`() {
+        for (name in listOf("unknownCopiedStorage", "unprovenPartialFillStorage")) {
             val limitations = mutableListOf<TsRuntimeFeatureLimitationReason>()
+            val unknownCalls = mutableListOf<TsUnknownCallEvent>()
             val observer = object : TsInterpreterObserver {
                 override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
                     limitations += event.reason
+                }
+
+                override fun onUnknownCall(event: TsUnknownCallEvent) {
+                    unknownCalls += event
                 }
             }
 
@@ -134,7 +142,13 @@ class SparseArrayIteratorSourceTest : TsMethodTestRunner() {
 
                 assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, name)
                 assertTrue(outcome.states.isEmpty(), name)
-                assertEquals(listOf(TsRuntimeFeatureLimitationReason.ARRAY_ITERATOR_UNSUPPORTED), limitations, name)
+                assertTrue(limitations.isEmpty(), "$name: $limitations")
+                val event = unknownCalls.single()
+                val expectedMethod = if (name == "unknownCopiedStorage") "slice" else "fill"
+
+                assertEquals(expectedMethod, event.callee.name, name)
+                assertEquals(TsUnknownCallFailureReason.PARTIAL_APPROXIMATION, event.failureReason, name)
+                assertEquals(TsUnknownCallOutcome.PATH_STOPPED, event.outcome, name)
             }
         }
     }
@@ -170,6 +184,6 @@ class SparseArrayIteratorSourceTest : TsMethodTestRunner() {
     private val supportedMethods = listOf(
         "literalHoles", "newArrayHoles", "deletedSlot", "rewriteDeletedSlot", "movesPreserveHoles",
         "shiftMissingFirstSlot", "truncateAndMoveHoles", "destructureHoles", "forOfHoles", "liveDelete",
-        "sourceObjectLookalike",
+        "sourceObjectLookalike", "reverseAsymmetricHoles", "unshiftHoles", "fillAllHoles",
     )
 }

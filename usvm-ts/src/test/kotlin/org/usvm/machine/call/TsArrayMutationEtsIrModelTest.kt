@@ -122,8 +122,8 @@ class TsArrayMutationEtsIrModelTest {
     }
 
     @Test
-    fun `sparse reverse remains residual`() {
-        val result = analyze(methodName = "sparseReverseUsesResidual")
+    fun `reverse without a slot presence or dense input proof remains residual`() {
+        val result = analyze(methodName = "unprovenReverseUsesResidual")
 
         assertTrue(result.values.isEmpty())
         assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.last().outcome)
