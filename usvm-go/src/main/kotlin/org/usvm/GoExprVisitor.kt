@@ -658,12 +658,9 @@ class GoExprVisitor(
                 val (rune, width) = decodeUtf8Rune(collection, index, length)
 
                 memory.writeField(iter, 1, ctx.sizeSort, ctx.mkSizeAddExpr(index, width), guard = ok)
-                mkTuple(
-                    TupleType(listOf(GoBasicTypes.BOOL, GoBasicTypes.INT32, GoBasicTypes.INT32)),
-                    ok,
-                    index,
-                    rune,
-                )
+                val resultType = expr.type as TupleType
+                val goIndex = ctx.mkPrimitiveCast(index, ctx.typeToSort(resultType.types[1]))
+                mkTuple(resultType, ok, goIndex, rune)
             }
             is MapType -> nextMapEntry(iter, collection, collectionType)
             else -> error("invalid collection type in next expr")
