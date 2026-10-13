@@ -377,11 +377,7 @@ class GoTestInterpreter(
                 UWritableMemory<GoType>,
                 UHeapRef,
             ) -> Unit = { destination, entries, entryMemory, entryMap ->
-                val entryScope = if (entryMemory === memory) {
-                    this@MemoryScope
-                } else {
-                    MemoryScope(ctx, state, model, entryMemory)
-                }
+                val entryScope = MemoryScope(ctx, state, model, entryMemory)
                 destination.putAll(
                     entries.mapNotNull { entry ->
                         val key = when (entry) {
