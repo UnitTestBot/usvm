@@ -1,6 +1,7 @@
 package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassSignature
@@ -15,8 +16,14 @@ import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
+import org.usvm.util.boxArrayValue
+import org.usvm.util.initializeTypedArrayOverrides
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.typedArrayBoxedLValue
+import org.usvm.util.typedArrayOverrideLValue
+
+private val logger = KotlinLogging.logger {}
 
 internal fun TsExprResolver.handleAssignToArrayIndex(
     lhv: EtsArrayAccess,
@@ -33,20 +40,29 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     } else {
         resolvedArray.asExpr(addressSort)
     }
-
-    // Check for undefined or null array access.
     checkUndefinedOrNullPropertyRead(scope, rawArray, propertyName = "[]") ?: return null
     val array = resolveHeapRef(scope, rawArray) ?: return null
 
+    handleAssignToArrayIndex(lhv = lhv, expr = expr, array = array)
+}
+
+internal fun TsExprResolver.handleAssignToArrayIndex(
+    lhv: EtsArrayAccess,
+    expr: UExpr<*>,
+    array: UHeapRef,
+): Unit? = with(ctx) {
+    // Check for undefined or null array access.
+    checkUndefinedOrNullPropertyRead(scope, array, propertyName = "[]") ?: return null
+
     // Resolve the index.
     val resolvedIndex = resolve(lhv.index) ?: return null
-    val receiverType = scope.calcOnState { arrayStorageType(array, lhv.array.type) }
-    if (receiverType == EtsStringType) {
+    val storageType = scope.calcOnState { arrayStorageType(array, lhv.array.type) }
+    if (storageType == EtsStringType) {
         throw UnsupportedOperationException("Writes to string indexes are not modeled")
     }
 
     val propertyName = concreteStringValue(resolvedIndex)
-    if (propertyName != null && receiverType !is EtsArrayType) {
+    if (propertyName != null && storageType !is EtsArrayType) {
         val field = EtsFieldSignature(
             name = propertyName,
             enclosingClass = EtsClassSignature.UNKNOWN,
@@ -54,28 +70,48 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
         )
         return assignToInstanceField(scope, lhv.array, array, field, expr, hierarchy)
     }
-    if (receiverType !is EtsArrayType) {
+
+    if (storageType !is EtsArrayType) {
         stopRuntimeFeatureLimitation(
             reason = TsRuntimeFeatureLimitationReason.ARRAY_STORAGE_TYPE,
-            detail = "Indexed access requires supported storage: static=${lhv.array.type}, storage=$receiverType",
+            detail = "Indexed access requires supported storage: static=${lhv.array.type}, storage=$storageType",
         )
         return null
     }
 
-    check(resolvedIndex.sort == fp64Sort) {
-        "Expected fp64 sort for index, got: ${resolvedIndex.sort}"
+    val index = extractNumericArrayIndex(scope, resolvedIndex)
+
+    val indexIsSupported = mkAnd(
+        index.isNumeric,
+        mkValidArrayIndexProperty(
+            value = index.value,
+        ),
+    )
+    val unsupportedIndexIsFeasible = scope.checkSat(mkNot(indexIsSupported)) != null
+    if (unsupportedIndexIsFeasible) {
+        logger.warn { "Unsupported named array property write for key: $resolvedIndex" }
+        reportRuntimeFeatureLimitation(
+            reason = TsRuntimeFeatureLimitationReason.ARRAY_NAMED_PROPERTY_WRITE,
+            detail = "property key is not a supported numeric array index: $resolvedIndex",
+        )
     }
-    val index = resolvedIndex.asExpr(fp64Sort)
+    scope.assert(indexIsSupported) ?: return null
 
-    // Convert the index to a bit-vector.
-    val bvIndex = mkFpToBvExpr(
-        roundingMode = fpRoundingModeSortDefaultValue(),
-        value = index,
-        bvSize = 32,
-        isSigned = true,
-    ).asExpr(sizeSort)
+    val bvIndex = mkFpToUint32AfterValidation(index.value, indexIsSupported).asExpr(sizeSort)
 
-    return assignToArrayIndex(scope, array, bvIndex, expr, receiverType)
+    return assignToArrayIndex(
+        scope = scope,
+        array = array,
+        index = bvIndex,
+        expr = expr,
+        arrayType = storageType,
+        onUnsupportedGrowth = {
+            reportRuntimeFeatureLimitation(
+                reason = TsRuntimeFeatureLimitationReason.ARRAY_INDEX_GROWTH,
+                detail = "array index write would grow beyond the current length",
+            )
+        },
+    )
 }
 
 fun TsContext.assignToArrayIndex(
@@ -84,6 +120,7 @@ fun TsContext.assignToArrayIndex(
     index: UExpr<TsSizeSort>,
     expr: UExpr<*>,
     arrayType: EtsArrayType,
+    onUnsupportedGrowth: (() -> Unit)? = null,
 ): Unit? {
     checkNotFake(array)
 
@@ -97,14 +134,44 @@ fun TsContext.assignToArrayIndex(
     //  However, we decided to forbid this behavior in our model for simplicity.
     //  Instead, we only allow writing to existing indices.
 
-    // Check for out-of-bounds access.
-    checkNegativeIndexRead(scope, index) ?: return null
-    checkReadingInRange(scope, index, length) ?: return null
+    val indexIsNonNegative = mkBvSignedGreaterOrEqualExpr(index, mkBv(0))
+    val indexIsBelowLength = mkBvSignedLessExpr(index, length)
+    val indexIsInRange = mkAnd(indexIsNonNegative, indexIsBelowLength)
+    if (scope.checkSat(mkNot(indexIsInRange)) != null) {
+        logger.warn { "Unsupported array growth through index write: index=$index, length=$length" }
+        onUnsupportedGrowth?.invoke()
+    }
+    scope.assert(indexIsInRange) ?: return null
 
     val elementSort = typeToSort(arrayType.elementType)
 
     // If the element sort is known, write directly.
     if (elementSort !is TsUnresolvedSort) {
+        val containsFakeValue = expr.sort == addressSort && expr.asExpr(addressSort).hasFakeValueBranch()
+        val directPayload = expr.sort == elementSort && !containsFakeValue
+        if (directPayload) {
+            val lValue = mkArrayIndexLValue(elementSort, array, index, arrayType)
+            return scope.doWithState {
+                memory.write(lValue, expr.asExpr(elementSort), guard = trueExpr)
+                initializeTypedArrayOverrides(array)
+                memory.write(typedArrayOverrideLValue(array, index), falseExpr, guard = trueExpr)
+            }
+        }
+
+        val fake = boxArrayValue(scope, expr)
+        val kind = fake.getFakeType(scope)
+        val compatibleKind = when (elementSort) {
+            boolSort -> kind.boolTypeExpr
+            fp64Sort -> kind.fpTypeExpr
+            addressSort -> kind.refTypeExpr
+            else -> error("Unsupported typed array element sort: $elementSort")
+        }
+        val payload = when (elementSort) {
+            boolSort -> fake.extractBool(scope)
+            fp64Sort -> fake.extractFp(scope)
+            addressSort -> fake.extractRef(scope)
+            else -> error("Unsupported typed array element sort: $elementSort")
+        }
         val lValue = mkArrayIndexLValue(
             sort = elementSort,
             ref = array,
@@ -112,7 +179,10 @@ fun TsContext.assignToArrayIndex(
             type = arrayType,
         )
         return scope.doWithState {
-            memory.write(lValue, expr.asExpr(elementSort), guard = trueExpr)
+            memory.write(lValue, payload.asExpr(elementSort), guard = compatibleKind)
+            initializeTypedArrayOverrides(array)
+            memory.write(typedArrayBoxedLValue(array, index), fake, guard = trueExpr)
+            memory.write(typedArrayOverrideLValue(array, index), mkNot(compatibleKind), guard = trueExpr)
         }
     }
 
@@ -123,7 +193,7 @@ fun TsContext.assignToArrayIndex(
         index = index.asExpr(sizeSort),
         type = arrayType,
     )
-    val fakeExpr = expr.toFakeObject(scope)
+    val fakeExpr = boxArrayValue(scope, expr)
     return scope.doWithState {
         memory.write(lValue, fakeExpr, guard = trueExpr)
     }

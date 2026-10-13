@@ -16,12 +16,11 @@ import org.jacodb.ets.model.EtsStringConstant
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUnknownType
-import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.util.arrayStorageType
 
 internal fun TsExprResolver.handlePropertyRef(value: EtsPropertyRef): UExpr<*>? {
-    val normalized = normalizePropertyRef(value) ?: return null
+    val normalized = normalizePropertyRef(value, isRead = true) ?: return null
 
     return when (normalized) {
         is EtsArrayAccess -> handleArrayAccess(normalized)
@@ -31,7 +30,7 @@ internal fun TsExprResolver.handlePropertyRef(value: EtsPropertyRef): UExpr<*>? 
 }
 
 internal fun TsExprResolver.handleAssignToProperty(value: EtsPropertyRef, expr: UExpr<*>): Unit? {
-    val normalized = normalizePropertyRef(value) ?: return null
+    val normalized = normalizePropertyRef(value, isRead = false) ?: return null
 
     return when (normalized) {
         is EtsArrayAccess -> handleAssignToArrayIndex(normalized, expr)
@@ -41,7 +40,7 @@ internal fun TsExprResolver.handleAssignToProperty(value: EtsPropertyRef, expr: 
 }
 
 /** Reuses the existing model for concrete data-property names and array indices. */
-internal fun TsExprResolver.normalizePropertyRef(value: EtsPropertyRef): EtsLValue? = with(ctx) {
+internal fun TsExprResolver.normalizePropertyRef(value: EtsPropertyRef, isRead: Boolean): EtsLValue? = with(ctx) {
     var key = resolve(value.key) ?: return null
     if (key.isFakeObject()) {
         key = key.extractSingleValueFromFakeObjectOrNull(scope)
@@ -59,11 +58,17 @@ internal fun TsExprResolver.normalizePropertyRef(value: EtsPropertyRef): EtsLVal
     // Storage selection must inspect each feasible reference produced by a guarded property write.
     val reference = resolveHeapRef(scope, rawReference) ?: return null
     val storageType = scope.calcOnState { arrayStorageType(reference, value.instance.type) }
-    if (storageType == EtsStringType && key.sort == fp64Sort) {
+    val isStringWrite = storageType == EtsStringType && !isRead
+    if (isStringWrite) {
+        throw UnsupportedOperationException("String property writes are unsupported: ${value.key}")
+    }
+
+    val isIndexedNumericKey = (storageType is EtsArrayType || storageType == EtsStringType) && key.sort == fp64Sort
+    if (isIndexedNumericKey) {
         return EtsArrayAccess(array = value.instance, index = value.key, type = value.type)
     }
 
-    val name = (key as? UConcreteHeapRef)?.let(::getStringConstantValue)
+    val name = concreteStringValue(key)
         ?: throw UnsupportedOperationException("Property access needs a constant converted key: ${value.key}")
     if (storageType == EtsStringType && name != "length") {
         val number = name.toDoubleOrNull()
@@ -76,7 +81,7 @@ internal fun TsExprResolver.normalizePropertyRef(value: EtsPropertyRef): EtsLVal
 
     if (storageType is EtsArrayType) {
         val index = name.toIntOrNull()?.takeIf { it >= 0 && it.toString() == name }
-            ?: throw UnsupportedOperationException("Unsupported array property: $name")
+            ?: throw UnsupportedOperationException("Unsupported indexed property: $name")
         return EtsArrayAccess(array = value.instance, index = EtsNumberConstant(index.toDouble()), type = value.type)
     }
 

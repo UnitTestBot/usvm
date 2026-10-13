@@ -209,6 +209,13 @@ private fun unaryMathCall(
     }
     val argument = call.arguments.firstOrNull()?.resolved
         ?: return state.normalExecution(state.ctx.mkFp(Double.NaN, state.ctx.fp64Sort))
+    with(state.ctx) {
+        if (argument.isFakeObject()) {
+            val numberGuard = argument.getFakeType(state.memory).fpTypeExpr
+            val result = operation(argument.extractFp(state.memory))
+            return state.normalExecution(result, guard = numberGuard)
+        }
+    }
     if (argument.sort != state.ctx.fp64Sort) {
         return null
     }
@@ -244,13 +251,19 @@ private fun TsUnknownCall.hasGlobalOwner(expectedName: String): Boolean {
     return hasBuiltinGlobalOwner(owner = owner, callee = callee, expectedName = expectedName)
 }
 
-private fun TsState.normalExecution(result: UExpr<*>): TsUnknownCallModelExecution = with(ctx) {
+private fun TsState.normalExecution(
+    result: UExpr<*>,
+    guard: UBoolExpr = ctx.trueExpr,
+): TsUnknownCallModelExecution = with(ctx) {
     val successor = TsUnknownCallModelSuccessor(
-        guard = trueExpr,
+        guard = guard,
         completion = TsUnknownCallModelCompletion.Normal { result },
     )
 
-    TsUnknownCallModelExecution(successors = listOf(successor))
+    TsUnknownCallModelExecution(
+        successors = listOf(successor),
+        residualGuard = guard.takeUnless { it == trueExpr }?.let(::mkNot),
+    )
 }
 
 private fun TsState.isInteger(value: UExpr<KFp64Sort>) = with(ctx) {

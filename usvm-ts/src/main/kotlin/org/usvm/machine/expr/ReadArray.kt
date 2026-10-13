@@ -8,18 +8,23 @@ import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsUnknownType
+import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.readTypedArrayElement
 
 private val logger = KotlinLogging.logger {}
 
@@ -49,13 +54,13 @@ internal fun TsExprResolver.handleArrayAccess(
 
     // Resolve the index.
     val resolvedIndex = resolve(value.index) ?: return null
-    val receiverType = scope.calcOnState { arrayStorageType(array, value.array.type) }
-    if (receiverType == EtsStringType) {
+    val storageType = scope.calcOnState { arrayStorageType(array, value.array.type) }
+    if (storageType == EtsStringType) {
         return readStringIndex(receiver = array, index = resolvedIndex)
     }
 
     val propertyName = concreteStringValue(resolvedIndex)
-    if (propertyName != null && receiverType !is EtsArrayType) {
+    if (propertyName != null && storageType !is EtsArrayType) {
         val field = EtsFieldSignature(
             name = propertyName,
             enclosingClass = EtsClassSignature.UNKNOWN,
@@ -63,35 +68,41 @@ internal fun TsExprResolver.handleArrayAccess(
         )
         return resolveField(scope, value.array, array, field, hierarchy)
     }
-    if (receiverType !is EtsArrayType) {
+
+    if (storageType !is EtsArrayType) {
         stopRuntimeFeatureLimitation(
             reason = TsRuntimeFeatureLimitationReason.ARRAY_STORAGE_TYPE,
-            detail = "Indexed access requires supported storage: static=${value.array.type}, storage=$receiverType",
+            detail = "Indexed access requires supported storage: static=${value.array.type}, storage=$storageType",
         )
         return null
     }
 
-    check(resolvedIndex.sort == fp64Sort) {
-        "Expected fp64 sort for index, got: ${resolvedIndex.sort}"
+    val index = extractNumericArrayIndex(scope, resolvedIndex)
+    val unsupportedKeyIsFeasible = scope.checkSat(index.hasUnsupportedReadKey) != null
+    if (unsupportedKeyIsFeasible) {
+        reportRuntimeFeatureLimitation(
+            reason = TsRuntimeFeatureLimitationReason.ARRAY_NAMED_PROPERTY_READ,
+            detail = "property key requires unsupported ToPropertyKey conversion: $resolvedIndex",
+        )
     }
-    val index = resolvedIndex.asExpr(fp64Sort)
+    scope.assert(mkNot(index.hasUnsupportedReadKey)) ?: return null
 
-    // Convert the index to a bit-vector.
-    val bvIndex = mkFpToBvExpr(
-        roundingMode = fpRoundingModeSortDefaultValue(),
-        value = index,
-        bvSize = sizeSort.sizeBits.toInt(),
-        isSigned = true,
-    ).asExpr(sizeSort)
+    val indexIsSupported = mkAnd(
+        index.isNumeric,
+        mkValidArrayIndexProperty(
+            value = index.value,
+        ),
+    )
+    val bvIndex = mkFpToUint32AfterValidation(index.value, indexIsSupported).asExpr(sizeSort)
 
-    // Read the array element.
-    readArray(scope, array, bvIndex, receiverType)
+    readArrayProperty(scope, array, bvIndex, indexIsSupported, storageType)
 }
 
-fun TsContext.readArray(
+private fun TsContext.readArrayProperty(
     scope: TsStepScope,
     array: UHeapRef,
     index: UExpr<TsSizeSort>,
+    indexIsSupported: UBoolExpr,
     arrayType: EtsArrayType,
 ): UExpr<*>? {
     checkNotFake(array)
@@ -102,22 +113,48 @@ fun TsContext.readArray(
         memory.read(lengthLValue)
     }
 
-    // Check for out-of-bounds access.
-    checkNegativeIndexRead(scope, index) ?: return null
-    checkReadingInRange(scope, index, length) ?: return null
+    val zero = mkBv(0)
+    val elementExists = mkAnd(
+        indexIsSupported,
+        mkBvSignedGreaterOrEqualExpr(index, zero),
+        mkBvSignedLessExpr(index, length),
+    )
+    if (elementExists.isFalse) {
+        return mkUndefinedValue()
+    }
 
+    val element = readArrayElement(scope, array, index, arrayType)
+    if (elementExists.isTrue) {
+        return element
+    }
+
+    return iteWriteIntoFakeObject(
+        scope = scope,
+        condition = elementExists,
+        trueBranchValue = element,
+        falseBranchValue = mkUndefinedValue(),
+    )
+}
+
+private fun TsContext.readArrayElement(
+    scope: TsStepScope,
+    array: UHeapRef,
+    index: UExpr<TsSizeSort>,
+    arrayType: EtsArrayType,
+): UExpr<*> {
     // Determine the element sort.
     val sort = typeToSort(arrayType.elementType)
 
     // If the element type is known, we can read it directly.
     if (sort !is TsUnresolvedSort) {
-        val lValue = mkArrayIndexLValue(
-            sort = sort,
-            ref = array,
-            index = index,
-            type = arrayType,
-        )
-        return scope.calcOnState { memory.read(lValue) }
+        return scope.calcOnState {
+            val element = readTypedArrayElement(array, index, arrayType)
+            if (element.hasBoxedValue.isFalse) {
+                element.nativeValue
+            } else {
+                mkFakeValue(scope = scope, value = element.unresolvedValue)
+            }
+        }
     }
 
     return scope.calcOnState {

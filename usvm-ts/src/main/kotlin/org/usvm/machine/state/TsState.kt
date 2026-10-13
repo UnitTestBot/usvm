@@ -99,6 +99,7 @@ class TsState(
     var unsupportedReason: String? = null,
     var trackedObjectProperties: Set<TrackedObjectProperty> = emptySet(),
     var writtenConcreteFields: Set<Pair<UHeapRef, String>> = emptySet(),
+    var initializedTypedArrayOverrides: Set<UHeapRef> = emptySet(),
     var writtenObjectLiteralFieldSorts: UPersistentHashMap<Pair<UHeapRef, String>, USort> = persistentHashMapOf(),
     private val activeUnknownCallModels: MutableList<Pair<String, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
@@ -347,6 +348,7 @@ class TsState(
             unsupportedReason = unsupportedReason,
             trackedObjectProperties = trackedObjectProperties,
             writtenConcreteFields = writtenConcreteFields,
+            initializedTypedArrayOverrides = initializedTypedArrayOverrides,
             writtenObjectLiteralFieldSorts = writtenObjectLiteralFieldSorts,
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )

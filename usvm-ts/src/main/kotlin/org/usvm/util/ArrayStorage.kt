@@ -44,6 +44,14 @@ internal fun TsState.copyArrayElements(
     ctx.forEachArrayPayloadRegion(arrayType) { region, sort ->
         memory.memcpy(srcRef, dstRef, region, sort, fromSrc, fromDst, length)
     }
+    with(ctx) {
+        if (typeToSort(arrayType.elementType) !is TsUnresolvedSort) {
+            initializeTypedArrayOverrides(srcRef)
+            initializeTypedArrayOverrides(dstRef)
+            memory.memcpy(srcRef, dstRef, TsTypedArrayStorage.HAS_BOXED_VALUE, boolSort, fromSrc, fromDst, length)
+            memory.memcpy(srcRef, dstRef, TsTypedArrayStorage.BOXED_VALUE, addressSort, fromSrc, fromDst, length)
+        }
+    }
     if (ctx.typeToSort(arrayType.elementType) is TsUnresolvedSort) {
         TsUnresolvedArrayKind.entries.forEach { kind ->
             memory.memcpy(srcRef, dstRef, kind, ctx.boolSort, fromSrc, fromDst, length)

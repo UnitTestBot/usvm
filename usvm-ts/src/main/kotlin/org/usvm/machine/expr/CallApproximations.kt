@@ -21,6 +21,7 @@ import org.usvm.api.memcpy
 import org.usvm.api.readArrayIndex
 import org.usvm.getIntValue
 import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.isFalse
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.call.TsUnknownCallFailureReason
@@ -43,11 +44,28 @@ import org.usvm.util.arrayStorageType
 import org.usvm.util.copyArrayElements
 import org.usvm.util.forEachArrayPayloadRegion
 import org.usvm.util.initializeArrayKind
-import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.readTypedArrayElement
 import org.usvm.util.resolveEtsMethods
 
 private val logger = KotlinLogging.logger {}
+
+private val modeledStringMethods = setOf(
+    "substring",
+    "trim",
+    "trimStart",
+    "trimEnd",
+    "charAt",
+    "charCodeAt",
+    "endsWith",
+    "includes",
+    "indexOf",
+    "lastIndexOf",
+    "slice",
+    "startsWith",
+    "toLowerCase",
+    "toUpperCase",
+)
 
 internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     expr: EtsInstanceCallExpr,
@@ -168,7 +186,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.pop() method calls
         if (expr.callee.name == "pop") {
-            return handleArrayPopCall(stmt, instanceType, elementSort)
+            return handleArrayPopCall(stmt, instanceType)
         }
 
         // Handle `Array.fill() method calls
@@ -183,7 +201,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.shift() method calls
         if (expr.callee.name == "shift") {
-            return handleArrayShiftCall(stmt, instanceType, elementSort)
+            return handleArrayShiftCall(stmt, instanceType)
         }
 
         // Handle `Array.join() method calls
@@ -217,18 +235,6 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         }
     }
 
-    val modeledStringMethods = setOf(
-        "charAt",
-        "charCodeAt",
-        "endsWith",
-        "includes",
-        "indexOf",
-        "lastIndexOf",
-        "slice",
-        "startsWith",
-        "toLowerCase",
-        "toUpperCase",
-    )
     if (instanceType is EtsStringType && expr.callee.name in modeledStringMethods) {
         val dispatcher = unknownCallDispatcher
         if (dispatcher !is TsUnknownCallModelDispatcher) {
@@ -300,11 +306,10 @@ private fun EtsMethodSignature.withEnclosingClassName(name: String): EtsMethodSi
 private fun TsExprResolver.handleArrayPopCall(
     stmt: TsVirtualMethodCallStmt,
     instanceType: EtsArrayType,
-    elementSort: USort,
 ): TsExprApproximationResult {
     val dispatcher = unknownCallDispatcher
     if (dispatcher !is TsUnknownCallModelDispatcher) {
-        return from(handleArrayPop(stmt, instanceType, elementSort, stmt.instance.asExpr(ctx.addressSort)))
+        return from(handleArrayPop(stmt, instanceType, stmt.instance.asExpr(ctx.addressSort)))
     }
 
     dispatcher.dispatch(
@@ -320,11 +325,10 @@ private fun TsExprResolver.handleArrayPopCall(
 private fun TsExprResolver.handleArrayShiftCall(
     stmt: TsVirtualMethodCallStmt,
     instanceType: EtsArrayType,
-    elementSort: USort,
 ): TsExprApproximationResult {
     val dispatcher = unknownCallDispatcher
     if (dispatcher !is TsUnknownCallModelDispatcher) {
-        return from(handleArrayShift(stmt, instanceType, elementSort, stmt.instance.asExpr(ctx.addressSort)))
+        return from(handleArrayShift(stmt, instanceType, stmt.instance.asExpr(ctx.addressSort)))
     }
 
     dispatcher.dispatch(
@@ -546,23 +550,22 @@ private fun TsExprResolver.handleArrayPush(
 private fun TsExprResolver.handleArrayPop(
     stmt: TsVirtualMethodCallStmt,
     arrayType: EtsArrayType,
-    elementSort: USort,
     array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
     check(stmt.args.isEmpty()) {
         "Array.pop() should have no arguments, but got ${stmt.args.size}"
     }
 
-    removeArrayElement(stmt, array, arrayType, elementSort, first = false)
+    removeArrayElement(stmt, array, arrayType, first = false)
 }
 
 private fun TsExprResolver.removeArrayElement(
     stmt: TsVirtualMethodCallStmt,
     array: UHeapRef,
     arrayType: EtsArrayType,
-    elementSort: USort,
     first: Boolean,
 ): UExpr<*>? = with(ctx) {
+    val storageSort = typeToSort(arrayType.elementType)
     val lengthLValue = mkArrayLengthLValue(array, arrayType)
     val length = scope.calcOnState { memory.read(lengthLValue) }
     val nonEmpty = mkNot(mkEq(length, mkBv(0)))
@@ -577,10 +580,15 @@ private fun TsExprResolver.removeArrayElement(
     scope.calcOnState {
         val newLength = mkBvSubExpr(length, mkBv(1))
         val index = if (first) mkBv(0) else newLength
-        val removed = if (typeToSort(arrayType.elementType) is TsUnresolvedSort) {
+        val removed = if (storageSort is TsUnresolvedSort) {
             mkFakeValue(scope, readUnresolvedArrayElement(memory, array, index))
         } else {
-            memory.read(mkArrayIndexLValue(elementSort, array, index, arrayType))
+            val element = readTypedArrayElement(array, index, arrayType)
+            if (element.hasBoxedValue.isFalse) {
+                element.nativeValue
+            } else {
+                mkFakeValue(scope, element.unresolvedValue)
+            }
         }
 
         if (first) {
@@ -742,14 +750,13 @@ private const val ARRAY_FILL_MAX_SIZE = 10_000
 private fun TsExprResolver.handleArrayShift(
     stmt: TsVirtualMethodCallStmt,
     arrayType: EtsArrayType,
-    elementSort: USort,
     array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
     check(stmt.args.isEmpty()) {
         "Array.shift() should have no arguments, but got ${stmt.args.size}"
     }
 
-    removeArrayElement(stmt, array, arrayType, elementSort, first = true)
+    removeArrayElement(stmt, array, arrayType, first = true)
 }
 
 /**
