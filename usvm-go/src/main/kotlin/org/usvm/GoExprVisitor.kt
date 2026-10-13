@@ -19,6 +19,7 @@ import org.jacodb.go.api.GoConst
 import org.jacodb.go.api.GoConvertExpr
 import org.jacodb.go.api.GoDivExpr
 import org.jacodb.go.api.GoEqlExpr
+import org.jacodb.go.api.GoExpr
 import org.jacodb.go.api.GoExprVisitor
 import org.jacodb.go.api.GoExtractExpr
 import org.jacodb.go.api.GoFieldAddrExpr
@@ -889,7 +890,7 @@ class GoExprVisitor(
         return unbox(expr.asExpr(ctx.addressSort), ctx.typeToSort(type.underlying()))
     }
 
-    internal fun resolveMapKey(value: GoValue): UExpr<out USort> {
+    internal fun resolveMapKey(value: GoExpr): UExpr<out USort> {
         val key = value.accept(this)
         val storageType = value.type.mapKeyStorageType()
         if (storageType == value.type) return key
