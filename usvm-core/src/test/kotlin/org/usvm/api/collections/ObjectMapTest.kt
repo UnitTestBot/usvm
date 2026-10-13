@@ -254,6 +254,34 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
     }
 
     @Test
+    fun testCopiedInputMapCanSelectAnInitialKey() = testInputCopyRetainsUnknownKey(throughSecondCopy = false)
+
+    @Test
+    fun testRepeatedInputMapCopyCanSelectAnInitialKey() = testInputCopyRetainsUnknownKey(throughSecondCopy = true)
+
+    private fun testInputCopyRetainsUnknownKey(throughSecondCopy: Boolean) = scope.doWithState {
+        val source = ctx.mkRegisterReading(99, ctx.addressSort)
+        val firstCopy = mkSymbolicObjectMap(mapType)
+        symbolicObjectMapMergeInto(firstCopy, source, mapType, ctx.sizeSort)
+        val copy = if (throughSecondCopy) {
+            val secondCopy = mkSymbolicObjectMap(mapType)
+            symbolicObjectMapMergeInto(secondCopy, firstCopy, mapType, ctx.sizeSort)
+            secondCopy
+        } else {
+            firstCopy
+        }
+
+        val selectedKey = symbolicObjectMapAnyKey(copy, mapType)
+        val sourceContains = symbolicObjectMapContains(source, selectedKey, mapType)
+        val copyContains = symbolicObjectMapContains(copy, selectedKey, mapType)
+
+        checkWithSolver {
+            assertPossible { mkAnd(mkNot(mkHeapRefEq(source, nullRef)), sourceContains, copyContains) }
+            assertImpossible { mkAnd(copyContains, mkNot(sourceContains)) }
+        }
+    }
+
+    @Test
     fun testMapRetrieveAnyKey() = scope.doWithState {
         callStack.push(method = Any(), returnSite = null)
 
