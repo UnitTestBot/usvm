@@ -99,6 +99,7 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     scope.assert(indexIsSupported) ?: return null
 
     val bvIndex = mkFpToUint32AfterValidation(index.value, indexIsSupported).asExpr(sizeSort)
+    extendArrayForIndexAppend(array = array, index = bvIndex, arrayType = storageType) ?: return null
 
     return assignToArrayIndex(
         scope = scope,
@@ -113,6 +114,30 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
             )
         },
     )
+}
+
+private fun TsExprResolver.extendArrayForIndexAppend(
+    array: UHeapRef,
+    index: UExpr<TsSizeSort>,
+    arrayType: EtsArrayType,
+): Unit? = with(ctx) {
+    val lengthLValue = mkArrayLengthLValue(array, arrayType)
+    val length = scope.calcOnState { memory.read(lengthLValue) }
+    val isAppend = mkEq(index, length)
+    val belowCapacity = mkBvSignedLessExpr(length, mkBv(options.maxArraySize))
+    val appendExceedsCapacity = mkAnd(isAppend, mkNot(belowCapacity))
+    if (scope.checkSat(appendExceedsCapacity) != null) {
+        reportRuntimeFeatureLimitation(
+            reason = TsRuntimeFeatureLimitationReason.ARRAY_LENGTH_CAPACITY,
+            detail = "array index append exceeds configured length bound ${options.maxArraySize}",
+        )
+    }
+    scope.assert(mkNot(appendExceedsCapacity)) ?: return null
+
+    // Dense appends have no uninitialized gap. Sparse growth remains unsupported below.
+    scope.doWithState {
+        memory.write(lengthLValue, mkBvAddExpr(length, mkBv(1)), guard = isAppend)
+    }
 }
 
 fun TsContext.assignToArrayIndex(
@@ -131,9 +156,8 @@ fun TsContext.assignToArrayIndex(
         memory.read(lengthLValue)
     }
 
-    // Note: out-of-bound write is not an error in JS, since it can grow the array.
-    //  However, we decided to forbid this behavior in our model for simplicity.
-    //  Instead, we only allow writing to existing indices.
+    // Callers extend the length for supported dense appends before writing the element.
+    // Skipping indices would create holes, which this storage model does not represent.
 
     val indexIsNonNegative = mkBvSignedGreaterOrEqualExpr(index, mkBv(0))
     val indexIsBelowLength = mkBvSignedLessExpr(index, length)
