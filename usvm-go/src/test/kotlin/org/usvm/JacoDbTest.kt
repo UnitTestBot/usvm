@@ -11,17 +11,19 @@ import java.util.stream.Collectors
 import kotlin.io.path.extension
 import kotlin.io.path.pathString
 import kotlin.system.measureTimeMillis
-import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 class JacoDbTest {
     @TestFactory
     fun jacodbTestLong(): Collection<DynamicTest> {
         val pkg = Converter.unpack(Parser().deserialize("out/usvm_examples.json"))
         val program = GoProgram(listOf(pkg))
-        val machine = GoMachine(program, options, customOptions)
-        return methods(pkg).filter { it.metName in longMethods }.map {
-            DynamicTest.dynamicTest(it.metName) {
-                analyzeAndLog(machine, pkg, it.metName)
+
+        return methods(pkg).filter { it.metName in longMethods }.map { method ->
+            DynamicTest.dynamicTest(method.metName) {
+                GoMachine(program, options, customOptions).use { machine ->
+                    analyzeAndLog(machine, pkg, method.metName)
+                }
             }
         }
     }
@@ -30,13 +32,15 @@ class JacoDbTest {
     fun jacodbTestFast(): Collection<DynamicTest> {
         val pkg = Converter.unpack(Parser().deserialize("out/usvm_examples.json"))
         val program = GoProgram(listOf(pkg))
-        val machine = GoMachine(program, options, customOptions)
+
         return methods(pkg)
             .filter { it.metName !in longMethods }
             .let { if (whitelist.isEmpty()) it else it.filter { m -> m.metName in whitelist } }
-            .map {
-                DynamicTest.dynamicTest(it.metName) {
-                    analyzeAndLog(machine, pkg, it.metName)
+            .map { method ->
+                DynamicTest.dynamicTest(method.metName) {
+                    GoMachine(program, options, customOptions).use { machine ->
+                        analyzeAndLog(machine, pkg, method.metName)
+                    }
                 }
             }
     }
@@ -49,11 +53,13 @@ class JacoDbTest {
                 .collect(Collectors.toList())
         }
         val program = GoProgram(packages)
-        val machine = GoMachine(program, options, customOptions)
         val pkg = program.findPackage("usvm/examples/imports")
-        return methods(pkg).filter { it.metName !in longMethods }.map {
-            DynamicTest.dynamicTest(it.metName) {
-                analyzeAndLog(machine, pkg, it.metName)
+
+        return methods(pkg).filter { it.metName !in longMethods }.map { method ->
+            DynamicTest.dynamicTest(method.metName) {
+                GoMachine(program, options, customOptions).use { machine ->
+                    analyzeAndLog(machine, pkg, method.metName)
+                }
             }
         }
     }
@@ -66,11 +72,13 @@ class JacoDbTest {
                 .collect(Collectors.toList())
         }
         val program = GoProgram(packages)
-        val machine = GoMachine(program, options, customOptions)
         val pkg = program.findPackage("flag")
-        return methods(pkg).filter { it.metName !in longMethods }.map {
-            DynamicTest.dynamicTest(it.metName) {
-                analyzeAndLog(machine, pkg, it.metName)
+
+        return methods(pkg).filter { it.metName !in longMethods }.map { method ->
+            DynamicTest.dynamicTest(method.metName) {
+                GoMachine(program, options, customOptions).use { machine ->
+                    analyzeAndLog(machine, pkg, method.metName)
+                }
             }
         }
     }
@@ -89,11 +97,10 @@ class JacoDbTest {
         pathSelectionStrategies = listOf(PathSelectionStrategy.FORK_DEPTH),
         coverageZone = CoverageZone.TRANSITIVE,
         exceptionsPropagation = true,
-//        timeout = 5_000.milliseconds,
-        timeout = Duration.INFINITE, // for debug
+        timeout = 30.seconds,
         stepsFromLastCovered = 1_000_000L,
-        solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
-        typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
+        solverTimeout = 5.seconds,
+        typeOperationsTimeout = 5.seconds,
     )
 
     private val customOptions: GoMachineOptions = GoMachineOptions(
