@@ -198,7 +198,7 @@ class CallsCoverageExperimentTest {
         ).use { replayer -> replayer.replay(inputs = inputs, timeoutMillis = 20_000L) }
 
         assertEquals(CallsCoverageCompletion.RETURNED, replay.completion)
-        assertTrue(replay.coveredStatementKeys.isNotEmpty())
+        assertTrue(replay.coveredStatementKeys.isNotEmpty(), replay.toString())
     }
 
     @Test
