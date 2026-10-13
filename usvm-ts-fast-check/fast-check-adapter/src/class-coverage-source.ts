@@ -105,6 +105,10 @@ export function instrumentClassCoverage(file: ts.SourceFile, className: string):
     return [memberKey(name, isStatic)]
   }))
   const reachable = new Set(members.filter((member) => member.publicSurface).map((member) => memberKey(member.name, member.isStatic)))
+  const hasPrivateCallableBodies = members.some((member) => !member.publicSurface)
+  const nativeGlobals = new Set(['String', 'Number', 'Boolean', 'parseFloat', 'parseInt', 'isNaN', 'isFinite',
+    'encodeURI', 'encodeURIComponent', 'decodeURI', 'decodeURIComponent', 'escape', 'unescape', 'atob', 'btoa'])
+  const shadowedNativeGlobals = declaredValueBindings(file)
   let invalidReason: string | null = null
   const localFunctionCache = new Map<ts.Node, LocalFunctionReachability>()
   const nestedFunctions = (body: ts.Node): LocalFunctionReachability => {
@@ -164,6 +168,14 @@ export function instrumentClassCoverage(file: ts.SourceFile, className: string):
         && (hasPrototypeAccess(node.arguments[0])
           || (ts.isIdentifier(node.arguments[0]) && node.arguments[0].text === className))) {
         invalidReason = 'Dynamic property or prototype mutation is outside the checked class lifecycle subset'
+      }
+      if (hasPrivateCallableBodies && ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+        const name = node.expression.text
+        const checkedLocal = [...locals.reachable].some((declaration) => declaration.name?.text === name)
+        const nativeGlobal = nativeGlobals.has(name) && !shadowedNativeGlobals.has(name)
+        if (!checkedLocal && !nativeGlobal) {
+          invalidReason = 'Unchecked free helper calls cannot establish the selected private callable statement universe'
+        }
       }
       if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'eval') {
         invalidReason = 'Dynamic evaluation cannot establish an original AST statement universe'
@@ -458,4 +470,21 @@ function hasPrototypeAccess(node: ts.Node): boolean {
   }
   visit(node)
   return found
+}
+
+
+function declaredValueBindings(file: ts.SourceFile): Set<string> {
+  const names = new Set<string>()
+  const visit = (node: ts.Node): void => {
+    if (ts.isIdentifier(node)) {
+      const parent = node.parent
+      const valueBinding = (ts.isParameter(parent) || ts.isVariableDeclaration(parent) || ts.isBindingElement(parent)
+        || ts.isImportSpecifier(parent) || ts.isImportClause(parent) || ts.isNamespaceImport(parent)
+        || ts.isFunctionDeclaration(parent) || ts.isClassDeclaration(parent)) && parent.name === node
+      if (valueBinding) names.add(node.text)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(file)
+  return names
 }

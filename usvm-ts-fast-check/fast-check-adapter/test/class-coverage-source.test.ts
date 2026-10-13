@@ -191,3 +191,13 @@ test('rejects mutable callable identity and dynamic lifecycle state without reje
   assert.match(instrument('export class Target { static run() { Object.assign(Target.prototype, {extra: 1}); return 1; } }').reason!, /Dynamic property/)
   assert.match(instrument('export class Target { static run() { Reflect.set(Target.prototype, "extra", 1); return 1; } }').reason!, /Dynamic property/)
 })
+
+
+test('rejects unchecked free helpers that could enter private class bodies', () => {
+  const unsafe = instrument('function bridge(){return Target.hidden()} export class Target{static run(){return bridge()} private static hidden(){return 1}}')
+  assert.equal(unsafe.source, null)
+  assert.match(unsafe.reason!, /Unchecked free helper/)
+  assert.equal(instrument('export class Target { static run(value: number) { return this.helper(String(value)); } private static helper(value: string) { return value.length; } }').reason, null)
+  assert.equal(instrument('export class Target { static run(value: number) { function local(input: number) { return String(input); } return this.helper(local(value)); } private static helper(value: string) { return value.length; } }').reason, null)
+  assert.match(instrument('function String(value: unknown) { return Target.hidden(); } export class Target { static run() { return String(1); } private static hidden() { return 2; } }').reason!, /Unchecked free helper/)
+})
