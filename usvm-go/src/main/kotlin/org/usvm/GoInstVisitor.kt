@@ -35,7 +35,9 @@ import org.usvm.interpreter.GoStepScope
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.state.copyValue
+import org.usvm.state.mapKeyPayloadLValue
 import org.usvm.statistics.ApplicationGraph
+import org.usvm.type.needsMapKeyRepresentative
 import org.usvm.type.underlying
 
 class GoInstVisitor(
@@ -136,20 +138,27 @@ class GoInstVisitor(
     override fun visitGoMapUpdateInst(inst: GoMapUpdateInst): GoInst {
         val map = exprVisitor.unboxNamedRef(inst.map.accept(exprVisitor).asExpr(ctx.addressSort), inst.map.type)
         val type = inst.map.type.underlying()
-        val key = exprVisitor.resolveMapKey(inst.key)
+        val snapshot = exprVisitor.evaluateMapKey(inst.key)
         val value = inst.value.accept(exprVisitor)
+        exprVisitor.checkMapWritable(map) ?: throw GoStepAbort()
+
+        val resolvedKey = exprVisitor.resolveMapKeySnapshot(snapshot, inst.key.type)
+        val key = resolvedKey.key
         val isRefKey = key.sort == ctx.addressSort
         val mapType = type as MapType
         val canMatch = exprVisitor.mapKeyCanMatch(key, mapType.keyType)
 
-        exprVisitor.checkNotNull(map) ?: throw GoStepAbort()
         scope.ensureObjectMapSizeCorrect(map, type) ?: throw GoStepAbort()
+        exprVisitor.ensureMapKeyCanonicality(map, mapType)
         val previousMembership = scope.calcOnState {
             if (isRefKey) {
                 memory.read(URefSetEntryLValue(map, key.asExpr(ctx.addressSort), type))
             } else {
                 memory.read(USetEntryLValue(key.sort, map, key.asExpr(key.sort), type, USizeExprKeyInfo()))
             }
+        }
+        if (mapType.keyType.needsMapKeyRepresentative()) {
+            exprVisitor.validateStoredMapKey(map, key.asExpr(ctx.addressSort), mapType, guard = previousMembership)
         }
         // A NaN insertion needs a fresh entry even when the map came from the input model.
         scope.assert(ctx.mkOr(canMatch, ctx.mkNot(previousMembership))) ?: throw GoStepAbort()
@@ -172,6 +181,10 @@ class GoInstVisitor(
             val copiedValue = copyValue(value, inst.value.type)
             memory.write(mapEntryLValue, copiedValue.asExpr(value.sort), ctx.trueExpr)
             memory.write(mapContainsLValue, ctx.trueExpr, ctx.trueExpr)
+            if (mapType.keyType.needsMapKeyRepresentative()) {
+                val payload = ctx.mapKeyPayloadLValue(map, key.asExpr(ctx.addressSort), mapType)
+                memory.write(payload, resolvedKey.snapshot.asExpr(payload.sort), ctx.trueExpr)
+            }
 
             val updatedSize = ctx.mkSizeAddExpr(currentSize, ctx.mkSizeExpr(1))
             memory.write(UMapLengthLValue(map, type, ctx.sizeSort), updatedSize, keyIsNew)

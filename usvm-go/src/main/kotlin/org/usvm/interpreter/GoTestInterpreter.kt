@@ -69,6 +69,8 @@ import org.usvm.sizeSort
 import org.usvm.solver.USatResult
 import org.usvm.state.GoMethodResult
 import org.usvm.state.GoState
+import org.usvm.state.mapKeyCanonicalityConstraint
+import org.usvm.state.mapKeyPayloadLValue
 import org.usvm.type.GoBasicTypes
 import org.usvm.type.GoVoidSort
 import org.usvm.type.mapKeyStorageType
@@ -355,28 +357,23 @@ class GoTestInterpreter(
 
             val isRefSet = keySort == addressSort
 
-            val keyScope = MemoryScope(ctx, state, model, state.memory)
             val usesRepresentatives = keyType.needsMapKeyRepresentative()
+            if (usesRepresentatives) {
+                val canonicality = state.mapKeyCanonicalityConstraint(map, mapType as MapType, sourceMemory = memory)
+                if (!resolveBool(canonicality)) throw MaterializationBoundException(canonicality)
+            }
             val seenRepresentatives = mutableSetOf<UHeapRef>()
             val seenValueKeys = mutableSetOf<Any?>()
             val losslessEntries = mutableListOf<GoMapEntry>()
             val observedKeys = mutableSetOf<UHeapRef>()
             var needsLosslessWitness = false
             val decodeKey: (UExpr<out USort>) -> Any? = { key ->
-                val value = if (usesRepresentatives) {
-                    val reference = key.asExpr(addressSort)
-                    val known = state.data.mapKeyRepresentatives[keyType].orEmpty().firstOrNull {
-                        model.eval(it.reference) == model.eval(reference) && resolveBool(it.guard)
-                    }
-                    if (known != null) {
-                        keyScope.convertExpr(known.snapshot, keyType)
-                    } else {
-                        convertExpr(memory.readField(reference, field = 0, sort = typeToSort(keyType)), keyType)
-                    }
+                if (usesRepresentatives) {
+                    val stored = memory.read(ctx.mapKeyPayloadLValue(map, key.asExpr(addressSort), mapType as MapType))
+                    convertStoredMapKey(stored, keyType)
                 } else {
                     convertExpr(key, keyStorageType)
                 }
-                value
             }
             val addToMap: (MutableMap<Any?, Any?>, Set<ULValue<*, UBoolSort>>) -> Unit = { m, s ->
                 m.putAll(
@@ -399,8 +396,8 @@ class GoTestInterpreter(
                             USetEntryLValue(keySort, map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
                         }
                         if (usesRepresentatives) observedKeys += key.asExpr(addressSort)
-                        val decodedKey = decodeKey(key)
                         if (!resolveBool(memory.read(membership))) return@mapNotNull null
+                        val decodedKey = decodeKey(key)
                         if (usesRepresentatives) {
                             val concrete = model.eval(key.asExpr(addressSort))
                             if (!seenRepresentatives.add(concrete)) return@mapNotNull null
@@ -473,6 +470,32 @@ class GoTestInterpreter(
             return result
         }
 
+        private fun convertStoredMapKey(value: UExpr<out USort>, type: GoType): Any? {
+            val underlying = type.underlying()
+            val referenceZero = value.sort == ctx.addressSort &&
+                model.eval(value.asExpr(ctx.addressSort)) == model.nullRef
+            if (referenceZero) return zeroStoredMapKey(underlying)
+
+            return convertExpr(value, type)
+        }
+
+        private fun zeroStoredMapKey(type: GoType): Any? = when (val underlying = type.underlying()) {
+            is ArrayType -> {
+                val bounded = underlying.len in 0..MAX_ARRAY_LENGTH.toLong()
+                if (!bounded) {
+                    throw UnsupportedOperationException(
+                        "Cannot materialize zero Go array key of length ${underlying.len}",
+                    )
+                }
+
+                List(underlying.len.toInt()) { zeroStoredMapKey(underlying.elementType) }
+            }
+            is StructType -> underlying.fields.orEmpty().mapIndexed { index, field ->
+                "field$index" to zeroStoredMapKey(field)
+            }.toMap()
+            else -> convertExpr(ctx.typeToSort(underlying).sampleUValue(), underlying)
+        }
+
         private fun mapKeyPayload(
             key: UHeapRef,
             type: GoType,
@@ -508,15 +531,15 @@ class GoTestInterpreter(
             val underlying = keyType.underlying()
             val keys = observed.toMutableList()
             val payloads = keys.map { mapKeyPayload(it, keyType).first }.toMutableList()
-            val usedStringLengths = if (underlying == GoBasicTypes.STRING) {
+            val stringLengthExpressions = if (underlying == GoBasicTypes.STRING) {
                 keys.map { key ->
                     val (payload, source) = mapKeyPayload(key, keyType)
-                    val view = state.arrayView(payload.asExpr(addressSort), underlying, sourceMemory = source)
-                    resolveLength(view.length)
-                }.toMutableSet()
+                    state.arrayView(payload.asExpr(addressSort), underlying, sourceMemory = source).length
+                }.toMutableList()
             } else {
-                mutableSetOf()
+                mutableListOf()
             }
+            val usedStringLengths = stringLengthExpressions.map(::resolveLength).toMutableSet()
             var constraints = mkEq(lengthExpression, mkSizeExpr(length))
             repeat(hiddenCount) {
                 val fresh = state.makeSymbolicRefUntyped()
@@ -534,6 +557,7 @@ class GoTestInterpreter(
                 constraints = mkAnd(
                     constraints,
                     memory.read(URefSetEntryLValue(map, fresh, mapType)),
+                    mkEq(memory.read(ctx.mapKeyPayloadLValue(map, fresh, mapType as MapType)), snapshot),
                     mkNot(mkHeapRefEq(fresh, nullRef)),
                 )
                 for (key in keys) constraints = mkAnd(constraints, mkNot(mkHeapRefEq(fresh, key)))
@@ -543,6 +567,10 @@ class GoTestInterpreter(
                     usedStringLengths += nextLength
                     val view = state.arrayView(payload.asExpr(addressSort), underlying, sourceMemory = memory)
                     constraints = mkAnd(constraints, mkEq(view.length, mkSizeExpr(nextLength)))
+                    for (other in stringLengthExpressions) {
+                        constraints = mkAnd(constraints, mkNot(mkEq(view.length, other)))
+                    }
+                    stringLengthExpressions += view.length
                     if (nextLength > 0) {
                         constraints = mkAnd(constraints, mkNot(mkHeapRefEq(payload.asExpr(addressSort), nullRef)))
                     }

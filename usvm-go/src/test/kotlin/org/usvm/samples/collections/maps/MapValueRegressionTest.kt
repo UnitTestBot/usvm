@@ -24,6 +24,56 @@ import kotlin.time.Duration.Companion.seconds
 
 class MapValueRegressionTest : GoNativeTestRunner() {
     @Test
+    @GoSample(method = "mapKeyHashAfterValueEvaluation", fixture = "regressions")
+    fun mapKeyHashAfterValueEvaluation() {
+        // The unhashable-key panic makes the normal assignment tail unreachable.
+        machineOptions = machineOptions.copy(failOnNotFullCoverage = false)
+        checkNative(method = "mapKeyHashAfterValueEvaluation")
+    }
+
+    @Test
+    @GoSample(method = "markMapKeyValue", fixture = "regressions")
+    fun markMapKeyValue() = checkParameterMutations(
+        method = "markMapKeyValue",
+        { execution ->
+            val before = execution.arguments.single() as? GoPointer
+            val after = execution.argumentsAfter.single() as? GoPointer
+            if (before == null) {
+                execution.result.isPanic && after == null
+            } else {
+                execution.result.long == 1L && (after?.value as? Number)?.toLong() == 7L
+            }
+        },
+    )
+
+    @Test
+    @GoSample(method = "recoverMapKeyAssignment", fixture = "regressions")
+    fun recoverMapKeyAssignment() {
+        // Outside a deferred panic, recover is nil; the assignment is covered through its caller.
+        machineOptions = machineOptions.copy(failOnNotFullCoverage = false)
+        checkParameterMutations(
+            method = "recoverMapKeyAssignment",
+            { execution -> execution.result.isSuccess && execution.arguments == execution.argumentsAfter },
+        )
+    }
+
+    @Test
+    @GoSample(method = "mapStructNaNUncomparablePanics", fixture = "regressions")
+    fun mapStructNaNUncomparablePanics() = checkNative(method = "mapStructNaNUncomparablePanics")
+
+    @Test
+    @GoSample(method = "inputStringMapSymbolicKeyAndExtra", fixture = "regressions")
+    fun inputStringMapSymbolicKeyAndExtra() = replayMapInputs(
+        method = "inputStringMapSymbolicKeyAndExtra", observedKey = "", needsAdditionalEntry = true,
+    )
+
+    @Test
+    @GoSample(method = "inputFloatMapCanonicalGhosts", fixture = "regressions")
+    fun inputFloatMapCanonicalGhosts() = replayMapInputs(
+        method = "inputFloatMapCanonicalGhosts", observedKey = 0.0, needsAdditionalEntry = true,
+    )
+
+    @Test
     @GoSample(method = "floatMapZeroRangeAfterOverwrite", fixture = "regressions")
     fun floatMapZeroRangeAfterOverwrite() = checkNative(method = "floatMapZeroRangeAfterOverwrite")
 
@@ -151,14 +201,15 @@ class MapValueRegressionTest : GoNativeTestRunner() {
         if (expectedOutcomes != null) assertEquals(expectedOutcomes, executions.map { it.result.long }.toSet())
         if (needsAdditionalEntry) {
             val hasAdditionalEntry = executions.any {
-                val input = mapReplayEntries(it.arguments.single())
+                val input = mapReplayEntries(it.arguments.first())
+                val actualObservedKey = it.arguments.getOrNull(1) ?: observedKey
                 val observed = input?.firstOrNull { entry ->
                     val numericKey = entry.first as? Double
-                    val numericObservedKey = observedKey as? Double
+                    val numericObservedKey = actualObservedKey as? Double
                     if (numericKey != null && numericObservedKey != null) {
                         numericKey == numericObservedKey
                     } else {
-                        entry.first == observedKey
+                        entry.first == actualObservedKey
                     }
                 }
                 input?.size == 2 && observed != null &&
@@ -169,9 +220,13 @@ class MapValueRegressionTest : GoNativeTestRunner() {
 
         val inputs = buildJsonArray {
             executions.forEach { execution ->
-                val input = mapReplayEntries(execution.arguments.single())
+                val input = mapReplayEntries(execution.arguments.first())
                 add(buildJsonObject {
                     put("nil", input == null)
+                    when (val query = execution.arguments.getOrNull(1)) {
+                        is String -> put("lookupKey", query)
+                        is Double -> put("lookupFloatBits", query.toRawBits().toULong().toString(radix = 16))
+                    }
                     put("entries", buildJsonArray {
                         input.orEmpty().forEach { (key, value) ->
                             add(buildJsonObject {

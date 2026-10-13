@@ -92,4 +92,5 @@ internal data class GoMapKeyRepresentative(
     val reference: UHeapRef,
     val snapshot: UExpr<out USort>,
     val guard: UBoolExpr,
+    val canonicalReference: UHeapRef = reference,
 )

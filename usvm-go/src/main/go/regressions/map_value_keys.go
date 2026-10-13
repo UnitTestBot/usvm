@@ -231,3 +231,63 @@ func inputFloatMapZeroRangeSign(values map[float64]int) int {
 	}
 	return 0
 }
+
+type mapMixedKey struct {
+	number  float64
+	payload any
+}
+
+func mapStructNaNUncomparablePanics() int {
+	values := map[mapMixedKey]int{}
+	key := mapMixedKey{number: mapNaN(0), payload: []int{1}}
+	values[key] = 7
+	return len(values)
+}
+
+func inputStringMapSymbolicKeyAndExtra(values map[string]int, key string) int {
+	if len(values) != 2 {
+		return -1
+	}
+	value, found := values[key]
+	if !found {
+		return -2
+	}
+	return value
+}
+
+func inputFloatMapCanonicalGhosts(values map[float64]int, key float64) int {
+	if key != 0 {
+		return -1
+	}
+	if len(values) != 2 {
+		return -2
+	}
+	first, firstFound := values[key]
+	second, secondFound := values[negativeMapZero(key)]
+	if firstFound != secondFound || first != second {
+		return -3
+	}
+	if !firstFound {
+		return -4
+	}
+	return first
+}
+
+func markMapKeyValue(sideEffect *int) int {
+	*sideEffect = 7
+	return 1
+}
+
+func recoverMapKeyAssignment(sideEffect *int, result *int) {
+	if recover() != nil {
+		*result = *sideEffect
+	}
+}
+
+func mapKeyHashAfterValueEvaluation() (result int) {
+	sideEffect := 0
+	defer recoverMapKeyAssignment(&sideEffect, &result)
+	values := map[any]int{}
+	values[[]int{1}] = markMapKeyValue(&sideEffect)
+	return 0
+}

@@ -15,8 +15,10 @@ type mapKeyReplayEntry struct {
 }
 
 type mapKeyReplayInput struct {
-	Nil     bool                `json:"nil"`
-	Entries []mapKeyReplayEntry `json:"entries"`
+	LookupKey       string              `json:"lookupKey"`
+	LookupFloatBits string              `json:"lookupFloatBits"`
+	Nil             bool                `json:"nil"`
+	Entries         []mapKeyReplayEntry `json:"entries"`
 }
 
 type mapKeyReplayRequest struct {
@@ -55,7 +57,19 @@ func TestReplayMapKeys(t *testing.T) {
 				}
 			}
 		}
+		var lookupFloat float64
+		if input.LookupFloatBits != "" {
+			bits, err := strconv.ParseUint(input.LookupFloatBits, 16, 64)
+			if err != nil {
+				t.Fatal(err)
+			}
+			lookupFloat = math.Float64frombits(bits)
+		}
 		switch request.Method {
+		case "inputFloatMapCanonicalGhosts":
+			results[index] = inputFloatMapCanonicalGhosts(floats, lookupFloat)
+		case "inputStringMapSymbolicKeyAndExtra":
+			results[index] = inputStringMapSymbolicKeyAndExtra(strings, input.LookupKey)
 		case "inputFloatMapZeroRangeSign":
 			results[index] = inputFloatMapZeroRangeSign(floats)
 		case "inputFloatMapLookup":

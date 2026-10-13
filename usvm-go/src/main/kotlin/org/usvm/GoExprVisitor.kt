@@ -136,9 +136,12 @@ import org.usvm.state.GoArrayCopyOperation
 import org.usvm.state.GoArrayValueCopy
 import org.usvm.state.GoMapKeyRepresentative
 import org.usvm.state.GoMethodResult
+import org.usvm.state.GoResolvedMapKey
 import org.usvm.state.GoState.Companion.POINTER_FIELD
 import org.usvm.state.copyValue
 import org.usvm.state.decodeUtf8Rune
+import org.usvm.state.mapKeyCanonicalityConstraint
+import org.usvm.state.mapKeyPayloadLValue
 import org.usvm.state.valueShape
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.type.GoBasicTypes
@@ -573,26 +576,32 @@ class GoExprVisitor(
         val mapType = expr.instance.type.underlying() as MapType
         val reference = unboxNamedRef(expr.instance.accept(this).asExpr(ctx.addressSort), expr.instance.type)
         val map = mapOrEmpty(reference, mapType)
-        val key = resolveMapKey(expr.index)
+        val resolvedKey = resolveMapKey(expr.index)
+        val key = resolvedKey.key
 
         val isRefKey = key.sort == ctx.addressSort
         val commaOk = expr.commaOk
         val valueSort = ctx.typeToSort(mapType.valueType)
 
         scope.ensureObjectMapSizeCorrect(map, mapType) ?: throw GoStepAbort()
+        ensureMapKeyCanonicality(map, mapType)
 
         val canMatch = mapKeyCanMatch(key, mapType.keyType)
-        val contains = ctx.mkAnd(canMatch, scope.calcOnState {
+        val rawContains = scope.calcOnState {
             if (isRefKey) {
                 memory.refSetContainsElement(map, key.asExpr(ctx.addressSort), mapType)
             } else {
                 memory.setContainsElement(map, key, mapType, USizeExprKeyInfo())
             }
-        })
+        }
+        val contains = ctx.mkAnd(canMatch, rawContains)
         val lvalue = if (isRefKey) {
             URefMapEntryLValue(valueSort, map, key.asExpr(ctx.addressSort), mapType)
         } else {
             UMapEntryLValue(key.sort, valueSort, map, key.asExpr(key.sort), mapType, USizeExprKeyInfo())
+        }
+        if (mapType.keyType.needsMapKeyRepresentative()) {
+            validateStoredMapKey(map, key.asExpr(ctx.addressSort), mapType, guard = rawContains)
         }
         val value = ctx.mkIte(
             contains,
@@ -664,6 +673,8 @@ class GoExprVisitor(
     private fun nextMapEntry(iter: UHeapRef, remaining: UHeapRef, type: MapType): UHeapRef {
         scope.ensureObjectMapSizeCorrect(remaining, type) ?: throw GoStepAbort()
         val original = scope.calcOnState { memory.readField(iter, 2, ctx.addressSort) }
+        ensureMapKeyCanonicality(original, type)
+        ensureMapKeyCanonicality(remaining, type)
         val length = scope.calcOnState { symbolicObjectMapSize(remaining, type) }
         val hasNext = ctx.mkSizeGtExpr(length, ctx.mkSizeExpr(0))
         val keySort = ctx.mapKeySort(type.keyType)
@@ -678,13 +689,22 @@ class GoExprVisitor(
         }
         if (type.keyType.needsMapKeyRepresentative()) {
             val snapshot = scope.calcOnState {
-                copyValue(unbox(key.asExpr(ctx.addressSort), ctx.typeToSort(type.keyType)), type.keyType)
+                val stored = memory.read(ctx.mapKeyPayloadLValue(original, key.asExpr(ctx.addressSort), type))
+                copyValue(stored, type.keyType)
             }
+            ensureMapKeyComparable(snapshot, type.keyType, guard = hasNext, panicOnFailure = false)
+            val canonicalSnapshot = scope.calcOnState {
+                unbox(key.asExpr(ctx.addressSort), ctx.typeToSort(type.keyType))
+            }
+            val matchesStorage = valuesEqual(
+                snapshot, canonicalSnapshot, type.keyType, guard = hasNext, representationEquality = true,
+            )
+            scope.assert(ctx.mkOr(ctx.mkNot(hasNext), matchesStorage)) ?: throw GoStepAbort()
             val previous = scope.calcOnState { data.mapKeyRepresentatives[type.keyType].orEmpty() }
             for (entry in previous) {
                 val active = ctx.mkAnd(hasNext, entry.guard)
                 val equal = valuesEqual(snapshot, entry.snapshot, type.keyType, guard = active)
-                val sameRepresentative = ctx.mkHeapRefEq(key.asExpr(ctx.addressSort), entry.reference)
+                val sameRepresentative = ctx.mkHeapRefEq(key.asExpr(ctx.addressSort), entry.canonicalReference)
                 scope.assert(ctx.mkOr(ctx.mkNot(ctx.mkAnd(active, equal)), sameRepresentative)) ?: throw GoStepAbort()
             }
             scope.doWithState {
@@ -724,7 +744,7 @@ class GoExprVisitor(
                 TupleType(listOf(GoBasicTypes.BOOL, type.keyType, type.valueType)),
                 hasNext,
                 if (type.keyType.needsMapKeyRepresentative()) {
-                    val snapshot = unbox(key.asExpr(ctx.addressSort), ctx.typeToSort(type.keyType))
+                    val snapshot = memory.read(ctx.mapKeyPayloadLValue(original, key.asExpr(ctx.addressSort), type))
                     copyValue(snapshot, type.keyType)
                 } else {
                     tryBox(key, type.keyType)
@@ -1167,28 +1187,52 @@ class GoExprVisitor(
         return scope.calcOnState { unbox(expr.asExpr(ctx.addressSort), sort) }
     }
 
-    internal fun resolveMapKey(value: GoExpr): UExpr<out USort> {
+    internal fun checkMapWritable(map: UHeapRef): Unit? = scope.fork(
+        ctx.mkNot(ctx.mkHeapRefEq(map, ctx.nullRef)),
+        blockOnFalseState = { panic("assignment to entry in nil map") },
+    )
+
+    internal fun evaluateMapKey(value: GoValue): UExpr<out USort> {
         val key = value.accept(this)
-        val type = value.type
+        return scope.calcOnState { copyValue(key, value.type) }
+    }
+
+    internal fun resolveMapKey(value: GoValue): GoResolvedMapKey =
+        resolveMapKeySnapshot(evaluateMapKey(value), value.type)
+
+    internal fun resolveMapKeySnapshot(snapshot: UExpr<out USort>, type: GoType): GoResolvedMapKey {
         if (!type.needsMapKeyRepresentative()) {
             val storageType = type.mapKeyStorageType()
-            return if (storageType == type) key else unboxNamedPrimitive(key, type)
+            val storageKey = if (storageType == type) snapshot else unboxNamedPrimitive(snapshot, type)
+            return GoResolvedMapKey(storageKey, snapshot)
         }
 
-        val snapshot = scope.calcOnState { copyValue(key, type) }
-        // This also checks the runtime comparability of interface keys in an empty map.
-        valuesEqual(snapshot, snapshot, type, guard = ctx.trueExpr)
+        ensureMapKeyComparable(snapshot, type, guard = ctx.trueExpr, panicOnFailure = true)
         val previous = scope.calcOnState { data.mapKeyRepresentatives[type].orEmpty() }
         val fresh = scope.calcOnState { mkTuple(type, snapshot) }
         var representative: UHeapRef = fresh
         for (entry in previous.asReversed()) {
             val equal = ctx.mkAnd(entry.guard, valuesEqual(snapshot, entry.snapshot, type, guard = entry.guard))
-            representative = ctx.mkIte(equal, entry.reference, representative)
+            representative = ctx.mkIte(equal, entry.canonicalReference, representative)
         }
         scope.doWithState {
-            data.mapKeyRepresentatives[type] = previous + GoMapKeyRepresentative(fresh, snapshot, guard = ctx.trueExpr)
+            data.mapKeyRepresentatives[type] = previous + GoMapKeyRepresentative(
+                fresh, snapshot, guard = ctx.trueExpr, canonicalReference = representative,
+            )
         }
-        return representative
+        return GoResolvedMapKey(representative, snapshot)
+    }
+
+    internal fun ensureMapKeyCanonicality(map: UHeapRef, type: MapType) {
+        val canonicality = scope.calcOnState { mapKeyCanonicalityConstraint(map, type) }
+        scope.assert(canonicality) ?: throw GoStepAbort()
+    }
+
+    internal fun validateStoredMapKey(map: UHeapRef, key: UHeapRef, type: MapType, guard: UBoolExpr) {
+        val stored = scope.calcOnState { memory.read(ctx.mapKeyPayloadLValue(map, key, type)) }
+        val canonical = scope.calcOnState { unbox(key, ctx.typeToSort(type.keyType)) }
+        val matches = valuesEqual(stored, canonical, type.keyType, guard, representationEquality = true)
+        scope.assert(ctx.mkOr(ctx.mkNot(guard), matches)) ?: throw GoStepAbort()
     }
 
     internal fun mapKeyCanMatch(key: UExpr<out USort>, type: GoType): UBoolExpr {
@@ -1256,13 +1300,21 @@ class GoExprVisitor(
 
             "delete" -> {
                 val reference = unboxNamedRef(args[0].accept(this).asExpr(ctx.addressSort), args[0].type)
-                val key = resolveMapKey(args[1])
+                val resolvedKey = resolveMapKey(args[1])
+                val key = resolvedKey.key
                 val mapType = args[0].type.underlying() as MapType
                 val map = mapOrEmpty(reference, mapType)
                 val keySort = ctx.mapKeySort(mapType.keyType)
 
                 scope.ensureObjectMapSizeCorrect(map, mapType) ?: throw GoStepAbort()
+                ensureMapKeyCanonicality(map, mapType)
                 val canMatch = mapKeyCanMatch(key, mapType.keyType)
+                if (mapType.keyType.needsMapKeyRepresentative()) {
+                    val rawContains = scope.calcOnState {
+                        memory.refSetContainsElement(map, key.asExpr(ctx.addressSort), mapType)
+                    }
+                    validateStoredMapKey(map, key.asExpr(ctx.addressSort), mapType, guard = rawContains)
+                }
                 scope.doWithState {
                     if (keySort == ctx.addressSort) {
                         val membership = URefSetEntryLValue(map, key.asExpr(ctx.addressSort), mapType)
@@ -1300,6 +1352,7 @@ class GoExprVisitor(
 
                                     is MapType -> {
                                         scope.ensureObjectMapSizeCorrect(collection, type) ?: throw GoStepAbort()
+                                        ensureMapKeyCanonicality(collection, type)
                                         symbolicObjectMapSize(collection, type)
                                     }
 
@@ -1377,6 +1430,7 @@ class GoExprVisitor(
     ): UHeapRef = with(ctx) {
         val source = mapOrEmpty(srcMap, mapType)
         scope.ensureObjectMapSizeCorrect(source, mapType) ?: throw GoStepAbort()
+        ensureMapKeyCanonicality(source, mapType)
 
         val keySort = mapKeySort(mapType.keyType)
         val valueSort = typeToSort(mapType.valueType)
@@ -1408,13 +1462,24 @@ class GoExprVisitor(
         }
     }
 
-    private fun compareStringValues(left: UHeapRef, right: UHeapRef): Pair<UBoolExpr, UBoolExpr> {
+    private fun compareStringValues(
+        left: UHeapRef,
+        right: UHeapRef,
+        allowSymbolicIdentity: Boolean = false,
+    ): Pair<UBoolExpr, UBoolExpr> {
+        val sameReference = ctx.mkHeapRefEq(left, right)
+        if (sameReference.isTrue) return ctx.trueExpr to ctx.falseExpr
+
         return scope.calcOnState {
             val leftView = arrayView(left, GoBasicTypes.STRING)
             val rightView = arrayView(right, GoBasicTypes.STRING)
             val bound = (leftView.length as? KBitVec32Value)?.intValue
                 ?: (rightView.length as? KBitVec32Value)?.intValue
-                ?: throw UnsupportedOperationException("String comparison with two symbolic lengths is not supported")
+            if (bound == null) {
+                if (allowSymbolicIdentity) return@calcOnState sameReference to ctx.falseExpr
+
+                throw UnsupportedOperationException("String comparison with two symbolic lengths is not supported")
+            }
             require(bound >= 0) { "Negative string length" }
             var equalPrefix: UExpr<UBoolSort> = ctx.trueExpr
             var less: UExpr<UBoolSort> = ctx.falseExpr
@@ -1450,12 +1515,15 @@ class GoExprVisitor(
         right: UExpr<out USort>,
         type: GoType,
         guard: UBoolExpr,
+        representationEquality: Boolean = false,
     ): UBoolExpr {
         if (guard.isFalse) return ctx.falseExpr
 
         val underlying = type.underlying()
         if (underlying is InterfaceType) {
-            return interfacesEqual(left.asExpr(ctx.addressSort), right.asExpr(ctx.addressSort), guard)
+            return interfacesEqual(
+                left.asExpr(ctx.addressSort), right.asExpr(ctx.addressSort), guard, representationEquality,
+            )
         }
         val lhs = equalityPayload(left, type)
         val rhs = equalityPayload(right, type)
@@ -1467,7 +1535,9 @@ class GoExprVisitor(
                     val sort = ctx.typeToSort(fieldType)
                     val fieldLeft = scope.calcOnState { memory.readField(lhs.asExpr(ctx.addressSort), index, sort) }
                     val fieldRight = scope.calcOnState { memory.readField(rhs.asExpr(ctx.addressSort), index, sort) }
-                    val fieldEqual = valuesEqual(fieldLeft, fieldRight, fieldType, ctx.mkAnd(guard, equal))
+                    val fieldEqual = valuesEqual(
+                        fieldLeft, fieldRight, fieldType, ctx.mkAnd(guard, equal), representationEquality,
+                    )
                     equal = ctx.mkAnd(equal, fieldEqual)
                 }
                 equal
@@ -1495,14 +1565,30 @@ class GoExprVisitor(
                             sort,
                         )
                     }
-                    val elementEqual = valuesEqual(elementLeft, elementRight, underlying.elementType, ctx.mkAnd(guard, equal))
+                    val elementEqual = valuesEqual(
+                        elementLeft, elementRight, underlying.elementType,
+                        ctx.mkAnd(guard, equal), representationEquality,
+                    )
                     equal = ctx.mkAnd(equal, elementEqual)
                 }
                 equal
             }
-            GoBasicTypes.STRING -> compareStringValues(lhs.asExpr(ctx.addressSort), rhs.asExpr(ctx.addressSort)).first
+            GoBasicTypes.STRING -> compareStringValues(
+                lhs.asExpr(ctx.addressSort), rhs.asExpr(ctx.addressSort),
+                allowSymbolicIdentity = representationEquality,
+            ).first
             is PointerType -> referenceEquals(lhs.asExpr(ctx.addressSort), rhs.asExpr(ctx.addressSort))
-            is BasicType -> GoBinaryOperator.Eql(lhs, rhs).asExpr(ctx.boolSort)
+            is BasicType -> {
+                val equal = GoBinaryOperator.Eql(lhs, rhs).asExpr(ctx.boolSort)
+                val floating = underlying == GoBasicTypes.FLOAT32 || underlying == GoBasicTypes.FLOAT64
+                if (representationEquality && floating) {
+                    val leftNan = ctx.mkNot(GoBinaryOperator.Eql(lhs, lhs).asExpr(ctx.boolSort))
+                    val rightNan = ctx.mkNot(GoBinaryOperator.Eql(rhs, rhs).asExpr(ctx.boolSort))
+                    ctx.mkOr(equal, ctx.mkAnd(leftNan, rightNan))
+                } else {
+                    equal
+                }
+            }
             else -> unsupportedExpr("value equality for $type").asExpr(ctx.boolSort)
         }
     }
@@ -1522,7 +1608,12 @@ class GoExprVisitor(
         }
     }
 
-    private fun interfacesEqual(left: UHeapRef, right: UHeapRef, guard: UBoolExpr): UBoolExpr {
+    private fun interfacesEqual(
+        left: UHeapRef,
+        right: UHeapRef,
+        guard: UBoolExpr,
+        representationEquality: Boolean = false,
+    ): UBoolExpr {
         val leftNil = ctx.mkHeapRefEq(left, ctx.nullRef)
         val rightNil = ctx.mkHeapRefEq(right, ctx.nullRef)
         val bothNonNil = ctx.mkAnd(ctx.mkNot(leftNil), ctx.mkNot(rightNil))
@@ -1551,10 +1642,83 @@ class GoExprVisitor(
             val sort = ctx.typeToSort(dynamicType)
             val lhs = if (dynamicType is NamedType) left else scope.calcOnState { unbox(left, sort) }
             val rhs = if (dynamicType is NamedType) right else scope.calcOnState { unbox(right, sort) }
-            val equal = valuesEqual(lhs, rhs, dynamicType, guard = active)
+            val equal = valuesEqual(
+                lhs, rhs, dynamicType, guard = active, representationEquality = representationEquality,
+            )
             result = ctx.mkOr(result, ctx.mkAnd(bothNonNil, sameType, equal))
         }
         return result
+    }
+
+    private fun ensureMapKeyComparable(
+        value: UExpr<out USort>,
+        type: GoType,
+        guard: UBoolExpr,
+        panicOnFailure: Boolean,
+    ) {
+        if (guard.isFalse) return
+
+        val underlying = type.underlying()
+        if (underlying is InterfaceType) {
+            val reference = value.asExpr(ctx.addressSort)
+            val nonNil = ctx.mkNot(ctx.mkHeapRefEq(reference, ctx.nullRef))
+            val typeSystem = ctx.typeSystem<GoType>()
+            val dynamicTypes = program.types.values.distinct().filter {
+                typeSystem.isInstantiable(it) || !isComparable(it)
+            }
+            for (dynamicType in dynamicTypes) {
+                val dynamic = scope.calcOnState {
+                    ctx.mkAnd(
+                        memory.types.evalIsSubtype(reference, dynamicType),
+                        memory.types.evalIsSupertype(reference, dynamicType),
+                    )
+                }
+                val active = ctx.mkAnd(guard, nonNil, dynamic)
+                if (scope.checkSat(active) == null) continue
+
+                val payload = if (dynamicType is NamedType) value else scope.calcOnState {
+                    unbox(reference, ctx.typeToSort(dynamicType))
+                }
+                ensureMapKeyComparable(payload, dynamicType, active, panicOnFailure)
+            }
+            return
+        }
+        if (!isComparable(type)) {
+            val valid = ctx.mkNot(guard)
+            if (panicOnFailure) {
+                scope.fork(valid, blockOnFalseState = { panic("hash of unhashable type $type") }) ?: throw GoStepAbort()
+            } else {
+                scope.assert(valid) ?: throw GoStepAbort()
+            }
+            return
+        }
+        val aggregate = underlying is StructType || underlying is ArrayType
+        if (!aggregate) return
+
+        val payload = equalityPayload(value, type)
+        when (underlying) {
+            is StructType -> {
+                for ((index, fieldType) in underlying.fields.orEmpty().withIndex()) {
+                    val field = scope.calcOnState {
+                        memory.readField(payload.asExpr(ctx.addressSort), index, ctx.typeToSort(fieldType))
+                    }
+                    ensureMapKeyComparable(field, fieldType, guard, panicOnFailure)
+                }
+            }
+            is ArrayType -> {
+                val view = scope.calcOnState { arrayView(payload.asExpr(ctx.addressSort), underlying) }
+                for (index in 0 until underlying.len.toInt()) {
+                    val element = scope.calcOnState {
+                        memory.readGoArrayIndex(
+                            view.backing, ctx.mkSizeAddExpr(view.offset, ctx.mkSizeExpr(index)),
+                            view.storageType, ctx.typeToSort(underlying.elementType),
+                        )
+                    }
+                    ensureMapKeyComparable(element, underlying.elementType, guard, panicOnFailure)
+                }
+            }
+            else -> Unit
+        }
     }
 
     private fun isComparable(type: GoType): Boolean = when (val underlying = type.underlying()) {

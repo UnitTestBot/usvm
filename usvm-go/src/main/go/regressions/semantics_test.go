@@ -9,6 +9,8 @@ import (
 
 func TestNativeOracle(t *testing.T) {
 	cases := map[string]func() any{
+		"mapKeyHashAfterValueEvaluation":             func() any { return mapKeyHashAfterValueEvaluation() },
+		"mapStructNaNUncomparablePanics":             func() any { return mapStructNaNUncomparablePanics() },
 		"floatMapZeroRangeAfterOverwrite":            func() any { return floatMapZeroRangeAfterOverwrite() },
 		"pointerMapConvertedAlias":                   func() any { return pointerMapConvertedAlias() },
 		"float32MapZeroAndNaN":                       func() any { return float32MapZeroAndNaN() },
