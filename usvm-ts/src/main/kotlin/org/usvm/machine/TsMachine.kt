@@ -169,7 +169,15 @@ class TsMachine(
         val methodsToTrackCoverage =
             when (options.coverageZone) {
                 CoverageZone.METHOD, CoverageZone.TRANSITIVE -> initialStates.keys.toHashSet()
-                CoverageZone.CLASS -> TODO("Unsupported yet")
+                CoverageZone.CLASS -> initialStates.keys.flatMapTo(hashSetOf()) { method ->
+                    val owner = requireNotNull(method.enclosingClass) {
+                        "Class coverage requires a declaring class for ${method.signature}"
+                    }
+
+                    owner.methods.filter { candidate ->
+                        candidate.signature.enclosingClass == owner.signature && candidate.cfg.stmts.isNotEmpty()
+                    }
+                } + initialStates.keys
             }
 
         val coverageStatistics = CoverageStatistics<EtsMethod, EtsStmt, TsState>(

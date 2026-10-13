@@ -1,0 +1,147 @@
+package org.usvm.machine
+
+import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.EtsIrProvider
+import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Test
+import org.usvm.CoverageZone
+import org.usvm.StateCollectionStrategy
+import org.usvm.api.TsTestValue
+import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
+import org.usvm.util.getResourcePath
+import kotlin.test.assertEquals
+import kotlin.time.Duration
+import org.usvm.test.util.checkers.eq as exactly
+
+class TsClassCoverageTest : TsMethodTestRunner() {
+    override val scene = EtsScene(
+        projectFiles = listOf(
+            loadEtsFileAutoConvert(
+                getResourcePath("/samples/coverage/ClassCoverage.ts"),
+                provider = EtsIrProvider.TS_FRONTEND,
+            ),
+        ),
+    )
+
+    @Test
+    fun `class coverage retains new paths in a private helper`() {
+        val method = getMethod(methodName = "entry", className = "HelperCoverage")
+        val classOptions = options.copy(
+            coverageZone = CoverageZone.CLASS,
+            stateCollectionStrategy = StateCollectionStrategy.COVERED_NEW,
+            stopOnCoverage = 0,
+        )
+
+        withOptions(options = classOptions) {
+            checkMatches<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+                method = method,
+                analysisResultNumberMatches = exactly(2),
+                { value, result -> value.number > 0 && result eq 1 },
+                { value, result -> !(value.number > 0) && result eq 2 },
+            )
+        }
+    }
+
+    @Test
+    fun `method coverage still ignores new paths outside the entry method`() {
+        val method = getMethod(methodName = "entry", className = "HelperCoverage")
+        val methodOptions = options.copy(
+            coverageZone = CoverageZone.METHOD,
+            stateCollectionStrategy = StateCollectionStrategy.COVERED_NEW,
+            stopOnCoverage = 0,
+        )
+
+        withOptions(options = methodOptions) {
+            checkMatches<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+                method = method,
+                analysisResultNumberMatches = exactly(1),
+                { _, result -> result eq 1 || result eq 2 },
+            )
+        }
+    }
+
+    @Test
+    fun `class coverage retains new paths in the constructor`() {
+        val method = getMethod(methodName = "entry", className = "ConstructorCoverage")
+        val classOptions = options.copy(
+            coverageZone = CoverageZone.CLASS,
+            stateCollectionStrategy = StateCollectionStrategy.COVERED_NEW,
+            stopOnCoverage = 0,
+        )
+
+        withOptions(options = classOptions) {
+            checkMatches<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+                method = method,
+                analysisResultNumberMatches = exactly(2),
+                { value, result -> value.number > 0 && result eq 0 },
+                { value, result -> !(value.number > 0) && result eq 0 },
+            )
+        }
+    }
+
+    @Test
+    fun `class coverage excludes helper methods belonging to another class`() {
+        val method = getMethod(methodName = "entry", className = "ForeignCaller")
+        val classOptions = options.copy(
+            coverageZone = CoverageZone.CLASS,
+            stateCollectionStrategy = StateCollectionStrategy.COVERED_NEW,
+            stopOnCoverage = 0,
+        )
+
+        withOptions(options = classOptions) {
+            checkMatches<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+                method = method,
+                analysisResultNumberMatches = exactly(1),
+                { _, result -> result eq 10 || result eq 20 },
+            )
+        }
+    }
+
+    @Test
+    fun `unvisited class methods prevent the method coverage stop`() {
+        val method = getMethod(methodName = "entry", className = "HelperCoverage")
+        val classOptions = options.copy(
+            coverageZone = CoverageZone.CLASS,
+            stopOnCoverage = 100,
+            timeout = Duration.INFINITE,
+        )
+
+        val result = TsMachine(
+            scene = scene,
+            options = classOptions,
+            tsOptions = TsOptions(),
+        ).use { machine ->
+            machine.analyzeWithOutcome(methods = listOf(method))
+        }
+
+        assertEquals(expected = TsAnalysisStopReason.EXHAUSTED, actual = result.stopReason)
+        assertEquals(expected = 2, actual = result.states.size)
+    }
+
+    @Test
+    fun `class coverage combines the declaring classes of all entry points`() {
+        val helperEntry = getMethod(methodName = "entry", className = "HelperCoverage")
+        val constructorEntry = getMethod(methodName = "entry", className = "ConstructorCoverage")
+        val classOptions = options.copy(
+            coverageZone = CoverageZone.CLASS,
+            stateCollectionStrategy = StateCollectionStrategy.COVERED_NEW,
+            stopOnCoverage = 0,
+            timeout = Duration.INFINITE,
+        )
+
+        val result = TsMachine(
+            scene = scene,
+            options = classOptions,
+            tsOptions = TsOptions(),
+        ).use { machine ->
+            machine.analyzeWithOutcome(methods = listOf(helperEntry, constructorEntry))
+        }
+
+        val statesByEntryPoint = result.states.groupingBy { state -> state.entrypoint.signature }.eachCount()
+        assertEquals(
+            expected = mapOf(helperEntry.signature to 2, constructorEntry.signature to 2),
+            actual = statesByEntryPoint,
+        )
+    }
+}
