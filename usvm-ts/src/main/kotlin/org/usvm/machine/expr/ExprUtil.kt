@@ -273,6 +273,18 @@ fun TsContext.mkNumericExpr(
         return boolToFp(expr.asExpr(boolSort))
     }
 
+    if (expr is UIteExpr<*>) {
+        val trueNumber = mkNumericExpr(expr.trueBranch, scope)
+        val falseNumber = mkNumericExpr(expr.falseBranch, scope)
+
+        return mkIte(expr.condition, trueNumber, falseNumber)
+    }
+
+    val codeUnitNumber = singleCodeUnitToNumber(scope = scope, string = expr.asExpr(addressSort))
+    if (codeUnitNumber != null) {
+        return codeUnitNumber
+    }
+
     // TODO: ToPrimitive, then ToNumber again
     // TODO: probably we need to implement Object (Ref/Fake) -> Number conversion here directly, without ToPrimitive
 

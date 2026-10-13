@@ -8,6 +8,7 @@ import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsStaticFieldRef
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -88,7 +89,12 @@ internal fun TsExprResolver.handleAssignToInstanceField(
     val instance = resolveHeapRef(scope, rawInstance) ?: return null
     if (!ensureSupportedArrayPrototypeAccess(instance, field.name)) return null
 
-    val arrayType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) } as? EtsArrayType
+    val storageType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) }
+    if (storageType == EtsStringType) {
+        return handleStringPropertyWrite()
+    }
+
+    val arrayType = storageType as? EtsArrayType
     if (field.name == "length" && arrayType != null) {
         return assignToArrayLength(
             scope = scope,

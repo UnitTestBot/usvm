@@ -29,7 +29,23 @@ internal fun TsExprResolver.handlePropertyRef(value: EtsPropertyRef): UExpr<*>? 
     }
 }
 
-internal fun TsExprResolver.handleAssignToProperty(value: EtsPropertyRef, expr: UExpr<*>): Unit? {
+internal fun TsExprResolver.handleAssignToProperty(value: EtsPropertyRef, expr: UExpr<*>): Unit? = with(ctx) {
+    val receiver = resolve(value.instance) ?: return null
+    val rawReference = if (receiver.isFakeObject()) {
+        scope.assert(receiver.getFakeType(scope).refTypeExpr) ?: return null
+        receiver.extractRef(scope)
+    } else {
+        receiver.asExpr(addressSort)
+    }
+
+    checkUndefinedOrNullPropertyRead(scope, rawReference, propertyName = "[]") ?: return null
+    val reference = resolveHeapRef(scope, rawReference) ?: return null
+    val storageType = scope.calcOnState { arrayStorageType(reference, value.instance.type) }
+    if (storageType == EtsStringType) {
+        resolve(value.key) ?: return null
+        return handleStringPropertyWrite()
+    }
+
     val normalized = normalizePropertyRef(value, isRead = false) ?: return null
 
     return when (normalized) {

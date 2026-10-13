@@ -59,7 +59,7 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     val resolvedIndex = resolve(lhv.index) ?: return null
     val storageType = scope.calcOnState { arrayStorageType(array, lhv.array.type) }
     if (storageType == EtsStringType) {
-        throw UnsupportedOperationException("Writes to string indexes are not modeled")
+        return handleStringPropertyWrite()
     }
 
     val propertyName = concreteStringValue(resolvedIndex)
