@@ -174,7 +174,10 @@ fun <Method, Statement, Target, State> createPathSelector(
     callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
     loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>? = { null },
 ): UPathSelector<State> where Target : UTarget<Statement, Target>, State : UState<*, Method, Statement, *, Target, State> {
-    if (options.timeout == Duration.INFINITE || initialStates.size == 1) {
+    val hasSingleEntryPoint = initialStates.size == 1
+    val hasUnlimitedScheduling = options.timeout == Duration.INFINITE &&
+        options.maxEntryPointTimeQuantum == Duration.INFINITE
+    if (hasSingleEntryPoint || hasUnlimitedScheduling) {
         return createPathSelector(
             initialStates.values.toList(),
             options,
@@ -213,12 +216,13 @@ fun <Method, Statement, Target, State> createPathSelector(
             } ?: { 0f }
 
             ConstantTimeFairPathSelector(
-                initialStates.keys,
-                RealTimeStopwatch(),
-                ::getRemainingTimeMs,
-                { it.entrypoint },
-                getMethodCoverage,
-                ::createBasePathSelector
+                initialKeys = initialStates.keys,
+                stopwatch = RealTimeStopwatch(),
+                getRemainingTime = ::getRemainingTimeMs,
+                getKey = { it.entrypoint },
+                getKeyPriority = getMethodCoverage,
+                basePathSelectorFactory = ::createBasePathSelector,
+                maxTimeQuantum = options.maxEntryPointTimeQuantum,
             )
         }
 
@@ -229,6 +233,10 @@ fun <Method, Statement, Target, State> createPathSelector(
                 { it.entrypoint },
                 ::createBasePathSelector
             )
+    }
+
+    if (!options.removeCoveredEntryPoints) {
+        return pathSelector
     }
 
     val totalCoveragePercents = 100f

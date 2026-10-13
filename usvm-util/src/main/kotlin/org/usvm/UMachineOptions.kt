@@ -263,4 +263,14 @@ data class UMachineOptions(
      * If set to false, exception will be suppressed and the failed state will be killed.
      * */
     val throwExceptionOnStepFailure: Boolean = false,
+    /**
+     * Upper bound for a CONSTANT_TIME entry point turn. Switching happens between interpreter steps;
+     * an in-flight solver operation can exceed this quantum. INFINITE keeps the existing budget-based turns.
+     */
+    val maxEntryPointTimeQuantum: Duration = Duration.INFINITE,
+    /**
+     * Remove an entry point's pending states after its configured coverage scope is fully covered.
+     * Disable this for budget/exhaustion experiments that must retain those states between turns.
+     */
+    val removeCoveredEntryPoints: Boolean = true,
 )

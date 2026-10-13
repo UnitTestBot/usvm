@@ -5,6 +5,7 @@ import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.usvm.CoverageZone
+import org.usvm.PathSelectionStrategy
 import org.usvm.StateCollectionStrategy
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
@@ -12,6 +13,8 @@ import org.usvm.util.eq
 import org.usvm.util.getResourcePath
 import kotlin.test.assertEquals
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import org.usvm.test.util.checkers.eq as exactly
 
 class TsClassCoverageTest : TsMethodTestRunner() {
@@ -143,5 +146,44 @@ class TsClassCoverageTest : TsMethodTestRunner() {
             expected = mapOf(helperEntry.signature to 2, constructorEntry.signature to 2),
             actual = statesByEntryPoint,
         )
+    }
+
+    @Test
+    fun `budget search can retain pending states after entry method coverage`() {
+        val counts = analyzePendingEntryPoints(removeCoveredEntryPoints = false)
+
+        assertEquals(expected = mapOf("ForeignCaller" to 2, "HelperCoverage" to 1), actual = counts)
+    }
+
+    @Test
+    fun `covered entry point pruning retains its default behavior`() {
+        val counts = analyzePendingEntryPoints(removeCoveredEntryPoints = true)
+
+        assertEquals(expected = mapOf("ForeignCaller" to 1, "HelperCoverage" to 1), actual = counts)
+    }
+
+    private fun analyzePendingEntryPoints(removeCoveredEntryPoints: Boolean): Map<String, Int> {
+        val caller = getMethod(methodName = "entry", className = "ForeignCaller")
+        val sibling = getMethod(methodName = "unvisited", className = "HelperCoverage")
+        val schedulingOptions = options.copy(
+            pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
+            coverageZone = CoverageZone.METHOD,
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = 0,
+            timeout = 10.seconds,
+            maxEntryPointTimeQuantum = 1.milliseconds,
+            removeCoveredEntryPoints = removeCoveredEntryPoints,
+        )
+
+        val result = TsMachine(
+            scene = scene,
+            options = schedulingOptions,
+            tsOptions = TsOptions(),
+        ).use { machine ->
+            machine.analyzeWithOutcome(methods = listOf(caller, sibling))
+        }
+
+        assertEquals(expected = TsAnalysisStopReason.EXHAUSTED, actual = result.stopReason)
+        return result.states.groupingBy { state -> state.entrypoint.signature.enclosingClass.name }.eachCount()
     }
 }
