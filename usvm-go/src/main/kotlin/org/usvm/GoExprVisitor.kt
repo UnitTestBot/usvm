@@ -1192,7 +1192,7 @@ class GoExprVisitor(
         blockOnFalseState = { panic("assignment to entry in nil map") },
     )
 
-    internal fun evaluateMapKey(value: GoValue): UExpr<out USort> {
+    internal fun evaluateMapKey(value: GoExpr): UExpr<out USort> {
         val key = value.accept(this)
         return scope.calcOnState { copyValue(key, value.type) }
     }
@@ -1201,7 +1201,8 @@ class GoExprVisitor(
         resolveMapKeySnapshot(evaluateMapKey(value), value.type)
 
     internal fun resolveMapKeySnapshot(snapshot: UExpr<out USort>, type: GoType): GoResolvedMapKey {
-        if (!type.needsMapKeyRepresentative()) {
+        val needsRepresentative = type.needsMapKeyRepresentative()
+        if (!needsRepresentative) {
             val storageType = type.mapKeyStorageType()
             val storageKey = if (storageType == type) snapshot else unboxNamedPrimitive(snapshot, type)
             return GoResolvedMapKey(storageKey, snapshot)
@@ -1236,7 +1237,8 @@ class GoExprVisitor(
     }
 
     internal fun mapKeyCanMatch(key: UExpr<out USort>, type: GoType): UBoolExpr {
-        if (!type.needsMapKeyRepresentative()) return ctx.trueExpr
+        val needsRepresentative = type.needsMapKeyRepresentative()
+        if (!needsRepresentative) return ctx.trueExpr
 
         val snapshot = scope.calcOnState { unbox(key.asExpr(ctx.addressSort), ctx.typeToSort(type)) }
         return valuesEqual(snapshot, snapshot, type, guard = ctx.trueExpr)
@@ -1522,7 +1524,8 @@ class GoExprVisitor(
         val underlying = type.underlying()
         if (underlying is InterfaceType) {
             return interfacesEqual(
-                left.asExpr(ctx.addressSort), right.asExpr(ctx.addressSort), guard, representationEquality,
+                left.asExpr(ctx.addressSort), right.asExpr(ctx.addressSort), guard,
+                representationEquality = representationEquality,
             )
         }
         val lhs = equalityPayload(left, type)
@@ -1530,13 +1533,14 @@ class GoExprVisitor(
 
         return when (underlying) {
             is StructType -> {
-                var equal = ctx.trueExpr
+                var equal: UBoolExpr = ctx.trueExpr
                 for ((index, fieldType) in underlying.fields.orEmpty().withIndex()) {
                     val sort = ctx.typeToSort(fieldType)
                     val fieldLeft = scope.calcOnState { memory.readField(lhs.asExpr(ctx.addressSort), index, sort) }
                     val fieldRight = scope.calcOnState { memory.readField(rhs.asExpr(ctx.addressSort), index, sort) }
                     val fieldEqual = valuesEqual(
-                        fieldLeft, fieldRight, fieldType, ctx.mkAnd(guard, equal), representationEquality,
+                        fieldLeft, fieldRight, fieldType, guard = ctx.mkAnd(guard, equal),
+                        representationEquality = representationEquality,
                     )
                     equal = ctx.mkAnd(equal, fieldEqual)
                 }
@@ -1546,7 +1550,7 @@ class GoExprVisitor(
                 val leftView = scope.calcOnState { arrayView(lhs.asExpr(ctx.addressSort), underlying) }
                 val rightView = scope.calcOnState { arrayView(rhs.asExpr(ctx.addressSort), underlying) }
                 val sort = ctx.typeToSort(underlying.elementType)
-                var equal = ctx.trueExpr
+                var equal: UBoolExpr = ctx.trueExpr
                 for (index in 0 until underlying.len.toInt()) {
                     val position = ctx.mkSizeExpr(index)
                     val elementLeft = scope.calcOnState {
@@ -1567,7 +1571,7 @@ class GoExprVisitor(
                     }
                     val elementEqual = valuesEqual(
                         elementLeft, elementRight, underlying.elementType,
-                        ctx.mkAnd(guard, equal), representationEquality,
+                        guard = ctx.mkAnd(guard, equal), representationEquality = representationEquality,
                     )
                     equal = ctx.mkAnd(equal, elementEqual)
                 }
@@ -1581,7 +1585,8 @@ class GoExprVisitor(
             is BasicType -> {
                 val equal = GoBinaryOperator.Eql(lhs, rhs).asExpr(ctx.boolSort)
                 val floating = underlying == GoBasicTypes.FLOAT32 || underlying == GoBasicTypes.FLOAT64
-                if (representationEquality && floating) {
+                val comparesStoredFloatRepresentation = representationEquality && floating
+                if (comparesStoredFloatRepresentation) {
                     val leftNan = ctx.mkNot(GoBinaryOperator.Eql(lhs, lhs).asExpr(ctx.boolSort))
                     val rightNan = ctx.mkNot(GoBinaryOperator.Eql(rhs, rhs).asExpr(ctx.boolSort))
                     ctx.mkOr(equal, ctx.mkAnd(leftNan, rightNan))
@@ -1632,9 +1637,11 @@ class GoExprVisitor(
                 )
             }
             val active = ctx.mkAnd(guard, bothNonNil, sameType)
-            if (scope.checkSat(active) == null) continue
+            val satisfiable = scope.checkSat(active) != null
+            if (!satisfiable) continue
 
-            if (!isComparable(dynamicType)) {
+            val comparable = isComparable(dynamicType)
+            if (!comparable) {
                 scope.fork(ctx.mkNot(active), blockOnFalseState = { panic("comparing uncomparable type $dynamicType") })
                     ?: throw GoStepAbort()
                 continue
@@ -1674,7 +1681,8 @@ class GoExprVisitor(
                     )
                 }
                 val active = ctx.mkAnd(guard, nonNil, dynamic)
-                if (scope.checkSat(active) == null) continue
+                val satisfiable = scope.checkSat(active) != null
+                if (!satisfiable) continue
 
                 val payload = if (dynamicType is NamedType) value else scope.calcOnState {
                     unbox(reference, ctx.typeToSort(dynamicType))
@@ -1683,7 +1691,8 @@ class GoExprVisitor(
             }
             return
         }
-        if (!isComparable(type)) {
+        val comparable = isComparable(type)
+        if (!comparable) {
             val valid = ctx.mkNot(guard)
             if (panicOnFailure) {
                 scope.fork(valid, blockOnFalseState = { panic("hash of unhashable type $type") }) ?: throw GoStepAbort()

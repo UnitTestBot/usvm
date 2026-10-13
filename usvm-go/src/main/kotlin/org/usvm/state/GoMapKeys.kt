@@ -17,7 +17,7 @@ internal fun GoState.mapKeyCanonicalityConstraint(
     type: MapType,
     sourceMemory: UReadOnlyMemory<GoType> = memory,
 ): UBoolExpr = with(ctx) {
-    var result = trueExpr
+    var result: UBoolExpr = trueExpr
     for (entry in data.mapKeyRepresentatives[type.keyType].orEmpty()) {
         val canonical = mkHeapRefEq(entry.reference, entry.canonicalReference)
         val present = sourceMemory.refSetContainsElement(map, entry.reference, type)
