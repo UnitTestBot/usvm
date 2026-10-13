@@ -96,9 +96,9 @@ class GoTestInterpreter(
                 return resolveWithModel(state, method, model)
             } catch (limit: MaterializationBoundException) {
                 if (!bounds.add(limit.bound)) {
-                    throw UnsupportedOperationException(limit.failureMessage)
+                    throw UnsupportedOperationException(limit.failureMessage, limit)
                 }
-                model = refineModel(boundedConstraints, limit.bound, limit.failureMessage)
+                model = refineModel(boundedConstraints, limit)
             }
         }
         throw UnsupportedOperationException("Go model size refinement limit exceeded")
@@ -106,13 +106,13 @@ class GoTestInterpreter(
 
     private fun refineModel(
         constraints: UPathConstraints<GoType>,
-        bound: UBoolExpr,
-        failureMessage: String,
+        boundFailure: MaterializationBoundException,
     ): UModelBase<GoType> {
-        constraints += bound
+        constraints += boundFailure.bound
         val result = ctx.solver<GoType>().check(constraints)
         return (result as? USatResult)?.model ?: throw UnsupportedOperationException(
-            "$failureMessage: $result"
+            "${boundFailure.failureMessage}: $result",
+            boundFailure,
         )
     }
 
