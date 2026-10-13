@@ -34,7 +34,7 @@ class TsGapModelsSourceTest : TsMethodTestRunner() {
 
     private val source = getResourcePath("/models/GapModelSource.ts")
     override val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
-    override val tsOptions = TsOptions(maxArraySize = 16)
+    override val tsOptions = TsOptions(maxArraySize = 16, eraseTypeAssertions = true)
     override val runner: (EtsMethod, UMachineOptions) -> List<TsTest> = { method, machineOptions ->
         val calls = mutableListOf<TsUnknownCallEvent>()
         val limitations = mutableListOf<TsRuntimeFeatureLimitationEvent>()
