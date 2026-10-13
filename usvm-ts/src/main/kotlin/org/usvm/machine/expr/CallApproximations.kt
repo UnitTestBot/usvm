@@ -152,6 +152,9 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     val expr = stmt.call
     val instance = stmt.instance
 
+    val iterator = tryApproximateArrayIteratorCall(stmt)
+    if (iterator !is TsExprApproximationResult.NoApproximation) return iterator
+
     // Mock `.toString()` method calls
     if (expr.callee.name == "toString") {
         if (expr.args.isNotEmpty()) {
@@ -176,6 +179,12 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     val instanceType = scope.calcOnState { arrayStorageType(array, expr.instance.type) }
 
     if (instanceType is EtsArrayType) {
+        // These bulk moves do not carry initialized-slot provenance for sparse allocations.
+        val movesArraySlots = expr.callee.name in setOf("shift", "unshift", "reverse")
+        if (movesArraySlots) {
+            scope.doWithState { initializedArrayIndices -= array }
+        }
+
         val elementSort = typeToSort(instanceType.componentType)
             .takeIf { it !is TsUnresolvedSort }
             ?: addressSort

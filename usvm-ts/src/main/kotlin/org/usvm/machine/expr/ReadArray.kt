@@ -137,7 +137,7 @@ private fun TsContext.readArrayProperty(
     )
 }
 
-private fun TsContext.readArrayElement(
+internal fun TsContext.readArrayElement(
     scope: TsStepScope,
     array: UHeapRef,
     index: UExpr<TsSizeSort>,

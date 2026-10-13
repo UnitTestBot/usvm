@@ -87,6 +87,9 @@ internal fun TsExprResolver.handleInstanceFieldRef(
     checkUndefinedOrNullPropertyRead(scope, rawInstance, propertyName = value.field.name) ?: return null
     val instance = resolveHeapRef(scope, rawInstance) ?: return null
 
+    val iteratorField = readArrayIteratorField(instance, value.field.name)
+    if (iteratorField != null) return iteratorField
+
     // Handle reading "length" property.
     val storageType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) }
     val usesArrayLength = storageType is EtsArrayType || storageType == EtsStringType ||

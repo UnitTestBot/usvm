@@ -565,6 +565,8 @@ class TsExprResolver(
 
                 scope.doWithState {
                     memory.write(deletedFieldLValue(instance, operand.field), trueExpr, guard = trueExpr)
+                    val storageType = arrayStorageType(instance, operand.instance.type)
+                    if (storageType is EtsArrayType) unsupportedIteratorArrays += instance
                 }
 
                 mkTrue()

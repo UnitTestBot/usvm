@@ -63,6 +63,10 @@ internal fun TsExprResolver.tryCaptureInstanceCall(
         receiver.sort == addressSort -> receiver.asExpr(addressSort)
         else -> null
     }
+    val builtinReturn = field.field.name == "return" && reference is UConcreteHeapRef &&
+        scope.calcOnState { arrayIterators[reference] != null }
+    if (builtinReturn) return TsExprApproximationResult.SuccessfulApproximation(mkUndefinedValue())
+
     if (reference != null) {
         val referenceGuard = if (receiver.isFakeObject()) receiver.getFakeType(scope).refTypeExpr else trueExpr
         val valid = mkOr(mkNot(referenceGuard), mkNotNullOrUndefined(reference))

@@ -168,6 +168,11 @@ fun TsContext.assignToArrayIndex(
     }
     scope.assert(indexIsInRange) ?: return null
 
+    scope.doWithState {
+        val writtenIndices = initializedArrayIndices[array].orEmpty()
+        initializedArrayIndices += array to (writtenIndices + index)
+    }
+
     val elementSort = typeToSort(arrayType.componentType)
 
     // If the element sort is known, write directly.
