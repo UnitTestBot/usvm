@@ -10,7 +10,9 @@ if (entryPoint === undefined || rawDirectory === undefined || rawDirectory.lengt
 // source executes in a child whose report is written by our passive collector,
 // so Node's shutdown serializer cannot invoke user-installed prototype hooks.
 const child = spawn(process.execPath, ['--enable-source-maps', entryPoint], {
-  env: { ...environment, USVM_V8_COVERAGE_DIRECTORY: rawDirectory },
+  // Node forwards NODE_V8_COVERAGE even when an explicit env omits it.
+  // An empty value disables that special inheritance for this main isolate.
+  env: { ...environment, NODE_V8_COVERAGE: '', USVM_V8_COVERAGE_DIRECTORY: rawDirectory },
   stdio: 'inherit',
 });
 const exitCode = await new Promise<number>((resolve, reject) => {
