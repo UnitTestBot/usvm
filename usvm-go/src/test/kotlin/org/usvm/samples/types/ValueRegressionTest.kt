@@ -43,7 +43,9 @@ class ValueRegressionTest : GoNativeTestRunner() {
 
     @Test
     @GoSample(method = "structEqualityStopsBeforeUncomparableField", fixture = "regressions")
-    fun structEqualityStopsBeforeUncomparableField() = checkNative(method = "structEqualityStopsBeforeUncomparableField")
+    fun structEqualityStopsBeforeUncomparableField() = checkNative(
+        method = "structEqualityStopsBeforeUncomparableField",
+    )
 
     @Test
     @GoSample(method = "structValueCopy", fixture = "regressions")

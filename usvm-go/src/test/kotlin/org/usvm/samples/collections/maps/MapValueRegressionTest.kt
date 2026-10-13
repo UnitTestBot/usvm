@@ -64,13 +64,17 @@ class MapValueRegressionTest : GoNativeTestRunner() {
     @Test
     @GoSample(method = "inputStringMapSymbolicKeyAndExtra", fixture = "regressions")
     fun inputStringMapSymbolicKeyAndExtra() = replayMapInputs(
-        method = "inputStringMapSymbolicKeyAndExtra", observedKey = "", needsAdditionalEntry = true,
+        method = "inputStringMapSymbolicKeyAndExtra",
+        observedKey = "",
+        needsAdditionalEntry = true,
     )
 
     @Test
     @GoSample(method = "inputFloatMapCanonicalGhosts", fixture = "regressions")
     fun inputFloatMapCanonicalGhosts() = replayMapInputs(
-        method = "inputFloatMapCanonicalGhosts", observedKey = 0.0, needsAdditionalEntry = true,
+        method = "inputFloatMapCanonicalGhosts",
+        observedKey = 0.0,
+        needsAdditionalEntry = true,
     )
 
     @Test
@@ -80,7 +84,9 @@ class MapValueRegressionTest : GoNativeTestRunner() {
     @Test
     @GoSample(method = "inputFloatMapZeroRangeSign", fixture = "regressions")
     fun inputFloatMapZeroRangeSign() = replayMapInputs(
-        method = "inputFloatMapZeroRangeSign", observedKey = 0.0, expectedOutcomes = setOf(-1L, 0L, 1L),
+        method = "inputFloatMapZeroRangeSign",
+        observedKey = 0.0,
+        expectedOutcomes = setOf(-1L, 0L, 1L),
     )
 
     @Test
@@ -136,13 +142,17 @@ class MapValueRegressionTest : GoNativeTestRunner() {
     @Test
     @GoSample(method = "inputFloatMapExtraEntry", fixture = "regressions")
     fun inputFloatMapExtraEntry() = replayMapInputs(
-        method = "inputFloatMapExtraEntry", observedKey = 0.0, needsAdditionalEntry = true,
+        method = "inputFloatMapExtraEntry",
+        observedKey = 0.0,
+        needsAdditionalEntry = true,
     )
 
     @Test
     @GoSample(method = "inputStringMapExtraEntry", fixture = "regressions")
     fun inputStringMapExtraEntry() = replayMapInputs(
-        method = "inputStringMapExtraEntry", observedKey = "same", needsAdditionalEntry = true,
+        method = "inputStringMapExtraEntry",
+        observedKey = "same",
+        needsAdditionalEntry = true,
     )
 
     @Test
@@ -225,25 +235,35 @@ class MapValueRegressionTest : GoNativeTestRunner() {
         val inputs = buildJsonArray {
             executions.forEach { execution ->
                 val input = mapReplayEntries(execution.arguments.first())
-                add(buildJsonObject {
-                    put("nil", input == null)
-                    when (val query = execution.arguments.getOrNull(1)) {
-                        is String -> put("lookupKey", query)
-                        is Double -> put("lookupFloatBits", query.toRawBits().toULong().toString(radix = 16))
-                    }
-                    put("entries", buildJsonArray {
-                        input.orEmpty().forEach { (key, value) ->
-                            add(buildJsonObject {
-                                when (key) {
-                                    is Double -> put("floatKeyBits", key.toRawBits().toULong().toString(radix = 16))
-                                    is String -> put("stringKey", key)
-                                    else -> error("Unsupported map replay key $key")
-                                }
-                                put("value", (value as Number).toLong())
-                            })
+                add(
+                    buildJsonObject {
+                        put("nil", input == null)
+                        when (val query = execution.arguments.getOrNull(1)) {
+                            is String -> put("lookupKey", query)
+                            is Double -> put("lookupFloatBits", query.toRawBits().toULong().toString(radix = 16))
                         }
-                    })
-                })
+                        put(
+                            "entries",
+                            buildJsonArray {
+                                input.orEmpty().forEach { (key, value) ->
+                                    add(
+                                        buildJsonObject {
+                                            when (key) {
+                                                is Double -> put(
+                                                    "floatKeyBits",
+                                                    key.toRawBits().toULong().toString(radix = 16),
+                                                )
+                                                is String -> put("stringKey", key)
+                                                else -> error("Unsupported map replay key $key")
+                                            }
+                                            put("value", (value as Number).toLong())
+                                        },
+                                    )
+                                }
+                            },
+                        )
+                    },
+                )
             }
         }
         val outputs = replayMapWitnesses(method = method, inputs = inputs)
