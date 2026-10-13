@@ -37,6 +37,20 @@ internal class FastCheckCoverageSession private constructor(
             add("--exclude-after-remap")
             add("--allowExternal")
             add("--exclude=__usvm_no_default_excludes__")
+            if (requireNotNull(request.coverageRequest).includeUnexecutedSources) {
+                add("--all")
+                request.sourceRoots.forEach { sourceRoot -> add("--src=$sourceRoot") }
+                requireNotNull(request.coverageRequest).includePatterns.forEach { pattern ->
+                    val include = Path.of(pattern)
+                    if (include.isAbsolute) {
+                        add("--include=$include")
+                    } else {
+                        request.sourceRoots.forEach { sourceRoot ->
+                            add("--include=${Path.of(sourceRoot).resolve(include)}")
+                        }
+                    }
+                }
+            }
             if (CoverageScope.DEPENDENCIES in requireNotNull(request.coverageRequest).scopes) {
                 add("--exclude-node-modules=false")
             }

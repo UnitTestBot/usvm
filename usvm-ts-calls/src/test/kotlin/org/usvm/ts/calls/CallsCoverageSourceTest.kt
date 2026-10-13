@@ -9,6 +9,7 @@ import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import java.nio.file.Files
 import java.nio.file.Path
+import java.security.MessageDigest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -40,11 +41,25 @@ class CallsCoverageSourceTest {
         val original = fixture.source.manifest
         val project = fixture.source.project
         val function = fixture.source.function
-        val changedExport = function.copy(entryPoint = function.entryPoint.copy(exportName = "second"))
-        val changedInputs = function.copy(inputs = listOf(PropertyInput(name = "flag", domain = NumberDomain())))
         val mutations = listOf(
-            original.copy(projects = listOf(project.copy(functions = listOf(changedExport)))),
-            original.copy(projects = listOf(project.copy(functions = listOf(changedInputs)))),
+            original.copy(
+                projects = listOf(
+                    project.copy(
+                        functions = listOf(
+                            function.copy(entryPoint = function.entryPoint.copy(exportName = "second")),
+                        )
+                    )
+                )
+            ),
+            original.copy(
+                projects = listOf(
+                    project.copy(
+                        functions = listOf(
+                            function.copy(inputs = listOf(PropertyInput(name = "flag", domain = NumberDomain()))),
+                        )
+                    )
+                )
+            ),
             original.copy(modelSet = original.modelSet.copy(ids = setOf("ts.array.includes"))),
         )
 
@@ -53,7 +68,7 @@ class CallsCoverageSourceTest {
 
             val failure = assertFailsWith<IllegalArgumentException> { fixture.runCell() }
 
-            assertEquals("Cell identity changed", failure.message)
+            assertEquals("Coverage universe identity differs", failure.message)
             fixture.assertNoReplayOrCompletion()
         }
     }
@@ -67,13 +82,13 @@ class CallsCoverageSourceTest {
         runCallsGit(fixture.source.sourceRoot, "commit", "-m", "Change source")
         val newRevision = runCallsGit(fixture.source.sourceRoot, "rev-parse", "HEAD").trim()
         val changed = fixture.source.manifest.copy(
-            projects = listOf(fixture.source.project.copy(revision = newRevision)),
+            projects = listOf(fixture.source.project.copy(revision = newRevision))
         )
         Files.writeString(fixture.manifestPath, CallsExperimentJson.encodeManifest(changed))
 
         val failure = assertFailsWith<IllegalArgumentException> { fixture.runCell() }
 
-        assertEquals("Cell identity changed", failure.message)
+        assertEquals("Coverage universe identity differs", failure.message)
         fixture.assertNoReplayOrCompletion()
     }
 
@@ -120,7 +135,7 @@ class CallsCoverageSourceTest {
         val fixture = fixture()
         fixture.persistSearch()
         val changed = fixture.source.manifest.copy(
-            modelSet = fixture.source.manifest.modelSet.copy(ids = setOf("other")),
+            modelSet = fixture.source.manifest.modelSet.copy(ids = setOf("other"))
         )
         Files.writeString(fixture.manifestPath, CallsExperimentJson.encodeManifest(changed))
 
@@ -128,6 +143,50 @@ class CallsCoverageSourceTest {
 
         assertEquals("Coverage source manifest changed", failure.message)
         fixture.assertNoReplayOrCompletion()
+    }
+
+    @Test
+    fun `universe probe records the same frozen source identity used by the cell`() {
+        val fixture = fixture()
+
+        val output = fixture.runUniverse(probeFunction = { sampleUniverse })
+        val record = CallsExperimentJson.json.decodeFromString<CallsCoverageUniverseRecord>(
+            Files.readString(output.resolve("universe.json")),
+        )
+
+        assertEquals(fixture.source.identity, record.identity.sourceIdentity)
+        assertEquals(sampleUniverse, record.universe)
+    }
+
+    @Test
+    fun `dirty source is rejected before a universe probe executes user code`() {
+        val fixture = fixture()
+        Files.writeString(fixture.sourceFile, "export function first(): never { throw new Error('changed source'); }")
+        var probed = false
+
+        assertFailsWith<IllegalArgumentException> {
+            fixture.runUniverse(probeFunction = {
+                probed = true
+                sampleUniverse
+            })
+        }
+
+        assertFalse(probed)
+        assertFalse(Files.exists(directory.resolve("universe-output/universe.json")))
+    }
+
+    @Test
+    fun `source edits during universe collection prevent publication`() {
+        val fixture = fixture()
+
+        assertFailsWith<IllegalArgumentException> {
+            fixture.runUniverse(probeFunction = {
+                Files.writeString(fixture.sourceFile, "export function first(flag: boolean): boolean { return !flag; }")
+                sampleUniverse
+            })
+        }
+
+        assertFalse(Files.exists(directory.resolve("universe-output/universe.json")))
     }
 
     private fun fixture(): Fixture {
@@ -171,7 +230,7 @@ class CallsCoverageSourceTest {
         val source = CallsCoverageSource.load(manifestPath, projectIndex = 0, functionIndex = 0)
         val output = Files.createDirectory(directory.resolve("output"))
 
-        return Fixture(source, manifestPath, sourceFile, output)
+        return Fixture(source, manifestPath, sourceFile, output).also { it.writeUniverse() }
     }
 
     private data class Fixture(
@@ -180,6 +239,34 @@ class CallsCoverageSourceTest {
         val sourceFile: Path,
         val output: Path,
     ) {
+        private val universePath: Path = manifestPath.resolveSibling("universe.json")
+
+        fun writeUniverse() {
+            val identity = CallsCoverageUniverseIdentity(
+                toolRevision = TOOL_REVISION,
+                nativeFrontendRevision = FRONTEND_REVISION,
+                sourceManifest = manifestPath.toRealPath().toString(),
+                sourceIdentity = source.identity,
+                projectIndex = 0,
+                functionIndex = 0,
+                sourceFile = source.function.sourceFile,
+            )
+            val record = CallsCoverageUniverseRecord(identity = identity, universe = sampleUniverse)
+            Files.writeString(universePath, CallsExperimentJson.json.encodeToUtf8SafeString(record))
+        }
+
+        fun runUniverse(probeFunction: (CallsCoverageSource) -> CallsCoverageUniverse): Path {
+            val output = manifestPath.resolveSibling("universe-output")
+            runCoverageUniverse(
+                args = listOf(manifestPath.toString(), "0", "0", output.toString()),
+                runtimeToolRevision = TOOL_REVISION,
+                runtimeNativeFrontendRevision = FRONTEND_REVISION,
+                probeFunction = probeFunction,
+            )
+
+            return output
+        }
+
         fun persistSearch() {
             val identity = CallsCoverageCellIdentity(
                 schemaVersion = 2,
@@ -194,14 +281,16 @@ class CallsCoverageSourceTest {
                 budgetMillis = 30_000L,
                 solverLimitMillis = 1_000L,
                 candidateCap = 8,
+                coverageUniverseSha256 = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(universePath))
+                    .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and 0xff) },
             )
             Files.writeString(
                 output.resolve("identity.json"),
-                CallsExperimentJson.json.encodeToUtf8SafeString(identity),
+                CallsExperimentJson.json.encodeToUtf8SafeString(identity)
             )
             Files.writeString(
                 output.resolve("search.json"),
-                CallsExperimentJson.json.encodeToUtf8SafeString(emptySearch),
+                CallsExperimentJson.json.encodeToUtf8SafeString(emptySearch)
             )
         }
 
@@ -221,6 +310,7 @@ class CallsCoverageSourceTest {
                     "30000",
                     "1000",
                     "8",
+                    universePath.toString(),
                 ),
                 runtimeToolRevision = TOOL_REVISION,
                 runtimeNativeFrontendRevision = FRONTEND_REVISION,
@@ -237,14 +327,24 @@ class CallsCoverageSourceTest {
     companion object {
         private const val TOOL_REVISION = "1111111111111111111111111111111111111111"
         private const val FRONTEND_REVISION = "bundled:test"
+        private val sampleUniverse = CallsCoverageUniverse(
+            supportedStatementKeys = setOf("Fixture.ts:statement:1:0-1:75"),
+            sourceFiles = setOf("Fixture.ts"),
+            diagnostics = emptyList(),
+            probeElapsedMillis = 0,
+        )
         private val emptySearch = CallsCoverageSearchResult(
             status = CallsCoverageSearchStatus.EXHAUSTED,
             candidates = emptyList(),
             selectedStates = 0,
+            executedSteps = 0,
+            stepsWithinBudget = 0,
             extractionFailures = emptyList(),
             candidateCapReached = false,
             preparationElapsedMillis = 0,
+            machineSetupElapsedMillis = 0,
             searchElapsedMillis = 1,
+            machineTeardownElapsedMillis = 0,
         )
     }
 }

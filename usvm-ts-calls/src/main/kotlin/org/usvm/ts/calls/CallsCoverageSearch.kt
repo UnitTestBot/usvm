@@ -23,6 +23,7 @@ import kotlin.time.TimeSource
 @Serializable
 internal data class CallsCoverageCandidate(
     val emittedAtMillis: Long,
+    val emittedAtStep: Long,
     val inputs: List<JsConcreteValue>,
     val newSymbolicStatements: Int,
     val completion: CallsCoverageCompletion,
@@ -51,10 +52,14 @@ internal data class CallsCoverageSearchResult(
     val status: CallsCoverageSearchStatus,
     val candidates: List<CallsCoverageCandidate>,
     val selectedStates: Int,
+    val executedSteps: Long,
+    val stepsWithinBudget: Long,
     val extractionFailures: List<String>,
     val candidateCapReached: Boolean,
     val preparationElapsedMillis: Long,
+    val machineSetupElapsedMillis: Long,
     val searchElapsedMillis: Long,
+    val machineTeardownElapsedMillis: Long,
     val unsupportedCall: Boolean = false,
     val engineFailed: Boolean = false,
     val runtimeLimited: Boolean = false,
@@ -97,16 +102,7 @@ internal class CurrentTsCallsCoverageEngine(
         )
         val preparationElapsedMillis = preparationStarted.elapsedNow().inWholeMilliseconds
         if (preparation is CallsFunctionPreparation.Rejected) {
-            return CallsCoverageSearchResult(
-                status = preparation.status.toCoverageStatus(),
-                candidates = emptyList(),
-                selectedStates = 0,
-                extractionFailures = emptyList(),
-                candidateCapReached = false,
-                preparationElapsedMillis = preparationElapsedMillis,
-                searchElapsedMillis = 0,
-                diagnostic = "${preparation.reasonCode}: ${preparation.diagnostic}",
-            )
+            return preparation.coverageResult(preparationElapsedMillis = preparationElapsedMillis)
         }
 
         preparation as CallsFunctionPreparation.Eligible
@@ -118,13 +114,14 @@ internal class CurrentTsCallsCoverageEngine(
         )
         val candidates = mutableListOf<CallsCoverageCandidate>()
         val extractionFailures = mutableListOf<String>()
-        val searchStarted = TimeSource.Monotonic.markNow()
+        val machineCallStarted = TimeSource.Monotonic.markNow()
         val observer = CompletedCoverageCandidateObserver(
             method = preparation.method,
             inputDomains = request.function.inputs,
             symbolicInputs = symbolicInputs,
             candidateCap = request.candidateCap,
-            searchStarted = searchStarted,
+            budgetMillis = request.budget.inWholeMilliseconds,
+            machineCallStarted = machineCallStarted,
             onCandidate = { candidate ->
                 request.onCandidate(candidate)
                 candidates += candidate
@@ -153,7 +150,10 @@ internal class CurrentTsCallsCoverageEngine(
                 )
             }
         }
-        val searchElapsedMillis = searchStarted.elapsedNow().inWholeMilliseconds
+        val machineCallElapsedMillis = machineCallStarted.elapsedNow().inWholeMilliseconds
+        val machineTeardownElapsedMillis = (
+            machineCallElapsedMillis - observer.machineSetupElapsedMillis - observer.searchElapsedMillis
+            ).coerceAtLeast(0)
         val outcome = machineResult.getOrNull()
         val status = when {
             machineResult.exceptionOrNull() is TsInitialStateSolverUnknownException -> CallsCoverageSearchStatus.UNKNOWN
@@ -167,10 +167,14 @@ internal class CurrentTsCallsCoverageEngine(
             status = status,
             candidates = candidates,
             selectedStates = observer.selectedStates,
+            executedSteps = observer.executedSteps,
+            stepsWithinBudget = observer.stepsWithinBudget,
             extractionFailures = extractionFailures,
             candidateCapReached = observer.capReached,
             preparationElapsedMillis = preparationElapsedMillis,
-            searchElapsedMillis = searchElapsedMillis,
+            machineSetupElapsedMillis = observer.machineSetupElapsedMillis,
+            searchElapsedMillis = observer.searchElapsedMillis,
+            machineTeardownElapsedMillis = machineTeardownElapsedMillis,
             unsupportedCall = outcome?.unsupportedCall == true,
             engineFailed = outcome?.engineFailed == true,
             runtimeLimited = outcome?.runtimeLimited == true,
@@ -192,24 +196,73 @@ internal class CurrentTsCallsCoverageEngine(
         )
 }
 
+private fun CallsFunctionPreparation.Rejected.coverageResult(
+    preparationElapsedMillis: Long,
+): CallsCoverageSearchResult {
+    return CallsCoverageSearchResult(
+        status = status.toCoverageStatus(),
+        candidates = emptyList(),
+        selectedStates = 0,
+        executedSteps = 0,
+        stepsWithinBudget = 0,
+        extractionFailures = emptyList(),
+        candidateCapReached = false,
+        preparationElapsedMillis = preparationElapsedMillis,
+        machineSetupElapsedMillis = 0,
+        searchElapsedMillis = 0,
+        machineTeardownElapsedMillis = 0,
+        diagnostic = "$reasonCode: $diagnostic",
+    )
+}
+
 private class CompletedCoverageCandidateObserver(
     private val method: EtsMethod,
     private val inputDomains: List<org.usvm.ts.pbt.model.PropertyInput>,
     private val symbolicInputs: CallsSymbolicInputs,
     private val candidateCap: Int,
-    private val searchStarted: TimeSource.Monotonic.ValueTimeMark,
+    private val budgetMillis: Long,
+    private val machineCallStarted: TimeSource.Monotonic.ValueTimeMark,
     private val onCandidate: (CallsCoverageCandidate) -> Unit,
     private val onExtractionFailure: (String) -> Unit,
 ) : UMachineObserver<TsState> {
     private val entryStatements: Set<EtsStmt> = method.cfg.stmts.toSet()
     private val coveredStatements = hashSetOf<EtsStmt>()
     private val inputKeys = hashSetOf<String>()
+    private var machineStarted: TimeSource.Monotonic.ValueTimeMark? = null
 
     var selectedStates: Int = 0
         private set
 
     var capReached: Boolean = false
         private set
+
+    var executedSteps: Long = 0
+        private set
+
+    var stepsWithinBudget: Long = 0
+        private set
+
+    var machineSetupElapsedMillis: Long = 0
+        private set
+
+    var searchElapsedMillis: Long = 0
+        private set
+
+    override fun onMachineStarted() {
+        machineSetupElapsedMillis = machineCallStarted.elapsedNow().inWholeMilliseconds
+        machineStarted = TimeSource.Monotonic.markNow()
+    }
+
+    override fun onMachineStopped() {
+        searchElapsedMillis = elapsedSinceMachineStart()
+    }
+
+    override fun onState(parent: TsState, forks: Sequence<TsState>) {
+        executedSteps++
+        if (elapsedSinceMachineStart() <= budgetMillis) {
+            stepsWithinBudget++
+        }
+    }
 
     override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
         if (!stateReachable) return
@@ -246,7 +299,8 @@ private class CompletedCoverageCandidateObserver(
             val key = CallsExperimentJson.json.encodeToUtf8SafeString(inputs)
             if (inputKeys.add(key)) {
                 CallsCoverageCandidate(
-                    emittedAtMillis = searchStarted.elapsedNow().inWholeMilliseconds,
+                    emittedAtMillis = elapsedSinceMachineStart(),
+                    emittedAtStep = executedSteps,
                     inputs = inputs,
                     newSymbolicStatements = newStatements,
                     completion = completion,
@@ -264,6 +318,10 @@ private class CompletedCoverageCandidateObserver(
             coveredStatements += pathStatements
         }
     }
+
+    private fun elapsedSinceMachineStart(): Long = requireNotNull(machineStarted) {
+        "Coverage machine clock has not started"
+    }.elapsedNow().inWholeMilliseconds
 }
 
 private fun CallsSymbolicStatus.toCoverageStatus(): CallsCoverageSearchStatus = when (this) {
