@@ -38,6 +38,7 @@ import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.util.componentType
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.mkSymbolicString
 
@@ -51,11 +52,16 @@ data class UsvmProjectedInput(
 data class UsvmDeclaredDomainProjection(
     val inputs: List<UsvmProjectedInput>,
     val initialState: TsState,
+    val objectShapes: PlainObjectInputShapes? = null,
 )
 
-/** Materializes declared property domains in a real USVM TypeScript initial state. */
+/**
+ * Materializes declared property domains in a real USVM TypeScript initial state.
+ * Object inputs require [objectShapes] whose scene was used to construct the machine.
+ */
 class UsvmDomainProjector(
     private val options: UsvmProjectionOptions = UsvmProjectionOptions(),
+    private val objectShapes: PlainObjectInputShapes? = null,
 ) {
     fun configure(
         state: TsState,
@@ -68,13 +74,14 @@ class UsvmDomainProjector(
         }
 
         val pairedInputs = inputs.zip(bindings)
+        val capabilityResolver = UsvmProjectionCapabilityResolver(state.ctx.scene)
         pairedInputs.forEachIndexed { index, (input, binding) ->
             require(input.name == binding.propertyInputName) {
                 "Property input ${input.name} does not match EtsIR binding ${binding.propertyInputName}"
             }
 
             val path = "inputs[$index].domain"
-            val capability = UsvmProjectionCapabilityResolver().domainCapabilityForProjector(
+            val capability = capabilityResolver.domainCapabilityForProjector(
                 domain = input.domain,
                 etsType = binding.parameter.type,
                 path = path,
@@ -118,10 +125,13 @@ class UsvmDomainProjector(
         return UsvmDeclaredDomainProjection(
             inputs = projectedInputs,
             initialState = state.clone(),
+            objectShapes = objectShapes,
         )
     }
 
     private inner class Materializer(private val state: TsState) {
+        private val capabilityResolver = UsvmProjectionCapabilityResolver(state.ctx.scene)
+
         fun materialize(domain: PropertyDomain, etsType: EtsType): UExpr<out USort> = when (domain) {
             BooleanDomain -> state.makeSymbolicPrimitive(state.ctx.boolSort)
             is IntegerDomain -> materializeInteger(domain)
@@ -131,7 +141,23 @@ class UsvmDomainProjector(
             is OptionalDomain -> materializeOptional(domain, etsType)
             is TupleDomain -> materializeTuple(domain, etsType)
             is ArrayDomain -> materializeArray(domain, etsType as EtsArrayType)
-            is ObjectDomain -> error("Object domains are not supported by the USVM property projector")
+            is ObjectDomain -> materializeObject(domain)
+        }
+
+        private fun materializeObject(domain: ObjectDomain): UConcreteHeapRef = with(state.ctx) {
+            val shapes = requireNotNull(objectShapes) {
+                "Object shapes must be added to the machine scene before configuring inputs"
+            }
+            val reference = state.memory.allocConcrete(shapes.typeOf(domain))
+            domain.fields.forEach { (name, fieldDomain) ->
+                val fieldType = shapes.runtimeTypeOf(fieldDomain)
+                val value = materialize(fieldDomain, fieldType)
+                val sort = value.sort
+
+                state.memory.write(mkFieldLValue(sort, reference, name), value.asExpr(sort), guard = trueExpr)
+            }
+
+            reference
         }
 
         private fun materializeInteger(domain: IntegerDomain): UExpr<KFp64Sort> = with(state.ctx) {
@@ -187,8 +213,9 @@ class UsvmDomainProjector(
                 is JsConcreteValue.String -> state.mkInitializedStringConstant(value.value)
                 JsConcreteValue.Null -> mkTsNullValue()
                 JsConcreteValue.Undefined -> mkUndefinedValue()
-                is JsConcreteValue.Array, is JsConcreteValue.Object ->
+                is JsConcreteValue.Array, is JsConcreteValue.Object -> {
                     error("Object constants are not valid property-domain primitives")
+                }
             }
         }
 
@@ -198,7 +225,7 @@ class UsvmDomainProjector(
         ): UExpr<out USort> = with(state.ctx) {
             val unionType = etsType as EtsUnionType
             val nestedType = unionType.types.first { type ->
-                UsvmProjectionCapabilityResolver().domainCompatibilityForProjector(domain.value, type)
+                capabilityResolver.domainCompatibilityForProjector(domain.value, type)
             }
             val nestedValue = materialize(domain.value, nestedType)
             val nilValue = materializeConstant(domain.nil)
@@ -240,7 +267,7 @@ class UsvmDomainProjector(
         ): UConcreteHeapRef = with(state.ctx) {
             val elementTypes = when (etsType) {
                 is EtsTupleType -> etsType.types
-                is EtsArrayType -> List(domain.elements.size) { etsType.elementType }
+                is EtsArrayType -> List(domain.elements.size) { etsType.componentType }
                 else -> error("Unsupported tuple EtsIR type $etsType")
             }
             val arrayType = EtsArrayType(EtsUnknownType, dimensions = 1)

@@ -30,9 +30,10 @@ import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.util.componentType
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.mkFieldLValue
 import org.usvm.util.resolveStringValue
 
-internal class UsvmCandidateInputResolver {
+internal class UsvmCandidateInputResolver(private val objectShapes: PlainObjectInputShapes? = null) {
     fun resolve(
         state: TsState,
         declaredInputs: List<PropertyInput>,
@@ -79,8 +80,27 @@ internal class UsvmCandidateInputResolver {
             is OptionalDomain -> resolveOptional(state, domain, etsType, value)
             is TupleDomain -> resolveTuple(state, domain, etsType, value)
             is ArrayDomain -> resolveArray(state, domain, etsType as EtsArrayType, value)
-            is ObjectDomain -> error("Object domains are not supported by the USVM property projector")
+            is ObjectDomain -> resolveObject(state, domain, value)
         }
+    }
+
+    private fun resolveObject(
+        state: TsState,
+        domain: ObjectDomain,
+        value: UExpr<out USort>,
+    ): JsConcreteValue.Object = with(state.ctx) {
+        val shapes = requireNotNull(objectShapes) { "Object projection metadata is missing from the input snapshot" }
+        val reference = value.asExpr(addressSort)
+        val fields = domain.fields.mapValues { (name, fieldDomain) ->
+            val fieldType = shapes.runtimeTypeOf(fieldDomain)
+            val declaredSort = typeToSort(fieldType)
+            val storageSort = if (declaredSort is TsUnresolvedSort) addressSort else declaredSort
+            val fieldValue = state.memory.read(mkFieldLValue(storageSort, reference, name))
+
+            resolveValue(state, fieldDomain, fieldType, fieldValue)
+        }
+
+        JsConcreteValue.Object(fields)
     }
 
     private fun resolveFakeValue(
@@ -120,7 +140,7 @@ internal class UsvmCandidateInputResolver {
         }
 
         val nestedType = (etsType as org.jacodb.ets.model.EtsUnionType).types.first { type ->
-            UsvmProjectionCapabilityResolver().domainCompatibilityForProjector(domain.value, type)
+            UsvmProjectionCapabilityResolver(state.ctx.scene).domainCompatibilityForProjector(domain.value, type)
         }
 
         resolveValue(state, domain.value, nestedType, value)

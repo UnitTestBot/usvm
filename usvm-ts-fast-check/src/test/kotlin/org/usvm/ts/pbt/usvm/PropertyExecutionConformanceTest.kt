@@ -18,6 +18,7 @@ import org.usvm.ts.pbt.mapping.PropertyEtsMapper
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.model.PropertyInput
@@ -141,6 +142,38 @@ class PropertyExecutionConformanceTest {
 
         assertEquals(PropertyFailureKind.PROPERTY, replay.failure?.kind)
         assertEquals(symbolicInputs, replay.counterexample)
+    }
+
+    @Test
+    fun `plain object symbolic candidates replay with their entry values`() {
+        val domain = ObjectDomain(mapOf("count" to IntegerDomain(min = 0, max = 2)))
+        val property = property(predicateExport = "mutatesObjectAndFails", domain = domain)
+        val manifest = property.toManifest()
+
+        val search = searcher.search(manifest, mapper.map(manifest), exactCapability)
+        val inputs = assertNotNull(search.inputs, search.toString())
+        val replay = backend.run(
+            property = property,
+            configuration = configuration.copy(examples = listOf(inputs)),
+        )
+
+        assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, search.status, search.toString())
+        assertEquals(listOf(JsConcreteValue.Object(mapOf("count" to JsConcreteValue.number(2.0)))), inputs)
+        assertEquals(PropertyFailureKind.PROPERTY, replay.failure?.kind)
+        assertEquals(inputs, replay.counterexample)
+    }
+
+    @Test
+    fun `plain object class annotations have the same runtime identity in both backends`() {
+        val domain = ObjectDomain(mapOf("count" to IntegerDomain(min = 0, max = 2)))
+        val property = property(predicateExport = "plainAnnotatedObject", domain = domain)
+        val manifest = property.toManifest()
+
+        val search = searcher.search(manifest, mapper.map(manifest), exactCapability)
+        val concrete = backend.run(property, configuration)
+
+        assertEquals(UsvmPropertySearchStatus.NO_VIOLATION_REACHED, search.status, search.toString())
+        assertEquals(PropertyRunStatus.SUCCESS, concrete.status)
     }
 
     private fun concreteOutcome(
