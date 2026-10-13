@@ -106,6 +106,7 @@ import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapAny
 import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapCopyIntoEmpty
 import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapGet
 import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapRemove
+import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.api.readField
 import org.usvm.api.refSetContainsElement
 import org.usvm.api.setContainsElement
@@ -142,6 +143,7 @@ import org.usvm.state.copyValue
 import org.usvm.state.decodeUtf8Rune
 import org.usvm.state.mapKeyCanonicalityConstraint
 import org.usvm.state.mapKeyPayloadLValue
+import org.usvm.state.mapKeySnapshotLValue
 import org.usvm.state.valueShape
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.type.GoBasicTypes
@@ -692,7 +694,7 @@ class GoExprVisitor(
             }
             ensureMapKeyComparable(snapshot, type.keyType, guard = hasNext, panicOnFailure = false)
             val canonicalSnapshot = scope.calcOnState {
-                unbox(key.asExpr(ctx.addressSort), ctx.typeToSort(type.keyType))
+                memory.read(ctx.mapKeySnapshotLValue(key.asExpr(ctx.addressSort), type.keyType))
             }
             val matchesStorage = valuesEqual(
                 snapshot,
@@ -1221,7 +1223,18 @@ class GoExprVisitor(
 
         ensureMapKeyComparable(snapshot, type, guard = ctx.trueExpr, panicOnFailure = true)
         val previous = scope.calcOnState { data.mapKeyRepresentatives[type].orEmpty() }
-        val fresh = scope.calcOnState { mkTuple(type, snapshot) }
+        val fresh = scope.calcOnState { makeSymbolicRefUntyped() }
+        val freshIdentity = ctx.mkAnd(
+            listOf(ctx.mkNot(ctx.mkHeapRefEq(fresh, ctx.nullRef))) + previous.map { entry ->
+                ctx.mkNot(ctx.mkHeapRefEq(fresh, entry.reference))
+            },
+        )
+        scope.assert(freshIdentity) ?: throw GoStepAbort()
+        scope.doWithState {
+            val lvalue = ctx.mapKeySnapshotLValue(fresh, type)
+            memory.write(lvalue, snapshot.asExpr(lvalue.sort), guard = ctx.trueExpr)
+        }
+
         var representative: UHeapRef = fresh
         for (entry in previous.asReversed()) {
             val equal = ctx.mkAnd(entry.guard, valuesEqual(snapshot, entry.snapshot, type, guard = entry.guard))
@@ -1242,7 +1255,7 @@ class GoExprVisitor(
 
     internal fun validateStoredMapKey(map: UHeapRef, key: UHeapRef, type: MapType, guard: UBoolExpr) {
         val stored = scope.calcOnState { memory.read(ctx.mapKeyPayloadLValue(map, key, type)) }
-        val canonical = scope.calcOnState { unbox(key, ctx.typeToSort(type.keyType)) }
+        val canonical = scope.calcOnState { memory.read(ctx.mapKeySnapshotLValue(key, type.keyType)) }
         val matches = valuesEqual(stored, canonical, type.keyType, guard, representationEquality = true)
         scope.assert(ctx.mkOr(ctx.mkNot(guard), matches)) ?: throw GoStepAbort()
     }
@@ -1251,7 +1264,7 @@ class GoExprVisitor(
         val needsRepresentative = type.needsMapKeyRepresentative()
         if (!needsRepresentative) return ctx.trueExpr
 
-        val snapshot = scope.calcOnState { unbox(key.asExpr(ctx.addressSort), ctx.typeToSort(type)) }
+        val snapshot = scope.calcOnState { memory.read(ctx.mapKeySnapshotLValue(key.asExpr(ctx.addressSort), type)) }
         return valuesEqual(snapshot, snapshot, type, guard = ctx.trueExpr)
     }
 

@@ -8,6 +8,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.refSetContainsElement
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.memory.UReadOnlyMemory
 
@@ -39,3 +40,12 @@ internal fun GoContext.mapKeyPayloadLValue(
     type: MapType,
 ): URefMapEntryLValue<GoMapKeyPayloadRegion, USort> =
     URefMapEntryLValue(typeToSort(type.keyType), map, key, GoMapKeyPayloadRegion(type))
+
+/** Internal proxy payloads never share user tuple or boxed-value field indexes. */
+internal data class GoMapKeySnapshotField(val keyType: GoType)
+
+internal fun GoContext.mapKeySnapshotLValue(
+    key: UHeapRef,
+    type: GoType,
+): UFieldLValue<GoMapKeySnapshotField, USort> =
+    UFieldLValue(typeToSort(type), key, GoMapKeySnapshotField(type))

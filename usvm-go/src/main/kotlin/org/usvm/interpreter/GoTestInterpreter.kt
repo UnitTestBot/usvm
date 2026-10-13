@@ -71,6 +71,7 @@ import org.usvm.state.GoMethodResult
 import org.usvm.state.GoState
 import org.usvm.state.mapKeyCanonicalityConstraint
 import org.usvm.state.mapKeyPayloadLValue
+import org.usvm.state.mapKeySnapshotLValue
 import org.usvm.type.GoBasicTypes
 import org.usvm.type.GoVoidSort
 import org.usvm.type.mapKeyStorageType
@@ -543,7 +544,7 @@ class GoTestInterpreter(
                 model.eval(it.reference) == model.eval(key) && resolveBool(it.guard)
             }
             val source = if (known == null) memory else state.memory
-            val snapshot = known?.snapshot ?: source.readField(key, field = 0, sort = typeToSort(type))
+            val snapshot = known?.snapshot ?: source.read(ctx.mapKeySnapshotLValue(key, type))
             val underlying = type.underlying()
             val sort = typeToSort(underlying)
             val payload = if (type is NamedType) {
@@ -582,7 +583,7 @@ class GoTestInterpreter(
             var constraints = mkEq(lengthExpression, mkSizeExpr(length))
             repeat(hiddenCount) {
                 val fresh = state.makeSymbolicRefUntyped()
-                val snapshot = memory.readField(fresh, field = 0, sort = typeToSort(keyType))
+                val snapshot = memory.read(ctx.mapKeySnapshotLValue(fresh, keyType))
                 val sort = typeToSort(underlying)
                 val payload = if (keyType is NamedType) {
                     mkIte(
