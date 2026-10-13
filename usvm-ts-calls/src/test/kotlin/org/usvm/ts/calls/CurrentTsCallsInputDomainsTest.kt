@@ -1,9 +1,12 @@
 package org.usvm.ts.calls
 
 import org.usvm.ts.pbt.model.ArrayDomain
+import org.usvm.ts.pbt.model.ConstantDomain
+import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.JsNumber
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -12,6 +15,47 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 internal class CurrentTsCallsInputDomainsTest : CurrentTsCallsSymbolicEngineTestSupport() {
+    @Test
+    fun `object input domains are rejected before symbolic materialization`() {
+        val fixture = fixture(
+            source = """
+                export function objectInput(value: any): boolean {
+                  if (typeof value === "object") {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "objectInput",
+            inputs = listOf(
+                PropertyInput(
+                    name = "value",
+                    domain = ObjectDomain(fields = mapOf("count" to IntegerDomain(min = 0, max = 1))),
+                ),
+            ),
+            targetStatement = "return true;",
+        )
+
+        val preflight = fixture.preflight()
+        val result = fixture.search(modelIds = emptySet())
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, preflight.status, preflight.toString())
+        assertEquals(CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED, preflight.reasonCode)
+        assertEquals(CallsSymbolicStatus.UNSUPPORTED, result.status, result.toString())
+    }
+
+    @Test
+    fun `structured constants remain outside primitive symbolic domains`() {
+        val constant = ConstantDomain(value = JsConcreteValue.Object(fields = emptyMap()))
+        val inputs = listOf(PropertyInput(name = "value", domain = constant))
+
+        val diagnostic = callsSymbolicInputPreflight(inputs)
+
+        assertTrue(!constant.isSupportedCallsSymbolicDomain())
+        assertNotNull(diagnostic)
+        assertTrue(diagnostic.contains("value"))
+    }
+
     @Test
     fun `singleton zero input domain preserves a negative zero witness`() {
         val fixture = fixture(

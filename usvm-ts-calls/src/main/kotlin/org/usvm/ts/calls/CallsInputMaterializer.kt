@@ -101,7 +101,7 @@ private fun TsState.materializeCallsConstant(value: JsConcreteValue): UExpr<*> =
         is JsConcreteValue.String -> mkInitializedStringConstant(value.value)
         JsConcreteValue.Null -> mkTsNullValue()
         JsConcreteValue.Undefined -> mkUndefinedValue()
-        is JsConcreteValue.Array -> error("Array constants are not primitive domains")
+        is JsConcreteValue.Array, is JsConcreteValue.Object -> error("Structured constants are not primitive domains")
     }
 }
 
@@ -161,7 +161,7 @@ private fun PropertyDomain.callsRuntimeType(): EtsType = when (this) {
             is JsConcreteValue.String -> EtsStringType
             JsConcreteValue.Null -> EtsNullType
             JsConcreteValue.Undefined -> EtsUndefinedType
-            is JsConcreteValue.Array -> error("Array constants are not primitive domains")
+            is JsConcreteValue.Array, is JsConcreteValue.Object -> error("Structured constants are not primitive domains")
         }
     }
     else -> {
