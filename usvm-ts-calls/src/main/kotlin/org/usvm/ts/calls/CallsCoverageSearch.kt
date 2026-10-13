@@ -102,20 +102,7 @@ internal class CurrentTsCallsCoverageEngine(
         )
         val preparationElapsedMillis = preparationStarted.elapsedNow().inWholeMilliseconds
         if (preparation is CallsFunctionPreparation.Rejected) {
-            return CallsCoverageSearchResult(
-                status = preparation.status.toCoverageStatus(),
-                candidates = emptyList(),
-                selectedStates = 0,
-                executedSteps = 0,
-                stepsWithinBudget = 0,
-                extractionFailures = emptyList(),
-                candidateCapReached = false,
-                preparationElapsedMillis = preparationElapsedMillis,
-                machineSetupElapsedMillis = 0,
-                searchElapsedMillis = 0,
-                machineTeardownElapsedMillis = 0,
-                diagnostic = "${preparation.reasonCode}: ${preparation.diagnostic}",
-            )
+            return preparation.coverageResult(preparationElapsedMillis = preparationElapsedMillis)
         }
 
         preparation as CallsFunctionPreparation.Eligible
@@ -166,7 +153,7 @@ internal class CurrentTsCallsCoverageEngine(
         val machineCallElapsedMillis = machineCallStarted.elapsedNow().inWholeMilliseconds
         val machineTeardownElapsedMillis = (
             machineCallElapsedMillis - observer.machineSetupElapsedMillis - observer.searchElapsedMillis
-        ).coerceAtLeast(0)
+            ).coerceAtLeast(0)
         val outcome = machineResult.getOrNull()
         val status = when {
             machineResult.exceptionOrNull() is TsInitialStateSolverUnknownException -> CallsCoverageSearchStatus.UNKNOWN
@@ -207,6 +194,25 @@ internal class CurrentTsCallsCoverageEngine(
             stopOnTargetsReached = false,
             throwExceptionOnStepFailure = true,
         )
+}
+
+private fun CallsFunctionPreparation.Rejected.coverageResult(
+    preparationElapsedMillis: Long,
+): CallsCoverageSearchResult {
+    return CallsCoverageSearchResult(
+        status = status.toCoverageStatus(),
+        candidates = emptyList(),
+        selectedStates = 0,
+        executedSteps = 0,
+        stepsWithinBudget = 0,
+        extractionFailures = emptyList(),
+        candidateCapReached = false,
+        preparationElapsedMillis = preparationElapsedMillis,
+        machineSetupElapsedMillis = 0,
+        searchElapsedMillis = 0,
+        machineTeardownElapsedMillis = 0,
+        diagnostic = "$reasonCode: $diagnostic",
+    )
 }
 
 private class CompletedCoverageCandidateObserver(
