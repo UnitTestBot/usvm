@@ -43,7 +43,8 @@ class PropertyManifestTest {
         assertEquals(
             """{"propertyId":"integer.defaults","inputs":[""" +
                 """{"name":"value","domain":{"kind":"integer","min":-2147483648,"max":2147483647}}],""" +
-                """"predicate":{"module":"properties/integer.ts","exportName":"holds","executionKind":"sync"}}""",
+                """"predicate":{"module":"properties/integer.ts","exportName":"holds","executionKind":"sync"},""" +
+                """"assertions":[]}""",
             encoded,
         )
     }

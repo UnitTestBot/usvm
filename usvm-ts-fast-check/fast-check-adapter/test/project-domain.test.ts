@@ -5,6 +5,25 @@ import {
   projectDomain,
   projectionCapability,
 } from '../src/project-domain.js';
+import { buildPropertyArbitrary } from '../src/property-arbitrary.js';
+
+test('joint array-index generator keeps index within the generated array', () => {
+  const arbitrary = buildPropertyArbitrary({
+    propertyId: 'example.array-index',
+    predicate: { module: 'example.ts', exportName: 'property', executionKind: 'sync' },
+    inputs: [
+      { name: 'values', domain: { kind: 'array', element: { kind: 'integer', min: 0, max: 2 }, minLength: 1, maxLength: 4 } },
+      { name: 'index', domain: { kind: 'integer', min: 0, max: 3 } },
+    ],
+    generator: { id: 'values.valid-index', kind: 'array-index', arrayInputIndex: 0, indexInputIndex: 1 },
+  });
+
+  const samples = fc.sample(arbitrary, { seed: 42, numRuns: 100 });
+
+  assert.ok(samples.every(([values, index]) => Array.isArray(values)
+    && typeof index === 'number' && Number.isInteger(index) && index >= 0 && index < values.length));
+  assert.ok(samples.some(([values, index]) => Array.isArray(values) && values.length > 1 && index === 1));
+});
 
 test('bounded integers use a real fast-check arbitrary', () => {
   const samples = sample({ kind: 'integer', min: -3, max: 7 });
