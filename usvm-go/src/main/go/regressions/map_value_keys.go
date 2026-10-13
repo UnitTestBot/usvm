@@ -218,7 +218,11 @@ func inputFloatMapZeroRangeSign(values map[float64]int) int {
 	// A one-entry map containing zero can only range over one of its two signs.
 	result := 0
 	for key := range values {
-		result += map[bool]int{false: 1, true: -1}[1/key < 0]
+		if 1/key < 0 {
+			result = -1
+		} else {
+			result = 1
+		}
 	}
 	return result
 }
