@@ -13,6 +13,9 @@ import org.usvm.ts.pbt.testResourcesRoot
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.thread
 import kotlin.io.path.createDirectories
 import kotlin.io.path.createFile
 import kotlin.io.path.createTempDirectory
@@ -26,6 +29,49 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FastCheckProcessClientTest {
+    @Test
+    fun `interrupted coverage version probe terminates its process and preserves interruption`() {
+        val runtime = createTempDirectory(prefix = "interrupted-version-probe-")
+        val node = runtime.resolve("fake-node")
+        val pidFile = runtime.resolve("pid")
+        val failure = AtomicReference<Throwable>()
+        val interrupted = AtomicBoolean()
+        node.writeText("#!/bin/sh\necho ${'$'}${'$'} > '$pidFile'\nexec sleep 30\n")
+        check(node.toFile().setExecutable(true))
+        val worker = thread(name = "interrupted-version-probe") {
+            try {
+                FastCheckProcessClient(
+                    nodeExecutable = node.toString(),
+                    adapterEntryPoint = runtime.resolve("unused.js"),
+                ).check(validRequest.copy(coverageRequest = PropertyCoverageRequest()))
+            } catch (error: Exception) {
+                failure.set(error)
+                interrupted.set(Thread.currentThread().isInterrupted)
+            }
+        }
+
+        try {
+            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+            while (!processIsAlive(pidFile) && worker.isAlive && System.nanoTime() < deadline) {
+                Thread.sleep(10)
+            }
+            assertTrue(processIsAlive(pidFile), "Version probe did not start")
+
+            worker.interrupt()
+            worker.join(2_000)
+
+            assertFalse(worker.isAlive, "Interrupted version probe did not finish")
+            assertEquals("backend.process.interrupted", (failure.get() as PbtBackendException).code)
+            assertTrue(interrupted.get())
+            assertFalse(processIsAlive(pidFile), "Version probe process survived interruption")
+        } finally {
+            worker.interrupt()
+            terminateProcess(pidFile)
+            worker.join(2_000)
+            runtime.toFile().deleteRecursively()
+        }
+    }
+
     @Test
     fun `process client rejects a shutdown grace period outside the Node timer range`() {
         assertFailsWith<IllegalArgumentException> {

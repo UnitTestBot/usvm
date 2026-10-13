@@ -23,6 +23,7 @@ fun inspectRawV8SourceMapDiagnostics(
     sourceRoots: List<String>,
     maxReportFiles: Int = MAX_RAW_V8_REPORT_FILES,
     maxReportBytes: Long = MAX_COVERAGE_REPORT_BYTES,
+    checkBudget: () -> Unit = {},
 ): List<CoverageDiagnostic> {
     require(maxReportFiles > 0) { "Raw V8 report file limit must be positive" }
     require(maxReportBytes in 1 until Int.MAX_VALUE.toLong()) {
@@ -31,14 +32,20 @@ fun inspectRawV8SourceMapDiagnostics(
 
     val reports = listRawReports(rawDirectory, maxReportFiles)
     val roots = sourceRoots.map { sourceRoot -> Path.of(sourceRoot).toAbsolutePath().normalize() }
-    val reader = RawV8ReportReader(maxReportBytes = maxReportBytes)
-    val diagnostics = reports.flatMap { report -> inspectRawReport(report, roots, reader) }
+    val reader = RawV8ReportReader(maxReportBytes = maxReportBytes, checkBudget = checkBudget)
+    val diagnostics = reports.flatMap { report ->
+        checkBudget()
+        inspectRawReport(report, roots, reader, checkBudget).also { checkBudget() }
+    }
 
     return coalesceSourceMapDiagnostics(diagnostics)
 }
 
 /** Reads several reports under one aggregate byte budget. */
-internal class RawV8ReportReader(maxReportBytes: Long) {
+internal class RawV8ReportReader(
+    maxReportBytes: Long,
+    private val checkBudget: () -> Unit = {},
+) {
     private var remainingBytes = maxReportBytes
 
     init {
@@ -48,6 +55,7 @@ internal class RawV8ReportReader(maxReportBytes: Long) {
     }
 
     fun readText(reportPath: Path): String {
+        checkBudget()
         // One byte past the remaining budget detects growth without a separate size preflight or manual read loop.
         val readLimit = remainingBytes.toInt() + LIMIT_OVERFLOW_SENTINEL_BYTES
         val bytes = try {
@@ -68,8 +76,9 @@ internal class RawV8ReportReader(maxReportBytes: Long) {
             )
         }
         remainingBytes -= bytes.size
+        checkBudget()
 
-        return decodeUtf8(bytes, reportPath)
+        return decodeUtf8(bytes, reportPath).also { checkBudget() }
     }
 }
 
@@ -132,7 +141,9 @@ private fun inspectRawReport(
     reportPath: Path,
     sourceRoots: List<Path>,
     reader: RawV8ReportReader,
-): List<CoverageDiagnostic> = readUnappliedSourceMaps(reportPath, reader).mapNotNull { sourceMap ->
+    checkBudget: () -> Unit,
+): List<CoverageDiagnostic> = readUnappliedSourceMaps(reportPath, reader, checkBudget).mapNotNull { sourceMap ->
+    checkBudget()
     sourceMap.inspect(sourceRoots)
 }
 
@@ -140,8 +151,13 @@ private fun inspectRawReport(
  * Extracts only cache entries for which c8 saw a source-map URL but could not load its data.
  * Entries with object-valued `data` are already usable by c8 and need no diagnostic.
  */
-private fun readUnappliedSourceMaps(reportPath: Path, reader: RawV8ReportReader): List<UnappliedSourceMap> {
+private fun readUnappliedSourceMaps(
+    reportPath: Path,
+    reader: RawV8ReportReader,
+    checkBudget: () -> Unit,
+): List<UnappliedSourceMap> {
     val report = parseRawReport(reader.readText(reportPath), reportPath)
+    checkBudget()
     val sourceMapCache = report["source-map-cache"] ?: return emptyList()
     if (sourceMapCache !is JsonObject) {
         failInvalidRawReport(
@@ -151,6 +167,7 @@ private fun readUnappliedSourceMaps(reportPath: Path, reader: RawV8ReportReader)
     }
 
     return sourceMapCache.mapNotNull { (scriptUrl, entry) ->
+        checkBudget()
         parseUnappliedSourceMap(reportPath, scriptUrl, entry)
     }
 }
