@@ -688,10 +688,7 @@ class GoExprVisitor(
             }
         }
         if (type.keyType.needsMapKeyRepresentative()) {
-            val snapshot = scope.calcOnState {
-                val stored = memory.read(ctx.mapKeyPayloadLValue(original, key.asExpr(ctx.addressSort), type))
-                copyValue(stored, type.keyType)
-            }
+            val snapshot = copyMapRangeKey(original, key.asExpr(ctx.addressSort), type, guard = hasNext)
             ensureMapKeyComparable(snapshot, type.keyType, guard = hasNext, panicOnFailure = false)
             val canonicalSnapshot = scope.calcOnState {
                 memory.read(ctx.mapKeySnapshotLValue(key.asExpr(ctx.addressSort), type.keyType))
@@ -748,8 +745,7 @@ class GoExprVisitor(
                 TupleType(listOf(GoBasicTypes.BOOL, type.keyType, type.valueType)),
                 hasNext,
                 if (type.keyType.needsMapKeyRepresentative()) {
-                    val snapshot = memory.read(ctx.mapKeyPayloadLValue(original, key.asExpr(ctx.addressSort), type))
-                    copyValue(snapshot, type.keyType)
+                    copyMapRangeKey(original, key.asExpr(ctx.addressSort), type, guard = hasNext)
                 } else {
                     tryBox(key, type.keyType)
                 },
@@ -760,6 +756,22 @@ class GoExprVisitor(
                 ),
             )
         }
+    }
+
+    private fun copyMapRangeKey(
+        map: UHeapRef,
+        key: UHeapRef,
+        type: MapType,
+        guard: UBoolExpr,
+    ): UExpr<out USort> = scope.calcOnState {
+        val sort = ctx.typeToSort(type.keyType)
+        val stored = memory.read(ctx.mapKeyPayloadLValue(map, key, type))
+        val initialized = ctx.mkIte(
+            guard,
+            trueBranch = { stored.asExpr(sort) },
+            falseBranch = { sampleValue(type.keyType).asExpr(sort) },
+        )
+        copyValue(initialized, type.keyType)
     }
 
     private fun assertMapKeyConstraint(constraint: UBoolExpr) {
