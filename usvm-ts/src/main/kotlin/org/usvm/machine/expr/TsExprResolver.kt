@@ -1749,6 +1749,10 @@ class TsSimpleValueResolver(
             val hasSourceBinding = isParameter || isGlobal || isImported
             if (hasSourceBinding) return resolveLocal(local)
 
+            if (local.name == "Symbol") {
+                throw UnsupportedOperationException("Builtin Symbol values are not modeled")
+            }
+
             val sdkConstructor = ctx.scene.sdkConstructorForGlobal(local)
             if (sdkConstructor != null) return ctx.classConstructorRef(sdkConstructor.signature)
 

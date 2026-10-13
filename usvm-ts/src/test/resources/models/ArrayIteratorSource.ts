@@ -133,4 +133,29 @@ export class ArrayIteratorSource {
         values[Symbol.iterator] = () => ({ next: () => ({ done: true }) });
         return [...values].length;
     }
+
+    static builtinSymbolKey(): any {
+        return Symbol.iterator;
+    }
+
+    static aliasedSymbolOverride(): number {
+        const symbols = Symbol;
+        const values: any = [1, 2];
+        values[symbols.iterator] = () => ({ next: () => ({ done: true }) });
+        return [...values].length;
+    }
+
+    static bracketSymbolOverride(): number {
+        const values: any = [1, 2];
+        values[Symbol["iterator"]] = () => ({ next: () => ({ done: true }) });
+        return [...values].length;
+    }
+
+    static localSymbolShadow(): number {
+        const Symbol = { iterator: 0 };
+        const values = [1, 2];
+        values[Symbol.iterator] = 7;
+        const copy = [...values];
+        return copy[0] === 7 && copy[1] === 2 ? 1 : 0;
+    }
 }

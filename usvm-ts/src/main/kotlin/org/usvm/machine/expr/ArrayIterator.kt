@@ -27,6 +27,7 @@ data class TsArrayIterator(
     val exhausted: UBoolExpr,
 )
 
+/** The result object's fields are kept separate from the iterator's mutable cursor. */
 data class TsIteratorResult(val done: UBoolExpr, val value: UExpr<*>)
 
 private val iteratorType = EtsClassType(EtsClassSignature.UNKNOWN.copy(name = "%BuiltinArrayIterator"))
@@ -102,7 +103,8 @@ private fun TsExprResolver.advanceArrayIterator(
         mkBvSignedGreaterOrEqualExpr(length, mkBv(0)),
         mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize)),
     )
-    if (scope.checkSat(mkAnd(mkNot(iterator.exhausted), mkNot(withinCapacity))) != null) {
+    val activeBeyondCapacity = mkAnd(mkNot(iterator.exhausted), mkNot(withinCapacity))
+    if (scope.checkSat(activeBeyondCapacity) != null) {
         reportRuntimeFeatureLimitation(
             reason = TsRuntimeFeatureLimitationReason.ARRAY_ITERATOR_UNSUPPORTED,
             detail = "The array iterator exceeds the configured length bound ${options.maxArraySize}",
@@ -144,8 +146,9 @@ private fun TsExprResolver.advanceArrayIterator(
     }
 
     scope.calcOnState {
+        val nextIndex = mkBvAddExpr(iterator.index, mkBv(1))
         arrayIterators += reference to iterator.copy(
-            index = mkIte(done, iterator.index, mkBvAddExpr(iterator.index, mkBv(1))),
+            index = mkIte(done, iterator.index, nextIndex),
             exhausted = done,
         )
         val result = memory.allocConcrete(iteratorResultType)

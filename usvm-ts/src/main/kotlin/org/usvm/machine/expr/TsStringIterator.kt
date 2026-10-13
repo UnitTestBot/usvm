@@ -28,6 +28,10 @@ data class TsStringIterator(
 
 private val stringIteratorType = EtsClassType(EtsClassSignature.UNKNOWN.copy(name = "%BuiltinStringIterator"))
 
+private const val SURROGATE_KIND_MASK = 0xfc00
+private const val HIGH_SURROGATE_KIND = 0xd800
+private const val LOW_SURROGATE_KIND = 0xdc00
+
 internal fun TsExprResolver.tryCreateStringIterator(
     stmt: TsVirtualMethodCallStmt,
 ): TsExprApproximationResult = with(ctx) {
@@ -83,8 +87,14 @@ internal fun TsExprResolver.advanceStringIterator(
             memory.read(mkStringBackingElementLValue(characters, iterator.index)) to
                 memory.read(mkStringBackingElementLValue(characters, nextIndex))
         }
-        val firstIsHighSurrogate = mkEq(mkBvAndExpr(first, mkBv(0xfc00, bv16Sort)), mkBv(0xd800, bv16Sort))
-        val secondIsLowSurrogate = mkEq(mkBvAndExpr(second, mkBv(0xfc00, bv16Sort)), mkBv(0xdc00, bv16Sort))
+        val firstIsHighSurrogate = mkEq(
+            mkBvAndExpr(first, mkBv(SURROGATE_KIND_MASK, bv16Sort)),
+            mkBv(HIGH_SURROGATE_KIND, bv16Sort),
+        )
+        val secondIsLowSurrogate = mkEq(
+            mkBvAndExpr(second, mkBv(SURROGATE_KIND_MASK, bv16Sort)),
+            mkBv(LOW_SURROGATE_KIND, bv16Sort),
+        )
         val pair = mkAnd(firstIsHighSurrogate, mkBvSignedLessExpr(nextIndex, length), secondIsLowSurrogate)
         val isPair = scope.calcOnState { models.first().eval(pair).isTrue }
         val widthBranch = if (isPair) pair else mkNot(pair)

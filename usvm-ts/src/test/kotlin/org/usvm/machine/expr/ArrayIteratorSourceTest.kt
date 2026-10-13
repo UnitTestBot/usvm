@@ -33,6 +33,7 @@ class ArrayIteratorSourceTest : TsMethodTestRunner() {
             "literalSpread", "destructure", "preserveKindsAndAliases", "evaluationOrder",
             "liveLength", "shortenedLength", "exhaustedDestructuring",
             "reversedMixedAlias", "unshiftedMixedAlias", "shiftedMixedAlias",
+            "localSymbolShadow",
         )
 
         for (methodName in methods) {
@@ -78,14 +79,20 @@ class ArrayIteratorSourceTest : TsMethodTestRunner() {
 
     @Test
     fun `own symbol overrides cannot silently use the native array iterator`() {
-        val method = getMethod(methodName = "customSymbolOverride", className = "ArrayIteratorSource")
+        val methodNames = listOf(
+            "customSymbolOverride", "builtinSymbolKey", "aliasedSymbolOverride", "bracketSymbolOverride",
+        )
 
-        TsMachine(scene = scene, options = options, tsOptions = tsOptions).use { machine ->
-            val outcome = machine.analyzeWithOutcome(methods = listOf(method))
+        for (methodName in methodNames) {
+            val method = getMethod(methodName = methodName, className = "ArrayIteratorSource")
 
-            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
-            assertTrue(outcome.states.isEmpty())
-            assertTrue(outcome.unsupportedPaths.isNotEmpty(), outcome.toString())
+            TsMachine(scene = scene, options = options, tsOptions = tsOptions).use { machine ->
+                val outcome = machine.analyzeWithOutcome(methods = listOf(method))
+
+                assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
+                assertTrue(outcome.states.isEmpty(), methodName)
+                assertTrue(outcome.unsupportedPaths.isNotEmpty(), "$methodName: $outcome")
+            }
         }
     }
 }

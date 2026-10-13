@@ -590,7 +590,7 @@ private fun TsExprResolver.removeArrayElement(
 
         if (first) {
             copyArrayElements(array, array, arrayType, fromSrc = mkBv(1), fromDst = mkBv(0), length = newLength)
-            moveInitializedArrayIndices(array) { index -> mkBvSubExpr(index, mkBv(1)) }
+            moveInitializedArrayIndices(array) { sourceIndex -> mkBvSubExpr(sourceIndex, mkBv(1)) }
         }
         truncateKnownArrayIndices(array, newLength)
         memory.write(lengthLValue, newLength, guard = trueExpr)
@@ -1214,7 +1214,8 @@ private fun TsExprResolver.handleArrayReverse(
             mkBvSignedGreaterOrEqualExpr(length, mkBv(0)),
             mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize)),
         )
-        if (scope.checkSat(mkNot(withinCapacity)) != null) {
+        val capacityExceeded = mkNot(withinCapacity)
+        if (scope.checkSat(capacityExceeded) != null) {
             reportRuntimeFeatureLimitation(
                 reason = TsRuntimeFeatureLimitationReason.ARRAY_LENGTH_CAPACITY,
                 detail = "Array.reverse exceeds the configured length bound ${options.maxArraySize}",
