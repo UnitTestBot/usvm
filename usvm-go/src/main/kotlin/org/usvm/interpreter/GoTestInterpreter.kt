@@ -96,19 +96,23 @@ class GoTestInterpreter(
                 return resolveWithModel(state, method, model)
             } catch (limit: MaterializationBoundException) {
                 if (!bounds.add(limit.bound)) {
-                    throw UnsupportedOperationException("Cannot materialize Go model within size limit")
+                    throw UnsupportedOperationException(limit.failureMessage)
                 }
-                model = refineModel(boundedConstraints, limit.bound)
+                model = refineModel(boundedConstraints, limit.bound, limit.failureMessage)
             }
         }
         throw UnsupportedOperationException("Go model size refinement limit exceeded")
     }
 
-    private fun refineModel(constraints: UPathConstraints<GoType>, bound: UBoolExpr): UModelBase<GoType> {
+    private fun refineModel(
+        constraints: UPathConstraints<GoType>,
+        bound: UBoolExpr,
+        failureMessage: String,
+    ): UModelBase<GoType> {
         constraints += bound
         val result = ctx.solver<GoType>().check(constraints)
         return (result as? USatResult)?.model ?: throw UnsupportedOperationException(
-            "Cannot materialize Go model under witness constraints: $result"
+            "$failureMessage: $result"
         )
     }
 
@@ -269,7 +273,10 @@ class GoTestInterpreter(
                     ctx.mkSizeGeExpr(expr, ctx.mkSizeExpr(0)),
                     ctx.mkSizeLeExpr(expr, ctx.mkSizeExpr(MAX_ARRAY_LENGTH))
                 )
-                throw MaterializationBoundException(bound)
+                throw MaterializationBoundException(
+                    bound,
+                    failureMessage = "Cannot materialize Go model within size limit",
+                )
             }
             return length
         }
@@ -751,7 +758,10 @@ class GoTestInterpreter(
         const val MAX_ASCII_BYTE = 127
     }
 
-    private class MaterializationBoundException(val bound: UBoolExpr) : RuntimeException()
+    private class MaterializationBoundException(
+        val bound: UBoolExpr,
+        val failureMessage: String = "Cannot materialize Go model under witness constraints",
+    ) : RuntimeException()
 }
 
 sealed interface ProgramExecutionResult
