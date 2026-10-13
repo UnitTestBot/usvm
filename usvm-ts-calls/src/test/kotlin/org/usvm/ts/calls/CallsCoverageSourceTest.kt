@@ -40,13 +40,11 @@ class CallsCoverageSourceTest {
         val original = fixture.source.manifest
         val project = fixture.source.project
         val function = fixture.source.function
+        val changedExport = function.copy(entryPoint = function.entryPoint.copy(exportName = "second"))
+        val changedInputs = function.copy(inputs = listOf(PropertyInput(name = "flag", domain = NumberDomain())))
         val mutations = listOf(
-            original.copy(projects = listOf(project.copy(functions = listOf(
-                function.copy(entryPoint = function.entryPoint.copy(exportName = "second")),
-            )))),
-            original.copy(projects = listOf(project.copy(functions = listOf(
-                function.copy(inputs = listOf(PropertyInput(name = "flag", domain = NumberDomain()))),
-            )))),
+            original.copy(projects = listOf(project.copy(functions = listOf(changedExport)))),
+            original.copy(projects = listOf(project.copy(functions = listOf(changedInputs)))),
             original.copy(modelSet = original.modelSet.copy(ids = setOf("ts.array.includes"))),
         )
 
@@ -68,7 +66,9 @@ class CallsCoverageSourceTest {
         runCallsGit(fixture.source.sourceRoot, "add", "Fixture.ts")
         runCallsGit(fixture.source.sourceRoot, "commit", "-m", "Change source")
         val newRevision = runCallsGit(fixture.source.sourceRoot, "rev-parse", "HEAD").trim()
-        val changed = fixture.source.manifest.copy(projects = listOf(fixture.source.project.copy(revision = newRevision)))
+        val changed = fixture.source.manifest.copy(
+            projects = listOf(fixture.source.project.copy(revision = newRevision)),
+        )
         Files.writeString(fixture.manifestPath, CallsExperimentJson.encodeManifest(changed))
 
         val failure = assertFailsWith<IllegalArgumentException> { fixture.runCell() }
@@ -119,7 +119,9 @@ class CallsCoverageSourceTest {
     fun `manifest edit between search and replay is detected by the frozen source guard`() {
         val fixture = fixture()
         fixture.persistSearch()
-        val changed = fixture.source.manifest.copy(modelSet = fixture.source.manifest.modelSet.copy(ids = setOf("other")))
+        val changed = fixture.source.manifest.copy(
+            modelSet = fixture.source.manifest.modelSet.copy(ids = setOf("other")),
+        )
         Files.writeString(fixture.manifestPath, CallsExperimentJson.encodeManifest(changed))
 
         val failure = assertFailsWith<IllegalArgumentException> { fixture.source.verifyUnchanged() }
@@ -193,15 +195,33 @@ class CallsCoverageSourceTest {
                 solverLimitMillis = 1_000L,
                 candidateCap = 8,
             )
-            Files.writeString(output.resolve("identity.json"), CallsExperimentJson.json.encodeToUtf8SafeString(identity))
-            Files.writeString(output.resolve("search.json"), CallsExperimentJson.json.encodeToUtf8SafeString(emptySearch))
+            Files.writeString(
+                output.resolve("identity.json"),
+                CallsExperimentJson.json.encodeToUtf8SafeString(identity),
+            )
+            Files.writeString(
+                output.resolve("search.json"),
+                CallsExperimentJson.json.encodeToUtf8SafeString(emptySearch),
+            )
         }
 
         fun runCell(
-            searchFunction: (CallsCoverageSearchRequest) -> CallsCoverageSearchResult = { error("Must resume persisted search") },
+            searchFunction: (CallsCoverageSearchRequest) -> CallsCoverageSearchResult = {
+                error("Must resume persisted search")
+            },
         ) {
             runCoverageCell(
-                args = listOf(manifestPath.toString(), "0", "0", "EMPTY_STOP", "17", output.toString(), "30000", "1000", "8"),
+                args = listOf(
+                    manifestPath.toString(),
+                    "0",
+                    "0",
+                    "EMPTY_STOP",
+                    "17",
+                    output.toString(),
+                    "30000",
+                    "1000",
+                    "8",
+                ),
                 runtimeToolRevision = TOOL_REVISION,
                 runtimeNativeFrontendRevision = FRONTEND_REVISION,
                 searchFunction = searchFunction,

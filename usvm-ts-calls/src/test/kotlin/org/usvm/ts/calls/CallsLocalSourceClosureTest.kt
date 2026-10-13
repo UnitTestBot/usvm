@@ -207,5 +207,4 @@ internal class CallsLocalSourceClosureTest : CurrentTsCallsSymbolicEngineTestSup
         returnExpression = "helper(value)",
         dependencies = mapOf("helper.ts" to dependency),
     )
-
 }

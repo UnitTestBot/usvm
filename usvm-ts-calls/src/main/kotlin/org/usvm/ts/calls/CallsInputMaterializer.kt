@@ -161,7 +161,9 @@ private fun PropertyDomain.callsRuntimeType(): EtsType = when (this) {
             is JsConcreteValue.String -> EtsStringType
             JsConcreteValue.Null -> EtsNullType
             JsConcreteValue.Undefined -> EtsUndefinedType
-            is JsConcreteValue.Array, is JsConcreteValue.Object -> error("Structured constants are not primitive domains")
+            is JsConcreteValue.Array, is JsConcreteValue.Object -> error(
+                "Structured constants are not primitive domains",
+            )
         }
     }
     else -> {

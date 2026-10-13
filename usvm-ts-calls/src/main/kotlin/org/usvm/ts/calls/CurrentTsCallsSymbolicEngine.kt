@@ -237,7 +237,11 @@ internal class CurrentTsCallsSymbolicEngine(
                 diagnostic = buildList {
                     addAll(analysis.unsupportedPaths)
                     if (interpreterObserver.runtimeLimitations.isNotEmpty()) {
-                        add(interpreterObserver.runtimeLimitations.joinToString(prefix = "Runtime feature limitations: "))
+                        add(
+                            interpreterObserver.runtimeLimitations.joinToString(
+                                prefix = "Runtime feature limitations: ",
+                            ),
+                        )
                     }
                 }.joinToString().ifEmpty { null },
             )

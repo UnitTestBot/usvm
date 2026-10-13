@@ -136,17 +136,7 @@ internal class CurrentTsCallsCoverageEngine(
         } else {
             TsUnknownCallModelSelection.Only(emptySet())
         }
-        val machineOptions = UMachineOptions(
-            pathSelectionStrategies = listOf(CALLS_PATH_SELECTION_STRATEGY),
-            stateCollectionStrategy = StateCollectionStrategy.COVERED_NEW,
-            randomSeed = request.seed,
-            timeout = request.budget,
-            solverTimeout = request.solverQueryLimit,
-            solverType = SolverType.Z3,
-            stopOnCoverage = CALLS_STOP_ON_COVERAGE,
-            stopOnTargetsReached = false,
-            throwExceptionOnStepFailure = true,
-        )
+        val machineOptions = coverageMachineOptions(request)
         val machineResult = runCatching {
             TsMachine(
                 scene = preparation.scene,
@@ -187,6 +177,19 @@ internal class CurrentTsCallsCoverageEngine(
             diagnostic = machineResult.exceptionOrNull()?.let { error -> error.message ?: error::class.java.name },
         )
     }
+
+    private fun coverageMachineOptions(request: CallsCoverageSearchRequest): UMachineOptions =
+        UMachineOptions(
+            pathSelectionStrategies = listOf(CALLS_PATH_SELECTION_STRATEGY),
+            stateCollectionStrategy = StateCollectionStrategy.COVERED_NEW,
+            randomSeed = request.seed,
+            timeout = request.budget,
+            solverTimeout = request.solverQueryLimit,
+            solverType = SolverType.Z3,
+            stopOnCoverage = CALLS_STOP_ON_COVERAGE,
+            stopOnTargetsReached = false,
+            throwExceptionOnStepFailure = true,
+        )
 }
 
 private class CompletedCoverageCandidateObserver(
@@ -216,8 +219,12 @@ private class CompletedCoverageCandidateObserver(
                 if (result.method != method) return
                 CallsCoverageCompletion.RETURNED
             }
-            is TsMethodResult.TsException -> CallsCoverageCompletion.THREW
-            else -> return
+            is TsMethodResult.TsException -> {
+                CallsCoverageCompletion.THREW
+            }
+            else -> {
+                return
+            }
         }
         val pathStatements = state.pathNode.allStatements.filterTo(hashSetOf()) { statement ->
             statement in entryStatements
