@@ -296,9 +296,182 @@ class CallsCoverageExperimentTest {
         assertTrue(replay.coveredStatementKeys.isNotEmpty())
     }
 
+    @Test
+    fun `class novelty retains private helper candidates in every profile`() {
+        val fixture = fixture(
+            source = """
+                export class Covered {
+                  static run(flag: boolean): number { return Covered.choose(flag); }
+                  private static choose(flag: boolean): number {
+                    if (flag) { return 1; }
+                    return 2;
+                  }
+                }
+                export function harness(flag: boolean): number { Covered.run(flag); return 0; }
+            """.trimIndent(),
+            exportName = "harness",
+            inputs = listOf(PropertyInput(name = "flag", domain = BooleanDomain)),
+        )
+        val engine = CurrentTsCallsCoverageEngine(testSourceEngine())
+        val request = coverageRequest(fixture)
+        val classFunction = fixture.function.copy(
+            symbolicCoverageClass = CallsSymbolicCoverageClass(sourceFile = "Fixture.ts", className = "Covered"),
+        )
+
+        val entrySearch = engine.search(request)
+        val classSearches = CallsExperimentProfile.entries.associateWith { profile ->
+            engine.search(request.copy(function = classFunction, profile = profile))
+        }
+
+        assertEquals(expected = 1, actual = entrySearch.candidates.size, message = entrySearch.toString())
+        for ((profile, search) in classSearches) {
+            assertEquals(
+                expected = CallsCoverageSearchStatus.EXHAUSTED,
+                actual = search.status,
+                message = "$profile: $search",
+            )
+            assertEquals(expected = 2, actual = search.candidates.size, message = "$profile: $search")
+            assertEquals(
+                expected = setOf(listOf(JsConcreteValue.Boolean(true)), listOf(JsConcreteValue.Boolean(false))),
+                actual = search.candidates.map { candidate -> candidate.inputs }.toSet(),
+            )
+            assertTrue(search.candidates.all { candidate -> candidate.newSymbolicStatements > 0 })
+        }
+
+        val replays = OriginalTypeScriptCoverageReplayer(
+            sourceRoot = fixture.sourceRoot,
+            function = classFunction,
+        ).use { replayer ->
+            classSearches.getValue(CallsExperimentProfile.EMPTY_STOP).candidates.map { candidate ->
+                replayer.replay(inputs = candidate.inputs, timeoutMillis = 20_000L)
+            }
+        }
+
+        assertEquals(expected = 2, actual = replays.flatMap { replay -> replay.coveredIfArmKeys }.toSet().size)
+        assertTrue(replays.all { replay -> replay.completion == CallsCoverageCompletion.RETURNED })
+    }
+
+    @Test
+    fun `class novelty retains constructor branches through a constant wrapper`() {
+        val fixture = fixture(
+            source = """
+                export class Covered {
+                  value: number;
+                  constructor(flag: boolean) {
+                    if (flag) { this.value = 1; } else { this.value = 2; }
+                  }
+                }
+                export function harness(flag: boolean): number { const value = new Covered(flag); return 0; }
+            """.trimIndent(),
+            exportName = "harness",
+            inputs = listOf(PropertyInput(name = "flag", domain = BooleanDomain)),
+            symbolicCoverageClass = CallsSymbolicCoverageClass(sourceFile = "Fixture.ts", className = "Covered"),
+        )
+
+        val search = CurrentTsCallsCoverageEngine(testSourceEngine()).search(coverageRequest(fixture))
+
+        assertEquals(
+            expected = CallsCoverageSearchStatus.EXHAUSTED,
+            actual = search.status,
+            message = search.toString(),
+        )
+        assertEquals(expected = 2, actual = search.candidates.size, message = search.toString())
+    }
+
+    @Test
+    fun `class scope distinguishes source paths and ignores foreign class branches`() {
+        val fixture = fixture(
+            source = """
+                import { Target as Chosen } from './chosen/Target';
+                import { Target as Foreign } from './foreign/Target';
+                export function harness(flag: boolean): number { Chosen.run(); Foreign.run(flag); return 0; }
+            """.trimIndent(),
+            exportName = "harness",
+            inputs = listOf(PropertyInput(name = "flag", domain = BooleanDomain)),
+            additionalSources = mapOf(
+                "chosen/Target.ts" to "export class Target { static run(): number { return 7; } }",
+                "foreign/Target.ts" to """
+                    export class Target {
+                      static run(flag: boolean): number { if (flag) { return 1; } return 2; }
+                    }
+                """.trimIndent(),
+            ),
+            symbolicCoverageClass = CallsSymbolicCoverageClass(sourceFile = "chosen/Target.ts", className = "Target"),
+        )
+
+        val search = CurrentTsCallsCoverageEngine(testSourceEngine()).search(coverageRequest(fixture))
+
+        assertEquals(
+            expected = CallsCoverageSearchStatus.EXHAUSTED,
+            actual = search.status,
+            message = search.toString(),
+        )
+        assertEquals(expected = 1, actual = search.candidates.size, message = search.toString())
+    }
+
+    @Test
+    fun `wrapper-only coverage does not create class candidates`() {
+        val fixture = fixture(
+            source = """
+                export class Covered { static unused(): number { return 7; } }
+                export function harness(flag: boolean): number { if (flag) { return 1; } return 2; }
+            """.trimIndent(),
+            exportName = "harness",
+            inputs = listOf(PropertyInput(name = "flag", domain = BooleanDomain)),
+            symbolicCoverageClass = CallsSymbolicCoverageClass(sourceFile = "Fixture.ts", className = "Covered"),
+        )
+        val emitted = mutableListOf<CallsCoverageCandidate>()
+
+        val search = CurrentTsCallsCoverageEngine(testSourceEngine()).search(
+            coverageRequest(fixture, onCandidate = emitted::add),
+        )
+
+        assertEquals(
+            expected = CallsCoverageSearchStatus.EXHAUSTED,
+            actual = search.status,
+            message = search.toString(),
+        )
+        assertEquals(expected = emptyList(), actual = search.candidates)
+        assertEquals(expected = emptyList(), actual = emitted)
+        assertTrue(search.executedSteps > 0)
+    }
+
+    @Test
+    fun `unmapped coverage classes are rejected before symbolic search`() {
+        val fixture = fixture(
+            source = """
+                export class Covered { static run(): number { return 7; } }
+                export function harness(): number { return Covered.run(); }
+            """.trimIndent(),
+            exportName = "harness",
+            inputs = emptyList(),
+        )
+        val engine = CurrentTsCallsCoverageEngine(testSourceEngine())
+        val targets = listOf(
+            CallsSymbolicCoverageClass(sourceFile = "Fixture.ts", className = "Missing"),
+            CallsSymbolicCoverageClass(sourceFile = "Missing.ts", className = "Covered"),
+        )
+
+        for (target in targets) {
+            val request = coverageRequest(fixture).copy(
+                function = fixture.function.copy(symbolicCoverageClass = target),
+            )
+
+            val search = engine.search(request)
+
+            assertEquals(
+                expected = CallsCoverageSearchStatus.UNMAPPED,
+                actual = search.status,
+                message = search.toString(),
+            )
+            assertEquals(expected = 0L, actual = search.executedSteps)
+            assertEquals(expected = emptyList(), actual = search.candidates)
+        }
+    }
+
     private fun coverageRequest(
         fixture: CoverageFixture,
-        onCandidate: (CallsCoverageCandidate) -> Unit,
+        onCandidate: (CallsCoverageCandidate) -> Unit = {},
         solverType: SolverType = SolverType.YICES,
     ) = CallsCoverageSearchRequest(
         sourceRoot = fixture.sourceRoot,
@@ -325,10 +498,15 @@ class CallsCoverageExperimentTest {
         exportName: String,
         inputs: List<PropertyInput>,
         additionalSources: Map<String, String> = emptyMap(),
+        symbolicCoverageClass: CallsSymbolicCoverageClass? = null,
     ): CoverageFixture {
         val sourceRoot = Files.createDirectory(directory.resolve(exportName))
         Files.writeString(sourceRoot.resolve("Fixture.ts"), source)
-        additionalSources.forEach { (name, contents) -> Files.writeString(sourceRoot.resolve(name), contents) }
+        additionalSources.forEach { (name, contents) ->
+            val file = sourceRoot.resolve(name)
+            Files.createDirectories(file.parent)
+            Files.writeString(file, contents)
+        }
         runGit(sourceRoot, "init")
         runGit(sourceRoot, "config", "user.name", "USVM Tests")
         runGit(sourceRoot, "config", "user.email", "usvm@example.test")
@@ -341,6 +519,7 @@ class CallsCoverageExperimentTest {
             entryPoint = TypeScriptEntryPoint(module = "Fixture.ts", exportName = exportName),
             inputs = inputs,
             targets = emptyList(),
+            symbolicCoverageClass = symbolicCoverageClass,
         )
         val project = CallsProjectCase(
             projectId = exportName,

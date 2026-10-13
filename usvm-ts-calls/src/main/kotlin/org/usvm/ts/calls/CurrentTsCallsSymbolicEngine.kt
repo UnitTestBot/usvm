@@ -1,6 +1,7 @@
 package org.usvm.ts.calls
 
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
@@ -56,6 +57,7 @@ internal sealed interface CallsFunctionPreparation {
         val inputBindings: List<EtsInputBinding>,
         val lexicalEnvironment: EtsLexicalEnvironmentBinding?,
         val captures: List<TypeScriptSourceCapture>,
+        val sourcePaths: Map<EtsFileSignature, String>,
     ) : CallsFunctionPreparation
 
     data class Rejected(
@@ -409,6 +411,7 @@ internal class CurrentTsCallsSymbolicEngine(
             inputBindings = mappedTarget.bindings.inputs,
             lexicalEnvironment = lexicalEnvironment,
             captures = sourceCaptures,
+            sourcePaths = loaded.sourcePaths,
         )
     }
 

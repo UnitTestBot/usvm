@@ -18,6 +18,7 @@ internal sealed interface CallsSourceProject {
         val scene: EtsScene,
         val entryModule: String,
         val sourceByFile: Map<EtsFileSignature, String>,
+        val sourcePaths: Map<EtsFileSignature, String>,
     ) : CallsSourceProject
 
     data class Unsupported(val issue: CallsIrReadinessIssue) : CallsSourceProject
@@ -42,6 +43,7 @@ internal fun loadCallsSourceProject(sourceRoot: Path, source: Path): CallsSource
             scene = EtsScene(projectFiles = listOf(entry)),
             entryModule = source.fileName.toString(),
             sourceByFile = mapOf(entry.signature to Files.readString(source)),
+            sourcePaths = mapOf(entry.signature to entryModule.replace('\\', '/')),
         )
     }
 
@@ -72,20 +74,26 @@ internal fun loadCallsSourceProject(sourceRoot: Path, source: Path): CallsSource
         } finally {
             generatedIr.toFile().deleteRecursively()
         }
-        val sourceByFile = scene.projectFiles.associate { file ->
+        val sourcePaths = scene.projectFiles.associate { file ->
             val filePath = Path.of(file.signature.fileName)
             val relative = if (filePath.isAbsolute) {
                 temporaryProject.relativize(filePath).toString()
             } else {
                 filePath.toString()
             }
-            file.signature to requireNotNull(sources[relative]) {
+            require(relative in sources) {
                 "Frontend source identity is outside the inspected closure: ${file.signature}"
             }
+            file.signature to relative
         }
-        require(sourceByFile.size == closure.files.size) { "Frontend omitted or duplicated a dependency source" }
+        require(sourcePaths.size == closure.files.size) { "Frontend omitted or duplicated a dependency source" }
 
-        return CallsSourceProject.Loaded(scene = scene, entryModule = entryModule, sourceByFile = sourceByFile)
+        return CallsSourceProject.Loaded(
+            scene = scene,
+            entryModule = entryModule,
+            sourceByFile = sourcePaths.mapValues { (_, relative) -> sources.getValue(relative) },
+            sourcePaths = sourcePaths.mapValues { (_, relative) -> relative.replace('\\', '/') },
+        )
     } finally {
         temporaryProject.toFile().deleteRecursively()
     }

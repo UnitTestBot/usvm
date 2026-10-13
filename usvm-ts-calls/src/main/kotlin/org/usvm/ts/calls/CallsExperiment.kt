@@ -48,6 +48,8 @@ internal data class CallsFunctionCase(
     val entryPoint: TypeScriptEntryPoint,
     val inputs: List<PropertyInput>,
     val targets: List<CallsSourceTarget>,
+    /** Optional target class for coverage-novel symbolic candidates through this function. */
+    val symbolicCoverageClass: CallsSymbolicCoverageClass? = null,
 )
 
 @Serializable

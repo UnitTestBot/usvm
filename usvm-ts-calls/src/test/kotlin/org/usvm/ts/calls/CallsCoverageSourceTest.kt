@@ -157,6 +157,20 @@ class CallsCoverageSourceTest {
                     )
                 )
             ),
+            original.copy(
+                projects = listOf(
+                    project.copy(
+                        functions = listOf(
+                            function.copy(
+                                symbolicCoverageClass = CallsSymbolicCoverageClass(
+                                    sourceFile = "Fixture.ts",
+                                    className = "DifferentClass",
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
             original.copy(modelSet = original.modelSet.copy(ids = setOf("ts.array.includes"))),
         )
 
