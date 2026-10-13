@@ -59,6 +59,8 @@ internal object TsArrayShiftIntrinsicModel : TsBuiltInUnknownCallModel {
                     length = newLength,
                 )
                 memory.write(lengthLValue, newLength, guard = trueExpr)
+                val initialized = initializedArrayIndices[input.array].orEmpty()
+                initializedArrayIndices += input.array to initialized.map { index -> mkBvSubExpr(index, one) }.toSet()
             },
         )
 

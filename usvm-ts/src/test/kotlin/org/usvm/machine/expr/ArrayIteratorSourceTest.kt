@@ -32,6 +32,7 @@ class ArrayIteratorSourceTest : TsMethodTestRunner() {
         val methods = listOf(
             "literalSpread", "destructure", "preserveKindsAndAliases", "evaluationOrder",
             "liveLength", "shortenedLength", "exhaustedDestructuring",
+            "reversedMixedAlias", "unshiftedMixedAlias", "shiftedMixedAlias",
         )
 
         for (methodName in methods) {
@@ -55,7 +56,11 @@ class ArrayIteratorSourceTest : TsMethodTestRunner() {
 
     @Test
     fun `custom iterables and sparse arrays retain explicit limitations`() {
-        for (methodName in listOf("stringNamedLookalike", "sparseArray", "deletedSlot")) {
+        val methods = listOf(
+            "stringNamedLookalike", "sparseArray", "deletedSlot",
+            "reversedSparseArray", "unshiftedSparseArray", "shiftedSparseArray",
+        )
+        for (methodName in methods) {
             val method = getMethod(methodName = methodName, className = "ArrayIteratorSource")
             val reasons = mutableListOf<TsRuntimeFeatureLimitationReason>()
             val observer = object : TsInterpreterObserver {

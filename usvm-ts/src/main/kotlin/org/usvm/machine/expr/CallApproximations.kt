@@ -22,6 +22,7 @@ import org.usvm.api.readArrayIndex
 import org.usvm.getIntValue
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isFalse
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.call.TsUnknownCallFailureReason
@@ -40,11 +41,13 @@ import org.usvm.machine.types.TsUnresolvedArrayKind
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.sizeSort
+import org.usvm.util.TsTypedArrayStorage
 import org.usvm.util.arrayStorageType
 import org.usvm.util.componentType
 import org.usvm.util.copyArrayElements
 import org.usvm.util.forEachArrayPayloadRegion
 import org.usvm.util.initializeArrayKind
+import org.usvm.util.initializeTypedArrayOverrides
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.readTypedArrayElement
 import org.usvm.util.resolveEtsMethods
@@ -179,12 +182,6 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     val instanceType = scope.calcOnState { arrayStorageType(array, expr.instance.type) }
 
     if (instanceType is EtsArrayType) {
-        // These bulk moves do not carry initialized-slot provenance for sparse allocations.
-        val movesArraySlots = expr.callee.name in setOf("shift", "unshift", "reverse")
-        if (movesArraySlots) {
-            scope.doWithState { initializedArrayIndices -= array }
-        }
-
         val elementSort = typeToSort(instanceType.componentType)
             .takeIf { it !is TsUnresolvedSort }
             ?: addressSort
@@ -603,6 +600,8 @@ private fun TsExprResolver.removeArrayElement(
 
         if (first) {
             copyArrayElements(array, array, arrayType, fromSrc = mkBv(1), fromDst = mkBv(0), length = newLength)
+            val initialized = initializedArrayIndices[array].orEmpty()
+            initializedArrayIndices += array to initialized.map { index -> mkBvSubExpr(index, mkBv(1)) }.toSet()
         }
         memory.write(lengthLValue, newLength, guard = trueExpr)
 
@@ -728,6 +727,11 @@ private fun TsExprResolver.handleArrayFill(
             length = fillLength,
         )
 
+        val initialized = initializedArrayIndices[array].orEmpty()
+        initializedArrayIndices += array to initialized.map { index ->
+            mkBvSubExpr(mkBvSubExpr(length, mkBv(1)), index)
+        }.toSet()
+
         // Return the modified original array
         array
     }
@@ -816,6 +820,9 @@ private fun TsExprResolver.handleArrayUnshift(
             fromDst = mkBv(1),
             length = length,
         )
+
+        val initialized = initializedArrayIndices[array].orEmpty()
+        initializedArrayIndices += array to initialized.map { index -> mkBvAddExpr(index, mkBv(1)) }.toSet()
 
         // Write the new element to the start of the array
         assignToArrayIndex(scope, array, index = mkBv(0), expr = arg, arrayType = arrayType)
@@ -1214,7 +1221,19 @@ private fun TsExprResolver.handleArrayReverse(
         val lengthLValue = mkArrayLengthLValue(array, arrayType)
         val length = memory.read(lengthLValue)
 
-        val reversedIndices = (0 until ARRAY_REVERSE_MAX_SIZE).map { index ->
+        val withinCapacity = mkAnd(
+            mkBvSignedGreaterOrEqualExpr(length, mkBv(0)),
+            mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize)),
+        )
+        if (scope.checkSat(mkNot(withinCapacity)) != null) {
+            reportRuntimeFeatureLimitation(
+                reason = TsRuntimeFeatureLimitationReason.ARRAY_LENGTH_CAPACITY,
+                detail = "Array.reverse exceeds the configured length bound ${options.maxArraySize}",
+            )
+        }
+        scope.assert(withinCapacity) ?: return@calcOnState null
+
+        val reversedIndices = (0 until options.maxArraySize).map { index ->
             mkBvSubExpr(mkBvSubExpr(length, mkBv(1)), index.toBv())
         }
         forEachArrayPayloadRegion(arrayType) { region, sort ->
@@ -1228,6 +1247,16 @@ private fun TsExprResolver.handleArrayReverse(
                 val contents = reversedIndices.map { index -> memory.readArrayIndex(array, index, kind, boolSort) }
                 initializeArrayKind(reversedArray, kind, contents)
             }
+        } else {
+            initializeTypedArrayOverrides(array)
+            val hasBoxedValues = reversedIndices.asSequence().map { index ->
+                memory.readArrayIndex(array, index, TsTypedArrayStorage.HAS_BOXED_VALUE, boolSort)
+            }
+            val boxedValues = reversedIndices.asSequence().map { index ->
+                memory.readArrayIndex(array, index, TsTypedArrayStorage.BOXED_VALUE, addressSort)
+            }
+            memory.initializeArray(reversedArray, TsTypedArrayStorage.HAS_BOXED_VALUE, boolSort, sizeSort, hasBoxedValues)
+            memory.initializeArray(reversedArray, TsTypedArrayStorage.BOXED_VALUE, addressSort, sizeSort, boxedValues)
         }
 
         copyArrayElements(
@@ -1243,5 +1272,3 @@ private fun TsExprResolver.handleArrayReverse(
         array
     }
 }
-
-private const val ARRAY_REVERSE_MAX_SIZE = 5000

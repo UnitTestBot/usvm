@@ -65,6 +65,53 @@ export class ArrayIteratorSource {
         return copy.length === 2 && copy[0] === 7 && copy[1] === 11 ? 1 : 2;
     }
 
+    static reversedMixedAlias(): number {
+        const values = [7, 11, 13];
+        const alias: any[] = values;
+        alias[1] = true;
+        alias[2] = null;
+        values.reverse();
+        const copy = [...alias];
+        return copy.length === 3 && copy[0] === null && copy[1] === true && copy[2] === 7 ? 1 : 0;
+    }
+
+    static unshiftedMixedAlias(): number {
+        const values = [7, 11];
+        const alias: any[] = values;
+        alias[1] = null;
+        alias.unshift(true);
+        const copy = [...alias];
+        return copy.length === 3 && copy[0] === true && copy[1] === 7 && copy[2] === null ? 1 : 0;
+    }
+
+    static shiftedMixedAlias(): number {
+        const values = [7, 11, 13];
+        const alias: any[] = values;
+        alias[1] = null;
+        alias[2] = true;
+        const first = alias.shift();
+        const copy = [...alias];
+        return first === 7 && copy.length === 2 && copy[0] === null && copy[1] === true ? 1 : 0;
+    }
+
+    static shiftedSparseArray(): number {
+        const values = [1, , 3];
+        values.shift();
+        return [...values].length;
+    }
+
+    static reversedSparseArray(): number {
+        const values = [1, , 3];
+        values.reverse();
+        return [...values].length;
+    }
+
+    static unshiftedSparseArray(): number {
+        const values = [1, , 3];
+        values.unshift(7);
+        return [...values].length;
+    }
+
     static stringNamedLookalike(): number {
         const values: any = { "Symbol.iterator"() { return [7]; } };
         return [...values].length;
