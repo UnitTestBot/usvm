@@ -1,12 +1,27 @@
 package org.usvm.util
 
 import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.state.TsState
 
-/** Presence of own numeric slots in arrays allocated by a supported NewArray expression. */
+/** A generated dense array owns every live slot, including slots whose value is undefined. */
+fun TsState.markDenseArrayOwnSlots(
+    array: UConcreteHeapRef,
+    length: UExpr<TsSizeSort>,
+    capacity: Int,
+) = with(ctx) {
+    val presence = (0 until capacity).associate { index ->
+        val symbolicIndex = mkBv(index)
+        symbolicIndex to mkBvSignedLessExpr(symbolicIndex, length)
+    }
+    initializedArrayIndices += array to presence
+    knownArrayPropertyPresence += array
+}
+
+/** Presence of own numeric slots in source arrays and generated array inputs. */
 internal fun TsState.knownArrayIndexPresence(array: UHeapRef, index: UExpr<TsSizeSort>): UBoolExpr? {
     if (array !in knownArrayPropertyPresence) return null
 

@@ -262,6 +262,67 @@ internal class CurrentTsCallsExtendedInputDomainsTest : CurrentTsCallsSymbolicEn
 
 
     @Test
+    fun `optional array spread preserves numeric and undefined slots and replays source`() {
+        val fixture = fixture(
+            source = """
+                export function mixedSpread(values: (number | undefined)[]): boolean {
+                  const copy = [...values];
+                  if (copy.length === 2 && copy[0] === 7 && copy[1] === undefined) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "mixedSpread",
+            inputs = optionalArrayInputs(),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.search(modelIds = emptySet())
+
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        val inputs = assertNotNull(result.inputs, result.toString())
+        val values = assertIs<JsConcreteValue.Array>(inputs.single()).elements
+        val expectedValues = listOf(JsConcreteValue.number(7.0), JsConcreteValue.Undefined)
+        assertEquals(expectedValues, values)
+        fixture.assertReplayConfirmed(inputs)
+    }
+
+    @Test
+    fun `optional array for of preserves numeric and undefined slots and replays source`() {
+        val fixture = fixture(
+            source = """
+                export function mixedIteration(values: (number | undefined)[]): boolean {
+                  let first: number | undefined;
+                  let second: number | undefined;
+                  let count = 0;
+                  for (const value of values) {
+                    if (count === 0) first = value;
+                    else second = value;
+                    count++;
+                  }
+                  if (count === 2 && first === 7 && second === undefined) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "mixedIteration",
+            inputs = optionalArrayInputs(),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.search(modelIds = emptySet())
+
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        val inputs = assertNotNull(result.inputs, result.toString())
+        val values = assertIs<JsConcreteValue.Array>(inputs.single()).elements
+        val expectedValues = listOf(JsConcreteValue.number(7.0), JsConcreteValue.Undefined)
+        assertEquals(expectedValues, values)
+        fixture.assertReplayConfirmed(inputs)
+    }
+
+    @Test
     fun `optional array slots preserve independent numeric and undefined values`() {
         val fixture = fixture(
             source = """
@@ -295,5 +356,12 @@ internal class CurrentTsCallsExtendedInputDomainsTest : CurrentTsCallsSymbolicEn
             assertIs<JsConcreteValue.Array>(inputs.single()).elements,
         )
         fixture.assertReplayConfirmed(inputs)
+    }
+
+    private fun optionalArrayInputs(): List<PropertyInput> {
+        val elementDomain = OptionalDomain(value = IntegerDomain(min = 0, max = 10))
+        val domain = ArrayDomain(element = elementDomain, minLength = 2, maxLength = 2)
+        val input = PropertyInput(name = "values", domain = domain)
+        return listOf(input)
     }
 }
