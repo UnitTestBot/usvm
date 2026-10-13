@@ -68,6 +68,19 @@ def select_classes(ledger, eligible):
     return chosen, missing
 
 
+def preserves_input_values(prepared, declared):
+    """Kotlin writes domain defaults; every explicitly frozen value must still agree."""
+    if isinstance(declared, dict):
+        if not isinstance(prepared, dict):
+            return False
+        return all(preserves_input_values(prepared.get(key), value) for key, value in declared.items())
+    if isinstance(declared, list):
+        if not isinstance(prepared, list) or len(prepared) != len(declared):
+            return False
+        return all(preserves_input_values(actual, expected) for actual, expected in zip(prepared, declared))
+    return prepared == declared
+
+
 def cell_directory(output, class_id, seed, budget, profile):
     return output / 'cells' / class_id / str(seed) / str(budget) / profile
 
@@ -209,7 +222,7 @@ def main():
             raise RuntimeError(f'Class preparation failed: {outcome}')
 
     manifest = read(prepared / 'manifest.json')
-    if manifest != input_manifest:
+    if not preserves_input_values(manifest, input_manifest):
         raise ValueError('Prepared manifest differs from campaign input')
     plan_path = output / 'run-plan.json'
     if args.summarize_only:

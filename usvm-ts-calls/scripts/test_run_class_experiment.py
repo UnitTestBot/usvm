@@ -36,6 +36,16 @@ class CampaignIntegrityTest(unittest.TestCase):
         self.assertEqual(['reserve'], chosen)
         self.assertEqual('two', missing[0]['identity'])
 
+    def test_serializer_defaults_preserve_all_explicit_frozen_values(self):
+        declared = {'classes': [{'inputs': [{'domain': {'kind': 'string', 'maxLength': 8}}]}], 'seeds': [17]}
+        prepared = {'classes': [{'inputs': [{'domain': {'kind': 'string', 'minLength': 0, 'maxLength': 8}}]}],
+                    'seeds': [17], 'schemaVersion': 1}
+
+        self.assertTrue(campaign.preserves_input_values(prepared, declared))
+        prepared['classes'][0]['inputs'][0]['domain']['maxLength'] = 9
+        self.assertFalse(campaign.preserves_input_values(prepared, declared))
+        self.assertFalse(campaign.preserves_input_values({'seeds': [18]}, declared))
+
     def test_saved_plan_rejects_changed_runtime_or_eligibility(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / 'plan.json'
