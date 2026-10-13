@@ -234,6 +234,30 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 domainGuard = receiverDomain,
             ),
             sourceModel(
+                id = "ts.string.substring",
+                methodName = "substring",
+                inputAdapter = sliceAdapter,
+                domainGuard = receiverDomain,
+            ),
+            sourceModel(
+                id = "ts.string.trim",
+                methodName = "trim",
+                inputAdapter = receiverOnlyAdapter,
+                domainGuard = receiverDomain,
+            ),
+            sourceModel(
+                id = "ts.string.trimStart",
+                methodName = "trimStart",
+                inputAdapter = receiverOnlyAdapter,
+                domainGuard = receiverDomain,
+            ),
+            sourceModel(
+                id = "ts.string.trimEnd",
+                methodName = "trimEnd",
+                inputAdapter = receiverOnlyAdapter,
+                domainGuard = receiverDomain,
+            ),
+            sourceModel(
                 id = "ts.string.toUpperCase",
                 methodName = "toUpperCase",
                 inputAdapter = receiverOnlyAdapter,
@@ -283,6 +307,9 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 if (methodName == "charCodeAt") {
                     add(PRIMITIVE_CODE_UNIT_AT_ID)
                 }
+            }
+            if (methodName in setOf("trim", "trimStart", "trimEnd")) {
+                add(PRIMITIVE_CODE_UNIT_AT_ID)
             }
         },
     )

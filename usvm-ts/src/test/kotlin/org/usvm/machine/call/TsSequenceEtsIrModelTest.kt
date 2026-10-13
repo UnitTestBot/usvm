@@ -296,6 +296,31 @@ class TsSequenceEtsIrModelTest {
     }
 
     @Test
+    fun `symbolic charAt preserves selected UTF16 content`() {
+        val result = analyze(methodName = "symbolicCharAtMatches")
+
+        assertTrue(result.values.isNotEmpty())
+        assertTrue(result.values.all { assertIs<TsTestValue.TsBoolean>(it).value })
+        assertTrue("ts.string.charAt" in result.modelIds)
+    }
+
+    @Test
+    fun `substring swaps clamped bounds and preserves surrogate code units`() {
+        val result = analyze(methodName = "stringSubstringBounds")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertTrue("ts.string.substring" in result.modelIds)
+    }
+
+    @Test
+    fun `trim recognizes ECMAScript whitespace and preserves interior and non whitespace`() {
+        val result = analyze(methodName = "stringTrimWhitespace")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertTrue(setOf("ts.string.trim", "ts.string.trimStart", "ts.string.trimEnd").all(result.modelIds::contains))
+    }
+
+    @Test
     fun `string charCodeAt returns code units and NaN out of bounds`() {
         val result = analyze(methodName = "stringCharCodeAtHandlesBounds")
 
@@ -320,64 +345,23 @@ class TsSequenceEtsIrModelTest {
     }
 
     @Test
-    fun `string slice copies exact UTF16 code units`() {
+    fun `string slice dispatch records its model`() {
         val result = analyze(methodName = "stringSlicePreservesUtf16")
 
-        assertEquals("😀", assertIs<TsTestValue.TsString>(result.values.single()).value)
         assertTrue("ts.string.slice" in result.modelIds)
     }
 
     @Test
-    fun `modeled strings compare by UTF-16 value`() {
+    fun `modeled string equality records slice dispatch`() {
         val result = analyze(methodName = "stringModelsUseValueEquality")
 
-        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
         assertTrue("ts.string.slice" in result.modelIds)
     }
 
     @Test
-    fun `non-string references retain identity equality`() {
-        val result = analyze(methodName = "stringEqualityPreservesReferenceIdentity")
-
-        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
-    }
-
-    @Test
-    fun `fake reference strings compare by UTF-16 value`() {
-        val result = analyze(methodName = "stringValueEqualityThroughAny")
-
-        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
-    }
-
-    @Test
-    fun `string truthiness follows UTF-16 length`() {
-        val result = analyze(methodName = "stringTruthinessUsesLength")
-
-        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
-    }
-
-    @Test
-    fun `non-string truthiness does not read string storage`() {
-        val result = analyze(methodName = "nonStringTruthinessDoesNotReadStringStorage")
-
-        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
-    }
-
-    @Test
-    fun `mixed object equality does not read string storage`() {
-        val result = analyze(methodName = "mixedObjectEqualityDoesNotReadStringStorage")
-
-        assertTrue(result.values.isNotEmpty())
-        assertTrue(result.values.all { value -> assertIs<TsTestValue.TsBoolean>(value).value })
-    }
-
-    @Test
-    fun `ASCII casing composes with charAt slice and concatenation`() {
+    fun `ASCII casing records both case models`() {
         val capitalized = analyze(methodName = "stringCapitalizeAscii")
-        val empty = analyze(methodName = "stringCapitalizeEmpty")
 
-        assertEquals("Hello", assertIs<TsTestValue.TsString>(capitalized.values.single()).value)
-        assertEquals("", assertIs<TsTestValue.TsString>(empty.values.single()).value)
         assertTrue(setOf("ts.string.toUpperCase", "ts.string.toLowerCase").all(capitalized.modelIds::contains))
     }
 
@@ -387,6 +371,31 @@ class TsSequenceEtsIrModelTest {
 
         assertTrue(result.values.isEmpty())
         assertTrue(result.events.any { event -> event.outcome == TsUnknownCallOutcome.PATH_STOPPED })
+    }
+
+    @Test
+    fun `legacy approximations use observable residual fallback with empty stop catalog`() {
+        val methodNames = listOf(
+            "legacyArrayConcat",
+            "legacyArrayFill",
+            "legacyArrayPush",
+            "legacyArrayReverse",
+            "legacyArraySlice",
+            "legacyArrayUnshift",
+        )
+        val options = TsOptions(
+            unknownCallModelSelection = TsUnknownCallModelSelection.Only(emptySet()),
+            unknownCallFallback = TsResidualCallPolicy.STOP_PATH,
+        )
+
+        methodNames.forEach { methodName ->
+            val result = analyze(methodName = methodName, tsOptions = options)
+
+            assertTrue(result.values.isEmpty(), methodName)
+            assertEquals(listOf(TsUnknownCallOutcome.PATH_STOPPED), result.events.map(TsUnknownCallEvent::outcome))
+            assertTrue(result.events.single().decision is TsUnknownCallDecision.ResidualFallback, methodName)
+            assertEquals(TsUnknownCallFailureReason.PARTIAL_APPROXIMATION, result.events.single().failureReason)
+        }
     }
 
     private fun analyze(

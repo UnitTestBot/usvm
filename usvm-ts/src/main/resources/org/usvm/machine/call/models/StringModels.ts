@@ -76,6 +76,53 @@ export class StringModels {
         return result;
     }
 
+    static substring(receiver: string, start: number, end: number): string {
+        const length = receiver.length;
+        const from = StringModels.normalizePosition(start, length);
+        const to = StringModels.normalizePosition(end, length);
+        return from <= to
+            ? StringModels.slice(receiver, from, to)
+            : StringModels.slice(receiver, to, from);
+    }
+
+    static trim(receiver: string): string {
+        const length = receiver.length;
+        let start = 0;
+        let end = length;
+        while (start < end && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, start))) {
+            start++;
+        }
+        while (end > start && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, end - 1))) {
+            end--;
+        }
+        return StringModels.slice(receiver, start, end);
+    }
+
+    static trimStart(receiver: string): string {
+        const length = receiver.length;
+        let start = 0;
+        while (start < length && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, start))) {
+            start++;
+        }
+        return StringModels.slice(receiver, start, length);
+    }
+
+    static trimEnd(receiver: string): string {
+        let end = receiver.length;
+        while (end > 0 && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, end - 1))) {
+            end--;
+        }
+        return StringModels.slice(receiver, 0, end);
+    }
+
+    private static isWhitespace(codeUnit: number): boolean {
+        return (codeUnit >= 0x09 && codeUnit <= 0x0d)
+            || codeUnit === 0x20 || codeUnit === 0xa0 || codeUnit === 0x1680
+            || (codeUnit >= 0x2000 && codeUnit <= 0x200a)
+            || codeUnit === 0x2028 || codeUnit === 0x2029 || codeUnit === 0x202f
+            || codeUnit === 0x205f || codeUnit === 0x3000 || codeUnit === 0xfeff;
+    }
+
     static toUpperCase(receiver: string): string {
         const length = receiver.length;
         let result = "";
