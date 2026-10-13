@@ -395,6 +395,23 @@ internal class CurrentTsCallsSymbolicEngine(
             }
 
             CallsSourceTargetMode.COMPLETED_RETURN -> {
+                val sourceTarget = TypeScriptSourceInspector.instrumentReplay(
+                    source = source,
+                    mode = request.target.mode.name,
+                    startOffset = request.target.startOffset,
+                    endOffset = request.target.endOffset,
+                    expressionStartOffset = request.target.returnExpressionStartOffset,
+                    expressionEndOffset = request.target.returnExpressionEndOffset,
+                    marker = "__usvm_completed_return_preflight",
+                )
+                if (sourceTarget.reason != null) {
+                    return CallsTargetPreparation.Rejected(
+                        status = CallsSymbolicStatus.UNSUPPORTED,
+                        reasonCode = CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNSUPPORTED,
+                        diagnostic = sourceTarget.reason,
+                    )
+                }
+
                 val returnStatement = completedReturnCandidate(
                     method = method,
                     target = request.target,

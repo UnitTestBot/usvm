@@ -1,9 +1,11 @@
 package org.usvm.ts.calls
 
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsNewExpr
 import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsRawEntity
 import org.jacodb.ets.model.EtsRawStmt
@@ -34,6 +36,7 @@ internal fun callsIrReadinessIssue(
 
         currentMethod.irReadinessIssue(
             source = sourceByFile.getValue(currentMethod.signature.enclosingClass.file),
+            graph = graph,
         )?.let { issue -> return issue }
 
         currentMethod.projectCallees(graph = graph, sourceFiles = sourceByFile.keys)
@@ -90,9 +93,25 @@ internal fun callsIrReadinessIssue(
 
 private fun EtsMethod.irReadinessIssue(
     source: String,
+    graph: TsGraph,
 ): CallsIrReadinessIssue? {
     val statements = cfg.stmts
     val entitiesByStatement = statements.associateWith { statement -> statement.walkEntities() }
+    val intrinsicRegexAllocation = entitiesByStatement.values.asSequence().flatten()
+        .filterIsInstance<EtsNewExpr>()
+        .any { allocation ->
+            val type = allocation.type as? EtsClassType ?: return@any false
+            val intrinsicOwner = type.signature.file == EtsFileSignature.UNKNOWN ||
+                graph.cp.sdkClasses.any { owner -> owner.signature == type.signature }
+            type.signature.name == "RegExp" && intrinsicOwner
+        }
+    if (intrinsicRegexAllocation) {
+        return issue(
+            reasonCode = CallsSymbolicPreflightReasonCode.REGEX_LITERAL_UNSUPPORTED,
+            diagnostic = "Reachable EtsIR allocates an intrinsic RegExp without a runtime model in $name",
+        )
+    }
+
     val rawNodes = buildList {
         entitiesByStatement.forEach { (statement, statementEntities) ->
             val sourceSnippet = statement.sourceSnippet(source)
@@ -159,7 +178,7 @@ private data class RawNode(
 
     fun isSpread(): Boolean = matches("spread") || sourceSnippet.contains("...")
 
-    fun isRegexLiteral(): Boolean = matches("regex", "regexp", "regular expression") ||
+    fun isRegexLiteral(): Boolean = matches("regex", "regexp", "regularexpression", "regular expression") ||
         REGEX_LITERAL.containsMatchIn(sourceSnippet)
 
     fun issue(reasonCode: CallsSymbolicPreflightReasonCode, methodName: String): CallsIrReadinessIssue = issue(

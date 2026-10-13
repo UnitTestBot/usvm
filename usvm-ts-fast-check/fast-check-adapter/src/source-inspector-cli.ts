@@ -30,11 +30,17 @@ if (operation === 'inspect-local-closure') {
     const [exportName, startText, endText] = arguments_
     const start = Number(startText)
     const end = Number(endText)
+    const localExports = sourceFile.statements.filter(ts.isExportDeclaration).flatMap((statement) => {
+      if (statement.moduleSpecifier !== undefined || statement.isTypeOnly
+        || statement.exportClause === undefined || !ts.isNamedExports(statement.exportClause)) return []
+      return statement.exportClause.elements.filter((element) => !element.isTypeOnly && element.name.text === exportName)
+        .map((element) => (element.propertyName ?? element.name).text)
+    })
     const matches = sourceFile.statements.filter(ts.isVariableStatement).flatMap((statement) => {
       const exported = statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)
-      if (!exported) return []
       return statement.declarationList.declarations.filter((declaration) =>
-        ts.isIdentifier(declaration.name) && declaration.name.text === exportName
+        ts.isIdentifier(declaration.name)
+        && ((exported && declaration.name.text === exportName) || localExports.includes(declaration.name.text))
         && declaration.initializer !== undefined && ts.isArrowFunction(declaration.initializer)
         && !ts.isBlock(declaration.initializer.body)
         && declaration.initializer.body.getStart(sourceFile) === start && declaration.initializer.body.getEnd() === end,

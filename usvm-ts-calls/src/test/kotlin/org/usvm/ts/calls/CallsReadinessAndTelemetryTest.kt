@@ -72,7 +72,41 @@ internal class CallsReadinessAndTelemetryTest : CurrentTsCallsSymbolicEngineTest
     }
 
     @Test
-    fun `preflight rejects regex raw entities with a stable reason`() {
+    fun `completed return rejects a partial expression inside an exact return statement`() {
+        val fixture = fixture(
+            source = "export function increment(value: number): number { return value + 1; }",
+            exportName = "increment",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return value + 1;",
+            targetMode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = "1",
+        )
+
+        val preflight = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, preflight.status)
+        assertEquals(CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNSUPPORTED, preflight.reasonCode)
+    }
+
+    @Test
+    fun `completed return accepts a renamed module-local arrow export`() {
+        val expression = "value > 0"
+        val fixture = fixture(
+            source = "const local = (value: number): boolean => $expression; export { local as renamed };",
+            exportName = "renamed",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = expression,
+            targetMode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = expression,
+        )
+
+        val preflight = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, preflight.status, preflight.toString())
+    }
+
+    @Test
+    fun `preflight rejects lowered intrinsic regex allocation with a stable reason`() {
         val fixture = fixture(
             source = """
                 export function containsA(value: string): boolean {
@@ -94,7 +128,7 @@ internal class CallsReadinessAndTelemetryTest : CurrentTsCallsSymbolicEngineTest
     }
 
     @Test
-    fun `preflight rejects regex raw entities in a reachable same-file helper`() {
+    fun `preflight rejects lowered regex allocation in a reachable same-file helper`() {
         val fixture = fixture(
             source = """
                 function helper(): boolean {
@@ -117,7 +151,7 @@ internal class CallsReadinessAndTelemetryTest : CurrentTsCallsSymbolicEngineTest
     }
 
     @Test
-    fun `preflight ignores regex raw entities in an unreachable same-file helper`() {
+    fun `preflight ignores regex allocation in an unreachable same-file helper`() {
         val fixture = fixture(
             source = """
                 function unusedHelper(): boolean {
@@ -139,6 +173,30 @@ internal class CallsReadinessAndTelemetryTest : CurrentTsCallsSymbolicEngineTest
         val result = fixture.preflight()
 
         assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, result.status, result.toString())
+    }
+
+    @Test
+    fun `preflight does not confuse a source RegExp class with the intrinsic constructor`() {
+        val fixture = fixture(
+            source = """
+                class RegExp {
+                  test(value: string): boolean { return value === "a"; }
+                }
+                export function localRegex(value: string): boolean {
+                  const pattern = new RegExp();
+                  return pattern.test(value);
+                }
+            """.trimIndent(),
+            exportName = "localRegex",
+            inputs = listOf(PropertyInput(name = "value", domain = StringDomain(maxLength = 3))),
+            targetStatement = "return pattern.test(value);",
+            targetMode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = "pattern.test(value)",
+        )
+
+        val preflight = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, preflight.status, preflight.toString())
     }
 
     @Test
