@@ -2,10 +2,10 @@ package org.usvm.type
 
 import org.jacodb.go.api.ArrayType
 import org.jacodb.go.api.BasicType
+import org.jacodb.go.api.GoType
 import org.jacodb.go.api.InterfaceType
 import org.jacodb.go.api.PointerType
 import org.jacodb.go.api.StructType
-import org.jacodb.go.api.GoType
 
 /** Named numeric and boolean keys use their scalar payload, not their box identity. */
 internal fun GoType.mapKeyStorageType(): GoType {

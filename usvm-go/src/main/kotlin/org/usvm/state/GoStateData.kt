@@ -66,12 +66,13 @@ class GoStateData(
         val sameOperation = pendingArrayCopy == other.pendingArrayCopy && builtinResult == other.builtinResult
         if (!sameOperation) return null
 
-        if (flowStack.toList() != other.flowStack.toList() || !sameCalls ||
-            arrayViews != other.arrayViews || pointerTargets != other.pointerTargets ||
-            pointerConversions != other.pointerConversions || mapKeyRepresentatives != other.mapKeyRepresentatives
-        ) {
-            return null
-        }
+        val sameFlow = flowStack.toList() == other.flowStack.toList() && sameCalls
+        val sameHeapViews = arrayViews == other.arrayViews && pointerTargets == other.pointerTargets
+        val sameKeyAndPointerHistory = pointerConversions == other.pointerConversions &&
+            mapKeyRepresentatives == other.mapKeyRepresentatives
+        val canMerge = sameFlow && sameHeapViews && sameKeyAndPointerHistory
+        if (!canMerge) return null
+
         return clone()
     }
 
