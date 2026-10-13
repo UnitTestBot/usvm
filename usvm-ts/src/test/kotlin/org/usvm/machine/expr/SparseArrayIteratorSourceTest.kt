@@ -16,6 +16,10 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
+import org.usvm.machine.call.TsUnknownCallDecision
+import org.usvm.machine.call.TsUnknownCallEvent
+import org.usvm.machine.call.TsUnknownCallFailureReason
+import org.usvm.machine.call.TsUnknownCallOutcome
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
 import org.usvm.util.assertNodeReplay
@@ -36,9 +40,15 @@ class SparseArrayIteratorSourceTest : TsMethodTestRunner() {
     override val tsOptions = TsOptions(maxArraySize = 6)
     override val runner: (EtsMethod, UMachineOptions) -> List<TsTest> = { method, machineOptions ->
         val limitations = mutableListOf<TsRuntimeFeatureLimitationEvent>()
+        val modelIds = mutableListOf<String>()
         val observer = object : TsInterpreterObserver {
             override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
                 limitations += event
+            }
+
+            override fun onUnknownCall(event: TsUnknownCallEvent) {
+                val model = event.decision as? TsUnknownCallDecision.ModelApplied
+                if (model != null) modelIds += model.modelId
             }
         }
 
@@ -48,6 +58,20 @@ class SparseArrayIteratorSourceTest : TsMethodTestRunner() {
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, method.name)
             assertTrue(outcome.unsupportedPaths.isEmpty(), "${method.name}: ${outcome.unsupportedPaths}")
             assertTrue(limitations.isEmpty(), "${method.name}: $limitations")
+            val expectedModels = when (method.name) {
+                "movesPreserveHoles", "truncateAndMoveHoles" -> setOf("ts.array.reverse", "ts.array.unshift")
+                "reverseAsymmetricHoles", "reverseBoxedValues", "symbolicDeleteThenReverse" -> {
+                    setOf("ts.array.reverse")
+                }
+
+                "unshiftHoles", "unshiftSeveralHoles", "unshiftNoItems" -> setOf("ts.array.unshift")
+                else -> emptySet()
+            }
+            assertTrue(modelIds.containsAll(expectedModels), "${method.name}: $modelIds")
+            if (expectedModels.isNotEmpty()) {
+                assertTrue("ts.array.primitive.prepareOwnSlots" in modelIds, "${method.name}: $modelIds")
+                assertTrue("ts.array.primitive.hasOwnSlot" in modelIds, "${method.name}: $modelIds")
+            }
             outcome.states.map { state -> TsTestResolver().resolve(method, state) }
         }
     }
@@ -70,6 +94,24 @@ class SparseArrayIteratorSourceTest : TsMethodTestRunner() {
                 invariants = arrayOf({ result -> result.number == 1.0 }),
             )
         }
+    }
+
+    @Test
+    fun `conditional holes reverse through the source model`() {
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method("symbolicDeleteThenReverse"),
+            { _, result -> result.number == 0.0 },
+            { _, result -> result.number == 1.0 },
+            { _, result -> result.number == 2.0 },
+            invariants = arrayOf({ index, result ->
+                val expected = when (index.number) {
+                    0.0 -> 1.0
+                    1.0 -> 2.0
+                    else -> 0.0
+                }
+                result.number == expected
+            }),
+        )
     }
 
     @Test
@@ -120,12 +162,17 @@ class SparseArrayIteratorSourceTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `unknown array storage retains explicit iterator limitations`() {
-        for (name in listOf("unknownCopiedStorage", "unsupportedFillStorage")) {
+    fun `unproven copy and fill storage stop at the source model boundary`() {
+        for (name in listOf("unknownCopiedStorage", "unprovenPartialFillStorage")) {
             val limitations = mutableListOf<TsRuntimeFeatureLimitationReason>()
+            val unknownCalls = mutableListOf<TsUnknownCallEvent>()
             val observer = object : TsInterpreterObserver {
                 override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
                     limitations += event.reason
+                }
+
+                override fun onUnknownCall(event: TsUnknownCallEvent) {
+                    unknownCalls += event
                 }
             }
 
@@ -134,7 +181,13 @@ class SparseArrayIteratorSourceTest : TsMethodTestRunner() {
 
                 assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, name)
                 assertTrue(outcome.states.isEmpty(), name)
-                assertEquals(listOf(TsRuntimeFeatureLimitationReason.ARRAY_ITERATOR_UNSUPPORTED), limitations, name)
+                assertTrue(limitations.isEmpty(), "$name: $limitations")
+                val event = unknownCalls.single()
+                val expectedMethod = if (name == "unknownCopiedStorage") "slice" else "fill"
+
+                assertEquals(expectedMethod, event.callee.name, name)
+                assertEquals(TsUnknownCallFailureReason.PARTIAL_APPROXIMATION, event.failureReason, name)
+                assertEquals(TsUnknownCallOutcome.PATH_STOPPED, event.outcome, name)
             }
         }
     }
@@ -146,7 +199,7 @@ class SparseArrayIteratorSourceTest : TsMethodTestRunner() {
             for (name in supportedMethods) {
                 appendLine("if (SparseArrayIteratorSource.$name() !== 1) throw Error('$name');")
             }
-            for (name in listOf("symbolicDelete", "symbolicWriteThenDelete")) {
+            for (name in listOf("symbolicDelete", "symbolicWriteThenDelete", "symbolicDeleteThenReverse")) {
                 val tests = runner(method(name), options)
                 assertTrue(tests.isNotEmpty(), name)
                 for (test in tests) {
@@ -170,6 +223,7 @@ class SparseArrayIteratorSourceTest : TsMethodTestRunner() {
     private val supportedMethods = listOf(
         "literalHoles", "newArrayHoles", "deletedSlot", "rewriteDeletedSlot", "movesPreserveHoles",
         "shiftMissingFirstSlot", "truncateAndMoveHoles", "destructureHoles", "forOfHoles", "liveDelete",
-        "sourceObjectLookalike",
+        "sourceObjectLookalike", "reverseAsymmetricHoles", "unshiftHoles", "fillAllHoles",
+        "unshiftSeveralHoles", "unshiftNoItems", "reverseBoxedValues",
     )
 }
