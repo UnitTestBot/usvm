@@ -17,6 +17,7 @@ import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
+import org.usvm.ts.pbt.usvm.PlainObjectInputShapes
 import org.usvm.util.mkRegisterStackLValue
 
 internal fun PropertyDomain.isSupportedCallsSymbolicDomain(): Boolean = when (this) {
@@ -52,7 +53,7 @@ internal class CallsSymbolicInputs(
     private val captures: List<TypeScriptSourceCapture>,
     sourceScene: EtsScene,
 ) {
-    private val objectShapes = CallsObjectShapes(sourceScene, inputs.map(PropertyInput::domain))
+    private val objectShapes = PlainObjectInputShapes(sourceScene, inputs.map(PropertyInput::domain))
     val scene: EtsScene = objectShapes.scene
 
     private val boundInputs: List<Pair<PropertyInput, EtsInputBinding>>
@@ -95,7 +96,7 @@ internal class CallsSymbolicInputs(
 private fun TsState.initializeInput(
     stackSlot: Int,
     domain: PropertyDomain,
-    objectShapes: CallsObjectShapes,
+    objectShapes: PlainObjectInputShapes,
 ): CallsInputSnapshot = with(ctx) {
     val input = materializeCallsInput(domain = domain, objectShapes = objectShapes)
     when (input.value.sort) {

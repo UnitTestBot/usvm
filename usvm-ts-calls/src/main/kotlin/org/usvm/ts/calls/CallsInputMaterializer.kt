@@ -5,14 +5,6 @@ import io.ksmt.sort.KBv16Sort
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
-import org.jacodb.ets.model.EtsBooleanType
-import org.jacodb.ets.model.EtsClassType
-import org.jacodb.ets.model.EtsNullType
-import org.jacodb.ets.model.EtsNumberType
-import org.jacodb.ets.model.EtsStringType
-import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsUndefinedType
-import org.jacodb.ets.model.EtsUnionType
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.api.initializeArrayLength
@@ -34,6 +26,7 @@ import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.StringDomain
+import org.usvm.ts.pbt.usvm.PlainObjectInputShapes
 import org.usvm.util.allocateBoundedString
 import org.usvm.util.componentType
 import org.usvm.util.mkArrayIndexLValue
@@ -41,7 +34,7 @@ import org.usvm.util.mkFieldLValue
 
 internal fun TsState.materializeCallsInput(
     domain: PropertyDomain,
-    objectShapes: CallsObjectShapes,
+    objectShapes: PlainObjectInputShapes,
 ): MaterializedCallsInput = with(ctx) {
     when (domain) {
         BooleanDomain -> {
@@ -85,7 +78,7 @@ internal fun TsState.materializeCallsInput(
 
 private fun TsState.materializeCallsObject(
     domain: ObjectDomain,
-    objectShapes: CallsObjectShapes,
+    objectShapes: PlainObjectInputShapes,
 ): MaterializedCallsInput = with(ctx) {
     val runtimeType = objectShapes.typeOf(domain)
     val reference = memory.allocConcrete(runtimeType)
@@ -137,7 +130,7 @@ private fun TsState.materializeCallsConstant(value: JsConcreteValue): UExpr<*> =
 
 private fun TsState.materializeCallsOptional(
     domain: OptionalDomain,
-    objectShapes: CallsObjectShapes,
+    objectShapes: PlainObjectInputShapes,
 ): MaterializedCallsInput = with(ctx) {
     val nested = materializeCallsInput(domain = domain.value, objectShapes = objectShapes)
     val nil = materializeCallsConstant(domain.nil)
@@ -164,54 +157,12 @@ private fun TsState.materializeCallsOptional(
     MaterializedCallsInput(value, OptionalInputSnapshot(chooseValue, nested.snapshot, domain.nil))
 }
 
-internal fun PropertyDomain.callsRuntimeType(objectType: (ObjectDomain) -> EtsClassType): EtsType = when (this) {
-    BooleanDomain -> {
-        EtsBooleanType
-    }
-    is IntegerDomain, is NumberDomain -> {
-        EtsNumberType
-    }
-    is StringDomain -> {
-        EtsStringType
-    }
-    is ArrayDomain -> {
-        val nestedType = element.callsRuntimeType(objectType)
-        if (nestedType is EtsArrayType) {
-            nestedType.copy(dimensions = nestedType.dimensions + 1)
-        } else {
-            EtsArrayType(elementType = nestedType, dimensions = 1)
-        }
-    }
-    is OptionalDomain -> {
-        val nestedType = value.callsRuntimeType(objectType)
-        val nilType = ConstantDomain(nil).callsRuntimeType(objectType)
-        EtsUnionType(types = listOf(nestedType, nilType))
-    }
-    is ObjectDomain -> {
-        objectType(this)
-    }
-    is ConstantDomain -> {
-        when (value) {
-            is JsConcreteValue.Boolean -> EtsBooleanType
-            is JsConcreteValue.Number -> EtsNumberType
-            is JsConcreteValue.String -> EtsStringType
-            JsConcreteValue.Null -> EtsNullType
-            JsConcreteValue.Undefined -> EtsUndefinedType
-            is JsConcreteValue.Array, is JsConcreteValue.Object -> error(
-                "Structured constants are not primitive domains",
-            )
-        }
-    }
-    else -> {
-        error("Unsupported array element domain: $this")
-    }
-}
 
 private fun TsState.materializeCallsArray(
     domain: ArrayDomain,
-    objectShapes: CallsObjectShapes,
+    objectShapes: PlainObjectInputShapes,
 ): MaterializedCallsInput = with(ctx) {
-    val runtimeType = domain.callsRuntimeType(objectShapes::typeOf) as EtsArrayType
+    val runtimeType = objectShapes.runtimeTypeOf(domain) as EtsArrayType
     val descriptor = arrayDescriptorOf(runtimeType)
     val arrayRef = memory.allocConcrete(runtimeType)
     val length = initializeLength(minLength = domain.minLength, maxLength = domain.maxLength)
