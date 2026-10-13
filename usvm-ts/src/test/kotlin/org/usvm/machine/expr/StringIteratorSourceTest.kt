@@ -147,7 +147,11 @@ class StringIteratorSourceTest : TsMethodTestRunner() {
     private fun method(name: String): EtsMethod = getMethod(methodName = name, className = "StringIteratorSource")
 
     private val literalMethods = listOf(
-        "mixedUtf16", "reversedSurrogates", "destructuring",
-        "exhaustedDestructuring", "reboundSource", "shadowedSymbol",
+        "mixedUtf16",
+        "reversedSurrogates",
+        "destructuring",
+        "exhaustedDestructuring",
+        "reboundSource",
+        "shadowedSymbol",
     )
 }

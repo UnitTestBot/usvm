@@ -80,7 +80,10 @@ class ArrayIteratorSourceTest : TsMethodTestRunner() {
     @Test
     fun `own symbol overrides cannot silently use the native array iterator`() {
         val methodNames = listOf(
-            "customSymbolOverride", "builtinSymbolKey", "aliasedSymbolOverride", "bracketSymbolOverride",
+            "customSymbolOverride",
+            "builtinSymbolKey",
+            "aliasedSymbolOverride",
+            "bracketSymbolOverride",
         )
 
         for (methodName in methodNames) {

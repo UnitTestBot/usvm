@@ -48,6 +48,8 @@ class SourceSdkConstructorShadowTest : TsMethodTestRunner() {
     }
 
     private val methods = listOf(
-        "objectMethodKeepsSourceImplementation", "arrayMethodKeepsSourceImplementation", "symbolKeyKeepsSourceImplementation",
+        "objectMethodKeepsSourceImplementation",
+        "arrayMethodKeepsSourceImplementation",
+        "symbolKeyKeepsSourceImplementation",
     )
 }
