@@ -83,11 +83,16 @@ class MapValueRegressionTest : GoNativeTestRunner() {
 
     @Test
     @GoSample(method = "inputFloatMapZeroRangeSign", fixture = "regressions")
-    fun inputFloatMapZeroRangeSign() = replayMapInputs(
-        method = "inputFloatMapZeroRangeSign",
-        observedKey = 0.0,
-        expectedOutcomes = setOf(-1L, 0L, 1L),
-    )
+    fun inputFloatMapZeroRangeSign() {
+        // IEEE division distinguishes the stored zero sign; CI needs time to solve both input witnesses.
+        options = options.copy(timeout = 30.seconds, solverTimeout = 10.seconds)
+
+        replayMapInputs(
+            method = "inputFloatMapZeroRangeSign",
+            observedKey = 0.0,
+            expectedOutcomes = setOf(-1L, 0L, 1L),
+        )
+    }
 
     @Test
     @GoSample(method = "nilPointerMapKeyLookupAndRange", fixture = "regressions")
