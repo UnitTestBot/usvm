@@ -13,7 +13,7 @@ fun TsState.markDenseArrayOwnSlots(
     length: UExpr<TsSizeSort>,
     capacity: Int,
 ) = with(ctx) {
-    val presence = (0 until capacity).associate { index ->
+    val presence: Map<UExpr<TsSizeSort>, UBoolExpr> = (0 until capacity).associate { index ->
         val symbolicIndex = mkBv(index)
         symbolicIndex to mkBvSignedLessExpr(symbolicIndex, length)
     }
