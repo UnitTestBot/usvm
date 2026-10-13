@@ -77,6 +77,30 @@ internal class CallsObjectInputsTest : CurrentTsCallsSymbolicEngineTestSupport()
     }
 
     @Test
+    fun `plain object accepts a field redeclared by the nearest class`() {
+        val fixture = fixture(
+            source = """
+                class Parent { x: number = 0; }
+                class Child extends Parent { x: number = 0; }
+
+                export function accepts(input: Child): boolean {
+                  if (input.x === 2) return true;
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "accepts",
+            inputs = listOf(PropertyInput(name = "input", domain = ObjectDomain(mapOf("x" to NumberDomain())))),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.search(modelIds = emptySet())
+        val inputs = assertNotNull(result.inputs, result.toString())
+
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        fixture.assertReplayConfirmed(inputs)
+    }
+
+    @Test
     fun `plain object does not borrow methods from its class annotation`() {
         val fixture = fixture(
             source = """

@@ -35,7 +35,7 @@ import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.componentType
-import org.usvm.util.getAllFields
+import org.usvm.util.declaredInstanceProperty
 
 /** Rejects bindings whose frozen domain would replace a source parameter with an incompatible runtime kind. */
 internal fun callsInputTypePreflight(
@@ -173,13 +173,9 @@ private fun PropertyDomain.objectFieldTypeLimitation(
         return "$path: frozen domain $this requires a compatible object domain for declared type $type"
     }
 
-    val declaredFields = hierarchy.classesForType(type).flatMap { clazz -> clazz.getAllFields(hierarchy) }
     for ((name, domain) in fields) {
         val fieldPath = "$path.$name"
-        val fieldType = declaredFields.filter { field -> field.name == name }
-            .distinctBy { field -> field.signature }
-            .singleOrNull()
-            ?.type
+        val fieldType = declaredInstanceProperty(type, name, hierarchy)?.type
             ?: return "$fieldPath: cannot resolve the declared field type in $type"
         val limitation = domain.inputTypeLimitation(
             type = fieldType,
