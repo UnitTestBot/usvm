@@ -1,6 +1,7 @@
 package org.usvm.machine.call.intrinsic
 
 import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsStringType
@@ -16,13 +17,13 @@ import org.usvm.machine.call.TsUnknownCallModel
 import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.call.loadBundledEtsIrUnknownCallModelArtifact
 import org.usvm.machine.expr.builtInErrorSignature
+import org.usvm.machine.expr.builtInTypeErrorSignature
 import org.usvm.types.single
 
-/** Narrow built-in `Error(message: string)` constructor model. */
+/** Built-in Error and TypeError constructors with string messages. */
 internal object TsErrorEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     const val CONSTRUCTOR_ID: String = "ts.error.constructor"
 
-    private const val ERROR_CLASS = "Error"
     private const val RESOURCE = "/org/usvm/machine/call/models/ErrorModels.ts"
 
     private val artifact by lazy {
@@ -38,20 +39,35 @@ internal object TsErrorEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         field.enclosingClass.name == "ErrorValue" && field.enclosingClass.file == artifact.file.signature
 
     override val models: List<TsUnknownCallModel> by lazy {
-        listOf(constructorModel())
+        listOf(
+            constructorModel(builtInErrorSignature, modelId = CONSTRUCTOR_ID, methodName = "construct"),
+            constructorModel(
+                builtInTypeErrorSignature,
+                modelId = "ts.typeError.constructor",
+                methodName = "constructTypeError",
+            ),
+        )
     }
 
-    private fun constructorModel(): TsUnknownCallModel {
+    private fun constructorModel(
+        builtinSignature: EtsClassSignature,
+        modelId: String,
+        methodName: String,
+    ): TsUnknownCallModel {
         val target = TsUnknownCallTarget(
             methodName = CONSTRUCTOR_NAME,
-            enclosingClassName = ERROR_CLASS,
+            enclosingClassName = builtinSignature.name,
             failureReason = TsUnknownCallFailureReason.RECEIVER_CLASS_NOT_FOUND,
         )
 
+        val entryPoint = artifact.file.allClasses.single { it.name == "ErrorModels" }
+            .methods
+            .single { it.name == methodName }
+
         return TsEtsIrUnknownCallModel(
-            id = CONSTRUCTOR_ID,
+            id = modelId,
             target = target,
-            artifact = artifact,
+            artifact = artifact.copy(entryPoint = entryPoint),
             domainGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
                 with(state.ctx) {
                     val receiver = inputs.getOrNull(0) as? UConcreteHeapRef
@@ -60,7 +76,6 @@ internal object TsErrorEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                         ?: return@TsEtsIrUnknownCallModelDomainGuard falseExpr
                     if (messageValue.sort != addressSort) return@TsEtsIrUnknownCallModelDomainGuard falseExpr
                     val message = messageValue.asExpr(addressSort)
-                    val builtinSignature = builtInErrorSignature
                     val builtinErrorType = EtsClassType(signature = builtinSignature)
                     val receiverRuntimeType = state.memory.typeStreamOf(receiver).single()
 

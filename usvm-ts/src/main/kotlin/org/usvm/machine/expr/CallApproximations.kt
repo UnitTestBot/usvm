@@ -65,7 +65,7 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     // Handle `Number` calls.
     if (hasBuiltinGlobalOwner(owner = expr.instance, callee = expr.callee, expectedName = "Number")) {
         when (expr.callee.name) {
-            "isFinite", "isInteger", "isSafeInteger" -> {
+            "isFinite", "isInteger", "isSafeInteger", "parseFloat" -> {
                 return tryDispatchNumericBuiltin(expr)
                     ?: TsExprApproximationResult.NoApproximation
             }
@@ -182,8 +182,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
             allowUnqualifiedTarget = true,
         )
 
-        // join has no source model yet; the model run intentionally sends it to the residual policy.
-        if (modeledArrayCall || (usesModelDispatcher && expr.callee.name == "join")) {
+        if (modeledArrayCall) {
             dispatchArrayModel(stmt)
             return TsExprApproximationResult.ResolveFailure
         }

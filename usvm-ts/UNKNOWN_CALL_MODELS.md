@@ -71,13 +71,17 @@ The built-in catalog includes the following public APIs and their internal stora
 | `ts.array.pop` | TypeScript/EtsIR body | Zero-argument `pop` on a definitely one-dimensional array that also satisfies the symbolic runtime type guard. |
 | `ts.array.includes`, `ts.array.indexOf`, `ts.array.lastIndexOf` | TypeScript/EtsIR bodies | One-dimensional arrays and numeric positions, with the missing-slot exclusions below. |
 | `ts.array.push`, `ts.array.fill`, `ts.array.reverse`, `ts.array.unshift`, `ts.array.slice`, `ts.array.concat` | TypeScript/EtsIR bodies with storage growth/allocation primitives | One-dimensional arrays with length/result at most 16. Push/unshift accept up to three arguments; resolved-sort arrays require matching element sorts, while mixed arrays retain runtime value kinds. Concat accepts one same-type array. Except push and full-range `fill(value)`, these operations require a current dense-array proof. |
+| `ts.array.join` | TypeScript/EtsIR body with a primitive element conversion | Dense arrays of at most 16 strings, booleans, numbers or nullish values, including runtime overrides in typed storage. Symbolic numbers support safe integers, signed zero, NaN and infinities; concrete numbers reuse exact ECMAScript decimal formatting. Symbolic fractions/unsafe integers and object coercion use fallback. Separator must be a string or omitted/undefined. |
+| `ts.array.reduce` | TypeScript/EtsIR body | Dense arrays of at most 16 elements and a known source callback. Preserves initial-value omission, accumulator/receiver aliases, captured variables, in-range writes and callback exceptions. Structural mutation uses fallback. |
 | `ts.string.charAt`, `ts.string.charCodeAt`, `ts.string.includes`, `ts.string.indexOf`, `ts.string.lastIndexOf`, `ts.string.startsWith`, `ts.string.endsWith` | TypeScript/EtsIR bodies | Strings in initialized UTF-16 storage, including symbolic code units and numeric positions. |
 | `ts.string.slice`, `ts.string.substring`, `ts.string.trim`, `ts.string.trimStart`, `ts.string.trimEnd` | TypeScript/EtsIR bodies | UTF-16 range copying; substring clamps/swaps bounds, and trim uses the ECMAScript whitespace set. |
 | `ts.string.replaceAll` | TypeScript/EtsIR body | String receiver, string search and string replacement; non-overlapping UTF-16 matches, empty search and ECMAScript dollar substitutions for a dollar sign, the match, its prefix and its suffix. RegExp, callbacks and argument coercions use fallback. |
+| `ts.string.split` | TypeScript/EtsIR body with dense string-array allocation | String or omitted/undefined separator and numeric or omitted/undefined limit. Uses exact Uint32 limit conversion. Ordinary split accepts at most 15 input code units; omitted separators and zero limits also accept longer strings. |
 | `ts.string.toLowerCase`, `ts.string.toUpperCase` | TypeScript/EtsIR bodies | ASCII strings of at most 16 code units; other strings use residual fallback. |
 | `ts.math.abs`, `ts.math.ceil`, `ts.math.floor`, `ts.math.max`, `ts.math.min`, `ts.math.round`, `ts.math.sqrt`, `ts.math.trunc` | Kotlin FP primitives | Numeric arguments; dynamic coercions use fallback. |
 | `ts.number.isFinite`, `ts.number.isInteger`, `ts.number.isNaN`, `ts.number.isSafeInteger` | Kotlin FP/type primitives | Non-coercing Number predicates, including runtime-kind guards. |
-| `ts.error.constructor` | TypeScript/EtsIR body | Genuine `new Error(message)` with one string argument; initializes `name` and `message`. Other arities, coercions, subclasses, `cause` and stack inspection are outside this model. |
+| `ts.number.parseFloat` | TypeScript/EtsIR decimal-prefix parser | String input up to 32 code units; at most 15 significant digits and final decimal scale between -22 and 22. Longer mantissas/scales and argument coercion use fallback. |
+| `ts.error.constructor`, `ts.typeError.constructor` | TypeScript/EtsIR bodies | Genuine `new Error(message)` / `new TypeError(message)` with one string argument; initializes `name` and `message`. Other arities, coercions, subclasses, `cause` and stack inspection are outside these models. |
 | `ts.date.*` (38 IDs) | TypeScript/EtsIR bodies | Numeric Date construction, `UTC`, fixed-clock `now`, getters, setters, `valueOf`, and source `toISOString`; see the Date boundary below. |
 
 Matching standard calls are assumed to refer to genuine builtins. Monkey patching and prototype replacement are
@@ -98,9 +102,16 @@ model, including through an `any` alias. An unknown or non-array receiver does n
 the method is named `shift`. A definitely-array receiver with an unresolved element sort remains applicable and uses
 the fake-value representation described below.
 
-Dense input proofs retain snapshots of the array length and element storage regions. A later write invalidates the
-proof conservatively, including writes to another array sharing a region. Consequently, a chain of individually
-modeled array methods can still use fallback after its first mutation or copy.
+Dense input proofs retain the original receiver length and storage-region snapshots. Join, reduce, reverse and slice
+use the receiver's unchanged length as their density check: supported index writes cannot create holes, and deletion
+stops explicitly. In-range payload writes and allocations of other arrays therefore preserve this check. Other models
+still require unchanged storage-region snapshots and may use fallback after a mutation or copy. Split records a new
+dense proof for its returned string array, allowing ordinary compositions such as split/reverse/join.
+
+Reduce captures the initial length and passes the original array reference to every callback. It checks the dense
+shape again after each callback; unsupported structural changes remain residual. Empty reduce without an initial
+value throws a modeled TypeError. Join/reduce/split resolve only their meaningful argument prefix, while evaluation
+of extra source arguments still happens through the regular interpreter and retains its side effects.
 
 ### Runtime limitations and experimental outcomes
 

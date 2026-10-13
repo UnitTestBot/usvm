@@ -23,6 +23,8 @@ import org.usvm.types.singleOrNull
 import org.usvm.util.boxArrayValue
 
 internal val builtInErrorSignature = EtsClassSignature.UNKNOWN.copy(name = "Error")
+internal val builtInTypeErrorSignature = EtsClassSignature.UNKNOWN.copy(name = "TypeError")
+private val builtInErrorSignatures = setOf(builtInErrorSignature, builtInTypeErrorSignature)
 
 /** Matches exact SDK identities and the interpreter's own TypeError, excluding source class shadows. */
 internal fun EtsType.isModeledErrorType(): Boolean =
@@ -39,7 +41,7 @@ internal fun EtsFieldSignature.isErrorModelStorageDefinitionField(): Boolean =
         (name == ERROR_NAME_STORAGE_FIELD || name == ERROR_MESSAGE_STORAGE_FIELD)
 
 internal fun EtsFieldSignature.isUnresolvedErrorField(): Boolean =
-    enclosingClass == builtInErrorSignature && (name == "name" || name == "message")
+    enclosingClass in builtInErrorSignatures && (name == "name" || name == "message")
 
 internal enum class ErrorStorageField { NAME, MESSAGE }
 
@@ -60,7 +62,7 @@ private fun EtsFieldSignature.errorModelDefinitionStorageField(): ErrorStorageFi
 }
 
 internal fun EtsFieldSignature.errorModelStorageField(): ErrorStorageField? {
-    if (enclosingClass != builtInErrorSignature && enclosingClass != EtsClassSignature.UNKNOWN) {
+    if (enclosingClass !in builtInErrorSignatures && enclosingClass != EtsClassSignature.UNKNOWN) {
         return null
     }
 
@@ -88,7 +90,9 @@ private fun TsContext.resolveErrorStorageField(
     val concreteInstance = instance as? UConcreteHeapRef ?: return null
     val runtimeType = scope.calcOnState { memory.typeStreamOf(concreteInstance).singleOrNull() }
 
-    return candidateStorageField.takeIf { runtimeType == EtsClassType(signature = builtInErrorSignature) }
+    return candidateStorageField.takeIf {
+        runtimeType is EtsClassType && runtimeType.signature in builtInErrorSignatures
+    }
 }
 
 internal fun TsContext.readModeledErrorField(

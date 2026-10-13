@@ -3,7 +3,55 @@ declare class StringModelPrimitives {
     static fromCodeUnit(codeUnit: number): string;
 }
 
+declare class ArrayModelPrimitives {
+    static allocateStrings(length: number): string[];
+    static truncateDense(receiver: string[], length: number): string[];
+}
+
 export class StringModels {
+    static split(receiver: string, separator: string, limit: number, omitted: boolean): string[] {
+        const result = ArrayModelPrimitives.allocateStrings(16);
+        // The adapter supplies an exact uint32 limit, including the omitted default.
+        if (limit === 0) return ArrayModelPrimitives.truncateDense(result, 0);
+        if (omitted) {
+            result[0] = receiver;
+            return ArrayModelPrimitives.truncateDense(result, 1);
+        }
+
+        const length = receiver.length;
+        const separatorLength = separator.length;
+        let count = 0;
+        if (separatorLength === 0) {
+            while (count < length && count < limit) {
+                result[count] = receiver[count];
+                count++;
+            }
+            return ArrayModelPrimitives.truncateDense(result, count);
+        }
+
+        let start = 0;
+        let position = 0;
+        while (position + separatorLength <= length) {
+            let offset = 0;
+            while (offset < separatorLength &&
+                receiver[position + offset] ===
+                    separator[offset]) {
+                offset++;
+            }
+            if (offset === separatorLength) {
+                result[count] = StringModels.slice(receiver, start, position);
+                count++;
+                if (count === limit) return ArrayModelPrimitives.truncateDense(result, count);
+                position += separatorLength;
+                start = position;
+            } else {
+                position++;
+            }
+        }
+        result[count] = StringModels.slice(receiver, start, length);
+        return ArrayModelPrimitives.truncateDense(result, count + 1);
+    }
+
     static charAt(receiver: string, index: number): string {
         const length = receiver.length;
         const integerIndex = StringModels.normalizeCharIndex(index, length);

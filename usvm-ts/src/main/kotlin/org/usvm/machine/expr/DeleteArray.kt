@@ -3,6 +3,7 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
 import org.usvm.util.deleteKnownArrayIndex
@@ -23,7 +24,12 @@ internal fun TsExprResolver.tryDeleteArrayIndex(value: EtsArrayAccess): TsExprAp
 
     val knownOwnSlots = scope.calcOnState { array in knownArrayPropertyPresence }
     if (!knownOwnSlots) {
-        throw UnsupportedOperationException("Array index deletion requires known own-slot provenance")
+        reportRuntimeFeatureLimitation(
+            reason = TsRuntimeFeatureLimitationReason.ARRAY_ELEMENT_DELETE,
+            detail = "Array index deletion requires known own-slot provenance",
+        )
+        scope.assert(falseExpr)
+        return TsExprApproximationResult.ResolveFailure
     }
 
     val resolvedIndex = resolve(value.index) ?: return TsExprApproximationResult.ResolveFailure
