@@ -858,14 +858,7 @@ class TsInterpreter(
         }
 
         state.configureState()
-
-        val solver = solver<EtsType>()
-        val solverResult = solver.check(state.pathConstraints)
-        if (solverResult is UUnknownResult) {
-            throw TsInitialStateSolverUnknownException(method)
-        }
-        val model = solverResult.ensureSat().model
-        state.models = listOf(model)
+        state.initializeModel(method)
 
         state
     }
@@ -873,4 +866,15 @@ class TsInterpreter(
     // TODO: expand with interpreter implementation
     private val EtsStmt.nextStmt: EtsStmt?
         get() = graph.successors(this).firstOrNull()
+}
+
+private fun TsState.initializeModel(method: EtsMethod) {
+    val solver = ctx.solver<EtsType>()
+    val solverResult = solver.check(pathConstraints)
+    if (solverResult is UUnknownResult) {
+        throw TsInitialStateSolverUnknownException(method)
+    }
+
+    val model = solverResult.ensureSat().model
+    models = listOf(model)
 }
