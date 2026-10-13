@@ -134,7 +134,12 @@ class TsStringIndexWriteTest : TsMethodTestRunner() {
     @Test
     fun `source directives apply to functions and lexically nested calls`() {
         val methodNames = listOf(
-            "ownStrict", "inheritedStrict", "strictCaller", "sloppyCaller", "inheritedArrow", "classInScript",
+            "ownStrict",
+            "inheritedStrict",
+            "strictCaller",
+            "sloppyCaller",
+            "inheritedArrow",
+            "classInScript",
         )
 
         for (name in methodNames) {
@@ -160,9 +165,11 @@ class TsStringIndexWriteTest : TsMethodTestRunner() {
         source.writeText("function legacy() { const target: any = 'abc'; target[0] = 'x'; return 1; }")
         val output = generateEtsIR(source, isProject = false, timeout = null, provider = EtsIrProvider.TS_FRONTEND)
         val dto = EtsFileDto.loadFromJson(output.readText())
-        val legacyDto = dto.copy(classes = dto.classes.map { clazz ->
-            clazz.copy(methods = clazz.methods.map { it.copy(isStrictMode = null) })
-        })
+        val legacyClasses = dto.classes.map { clazz ->
+            val legacyMethods = clazz.methods.map { it.copy(isStrictMode = null) }
+            clazz.copy(methods = legacyMethods)
+        }
+        val legacyDto = dto.copy(classes = legacyClasses)
         val legacyFile = legacyDto.toEtsFile()
         val legacyMethod = legacyFile.allClasses.flatMap { it.methods }.single { it.name == "legacy" }
         val legacyScene = EtsScene(listOf(legacyFile))
