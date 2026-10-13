@@ -17,6 +17,7 @@ import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.writtenArrayIndexPresence
 
 /** State belongs to a particular native array iterator, independently of its source binding. */
 data class TsArrayIterator(
@@ -92,7 +93,7 @@ private fun TsExprResolver.advanceArrayIterator(
 ): UHeapRef? = with(ctx) {
     val invalidated = scope.calcOnState { iterator.array in unsupportedIteratorArrays }
     if (invalidated) {
-        unsupportedArrayIterator("Array iteration after deleting an indexed property is not modeled")
+        unsupportedArrayIterator("Array iteration needs known element-presence and value storage")
         return null
     }
 
@@ -111,22 +112,22 @@ private fun TsExprResolver.advanceArrayIterator(
 
     val done = mkOr(iterator.exhausted, mkBvSignedGreaterOrEqualExpr(iterator.index, length))
     val initialized = scope.calcOnState {
-        // Symbolic array inputs use the engine's dense input contract. Allocations need actual slot writes.
+        // Inputs are dense; known allocations distinguish written own slots from holes.
         val array = iterator.array
         val denseInput = !isAllocatedConcreteHeapRef(array) ||
             (array is UConcreteHeapRef && denseInputArrays[array] != null)
-        if (denseInput) {
+        val knownOwnSlots = array in knownArrayPropertyPresence
+        if (denseInput || knownOwnSlots) {
             trueExpr
         } else {
-            val initializedSlots = initializedArrayIndices[array].orEmpty()
-            mkOr(initializedSlots.map { index -> mkEq(iterator.index, index) })
+            writtenArrayIndexPresence(array, iterator.index)
         }
     }
     val supportedRead = mkOr(done, initialized)
     if (scope.checkSat(mkNot(supportedRead)) != null) {
         reportRuntimeFeatureLimitation(
             reason = TsRuntimeFeatureLimitationReason.ARRAY_ITERATOR_UNSUPPORTED,
-            detail = "Array iteration over uninitialized slots is not modeled",
+            detail = "Array iteration requires known own-slot provenance",
         )
     }
     scope.assert(supportedRead) ?: return null

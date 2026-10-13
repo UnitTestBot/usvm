@@ -64,6 +64,8 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
 
     val propertyName = concreteStringValue(resolvedIndex)
     if (propertyName != null && storageType !is EtsArrayType) {
+        if (!ensureSupportedArrayPrototypeAccess(array, propertyName)) return null
+
         val field = EtsFieldSignature(
             name = propertyName,
             enclosingClass = EtsClassSignature.UNKNOWN,
@@ -170,7 +172,7 @@ fun TsContext.assignToArrayIndex(
 
     scope.doWithState {
         val writtenIndices = initializedArrayIndices[array].orEmpty()
-        initializedArrayIndices += array to (writtenIndices + index)
+        initializedArrayIndices += array to (writtenIndices + (index to trueExpr))
     }
 
     val elementSort = typeToSort(arrayType.componentType)

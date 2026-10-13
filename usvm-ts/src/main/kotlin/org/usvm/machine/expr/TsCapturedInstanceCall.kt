@@ -68,6 +68,9 @@ internal fun TsExprResolver.tryCaptureInstanceCall(
     if (builtinReturn) return TsExprApproximationResult.SuccessfulApproximation(mkUndefinedValue())
 
     if (reference != null) {
+        if (!ensureSupportedArrayPrototypeAccess(reference, field.field.name)) {
+            return TsExprApproximationResult.ResolveFailure
+        }
         val referenceGuard = if (receiver.isFakeObject()) receiver.getFakeType(scope).refTypeExpr else trueExpr
         val valid = mkOr(mkNot(referenceGuard), mkNotNullOrUndefined(reference))
         scope.fork(valid, blockOnFalseState = {

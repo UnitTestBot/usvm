@@ -86,6 +86,7 @@ internal fun TsExprResolver.handleInstanceFieldRef(
     // Check for undefined or null property access.
     checkUndefinedOrNullPropertyRead(scope, rawInstance, propertyName = value.field.name) ?: return null
     val instance = resolveHeapRef(scope, rawInstance) ?: return null
+    if (!ensureSupportedArrayPrototypeAccess(instance, value.field.name)) return null
 
     val iteratorField = readBuiltinIteratorField(instance, value.field.name)
     if (iteratorField != null) return iteratorField
@@ -425,6 +426,11 @@ private fun TsContext.materializeTypedStringField(
 internal fun TsExprResolver.handleStaticFieldRef(
     value: EtsStaticFieldRef,
 ): UExpr<*>? = with(ctx) {
+    if (value.field.name == "prototype") {
+        val constructor = classConstructorRef(value.field.enclosingClass)
+        if (!ensureSupportedArrayPrototypeAccess(constructor, value.field.name)) return null
+    }
+
     return readStaticField(scope, value.field, hierarchy)
 }
 

@@ -580,6 +580,12 @@ class TsExprResolver(
             is EtsCastExpr -> visit(EtsDeleteExpr(arg = operand.arg))
 
             is EtsArrayAccess -> {
+                when (val result = tryDeleteArrayIndex(operand)) {
+                    is TsExprApproximationResult.SuccessfulApproximation -> return result.expr
+                    TsExprApproximationResult.ResolveFailure -> return null
+                    TsExprApproximationResult.NoApproximation -> {}
+                }
+
                 val index = resolve(operand.index) ?: return null
                 val propertyName = concreteStringValue(index)
                     ?: throw UnsupportedOperationException("Symbolic object property keys in delete are not supported")
@@ -1554,6 +1560,7 @@ class TsExprResolver(
             val descriptor = arrayDescriptorOf(arrayType)
             val address = memory.allocConcrete(descriptor)
             memory.initializeArrayLength(address, descriptor, sizeSort, bvSize.asExpr(sizeSort))
+            knownArrayPropertyPresence += address
 
             address
         }

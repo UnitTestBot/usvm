@@ -11,6 +11,7 @@ import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.usvm.PathNode
+import org.usvm.UBoolExpr
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -79,8 +80,9 @@ class TsState(
     internal var arrayIterators: Map<UConcreteHeapRef, TsArrayIterator> = emptyMap(),
     internal var stringIterators: Map<UConcreteHeapRef, TsStringIterator> = emptyMap(),
     internal var iteratorResults: Map<UConcreteHeapRef, TsIteratorResult> = emptyMap(),
+    internal var knownArrayPropertyPresence: Set<UHeapRef> = emptySet(),
     internal var unsupportedIteratorArrays: Set<UHeapRef> = emptySet(),
-    internal var initializedArrayIndices: Map<UHeapRef, Set<UExpr<TsSizeSort>>> = emptyMap(),
+    internal var initializedArrayIndices: Map<UHeapRef, Map<UExpr<TsSizeSort>, UBoolExpr>> = emptyMap(),
     var boundThis: UPersistentHashMap<UConcreteHeapRef, UHeapRef> = persistentHashMapOf(),
     var dfltObject: UPersistentHashMap<EtsFileSignature, UConcreteHeapRef> = persistentHashMapOf(),
 
@@ -355,6 +357,7 @@ class TsState(
             stringIterators = stringIterators,
             initializedArrayIndices = initializedArrayIndices,
             unsupportedIteratorArrays = unsupportedIteratorArrays,
+            knownArrayPropertyPresence = knownArrayPropertyPresence,
             boundThis = boundThis,
             dfltObject = dfltObject,
             dfltObjectFieldSorts = dfltObjectFieldSorts,
