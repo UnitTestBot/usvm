@@ -3,9 +3,14 @@ export class RuntimeLimitationBoundaries {
         return /value/.test("value");
     }
 
-    static unknownStorageOrSupportedSibling(flag: boolean, values: unknown): number {
-        if (flag) return 7;
-        return (values as any)[0];
+    static unsupportedConversionOrSupportedSibling(flag: boolean, value: { field: number }): string {
+        if (flag) return "supported";
+        return "prefix" + value;
+    }
+
+    static ordinaryNumericKeyField(): number {
+        const value = { 0: 17 };
+        return value[0];
     }
 
     static ordinaryLengthField(): number {

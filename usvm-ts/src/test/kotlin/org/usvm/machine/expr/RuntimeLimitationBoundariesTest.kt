@@ -44,15 +44,18 @@ class RuntimeLimitationBoundariesTest : TsMethodTestRunner() {
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
             assertTrue(outcome.states.isEmpty())
-            assertTrue(outcome.unsupportedPaths.any { "REGULAR_EXPRESSION_LITERAL" in it })
+            assertTrue(
+                outcome.unsupportedPaths.any { "REGULAR_EXPRESSION_LITERAL" in it },
+                outcome.unsupportedPaths.toString(),
+            )
         }
         assertEquals(listOf(TsRuntimeFeatureLimitationReason.REGULAR_EXPRESSION_LITERAL), observer.reasons)
     }
 
     @Test
-    fun `unsupported storage terminates while a supported sibling still returns`() {
+    fun `unsupported operand conversion terminates while a supported sibling still returns`() {
         val observer = RecordingObserver()
-        val target = method("unknownStorageOrSupportedSibling")
+        val target = method("unsupportedConversionOrSupportedSibling")
 
         TsMachine(
             scene = scene,
@@ -64,12 +67,28 @@ class RuntimeLimitationBoundariesTest : TsMethodTestRunner() {
             val values = outcome.states.map { state -> TsTestResolver().resolve(target, state).returnValue }
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
-            assertTrue(outcome.unsupportedPaths.any { "ARRAY_STORAGE_TYPE" in it })
-            assertTrue(values.any { value -> value is TsTestValue.TsNumber && value.number == 7.0 })
+            assertTrue(
+                outcome.unsupportedPaths.any { "STRING_CONCAT_OPERAND_CONVERSION" in it },
+                outcome.unsupportedPaths.toString(),
+            )
+            assertTrue(values.any { value -> value is TsTestValue.TsString && value.value == "supported" })
         }
         assertTrue(observer.reasons.isNotEmpty())
-        assertTrue(observer.reasons.all { reason -> reason == TsRuntimeFeatureLimitationReason.ARRAY_STORAGE_TYPE })
+        assertTrue(
+            observer.reasons.all { reason ->
+                reason == TsRuntimeFeatureLimitationReason.STRING_CONCAT_OPERAND_CONVERSION
+            },
+        )
         assertTrue(observer.reasons.size < 128)
+    }
+
+    @Test
+    fun `ordinary numeric object key is not an array storage limitation`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method("ordinaryNumericKeyField"),
+            { result -> result.number == 17.0 },
+            invariants = arrayOf({ result -> result.number == 17.0 }),
+        )
     }
 
     @Test

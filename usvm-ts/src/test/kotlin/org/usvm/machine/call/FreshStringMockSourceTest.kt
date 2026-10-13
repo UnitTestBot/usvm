@@ -66,12 +66,12 @@ class FreshStringMockSourceTest : TsMethodTestRunner() {
             val outcome = machine.analyzeWithOutcome(methods = listOf(method))
             val values = outcome.states.map { state -> TsTestResolver().resolve(method, state).returnValue }
             val onlyCapacityResiduals = outcome.unsupportedPaths.all { diagnostic ->
-                "String concatenation result exceeds configured length bound 8" in diagnostic
+                "String concatenation result exceeds the configured length bound 8" in diagnostic
             }
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
             assertTrue(outcome.unsupportedPaths.isNotEmpty())
-            assertTrue(onlyCapacityResiduals)
+            assertTrue(onlyCapacityResiduals, outcome.unsupportedPaths.toString())
             assertTrue(values.isNotEmpty())
             assertTrue(values.all { value -> value is TsTestValue.TsString && value.value.endsWith("!") })
         }

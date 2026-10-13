@@ -31,6 +31,7 @@ import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsEqExpr
 import org.jacodb.ets.model.EtsExpExpr
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsGlobalRef
 import org.jacodb.ets.model.EtsGtEqExpr
@@ -1521,6 +1522,18 @@ class TsExprResolver(
 
     override fun visit(expr: EtsNewExpr): UExpr<out USort>? = with(ctx) {
         expr.constructorValue?.let { return@with constructRuntimeClass(it) }
+
+        val classType = expr.type as? EtsClassType
+        val intrinsicRegex = classType?.signature?.name == "RegExp" &&
+            (classType.signature.file == EtsFileSignature.UNKNOWN ||
+                scene.sdkClasses.any { owner -> owner.signature == classType.signature })
+        if (intrinsicRegex) {
+            stopRuntimeFeatureLimitation(
+                reason = TsRuntimeFeatureLimitationReason.REGULAR_EXPRESSION_LITERAL,
+                detail = "Intrinsic RegExp allocation has no runtime model",
+            )
+            return@with null
+        }
 
         // Try to resolve the concrete type if possible.
         // Otherwise, create an object with UnclearRefType
