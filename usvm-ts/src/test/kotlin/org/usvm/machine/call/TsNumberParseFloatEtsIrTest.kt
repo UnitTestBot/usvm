@@ -71,7 +71,12 @@ class TsNumberParseFloatEtsIrTest : TsMethodTestRunner() {
         }
         val method = getMethod(methodName = "unsupportedMantissa", className = "NumberParseFloatEtsIr")
 
-        val states = TsMachine(scene = scene, options = options, tsOptions = tsOptions, observer = observer).use { machine ->
+        val states = TsMachine(
+            scene = scene,
+            options = options,
+            tsOptions = tsOptions,
+            observer = observer,
+        ).use { machine ->
             machine.analyze(methods = listOf(method))
         }
 
