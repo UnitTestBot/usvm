@@ -87,7 +87,7 @@ internal fun TsExprResolver.handleInstanceFieldRef(
     checkUndefinedOrNullPropertyRead(scope, rawInstance, propertyName = value.field.name) ?: return null
     val instance = resolveHeapRef(scope, rawInstance) ?: return null
 
-    val iteratorField = readArrayIteratorField(instance, value.field.name)
+    val iteratorField = readBuiltinIteratorField(instance, value.field.name)
     if (iteratorField != null) return iteratorField
 
     // Handle reading "length" property.

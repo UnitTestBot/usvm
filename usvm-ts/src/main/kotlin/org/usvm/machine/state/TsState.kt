@@ -30,8 +30,9 @@ import org.usvm.machine.TsInputPropertyPresence
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.expr.TrackedObjectProperty
 import org.usvm.machine.expr.TsArrayIterator
-import org.usvm.machine.expr.TsArrayIteratorResult
 import org.usvm.machine.expr.TsCapturedInstanceCall
+import org.usvm.machine.expr.TsIteratorResult
+import org.usvm.machine.expr.TsStringIterator
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
@@ -76,7 +77,8 @@ class TsState(
     var associatedFunction: UPersistentHashMap<UConcreteHeapRef, TsFunction> = persistentHashMapOf(),
     var capturedInstanceCalls: UPersistentHashMap<UConcreteHeapRef, TsCapturedInstanceCall> = persistentHashMapOf(),
     internal var arrayIterators: Map<UConcreteHeapRef, TsArrayIterator> = emptyMap(),
-    internal var arrayIteratorResults: Map<UConcreteHeapRef, TsArrayIteratorResult> = emptyMap(),
+    internal var stringIterators: Map<UConcreteHeapRef, TsStringIterator> = emptyMap(),
+    internal var iteratorResults: Map<UConcreteHeapRef, TsIteratorResult> = emptyMap(),
     internal var unsupportedIteratorArrays: Set<UHeapRef> = emptySet(),
     internal var initializedArrayIndices: Map<UHeapRef, Set<UExpr<TsSizeSort>>> = emptyMap(),
     var boundThis: UPersistentHashMap<UConcreteHeapRef, UHeapRef> = persistentHashMapOf(),
@@ -349,7 +351,8 @@ class TsState(
             associatedFunction = associatedFunction,
             capturedInstanceCalls = capturedInstanceCalls,
             arrayIterators = arrayIterators,
-            arrayIteratorResults = arrayIteratorResults,
+            iteratorResults = iteratorResults,
+            stringIterators = stringIterators,
             initializedArrayIndices = initializedArrayIndices,
             unsupportedIteratorArrays = unsupportedIteratorArrays,
             boundThis = boundThis,

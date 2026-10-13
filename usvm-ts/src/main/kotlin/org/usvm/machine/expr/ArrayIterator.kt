@@ -26,24 +26,30 @@ data class TsArrayIterator(
     val exhausted: UBoolExpr,
 )
 
-data class TsArrayIteratorResult(val done: UBoolExpr, val value: UExpr<*>)
+data class TsIteratorResult(val done: UBoolExpr, val value: UExpr<*>)
 
 private val iteratorType = EtsClassType(EtsClassSignature.UNKNOWN.copy(name = "%BuiltinArrayIterator"))
-private val iteratorResultType = EtsClassType(EtsClassSignature.UNKNOWN.copy(name = "%BuiltinArrayIteratorResult"))
+internal val iteratorResultType = EtsClassType(EtsClassSignature.UNKNOWN.copy(name = "%BuiltinIteratorResult"))
 
-internal fun TsExprResolver.tryApproximateArrayIteratorCall(
+internal fun TsExprResolver.tryApproximateBuiltinIteratorCall(
     stmt: TsVirtualMethodCallStmt,
 ): TsExprApproximationResult = with(ctx) {
     if (stmt.call.wellKnownSymbol == EtsWellKnownSymbol.ITERATOR) {
+        val string = tryCreateStringIterator(stmt)
+        if (string !is TsExprApproximationResult.NoApproximation) return string
+
         return TsExprApproximationResult.from(createArrayIterator(stmt))
     }
 
     val reference = stmt.instance as? UConcreteHeapRef ?: return TsExprApproximationResult.NoApproximation
-    val iterator = scope.calcOnState { arrayIterators[reference] }
-        ?: return TsExprApproximationResult.NoApproximation
     if (stmt.call.callee.name != "next") return TsExprApproximationResult.NoApproximation
 
-    TsExprApproximationResult.from(advanceArrayIterator(reference, iterator))
+    val stringIterator = scope.calcOnState { stringIterators[reference] }
+    if (stringIterator != null) return TsExprApproximationResult.from(advanceStringIterator(reference, stringIterator))
+
+    val arrayIterator = scope.calcOnState { arrayIterators[reference] }
+        ?: return TsExprApproximationResult.NoApproximation
+    TsExprApproximationResult.from(advanceArrayIterator(reference, arrayIterator))
 }
 
 private fun TsExprResolver.createArrayIterator(stmt: TsVirtualMethodCallStmt): UHeapRef? = with(ctx) {
@@ -143,15 +149,15 @@ private fun TsExprResolver.advanceArrayIterator(
             exhausted = done,
         )
         val result = memory.allocConcrete(iteratorResultType)
-        arrayIteratorResults += result to TsArrayIteratorResult(done = done, value = value)
+        iteratorResults += result to TsIteratorResult(done = done, value = value)
         result
     }
 }
 
-internal fun TsExprResolver.readArrayIteratorField(reference: UHeapRef, name: String): UExpr<*>? = with(ctx) {
+internal fun TsExprResolver.readBuiltinIteratorField(reference: UHeapRef, name: String): UExpr<*>? = with(ctx) {
     if (reference !is UConcreteHeapRef) return null
 
-    val result = scope.calcOnState { arrayIteratorResults[reference] }
+    val result = scope.calcOnState { iteratorResults[reference] }
     if (result != null) {
         return when (name) {
             "done" -> result.done
@@ -160,7 +166,7 @@ internal fun TsExprResolver.readArrayIteratorField(reference: UHeapRef, name: St
         }
     }
 
-    val isIterator = scope.calcOnState { arrayIterators[reference] != null }
+    val isIterator = scope.calcOnState { arrayIterators[reference] != null || stringIterators[reference] != null }
     if (isIterator && name == "return") return mkUndefinedValue()
 
     null

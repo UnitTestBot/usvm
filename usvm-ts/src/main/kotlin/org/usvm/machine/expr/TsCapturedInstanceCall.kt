@@ -64,7 +64,7 @@ internal fun TsExprResolver.tryCaptureInstanceCall(
         else -> null
     }
     val builtinReturn = field.field.name == "return" && reference is UConcreteHeapRef &&
-        scope.calcOnState { arrayIterators[reference] != null }
+        scope.calcOnState { arrayIterators[reference] != null || stringIterators[reference] != null }
     if (builtinReturn) return TsExprApproximationResult.SuccessfulApproximation(mkUndefinedValue())
 
     if (reference != null) {

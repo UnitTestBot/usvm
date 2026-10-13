@@ -155,7 +155,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     val expr = stmt.call
     val instance = stmt.instance
 
-    val iterator = tryApproximateArrayIteratorCall(stmt)
+    val iterator = tryApproximateBuiltinIteratorCall(stmt)
     if (iterator !is TsExprApproximationResult.NoApproximation) return iterator
 
     // Mock `.toString()` method calls
