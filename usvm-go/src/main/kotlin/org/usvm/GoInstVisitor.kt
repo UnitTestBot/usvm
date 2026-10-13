@@ -67,7 +67,8 @@ class GoInstVisitor(
                 1 -> returnValue(inst.returnValues[0].accept(exprVisitor), inst.returnValues[0].type)
                 else -> {
                     val type = TupleType(inst.returnValues.map { it.type })
-                    returnValue(mkTuple(type, fields = inst.returnValues.map { it.accept(exprVisitor) }.toTypedArray()), type)
+                    val fields = inst.returnValues.map { it.accept(exprVisitor) }.toTypedArray()
+                    returnValue(mkTuple(type, fields = fields), type)
                 }
             }
         }
@@ -155,7 +156,11 @@ class GoInstVisitor(
             memory.write(mapContainsLValue, ctx.trueExpr, ctx.trueExpr)
 
             val updatedSize = ctx.mkSizeAddExpr(currentSize, ctx.mkSizeExpr(1))
-            memory.write(UMapLengthLValue(map, type, ctx.sizeSort), updatedSize, ctx.mkNot(memory.read(mapContainsLValue)))
+            memory.write(
+                UMapLengthLValue(map, type, ctx.sizeSort),
+                updatedSize,
+                ctx.mkNot(memory.read(mapContainsLValue)),
+            )
         }
 
         return next(inst)

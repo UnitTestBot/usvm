@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 data class Package(
     val name: String,
     val members: List<Member>,
-    val types: Map<String, Type>
+    val types: Map<String, Type>,
 )
 
 @Serializable
@@ -618,14 +618,14 @@ sealed interface Type {
     @SerialName("Struct")
     data class Struct(
         override val name: String,
-        val fields: List<String>
+        val fields: List<String>,
     ) : Type
 
     @Serializable
     @SerialName("Tuple")
     data class Tuple(
         override val name: String,
-        val elems: List<String>
+        val elems: List<String>,
     ) : Type
 
     @Serializable

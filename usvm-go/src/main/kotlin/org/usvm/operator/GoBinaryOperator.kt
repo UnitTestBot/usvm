@@ -2,13 +2,13 @@ package org.usvm.operator
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import org.usvm.GoContext
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UBvSort
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.USort
-import org.usvm.GoContext
 import org.usvm.type.goCtx
 import org.usvm.uctx
 

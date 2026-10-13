@@ -18,7 +18,7 @@ import kotlin.time.Duration
 
 class GoTypeSystem(
     override val typeOperationsTimeout: Duration,
-    val types: Collection<GoType>
+    val types: Collection<GoType>,
 ) : UTypeSystem<GoType> {
     private val goAnyType = InterfaceType(emptyList(), "any")
     private val topTypeStream by lazy { USupportTypeStream.from(this, goAnyType) }
@@ -44,7 +44,9 @@ class GoTypeSystem(
     }
 
     override fun hasCommonSubtype(type: GoType, types: Collection<GoType>): Boolean = when (type) {
-        is BasicType, is ArrayType, is SliceType, is MapType, is PointerType, is SignatureType, is TupleType -> types.isEmpty()
+        is BasicType, is ArrayType, is SliceType, is MapType, is PointerType, is SignatureType, is TupleType -> {
+            types.isEmpty()
+        }
         is InterfaceType -> types.none { !isFinal(it) }
         is NamedType -> hasCommonSubtype(type.underlyingType, types)
         is StructType -> types.all { it is InterfaceType || isSupertype(it, type) }
@@ -53,7 +55,9 @@ class GoTypeSystem(
 
     override fun isSupertype(supertype: GoType, type: GoType): Boolean = when {
         supertype == type -> true
-        supertype is NamedType && supertype.underlyingType is InterfaceType -> isSupertype(supertype.underlyingType, type)
+        supertype is NamedType && supertype.underlyingType is InterfaceType -> {
+            isSupertype(supertype.underlyingType, type)
+        }
         supertype is InterfaceType -> implements(supertype, type)
         else -> false
     }

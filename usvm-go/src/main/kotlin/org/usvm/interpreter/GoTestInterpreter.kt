@@ -119,9 +119,13 @@ class GoTestInterpreter(
                     prefix + when (val type = baseType.underlying()) {
                         GoBasicTypes.STRING -> if (named) resolveBoxed(h, type) else resolveString(h, type)
                         is BasicType -> resolveBoxed(h, type)
-                        is ArrayType -> if (named) resolveBoxed(h, type) else resolveArray(h, type, type.len, type.elementType)
+                        is ArrayType -> {
+                            if (named) resolveBoxed(h, type) else resolveArray(h, type, type.len, type.elementType)
+                        }
                         is SliceType -> if (named) resolveBoxed(h, type) else resolveSlice(h, type, type.elementType)
-                        is MapType -> if (named) resolveBoxed(h, type) else resolveMap(h, type, type.keyType, type.valueType)
+                        is MapType -> {
+                            if (named) resolveBoxed(h, type) else resolveMap(h, type, type.keyType, type.valueType)
+                        }
                         is TupleType -> resolveTuple(h, type)
                         is StructType -> if (named) resolveBoxed(h, type) else resolveStruct(h, type)
                         is InterfaceType -> resolveInterface(h)
@@ -200,7 +204,12 @@ class GoTestInterpreter(
             }
         }
 
-        fun resolveMap(map: UHeapRef, mapType: GoType, keyType: GoType, valueType: GoType): Map<Any?, Any?>? = with(ctx) {
+        fun resolveMap(
+            map: UHeapRef,
+            mapType: GoType,
+            keyType: GoType,
+            valueType: GoType,
+        ): Map<Any?, Any?>? = with(ctx) {
             if (map == mkConcreteHeapRef(NULL_ADDRESS) || map == nullRef) {
                 return null
             }
@@ -276,7 +285,9 @@ class GoTestInterpreter(
             }
 
             return structType.fields?.mapIndexed { idx, type -> idx to type }?.associate {
-                Pair("field${it.first}", convertExpr(memory.readField(struct, it.first, typeToSort(it.second)), it.second))
+                val (index, fieldType) = it
+                val fieldValue = memory.readField(struct, index, typeToSort(fieldType))
+                Pair("field$index", convertExpr(fieldValue, fieldType))
             }
         }
 
@@ -333,7 +344,7 @@ class GoTestInterpreter(
 sealed interface ProgramExecutionResult
 
 class InputModel(
-    private val arguments: List<Any?>
+    private val arguments: List<Any?>,
 ) {
     override fun toString(): String {
         return buildString {
@@ -345,7 +356,7 @@ class InputModel(
 }
 
 class OutputModel(
-    private val returnExpr: Any?
+    private val returnExpr: Any?,
 ) {
     override fun toString(): String {
         return buildString {
@@ -358,7 +369,7 @@ class OutputModel(
 
 class SuccessfulExecutionResult(
     private val inputModel: InputModel,
-    private val outputModel: OutputModel
+    private val outputModel: OutputModel,
 ) : ProgramExecutionResult {
     override fun toString(): String {
         return buildString {
@@ -393,7 +404,7 @@ class UnsuccessfulExecutionResult(
 class RNG(
     type: BasicType,
     seed: Long = 0,
-    private val maxAttempts: Long = 10
+    private val maxAttempts: Long = 10,
 ) {
     private val random = Random(seed)
 

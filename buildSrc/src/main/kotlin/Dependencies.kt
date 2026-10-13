@@ -120,7 +120,7 @@ object Libs {
     val jacodb_go = dep(
         group = jacodbPackage,
         name = "jacodb-go",
-        version = "816194b963"
+        version = "a839f86ca8"
     )
 
     val jacodb_core = dep(

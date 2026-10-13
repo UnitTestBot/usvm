@@ -62,7 +62,7 @@ class GoState(
     forkPoints: PathNode<PathNode<GoInst>> = PathNode.root(),
     targets: UTargetsSet<GoTarget, GoInst> = UTargetsSet.empty(),
     var methodResult: GoMethodResult = GoMethodResult.NoCall,
-    var data: GoStateData = GoStateData()
+    var data: GoStateData = GoStateData(),
 ) : UState<GoType, GoMethod, GoInst, GoContext, GoTarget, GoState>(
     ctx,
     ownership,
@@ -286,7 +286,9 @@ class GoState(
     }
 
     fun box(expr: UExpr<out USort>, targetType: GoType): UHeapRef {
-        if (expr.sort == ctx.addressSort && expr !is UNullRef && expr !is KConst<*> && isBoxedConcrete(expr.asExpr(ctx.addressSort))) {
+        val alreadyBoxed = expr.sort == ctx.addressSort && expr !is UNullRef &&
+            expr !is KConst<*> && isBoxedConcrete(expr.asExpr(ctx.addressSort))
+        if (alreadyBoxed) {
             return box(unbox(expr.asExpr(ctx.addressSort), ctx.typeToSort(targetType.underlying())), targetType)
         }
 
@@ -395,7 +397,7 @@ class GoState(
     }
 
     companion object {
-        const val POINTER_FIELD = 50541
-        const val BOXED_VALUE_FIELD = 80085
+        const val POINTER_FIELD = 50_541
+        const val BOXED_VALUE_FIELD = 80_085
     }
 }

@@ -16,6 +16,6 @@ sealed interface GoMethodResult {
 
     class Panic(
         val value: UExpr<out USort>,
-        val type: GoType
+        val type: GoType,
     ) : GoMethodResult
 }

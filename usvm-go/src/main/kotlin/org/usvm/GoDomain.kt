@@ -13,7 +13,7 @@ import org.usvm.util.isOsInit
 class GoMethodInfo(
     val variablesCount: Int,
     val argumentsCount: Int,
-    val arguments: Array<UExpr<out USort>>
+    val arguments: Array<UExpr<out USort>>,
 ) {
     override fun toString(): String {
         return "variables: $variablesCount, arguments: $argumentsCount"
@@ -29,7 +29,7 @@ class GoPackage(
     val name: String,
     val methods: List<GoMethod>,
     val globals: List<GoGlobal>,
-    val types: Map<String, GoType>
+    val types: Map<String, GoType>,
 ) {
     private val methodsIndex: Map<String, GoMethod> = methods.associateBy { it.metName }
 

@@ -21,7 +21,7 @@ class JacoDbTest {
         val machine = GoMachine(program, options, customOptions)
         return methods(pkg).filter { it.metName in longMethods }.map {
             DynamicTest.dynamicTest(it.metName) {
-                println(measureTimeMillis { println(machine.analyzeAndResolve(pkg, it.metName)) })
+                analyzeAndLog(machine, pkg, it.metName)
             }
         }
     }
@@ -36,41 +36,51 @@ class JacoDbTest {
             .let { if (whitelist.isEmpty()) it else it.filter { m -> m.metName in whitelist } }
             .map {
                 DynamicTest.dynamicTest(it.metName) {
-                    println(measureTimeMillis { println(machine.analyzeAndResolve(pkg, it.metName)) })
+                    analyzeAndLog(machine, pkg, it.metName)
                 }
             }
     }
 
     @TestFactory
     fun jacodbTestImports(): Collection<DynamicTest> {
-        val packages = Files.list(Paths.get("out"))
-            .filter { p -> p.extension != "yaml" }
-            .map { Converter.unpack(Parser().deserialize(it.pathString)) }
-            .collect(Collectors.toList())
+        val packages = Files.list(Paths.get("out")).use { paths ->
+            paths.filter { path -> path.extension != "yaml" }
+                .map { Converter.unpack(Parser().deserialize(it.pathString)) }
+                .collect(Collectors.toList())
+        }
         val program = GoProgram(packages)
         val machine = GoMachine(program, options, customOptions)
         val pkg = program.findPackage("usvm/examples/imports")
         return methods(pkg).filter { it.metName !in longMethods }.map {
             DynamicTest.dynamicTest(it.metName) {
-                println(measureTimeMillis { println(machine.analyzeAndResolve(pkg, it.metName)) })
+                analyzeAndLog(machine, pkg, it.metName)
             }
         }
     }
 
     @TestFactory
     fun jacodbTestStdStrings(): Collection<DynamicTest> {
-        val packages = Files.list(Paths.get("out"))
-            .filter { p -> p.extension != "yaml" }
-            .map { Converter.unpack(Parser().deserialize(it.pathString)) }
-            .collect(Collectors.toList())
+        val packages = Files.list(Paths.get("out")).use { paths ->
+            paths.filter { path -> path.extension != "yaml" }
+                .map { Converter.unpack(Parser().deserialize(it.pathString)) }
+                .collect(Collectors.toList())
+        }
         val program = GoProgram(packages)
         val machine = GoMachine(program, options, customOptions)
         val pkg = program.findPackage("flag")
         return methods(pkg).filter { it.metName !in longMethods }.map {
             DynamicTest.dynamicTest(it.metName) {
-                println(measureTimeMillis { println(machine.analyzeAndResolve(pkg, it.metName)) })
+                analyzeAndLog(machine, pkg, it.metName)
             }
         }
+    }
+
+    private fun analyzeAndLog(machine: GoMachine, pkg: GoPackage, methodName: String) {
+        val elapsedMillis = measureTimeMillis {
+            val result = machine.analyzeAndResolve(pkg, methodName)
+            logger.info { result }
+        }
+        logger.info { "Analysis took $elapsedMillis ms" }
     }
 
     private fun methods(pkg: GoPackage): List<GoMethod> = pkg.methods.filter { !it.metName.contains('$') }
@@ -81,14 +91,14 @@ class JacoDbTest {
         exceptionsPropagation = true,
 //        timeout = 5_000.milliseconds,
         timeout = Duration.INFINITE, // for debug
-        stepsFromLastCovered = 1000000L,
+        stepsFromLastCovered = 1_000_000L,
         solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )
 
     private val customOptions: GoMachineOptions = GoMachineOptions(
         failOnNotFullCoverage = false,
-        uncoveredMethods = listOf("panicRecoverComplex")
+        uncoveredMethods = listOf("panicRecoverComplex"),
     )
 
     private val longMethods = arrayOf("loopInfinite", "loopInner", "loopCollatz", "mapLoopLen", "canVisitAllRooms")

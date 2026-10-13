@@ -170,7 +170,8 @@ class GoExprVisitor(
 
             func is GoFunction -> program.findMethod(expr.location, func.metName)
             func is GoVar -> scope.calcOnState {
-                program.findMethod(expr.location, (memory.read(URegisterStackLValue(ctx.addressSort, index(func.name))) as KConst).decl.name)
+                val functionRef = memory.read(URegisterStackLValue(ctx.addressSort, index(func.name))) as KConst
+                program.findMethod(expr.location, functionRef.decl.name)
             }
 
             else -> throw UnknownFunctionException(func.toString())
@@ -320,7 +321,14 @@ class GoExprVisitor(
             for (i in 0 until arrayType.len) {
                 val idx = ctx.mkSizeExpr(i.toInt())
                 val element = memory.readArrayIndex(slice, idx, sliceType, ctx.typeToSort(sliceType.elementType))
-                memory.writeArrayIndex(array, idx, arrayType, ctx.typeToSort(arrayType.elementType), element, ctx.trueExpr)
+                memory.writeArrayIndex(
+                    array,
+                    idx,
+                    arrayType,
+                    ctx.typeToSort(arrayType.elementType),
+                    element,
+                    ctx.trueExpr,
+                )
             }
 
             tryBox(mkPointer(arrayType, array), expr.type)
@@ -370,12 +378,15 @@ class GoExprVisitor(
 
     override fun visitGoSliceExpr(expr: GoSliceExpr): UExpr<out USort> {
         val boxedArray = expr.array.accept(this).asExpr(ctx.addressSort)
-        val array = unboxNamedRef(boxedArray, expr.array.type).let { if (isPointerConcrete(it)) deref(it, ctx.addressSort) else it }
+        val unboxedArray = unboxNamedRef(boxedArray, expr.array.type)
+        val array = if (isPointerConcrete(unboxedArray)) deref(unboxedArray, ctx.addressSort) else unboxedArray
         val arrayType = expr.array.type.let { if (it is PointerType) it.baseType else it }.underlying()
         val sliceType = expr.type.underlying()
         val length = scope.calcOnState { memory.readArrayLength(array, arrayType, ctx.sizeSort) }
         val low = expr.low.accept(this).asExpr(ctx.sizeSort)
-        val high = expr.high.accept(this).let { if (it is KBitVec32Value && it.intValue == -1) length else it }.asExpr(ctx.sizeSort)
+        val suppliedHigh = expr.high.accept(this)
+        val hasDefaultHigh = suppliedHigh is KBitVec32Value && suppliedHigh.intValue == -1
+        val high = (if (hasDefaultHigh) length else suppliedHigh).asExpr(ctx.sizeSort)
         val count = ctx.mkSizeSubExpr(high, low)
         val elementType = when (arrayType) {
             is ArrayType -> arrayType.elementType
@@ -504,7 +515,8 @@ class GoExprVisitor(
         return scope.calcOnState {
             mkTuple(
                 TupleType(listOf(expr.instance.type, GoBasicTypes.INT32)),
-                collection, ctx.mkSizeExpr(0)
+                collection,
+                ctx.mkSizeExpr(0),
             )
         }
     }
@@ -527,7 +539,9 @@ class GoExprVisitor(
                     memory.writeField(iter, 1, ctx.sizeSort, ctx.mkBvAddExpr(index, ctx.mkSizeExpr(1)), ctx.trueExpr)
                     mkTuple(
                         TupleType(listOf(GoBasicTypes.BOOL, GoBasicTypes.INT32, GoBasicTypes.INT32)),
-                        ok, index, ctx.mkPrimitiveCast(char, ctx.bv32Sort)
+                        ok,
+                        index,
+                        ctx.mkPrimitiveCast(char, ctx.bv32Sort),
                     )
                 }
 
@@ -540,19 +554,32 @@ class GoExprVisitor(
                     val isPrimitiveKey = keySort != ctx.addressSort
                     val (key, value) = if (isPrimitiveKey) {
                         val k = symbolicPrimitiveMapAnyKey(collection, collectionType, keySort, USizeExprKeyInfo())
-                        val v = symbolicPrimitiveMapGet(collection, k, collectionType, ctx.typeToSort(collectionType.valueType), USizeExprKeyInfo())
+                        val v = symbolicPrimitiveMapGet(
+                            collection,
+                            k,
+                            collectionType,
+                            ctx.typeToSort(collectionType.valueType),
+                            USizeExprKeyInfo(),
+                        )
                         symbolicPrimitiveMapRemove(collection, k, collectionType, USizeExprKeyInfo())
                         k to v
                     } else {
                         val k = symbolicObjectMapAnyKey(collection, collectionType)
-                        val v = symbolicObjectMapGet(collection, k, collectionType, ctx.typeToSort(collectionType.valueType))
+                        val v = symbolicObjectMapGet(
+                            collection,
+                            k,
+                            collectionType,
+                            ctx.typeToSort(collectionType.valueType),
+                        )
                         symbolicObjectMapRemove(collection, k, collectionType)
                         k to v
                     }
 
                     mkTuple(
                         TupleType(listOf(GoBasicTypes.BOOL, collectionType.keyType, collectionType.valueType)),
-                        ok, if (isPrimitiveKey) tryBox(key, collectionType.keyType) else key, value
+                        ok,
+                        if (isPrimitiveKey) tryBox(key, collectionType.keyType) else key,
+                        value,
                     )
                 }
 
@@ -585,7 +612,11 @@ class GoExprVisitor(
         val unboxedValue = unbox(xAddr, assertSort)
 
         return scope.calcOnState {
-            val sample = if (assertSort == ctx.addressSort) ctx.nullRef else assertSort.sampleUValue().asExpr(assertSort)
+            val sample = if (assertSort == ctx.addressSort) {
+                ctx.nullRef
+            } else {
+                assertSort.sampleUValue().asExpr(assertSort)
+            }
             if (commaOk) {
                 mkTuple(tupleType, ite(xAddr, unboxedValue, sample), ite(xAddr, ctx.trueExpr, ctx.falseExpr))
             } else {
@@ -610,7 +641,8 @@ class GoExprVisitor(
 
     override fun visitGoFreeVar(expr: GoFreeVar): UExpr<out USort> {
         return scope.calcOnState {
-            memory.read(URegisterStackLValue(ctx.typeToSort(expr.type), expr.index + ctx.freeVariableOffset(lastEnteredMethod)))
+            val registerIndex = expr.index + ctx.freeVariableOffset(lastEnteredMethod)
+            memory.read(URegisterStackLValue(ctx.typeToSort(expr.type), registerIndex))
         }
     }
 
@@ -715,7 +747,9 @@ class GoExprVisitor(
     }
 
     private fun visitGoBinaryExpr(expr: GoBinaryExpr): UExpr<out USort> {
-        if (expr.lhv.type.underlying() == GoBasicTypes.STRING && expr.rhv.type.underlying() == GoBasicTypes.STRING) {
+        val bothStrings = expr.lhv.type.underlying() == GoBasicTypes.STRING &&
+            expr.rhv.type.underlying() == GoBasicTypes.STRING
+        if (bothStrings) {
             return tryBox(appendArray(expr.lhv, expr.rhv), expr.type)
         }
 
@@ -763,9 +797,11 @@ class GoExprVisitor(
     }
 
     private fun visitIndexExpr(instance: GoValue, idx: GoValue): Pair<UHeapRef, UExpr<USizeSort>> {
-        val array = unboxNamedRef(instance.accept(this).asExpr(ctx.addressSort), instance.type).let { if (isPointerConcrete(it)) deref(it, ctx.addressSort) else it }
+        val unboxedArray = unboxNamedRef(instance.accept(this).asExpr(ctx.addressSort), instance.type)
+        val array = if (isPointerConcrete(unboxedArray)) deref(unboxedArray, ctx.addressSort) else unboxedArray
         val arrayType = instance.type.let { if (it is PointerType) it.baseType else it }.underlying()
-        val index = bv(unboxNamedPrimitive(idx.accept(this), idx.type)).mkNarrow(Int.SIZE_BITS, false).asExpr(ctx.sizeSort)
+        val indexValue = bv(unboxNamedPrimitive(idx.accept(this), idx.type))
+        val index = indexValue.mkNarrow(Int.SIZE_BITS, signed = false).asExpr(ctx.sizeSort)
         val length = scope.calcOnState { memory.readArrayLength(array, arrayType, ctx.sizeSort) }
 
         checkLength(length) ?: throw IllegalStateException()
@@ -776,9 +812,17 @@ class GoExprVisitor(
         return array to index
     }
 
-    private fun normalize(lhs: UExpr<out USort>, rhs: UExpr<out USort>, goExpr: GoBinaryExpr, signed: Boolean): UExpr<out USort> = with(ctx) {
+    private fun normalize(
+        lhs: UExpr<out USort>,
+        rhs: UExpr<out USort>,
+        goExpr: GoBinaryExpr,
+        signed: Boolean,
+    ): UExpr<out USort> = with(ctx) {
         when (goExpr) {
-            is GoShrExpr -> if (bv(lhs).sort.sizeBits != bv(rhs).sort.sizeBits) bv(rhs).mkNarrow(Long.SIZE_BITS, signed).asExpr(bv64Sort) else rhs
+            is GoShrExpr -> {
+                val differentWidths = bv(lhs).sort.sizeBits != bv(rhs).sort.sizeBits
+                if (differentWidths) bv(rhs).mkNarrow(Long.SIZE_BITS, signed).asExpr(bv64Sort) else rhs
+            }
             else -> rhs
         }
     }
@@ -1004,7 +1048,11 @@ class GoExprVisitor(
         val append = unboxNamedRef(appendValue.accept(this).asExpr(ctx.addressSort), appendValue.type)
         val sliceType = sliceValue.type.underlying()
 
-        val elementSort = if (sliceType == GoBasicTypes.STRING) ctx.bv8Sort else ctx.typeToSort((sliceType as SliceType).elementType)
+        val elementSort = if (sliceType == GoBasicTypes.STRING) {
+            ctx.bv8Sort
+        } else {
+            ctx.typeToSort((sliceType as SliceType).elementType)
+        }
         val zero = ctx.mkSizeExpr(0)
 
         return scope.calcOnState {
@@ -1075,7 +1123,8 @@ class GoExprVisitor(
         val method = GoFunction(signature, emptyList(), funcName, emptyList(), "", emptyList(), emptyList())
         val mockSort = ctx.typeToSort(returnType)
         val mockValue = scope.calcOnState {
-            memory.mocker.call(method, expr.args.map { it.accept(this@GoExprVisitor) }.asSequence(), mockSort, memory.ownership)
+            val arguments = expr.args.map { it.accept(this@GoExprVisitor) }.asSequence()
+            memory.mocker.call(method, arguments, mockSort, memory.ownership)
         }
         if (mockSort == ctx.addressSort) {
             val constraint = scope.calcOnState {

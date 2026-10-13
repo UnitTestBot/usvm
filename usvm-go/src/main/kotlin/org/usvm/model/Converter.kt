@@ -110,7 +110,10 @@ object Converter {
         typesMap.putAll(pkg.types.mapValues { type -> unpack(pkg.types, type.value) })
         val methods = pkg.members.filterIsInstance<Member.Function>().map { function ->
             GoFunction(
-                SignatureType(TupleType(function.parameters.map { getType(it.goType) }), TupleType(function.returnTypes.map(::getType))),
+                SignatureType(
+                    TupleType(function.parameters.map { getType(it.goType) }),
+                    TupleType(function.returnTypes.map(::getType)),
+                ),
                 function.parameters.mapIndexed(this::unpack),
                 function.name,
                 emptyList(),
@@ -144,31 +147,64 @@ object Converter {
             is Instruction.Alloc -> GoAllocExpr(loc, getType(inst.goType), inst.register, inst.comment).toAssignInst()
             is Instruction.BinOp -> unpack(loc, inst)
             is Instruction.Call -> unpack(loc, inst)
-            is Instruction.ChangeInterface -> GoChangeInterfaceExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
-            is Instruction.ChangeType -> GoChangeTypeExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
-            is Instruction.Convert -> GoConvertExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
+            is Instruction.ChangeInterface -> {
+                GoChangeInterfaceExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
+            }
+            is Instruction.ChangeType -> {
+                GoChangeTypeExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
+            }
+            is Instruction.Convert -> {
+                GoConvertExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
+            }
             is Instruction.DebugRef -> unsupportedInstruction(function)
             is Instruction.Defer -> GoDeferInst(loc, unpack(inst.value), inst.args.map(::unpack))
             is Instruction.Extract -> unpack(loc, inst)
-            is Instruction.Field -> GoFieldExpr(loc, getType(inst.goType), unpack(inst.struct), inst.field, inst.register).toAssignInst()
-            is Instruction.FieldAddr -> GoFieldAddrExpr(loc, getType(inst.goType), unpack(inst.struct), inst.field, inst.register).toAssignInst()
+            is Instruction.Field -> {
+                GoFieldExpr(loc, getType(inst.goType), unpack(inst.struct), inst.field, inst.register).toAssignInst()
+            }
+            is Instruction.FieldAddr -> {
+                GoFieldAddrExpr(
+                    loc,
+                    getType(inst.goType),
+                    unpack(inst.struct),
+                    inst.field,
+                    inst.register,
+                ).toAssignInst()
+            }
             is Instruction.Go -> unsupportedInstruction(function)
-            is Instruction.If -> GoIfInst(loc, unpack(inst.condition) as GoConditionExpr, GoInstRef(inst.trueBranch), GoInstRef(inst.falseBranch))
+            is Instruction.If -> {
+                GoIfInst(
+                    loc,
+                    unpack(inst.condition) as GoConditionExpr,
+                    GoInstRef(inst.trueBranch),
+                    GoInstRef(inst.falseBranch),
+                )
+            }
             is Instruction.Index -> unpack(loc, inst)
             is Instruction.IndexAddr -> unpack(loc, inst)
             is Instruction.Jump -> GoJumpInst(loc, GoInstRef(inst.index))
             is Instruction.Lookup -> unpack(loc, inst)
             is Instruction.MakeChan -> unsupportedInstruction(function)
             is Instruction.MakeClosure -> unpack(loc, inst)
-            is Instruction.MakeInterface -> GoMakeInterfaceExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
-            is Instruction.MakeMap -> GoMakeMapExpr(loc, getType(inst.goType), unpack(inst.reserve), inst.register).toAssignInst()
+            is Instruction.MakeInterface -> {
+                GoMakeInterfaceExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
+            }
+            is Instruction.MakeMap -> {
+                GoMakeMapExpr(loc, getType(inst.goType), unpack(inst.reserve), inst.register).toAssignInst()
+            }
             is Instruction.MakeSlice -> unpack(loc, inst)
             is Instruction.MapUpdate -> GoMapUpdateInst(loc, unpack(inst.map), unpack(inst.key), unpack(inst.value))
             is Instruction.MultiConvert -> unsupportedInstruction(function)
-            is Instruction.Next -> GoNextExpr(loc, getType(inst.goType), unpack(inst.iter), inst.register).toAssignInst()
+            is Instruction.Next -> {
+                GoNextExpr(loc, getType(inst.goType), unpack(inst.iter), inst.register).toAssignInst()
+            }
             is Instruction.Panic -> GoPanicInst(loc, unpack(inst.value))
-            is Instruction.Phi -> GoPhiExpr(loc, getType(inst.goType), inst.edges.map(this::unpack), inst.register).toAssignInst()
-            is Instruction.Range -> GoRangeExpr(loc, getType(inst.goType), unpack(inst.collection), inst.register).toAssignInst()
+            is Instruction.Phi -> {
+                GoPhiExpr(loc, getType(inst.goType), inst.edges.map(this::unpack), inst.register).toAssignInst()
+            }
+            is Instruction.Range -> {
+                GoRangeExpr(loc, getType(inst.goType), unpack(inst.collection), inst.register).toAssignInst()
+            }
             is Instruction.Return -> GoReturnInst(loc, inst.results.map(this::unpack))
             is Instruction.RunDefers -> GoRunDefersInst(loc)
             is Instruction.Select -> unsupportedInstruction(function)
@@ -182,7 +218,7 @@ object Converter {
     }
 
     private fun unpack(location: GoInstLocation, binOp: Instruction.BinOp): GoInst {
-        val binaryExprConstructors = mapOf<String, Function5<GoInstLocation, GoType, GoValue, GoValue, String, GoBinaryExpr>>(
+        val constructors = mapOf<String, Function5<GoInstLocation, GoType, GoValue, GoValue, String, GoBinaryExpr>>(
             "&&" to ::GoAndExpr,
             "&^" to ::GoAndNotExpr,
             "||" to ::GoOrExpr,
@@ -202,8 +238,8 @@ object Converter {
             ">>" to ::GoShrExpr,
         )
 
-        if (binaryExprConstructors.containsKey(binOp.op)) {
-            return binaryExprConstructors[binOp.op]!!(
+        if (constructors.containsKey(binOp.op)) {
+            return constructors[binOp.op]!!(
                 location,
                 getType(binOp.goType),
                 unpack(binOp.first),
@@ -227,7 +263,13 @@ object Converter {
     }
 
     private fun unpack(location: GoInstLocation, extract: Instruction.Extract): GoInst {
-        return GoExtractExpr(location, getType(extract.goType), unpack(extract.tuple), extract.index, extract.register).toAssignInst()
+        return GoExtractExpr(
+            location,
+            getType(extract.goType),
+            unpack(extract.tuple),
+            extract.index,
+            extract.register,
+        ).toAssignInst()
     }
 
     private fun unpack(location: GoInstLocation, index: Instruction.Index): GoInst {
@@ -338,7 +380,9 @@ object Converter {
         val name = unOp.register
 
         return when {
-            unaryExprConstructors.containsKey(unOp.op) -> unaryExprConstructors[unOp.op]!!(location, type, arg, name).toAssignInst()
+            unaryExprConstructors.containsKey(unOp.op) -> {
+                unaryExprConstructors[unOp.op]!!(location, type, arg, name).toAssignInst()
+            }
             unOp.op == "<-" -> GoUnArrowExpr(location, type, arg, unOp.commaOk, name).toAssignInst()
             else -> GoNullInst(location.method)
         }
@@ -380,29 +424,33 @@ object Converter {
         return types.map { unpack(typesMap, it) }
     }
 
-    private fun unpack(types: Map<String, Type>, type: Type): GoType = internType(when (type) {
-        is Type.Alias -> unpack(types, type.from)
-        is Type.Array -> ArrayType(type.len, unpack(types, type.elem))
-        is Type.Basic -> unpack(type.name)
-        is Type.Chan -> ChanType(type.dir.toLong(), unpack(types, type.elem))
-        is Type.Interface -> InterfaceType(type.methods, type.name)
-        is Type.Map -> MapType(unpack(types, type.key), unpack(types, type.elem))
-        is Type.Named -> {
-            val named = NamedType(NullType(), type.name, type.methods)
-            typesMap[type.name] = named
-            named.underlyingType = unpack(types, type.underlying)
-            named
-        }
+    private fun unpack(types: Map<String, Type>, type: Type): GoType = internType(
+        when (type) {
+            is Type.Alias -> unpack(types, type.from)
+            is Type.Array -> ArrayType(type.len, unpack(types, type.elem))
+            is Type.Basic -> unpack(type.name)
+            is Type.Chan -> ChanType(type.dir.toLong(), unpack(types, type.elem))
+            is Type.Interface -> InterfaceType(type.methods, type.name)
+            is Type.Map -> MapType(unpack(types, type.key), unpack(types, type.elem))
+            is Type.Named -> {
+                val named = NamedType(NullType(), type.name, type.methods)
+                typesMap[type.name] = named
+                named.underlyingType = unpack(types, type.underlying)
+                named
+            }
 
-        is Type.Opaque -> OpaqueType(type.name)
-        is Type.Pointer -> PointerType(unpack(types, type.elem))
-        is Type.Signature -> SignatureType(TupleType(unpack(types, type.params)), TupleType(unpack(types, type.results)))
-        is Type.Slice -> SliceType(unpack(types, type.elem))
-        is Type.Struct -> StructType(unpack(types, type.fields), null)
-        is Type.Tuple -> TupleType(unpack(types, type.elems))
-        is Type.TypeParam -> TypeParam(type.name)
-        is Type.Union -> UnionType(emptyList()) // TODO(buraindo) proper type list when generics are supported
-    })
+            is Type.Opaque -> OpaqueType(type.name)
+            is Type.Pointer -> PointerType(unpack(types, type.elem))
+            is Type.Signature -> {
+                SignatureType(TupleType(unpack(types, type.params)), TupleType(unpack(types, type.results)))
+            }
+            is Type.Slice -> SliceType(unpack(types, type.elem))
+            is Type.Struct -> StructType(unpack(types, type.fields), null)
+            is Type.Tuple -> TupleType(unpack(types, type.elems))
+            is Type.TypeParam -> TypeParam(type.name)
+            is Type.Union -> UnionType(emptyList()) // TODO(buraindo) proper type list when generics are supported
+        },
+    )
 
     private fun unpack(types: Map<String, Type>, type: String): GoType {
         if (type in typesMap) {

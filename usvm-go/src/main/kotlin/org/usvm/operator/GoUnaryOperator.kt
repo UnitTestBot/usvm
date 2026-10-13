@@ -2,12 +2,12 @@ package org.usvm.operator
 
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.cast
+import org.usvm.GoContext
 import org.usvm.UBoolSort
 import org.usvm.UBvSort
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.USort
-import org.usvm.GoContext
 import org.usvm.type.goCtx
 
 sealed class GoUnaryOperator(
@@ -27,23 +27,23 @@ sealed class GoUnaryOperator(
     )
 
     data object CastToInt8 : GoUnaryOperator(
-        onBool = { operand -> operand.wideTo32BitsIfNeeded(false) },
+        onBool = { operand -> operand.wideTo32BitsIfNeeded(signed = false) },
         onBv = { operand -> operand.mkNarrow(Byte.SIZE_BITS, signed = true) }
     )
 
     data object CastToInt16 : GoUnaryOperator(
-        onBool = { operand -> operand.wideTo32BitsIfNeeded(false) },
+        onBool = { operand -> operand.wideTo32BitsIfNeeded(signed = false) },
         onBv = { operand -> operand.mkNarrow(Short.SIZE_BITS, signed = true) }
     )
 
     data object CastToInt32 : GoUnaryOperator(
-        onBool = { operand -> operand.wideTo32BitsIfNeeded(false) },
+        onBool = { operand -> operand.wideTo32BitsIfNeeded(signed = false) },
         onBv = { operand -> operand.mkNarrow(Int.SIZE_BITS, signed = true) },
         onFp = { operand -> operand.castToBv(Int.SIZE_BITS) }
     )
 
     data object CastToInt64 : GoUnaryOperator(
-        onBool = { operand -> operand.wideTo32BitsIfNeeded(false) },
+        onBool = { operand -> operand.wideTo32BitsIfNeeded(signed = false) },
         onBv = { operand -> operand.mkNarrow(Long.SIZE_BITS, signed = true) },
         onFp = { operand -> operand.castToBv(Long.SIZE_BITS) }
     )

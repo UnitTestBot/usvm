@@ -36,7 +36,7 @@ val logger = object : KLogging() {}.logger
 class GoMachine(
     private val program: GoProgram,
     override val options: UMachineOptions,
-    private val customOptions: GoMachineOptions
+    private val customOptions: GoMachineOptions,
 ) : UMachine<GoState>() {
     private val typeSystem = GoTypeSystem(options.typeOperationsTimeout, program.types.values)
     private val applicationGraph = GoApplicationGraph()
@@ -66,7 +66,7 @@ class GoMachine(
         logger.debug("{}.analyze()", this)
         val excludedMethods = methodsList.filter { it.hasUnsupportedInstructions() }.map { it.metName }
         if (excludedMethods.isNotEmpty()) {
-            logger.warn("The following methods will be skipped due to having unsupported instructions: {}", excludedMethods)
+            logger.warn { "Skipping methods with unsupported instructions: $excludedMethods" }
         }
 
         val methods = methodsList.filter { !it.hasUnsupportedInstructions() }
@@ -151,15 +151,20 @@ class GoMachine(
             stopStrategy = stopStrategy,
         )
 
-        println("Total coverage: ${coverageStatistics.getTotalCoverage().roundToInt()}%")
+        val totalCoverage = coverageStatistics.getTotalCoverage().roundToInt()
+        logger.info { "Total coverage: $totalCoverage%" }
         for (method in coverageStatistics.coverageZone) {
-            println("Method ${method.metName} coverage: ${coverageStatistics.getMethodCoverage(method).roundToInt()}%")
+            val methodCoverage = coverageStatistics.getMethodCoverage(method).roundToInt()
+            logger.info { "Method ${method.metName} coverage: $methodCoverage%" }
         }
-        if (coverageStatistics.getTotalCoverage().roundToInt() < 100 && !customOptions.uncoveredMethods.containsAll(methods.map { it.metName })) {
+        val analyzedMethods = methods.map { it.metName }
+        val hasUnexpectedUncoveredMethods = totalCoverage < FULL_COVERAGE_PERCENT &&
+            !customOptions.uncoveredMethods.containsAll(analyzedMethods)
+        if (hasUnexpectedUncoveredMethods) {
             if (customOptions.failOnNotFullCoverage) {
                 throw IllegalStateException("coverage not 100%")
             } else {
-                logger.warn("analysis of methods ${methods.map { it.metName }} lead to coverage < 100%")
+                logger.warn { "Analysis of methods $analyzedMethods led to coverage < 100%" }
             }
         }
 
@@ -170,3 +175,5 @@ class GoMachine(
         return state.callStack.isEmpty()
     }
 }
+
+private const val FULL_COVERAGE_PERCENT = 100
