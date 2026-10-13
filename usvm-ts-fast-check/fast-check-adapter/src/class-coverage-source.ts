@@ -95,6 +95,15 @@ export function instrumentClassCoverage(file: ts.SourceFile, className: string):
   }
 
   const memberKey = (name: string, isStatic: boolean): string => `${isStatic ? 'static' : 'instance'}:${name}`
+  const callableMemberKeys = new Set(selected.members.flatMap((member) => {
+    const name = memberName(member)
+    const functionProperty = ts.isPropertyDeclaration(member)
+      && ((member.initializer !== undefined && (ts.isArrowFunction(member.initializer) || ts.isFunctionExpression(member.initializer)))
+        || (member.type !== undefined && ts.isFunctionTypeNode(member.type)))
+    if (name === null || (!ts.isMethodDeclaration(member) && !functionProperty)) return []
+    const isStatic = ts.canHaveModifiers(member) && (ts.getModifiers(member)?.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword) ?? false)
+    return [memberKey(name, isStatic)]
+  }))
   const reachable = new Set(members.filter((member) => member.publicSurface).map((member) => memberKey(member.name, member.isStatic)))
   let invalidReason: string | null = null
   const localFunctionCache = new Map<ts.Node, LocalFunctionReachability>()
@@ -130,6 +139,24 @@ export function instrumentClassCoverage(file: ts.SourceFile, className: string):
           || ts.isElementAccessExpression(node.parent)) && node.parent.expression === node
         const directFluentReturn = ts.isReturnStatement(node.parent) && node.parent.expression === node
         if (!directMemberReceiver && !directFluentReturn) invalidReason = 'Aliased or escaping receivers require a checked private-member reachability graph'
+      }
+      const written = assignmentTarget(node)
+      if (written !== null && ts.isPropertyAccessExpression(written)) {
+        const receiver = written.expression
+        const receiverKey = receiver.kind === ts.SyntaxKind.ThisKeyword ? memberKey(written.name.text, isStatic)
+          : ts.isIdentifier(receiver) && receiver.text === className ? memberKey(written.name.text, true) : null
+        if (receiverKey !== null && callableMemberKeys.has(receiverKey)) {
+          invalidReason = 'Mutable callable member identity or captures cannot be represented by a complete state snapshot'
+        }
+        if (hasPrototypeAccess(written) || written.name.text === 'constructor') {
+          invalidReason = 'Prototype and constructor mutations are outside the checked class lifecycle subset'
+        }
+      }
+      if (ts.isDeleteExpression(node)) invalidReason = 'Deleted properties are outside the complete fixed-state snapshot subset'
+      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)
+        && ts.isIdentifier(node.expression.expression) && ['Object', 'Reflect'].includes(node.expression.expression.text)
+        && ['setPrototypeOf', 'defineProperty', 'defineProperties'].includes(node.expression.name.text)) {
+        invalidReason = 'Dynamic property or prototype mutation is outside the checked class lifecycle subset'
       }
       if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'eval') {
         invalidReason = 'Dynamic evaluation cannot establish an original AST statement universe'
@@ -391,4 +418,25 @@ function inspectClassSurface(selected: ts.ClassDeclaration, file: ts.SourceFile)
   }
   if (reason !== null) return reason
   return { constructorParameterNames, publicMembers, instanceDataFields: [...stateFields.values()].sort((left, right) => left.name.localeCompare(right.name)) }
+}
+
+
+function assignmentTarget(node: ts.Node): ts.Node | null {
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment
+    && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment) return node.left
+  if ((ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node))
+    && (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken)) return node.operand
+  return null
+}
+
+function hasPrototypeAccess(node: ts.Node): boolean {
+  let found = false
+  const visit = (part: ts.Node): void => {
+    if (ts.isPropertyAccessExpression(part) && ['prototype', '__proto__'].includes(part.name.text)) found = true
+    if (ts.isElementAccessExpression(part) && ts.isStringLiteral(part.argumentExpression)
+      && ['prototype', '__proto__'].includes(part.argumentExpression.text)) found = true
+    ts.forEachChild(part, visit)
+  }
+  visit(node)
+  return found
 }

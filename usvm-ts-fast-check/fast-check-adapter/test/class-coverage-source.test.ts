@@ -176,3 +176,14 @@ test('freezes the complete constructor callable and receiver data inventory', ()
     [['run', 'METHOD', false, ['x']], ['current', 'GETTER', false, []], ['current', 'SETTER', false, ['value']],
       ['callback', 'FUNCTION_FIELD', false, ['input']], ['utility', 'METHOD', true, ['value']]])
 })
+
+
+test('rejects mutable callable identity and dynamic lifecycle state without rejecting stable initializers', () => {
+  assert.equal(instrument('export class Target { run = () => 1; other() { return this.run(); } }').reason, null)
+  assert.match(instrument('export class Target { run = () => 1; other() { this.run = this.other; return 1; } }').reason!, /Mutable callable/)
+  assert.match(instrument('export class Target { run() { this.run = this.other; return 1; } other() { return 2; } }').reason!, /Mutable callable/)
+  assert.match(instrument('export class Target { static run() { Target.run = Target.other; return 1; } static other() { return 2; } }').reason!, /Mutable callable/)
+  assert.match(instrument('export class Target { value = 1; run() { delete this.value; return 1; } }').reason!, /Deleted properties/)
+  assert.match(instrument('export class Target { run() { Target.prototype.run = Target.prototype.other; return 1; } other() { return 2; } }').reason!, /Prototype/)
+  assert.match(instrument('export class Target { run() { Object.defineProperty(Target.prototype, "extra", {value: 1}); return 1; } }').reason!, /Dynamic property/)
+})
