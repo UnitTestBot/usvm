@@ -27,6 +27,8 @@ data class TsOptions(
     val unknownCallFallback: TsResidualCallPolicy = TsResidualCallPolicy.STOP_PATH,
     /** Fixed experiment clock used by `Date.now()` and `new Date()`; `null` leaves those calls unsupported. */
     val dateNowMilliseconds: Double? = null,
+    /** Erase TypeScript assertions; false retains the existing ETS cast constraints and unsupported casts. */
+    val eraseTypeAssertions: Boolean = false,
 ) {
     init {
         val isValidDateNow = dateNowMilliseconds == null ||

@@ -163,6 +163,7 @@ internal class CurrentTsCallsSymbolicEngine(
             maxArraySize = maxOf(TsOptions().maxArraySize, inputCapacity),
             unknownCallModelSelection = modelSelection,
             unknownCallFallback = request.profile.fallback,
+            eraseTypeAssertions = true,
         )
         val symbolicInputs = CallsSymbolicInputs(
             inputs = request.function.inputs,

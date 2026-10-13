@@ -43,7 +43,7 @@ class TsArrayShiftReplayTest {
                 val tests = TsMachine(
                     scene = scene,
                     options = machineOptions,
-                    tsOptions = TsOptions(),
+                    tsOptions = TsOptions(eraseTypeAssertions = true),
                     unknownCallDispatcher = dispatcher,
                 ).use { machine ->
                     machine.analyze(listOf(method)).map { state -> TsTestResolver().resolve(method, state) }

@@ -110,7 +110,9 @@ Exhaustion after a runtime limitation does not establish that a source target is
 still requires original-source replay.
 named-property access, unsupported length growth, or assigning a runtime kind absent from a typed array's storage.
 Reads may return an element or `undefined`; subsequent numeric operations and typed writes preserve that runtime-kind
-guard. TypeScript `as` and angle-bracket assertions are erased and never change a value or constrain its runtime kind.
+guard. TypeScript `as` and angle-bracket assertions are erased only with `TsOptions(eraseTypeAssertions = true)`
+and never change a value or constrain its runtime kind in that mode. The default retains the existing ETS cast
+constraints and unsupported-cast behavior. The TypeScript Calls engine explicitly enables erasure.
 These events are separate from unknown-call model decisions.
 The Calls runner writes them synchronously and reports `RUNTIME_LIMITATION` when search exhausts after such a stop
 without reaching the target. An actual timeout remains `TIMEOUT`; a reached target still requires original-source replay.

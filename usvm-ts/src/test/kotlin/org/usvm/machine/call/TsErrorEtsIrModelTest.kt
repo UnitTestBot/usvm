@@ -108,7 +108,7 @@ class TsErrorEtsIrModelTest {
         val states = TsMachine(
             scene = scene,
             options = machineOptions,
-            tsOptions = TsOptions(),
+            tsOptions = TsOptions(eraseTypeAssertions = true),
             observer = observer,
         ).use { machine -> machine.analyze(listOf(method)) }
         val values = states.map { state -> TsTestResolver().resolve(method, state).returnValue }

@@ -431,8 +431,12 @@ class TsExprResolver(
         )
     }
 
-    // TypeScript assertions are erased; they neither convert nor constrain the runtime value.
-    override fun visit(expr: EtsCastExpr): UExpr<*>? = resolve(expr.arg)
+    override fun visit(expr: EtsCastExpr): UExpr<*>? {
+        val value = resolve(expr.arg) ?: return null
+        if (options.eraseTypeAssertions) return value
+
+        return ctx.applyCastConstraints(scope = scope, value = value, type = expr.type)
+    }
 
     override fun visit(expr: EtsTypeOfExpr): UExpr<out USort>? = with(ctx) {
         val arg = resolve(expr.arg) ?: return null
