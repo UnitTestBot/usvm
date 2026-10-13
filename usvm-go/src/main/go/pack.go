@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/base64"
 	"go/constant"
 	"go/types"
 	"log"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/samber/lo"
@@ -24,8 +26,37 @@ func PackPackage(in *ssa.Package) Package {
 	return p
 }
 
+// Type.String omits a function-local declaration's scope. Export identities must not.
+func (p *Package) TypeName(typ types.Type) string {
+	if p.typeNames == nil {
+		p.typeNames = make(map[types.Type]string)
+		p.typesByName = make(map[string][]types.Type)
+	}
+	if name, exists := p.typeNames[typ]; exists {
+		return name
+	}
+
+	base := typ.String()
+	candidates := p.typesByName[base]
+	for _, candidate := range candidates {
+		if types.Identical(candidate, typ) {
+			name := p.typeNames[candidate]
+			p.typeNames[typ] = name
+			return name
+		}
+	}
+
+	name := base
+	if len(candidates) > 0 {
+		name += "#" + strconv.Itoa(len(candidates)+1)
+	}
+	p.typeNames[typ] = name
+	p.typesByName[base] = append(candidates, typ)
+	return name
+}
+
 func (p *Package) AddType(typ types.Type) {
-	name := typ.String()
+	name := p.TypeName(typ)
 	if p.Types[name] != nil {
 		return
 	}
@@ -39,7 +70,7 @@ func (p *Package) AddType(typ types.Type) {
 		common.Type = AliasType
 		p.Types[name] = Alias{
 			CommonType: common,
-			From:       types.Unalias(t).String(),
+			From:       p.TypeName(types.Unalias(t)),
 		}
 		p.AddType(types.Unalias(t))
 	case *types.Array:
@@ -47,7 +78,7 @@ func (p *Package) AddType(typ types.Type) {
 		p.Types[name] = Array{
 			CommonType: common,
 			Len:        t.Len(),
-			Elem:       t.Elem().String(),
+			Elem:       p.TypeName(t.Elem()),
 		}
 		p.AddType(t.Elem())
 	case *types.Basic:
@@ -58,7 +89,7 @@ func (p *Package) AddType(typ types.Type) {
 		p.Types[name] = Chan{
 			CommonType: common,
 			Dir:        int(t.Dir()),
-			Elem:       t.Elem().String(),
+			Elem:       p.TypeName(t.Elem()),
 		}
 		p.AddType(t.Elem())
 	case *types.Interface:
@@ -71,8 +102,8 @@ func (p *Package) AddType(typ types.Type) {
 		common.Type = MapType
 		p.Types[name] = Map{
 			CommonType: common,
-			Key:        t.Key().String(),
-			Elem:       t.Elem().String(),
+			Key:        p.TypeName(t.Key()),
+			Elem:       p.TypeName(t.Elem()),
 		}
 		p.AddType(t.Key())
 		p.AddType(t.Elem())
@@ -80,7 +111,7 @@ func (p *Package) AddType(typ types.Type) {
 		common.Type = NamedType
 		p.Types[name] = Named{
 			CommonType: common,
-			Underlying: t.Underlying().String(),
+			Underlying: p.TypeName(t.Underlying()),
 			Methods:    p.PackMethods(t),
 		}
 		// add members after adding type to avoid stack overflow
@@ -92,11 +123,13 @@ func (p *Package) AddType(typ types.Type) {
 			p.Members = append(p.Members, p.PackMember(f))
 		}
 		p.AddType(t.Underlying())
+		p.AddType(types.NewPointer(t))
 	case *types.Pointer:
 		common.Type = PointerType
 		p.Types[name] = Pointer{
 			CommonType: common,
-			Elem:       t.Elem().String(),
+			Elem:       p.TypeName(t.Elem()),
+			Methods:    p.PackMethods(t),
 		}
 		p.AddType(t.Elem())
 	case *types.Signature:
@@ -110,14 +143,14 @@ func (p *Package) AddType(typ types.Type) {
 		common.Type = SliceType
 		p.Types[name] = Slice{
 			CommonType: common,
-			Elem:       t.Elem().String(),
+			Elem:       p.TypeName(t.Elem()),
 		}
 		p.AddType(t.Elem())
 	case *types.Struct:
 		fields := make([]string, 0)
 		for i := 0; i < t.NumFields(); i++ {
 			field := t.Field(i)
-			fields = append(fields, field.Type().String())
+			fields = append(fields, p.TypeName(field.Type()))
 			p.AddType(field.Type())
 		}
 		common.Type = StructType
@@ -151,6 +184,9 @@ func (p *Package) PackMembers(membersMap map[string]ssa.Member) {
 		}
 	}
 
+	sort.SliceStable(members, func(i, j int) bool {
+		return members[i].String() < members[j].String()
+	})
 	for _, member := range members {
 		p.Members = append(p.Members, p.PackMember(member))
 	}
@@ -167,10 +203,7 @@ func (p *Package) PackMember(in ssa.Member) Member {
 		common.Type = NamedConstMember
 		return NamedConst{
 			CommonMember: common,
-			Value: NamedConstValue{
-				Type:  member.Value.Type().String(),
-				Value: member.Value.Value.String(),
-			},
+			Value:        p.packConstant(member.Value.Type(), member.Value.Value),
 		}
 	case *ssa.Global:
 		p.AddType(member.Type())
@@ -179,7 +212,7 @@ func (p *Package) PackMember(in ssa.Member) Member {
 		return MemberGlobal{
 			CommonMember: common,
 			Index:        int(member.Pos()),
-			GoType:       member.Type().String(),
+			GoType:       p.TypeName(member.Type()),
 		}
 	case *ssa.Type:
 		p.AddType(member.Type())
@@ -229,7 +262,7 @@ func (p *Package) PackParameter(in *ssa.Parameter, index int) Parameter {
 	return Parameter{
 		CommonValue: CommonValue{
 			Type:   ParameterValue,
-			GoType: in.Type().String(),
+			GoType: p.TypeName(in.Type()),
 			Name:   in.Name(),
 		},
 		Index: index,
@@ -244,7 +277,7 @@ func (p *Package) PackTypeTuple(in *types.Tuple) []string {
 	returnTypes := make([]string, 0, in.Len())
 	for i := 0; i < in.Len(); i++ {
 		p.AddType(in.At(i).Type())
-		returnTypes = append(returnTypes, in.At(i).Type().String())
+		returnTypes = append(returnTypes, p.TypeName(in.At(i).Type()))
 	}
 
 	return returnTypes
@@ -270,7 +303,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = UnOpInstruction
 		return UnOp{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Op:                inst.Op.String(),
 			Register:          inst.Name(),
 			Argument:          p.PackValue(inst.X),
@@ -280,7 +313,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = BinOpInstruction
 		return BinOp{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Op:                inst.Op.String(),
 			Register:          inst.Name(),
 			First:             p.PackValue(inst.X),
@@ -294,7 +327,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		}
 		return Call{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Value:             p.PackValue(inst.Call.Value),
 			Method:            method,
@@ -304,7 +337,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = ChangeInterfaceInstruction
 		return ChangeInterface{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Value:             p.PackValue(inst.X),
 		}
@@ -312,7 +345,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = ChangeTypeInstruction
 		return ChangeType{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Value:             p.PackValue(inst.X),
 		}
@@ -320,7 +353,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = ConvertInstruction
 		return Convert{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Value:             p.PackValue(inst.X),
 		}
@@ -328,7 +361,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = SliceToArrayPointerInstruction
 		return SliceToArrayPointer{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Value:             p.PackValue(inst.X),
 		}
@@ -336,7 +369,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = MakeInterfaceInstruction
 		return MakeInterface{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Value:             p.PackValue(inst.X),
 		}
@@ -344,7 +377,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = ExtractInstruction
 		return Extract{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Tuple:             p.PackValue(inst.Tuple),
 			Index:             inst.Index,
@@ -352,8 +385,8 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 	case *ssa.Slice:
 		var (
 			low  ssa.Value = ssa.NewConst(constant.MakeInt64(0), types.Typ[types.Int])
-			high ssa.Value = ssa.NewConst(constant.MakeInt64(-1), types.Typ[types.Int])
-			mx   ssa.Value = ssa.NewConst(constant.MakeInt64(-1), types.Typ[types.Int])
+			high ssa.Value = ssa.NewConst(nil, types.Typ[types.UntypedNil])
+			mx   ssa.Value = ssa.NewConst(nil, types.Typ[types.UntypedNil])
 		)
 		if inst.Low != nil {
 			low = inst.Low
@@ -367,7 +400,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = SliceInstruction
 		return SliceInst{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Collection:        p.PackValue(inst.X),
 			Low:               p.PackValue(low),
@@ -445,7 +478,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		p.AddType(goType)
 		return Alloc{
 			CommonInstruction: common,
-			GoType:            goType.String(),
+			GoType:            p.TypeName(goType),
 			Register:          inst.Name(),
 			Comment:           inst.Comment,
 		}
@@ -453,7 +486,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = MakeSliceInstruction
 		return MakeSlice{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Len:               p.PackValue(inst.Len),
 			Cap:               p.PackValue(inst.Cap),
@@ -466,7 +499,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		}
 		return MakeMap{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Reserve:           reserve,
 		}
@@ -474,7 +507,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = RangeInstruction
 		return Range{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Collection:        p.PackValue(inst.X),
 		}
@@ -482,7 +515,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = NextInstruction
 		return Next{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Iter:              p.PackValue(inst.Iter),
 			IsString:          inst.IsString,
@@ -491,7 +524,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = FieldAddrInstruction
 		return FieldAddr{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Struct:            p.PackValue(inst.X),
 			Field:             inst.Field,
@@ -500,7 +533,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = FieldInstruction
 		return Field{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Struct:            p.PackValue(inst.X),
 			Field:             inst.Field,
@@ -509,7 +542,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = IndexAddrInstruction
 		return IndexAddr{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Collection:        p.PackValue(inst.X),
 			Index:             p.PackValue(inst.Index),
@@ -518,7 +551,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = IndexInstruction
 		return Index{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Collection:        p.PackValue(inst.X),
 			Index:             p.PackValue(inst.Index),
@@ -527,7 +560,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = LookupInstruction
 		return Lookup{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Map:               p.PackValue(inst.X),
 			Key:               p.PackValue(inst.Index),
@@ -545,10 +578,10 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = TypeAssertInstruction
 		return TypeAssert{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Value:             p.PackValue(inst.X),
-			AssertedType:      inst.AssertedType.String(),
+			AssertedType:      p.TypeName(inst.AssertedType),
 		}
 	case *ssa.MakeClosure:
 		common.Type = MakeClosureInstruction
@@ -562,7 +595,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 		common.Type = PhiInstruction
 		return Phi{
 			CommonInstruction: common,
-			GoType:            inst.Type().String(),
+			GoType:            p.TypeName(inst.Type()),
 			Register:          inst.Name(),
 			Edges:             lo.Map(inst.Edges, p.PackValueIdx),
 		}
@@ -583,23 +616,16 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 func (p *Package) PackValue(in ssa.Value) Value {
 	p.AddType(in.Type())
 	common := CommonValue{
-		GoType: in.Type().String(),
+		GoType: p.TypeName(in.Type()),
 		Name:   in.Name(),
 	}
 
 	switch value := in.(type) {
 	case *ssa.Const:
 		common.Type = ConstValue
-		v := "nil"
-		if value.Value != nil {
-			v = value.Value.String()
-		}
 		return Const{
 			CommonValue: common,
-			Value: NamedConstValue{
-				Type:  value.Type().String(),
-				Value: v,
-			},
+			Value:       p.packConstant(value.Type(), value.Value),
 		}
 	case *ssa.Global:
 		common.Type = GlobalValue
@@ -640,10 +666,11 @@ func (p *Package) PackValueIdx(in ssa.Value, _ int) Value {
 	return p.PackValue(in)
 }
 
-func (p *Package) PackMethods(in WithMethods) []string {
-	methods := make([]string, 0)
-	for i := 0; i < in.NumMethods(); i++ {
-		method := in.Method(i)
+func (p *Package) PackMethods(in types.Type) []string {
+	methodSet := types.NewMethodSet(in)
+	methods := make([]string, 0, methodSet.Len())
+	for i := 0; i < methodSet.Len(); i++ {
+		method := methodSet.At(i).Obj()
 		signature := method.Type().(*types.Signature)
 		methods = append(methods, method.Name()+p.PackMethodParams(signature)+p.PackMethodResults(signature.Results()))
 	}
@@ -656,7 +683,7 @@ func (p *Package) PackMethodParams(signature *types.Signature) string {
 	if signature.Variadic() {
 		last := len(params) - 1
 		slice := signature.Params().At(last).Type().(*types.Slice)
-		params[last] = "..." + slice.Elem().String()
+		params[last] = "..." + p.TypeName(slice.Elem())
 	}
 
 	return "(" + strings.Join(params, ", ") + ")"
@@ -677,7 +704,7 @@ func (p *Package) PackMethodResults(in *types.Tuple) string {
 func (p *Package) PackTupleTypes(in *types.Tuple) []string {
 	out := make([]string, 0)
 	for i := 0; i < in.Len(); i++ {
-		out = append(out, in.At(i).Type().String())
+		out = append(out, p.TypeName(in.At(i).Type()))
 	}
 	return out
 }
@@ -715,4 +742,34 @@ type Typed interface {
 type WithMethods interface {
 	NumMethods() int
 	Method(i int) *types.Func
+}
+
+func (p *Package) packConstant(typ types.Type, value constant.Value) NamedConstValue {
+	result := packConstant(typ, value)
+	result.Type = p.TypeName(typ)
+	return result
+}
+
+func packConstant(typ types.Type, value constant.Value) NamedConstValue {
+	result := NamedConstValue{Type: typ.String(), Value: "nil"}
+	if value == nil {
+		return result
+	}
+	result.Value = value.String()
+	if basic, ok := typ.Underlying().(*types.Basic); ok {
+		switch basic.Kind() {
+		case types.Float32:
+			number, _ := constant.Float32Val(value)
+			result.Value = strconv.FormatFloat(float64(number), 'g', -1, 32)
+		case types.Float64, types.UntypedFloat:
+			number, _ := constant.Float64Val(value)
+			result.Value = strconv.FormatFloat(number, 'g', -1, 64)
+		}
+	}
+
+	if value.Kind() == constant.String {
+		encoded := base64.StdEncoding.EncodeToString([]byte(constant.StringVal(value)))
+		result.Bytes = &encoded
+	}
+	return result
 }

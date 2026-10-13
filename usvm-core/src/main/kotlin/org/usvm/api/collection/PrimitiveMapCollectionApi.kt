@@ -27,7 +27,12 @@ import org.usvm.regions.Region
 import org.usvm.sizeSort
 
 object PrimitiveMapCollectionApi {
-    fun <MapType, KeySort : USort, ValueSort: USort, Reg : Region<Reg>> UState<MapType, *, *, *, *, *>.symbolicPrimitiveMapGet(
+    fun <
+        MapType,
+        KeySort : USort,
+        ValueSort : USort,
+        Reg : Region<Reg>,
+        > UState<MapType, *, *, *, *, *>.symbolicPrimitiveMapGet(
         mapRef: UHeapRef,
         key: UExpr<KeySort>,
         mapType: MapType,
@@ -35,14 +40,22 @@ object PrimitiveMapCollectionApi {
         keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
     ): UExpr<ValueSort> = memory.read(UMapEntryLValue(key.sort, valueSort, mapRef, key, mapType, keyInfo))
 
-    fun <MapType, KeySort : USort, Reg : Region<Reg>> UState<MapType, *, *, *, *, *>.symbolicPrimitiveMapContains(
+    fun <
+        MapType,
+        KeySort : USort,
+        Reg : Region<Reg>,
+        > UState<MapType, *, *, *, *, *>.symbolicPrimitiveMapContains(
         mapRef: UHeapRef,
         key: UExpr<KeySort>,
         mapType: MapType,
         keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
     ): UBoolExpr = memory.setContainsElement(mapRef, key, mapType, keyInfo)
 
-    fun <MapType, KeySort : USort, Reg : Region<Reg>> UState<MapType, *, *, *, *, *>.symbolicPrimitiveMapAnyKey(
+    fun <
+        MapType,
+        KeySort : USort,
+        Reg : Region<Reg>,
+        > UState<MapType, *, *, *, *, *>.symbolicPrimitiveMapAnyKey(
         mapRef: UHeapRef,
         mapType: MapType,
         keySort: KeySort,
@@ -66,7 +79,14 @@ object PrimitiveMapCollectionApi {
         }
     }
 
-    fun <MapType, USizeSort : USort, Ctx : UContext<USizeSort>, KeySort : USort, ValueSort : USort, Reg : Region<Reg>> UState<MapType, *, *, Ctx, *, *>.symbolicPrimitiveMapPut(
+    fun <
+        MapType,
+        USizeSort : USort,
+        Ctx : UContext<USizeSort>,
+        KeySort : USort,
+        ValueSort : USort,
+        Reg : Region<Reg>,
+        > UState<MapType, *, *, Ctx, *, *>.symbolicPrimitiveMapPut(
         mapRef: UHeapRef,
         key: UExpr<KeySort>,
         value: UExpr<ValueSort>,
@@ -86,7 +106,13 @@ object PrimitiveMapCollectionApi {
         memory.write(UMapLengthLValue(mapRef, mapType, sizeSort), updatedSize, keyIsNew)
     }
 
-    fun <MapType, USizeSort : USort, Ctx : UContext<USizeSort>, KeySort : USort, Reg : Region<Reg>> UState<MapType, *, *, Ctx, *, *>.symbolicPrimitiveMapRemove(
+    fun <
+        MapType,
+        USizeSort : USort,
+        Ctx : UContext<USizeSort>,
+        KeySort : USort,
+        Reg : Region<Reg>,
+        > UState<MapType, *, *, Ctx, *, *>.symbolicPrimitiveMapRemove(
         mapRef: UHeapRef,
         key: UExpr<KeySort>,
         mapType: MapType,
@@ -97,14 +123,20 @@ object PrimitiveMapCollectionApi {
 
         val keyIsInMap = memory.read(mapContainsLValue)
 
-        // todo: skip values update?
         memory.write(mapContainsLValue, rvalue = falseExpr, guard = trueExpr)
 
         val updatedSize = mkSizeSubExpr(currentSize, mkSizeExpr(1))
         memory.write(UMapLengthLValue(mapRef, mapType, sizeSort), updatedSize, keyIsInMap)
     }
 
-    fun <MapType, USizeSort : USort, Ctx: UContext<USizeSort>, KeySort : USort, ValueSort : USort, Reg : Region<Reg>> UState<MapType, *, *, Ctx, *, *>.symbolicPrimitiveMapMergeInto(
+    fun <
+        MapType,
+        USizeSort : USort,
+        Ctx : UContext<USizeSort>,
+        KeySort : USort,
+        ValueSort : USort,
+        Reg : Region<Reg>,
+        > UState<MapType, *, *, Ctx, *, *>.symbolicPrimitiveMapCopyIntoEmpty(
         dstRef: UHeapRef,
         srcRef: UHeapRef,
         mapType: MapType,
@@ -114,14 +146,21 @@ object PrimitiveMapCollectionApi {
     ) = with(ctx) {
         val srcMapSize = symbolicObjectMapSize(srcRef, mapType)
         val dstMapSize = symbolicObjectMapSize(dstRef, mapType)
+        require(dstMapSize == mkSizeExpr(0)) { "Map copy requires an empty destination" }
 
         val containsSetId = USetRegionId(keySort, mapType, keyInfo)
-        memory.mapMerge(srcRef, dstRef, mapType, keySort, valueSort, keyInfo, containsSetId.uncheckedCast(), guard = trueExpr)
+        memory.mapMerge(
+            srcRef,
+            dstRef,
+            mapType,
+            keySort,
+            valueSort,
+            keyInfo,
+            containsSetId.uncheckedCast(),
+            guard = trueExpr
+        )
         memory.setUnion(srcRef, dstRef, mapType, keySort, keyInfo, guard = trueExpr)
 
-        // todo: precise map size approximation?
-        // val sizeLowerBound = mkIte(mkBvSignedGreaterExpr(srcMapSize, dstMapSize), srcMapSize, dstMapSize)
-        val sizeUpperBound = mkSizeAddExpr(srcMapSize, dstMapSize)
-        memory.write(UMapLengthLValue(dstRef, mapType, sizeSort), sizeUpperBound, guard = trueExpr)
+        memory.write(UMapLengthLValue(dstRef, mapType, sizeSort), srcMapSize, guard = trueExpr)
     }
 }

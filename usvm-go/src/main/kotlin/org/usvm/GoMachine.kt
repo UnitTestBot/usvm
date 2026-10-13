@@ -31,17 +31,17 @@ import kotlin.math.roundToInt
 
 internal typealias USizeSort = UBv32Sort
 
-val logger = object : KLogging() {}.logger
+internal val logger = object : KLogging() {}.logger
 
 class GoMachine(
     private val program: GoProgram,
     override val options: UMachineOptions,
     private val customOptions: GoMachineOptions,
 ) : UMachine<GoState>() {
-    private val typeSystem = GoTypeSystem(options.typeOperationsTimeout, program.types.values)
+    private val typeSystem = GoTypeSystem(options.typeOperationsTimeout, program.types.values, program.methodSets)
     private val applicationGraph = GoApplicationGraph()
     private val components = GoComponents(typeSystem, options)
-    private val ctx = GoContext(components)
+    private val ctx = GoContext(components, intSize = program.intSize)
     private val interpreter = GoInterpreter(ctx, program, applicationGraph)
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
     private val testInterpreter = GoTestInterpreter(ctx)
@@ -62,14 +62,14 @@ class GoMachine(
         return analyze(listOf(method))
     }
 
+    @Suppress("LongMethod") // Observer and path-selection setup follows UMachine.
     private fun analyze(methodsList: List<GoMethod>, targets: List<GoTarget> = emptyList()): List<GoState> {
         logger.debug("{}.analyze()", this)
-        val excludedMethods = methodsList.filter { it.hasUnsupportedInstructions() }.map { it.metName }
-        if (excludedMethods.isNotEmpty()) {
-            logger.warn { "Skipping methods with unsupported instructions: $excludedMethods" }
+        val unsupported = methodsList.filter { it.hasUnsupportedInstructions() }.map { it.metName }
+        if (unsupported.isNotEmpty()) {
+            throw UnsupportedOperationException("Methods contain unsupported instructions: $unsupported")
         }
-
-        val methods = methodsList.filter { !it.hasUnsupportedInstructions() }
+        val methods = methodsList
         val initialStates = hashMapOf<GoMethod, GoState>()
         methods.forEach {
             initialStates[it] = interpreter.getInitialState(it, targets)
@@ -78,11 +78,15 @@ class GoMachine(
         val coverageStatistics = CoverageStatistics<GoMethod, GoInst, GoState>(methods.toSet(), applicationGraph)
         val callGraphStatistics =
             when (options.targetSearchDepth) {
-                0u -> PlainCallGraphStatistics()
-                else -> CallGraphStatisticsImpl(
-                    options.targetSearchDepth,
-                    applicationGraph
-                )
+                0u -> {
+                    PlainCallGraphStatistics()
+                }
+                else -> {
+                    CallGraphStatisticsImpl(
+                        options.targetSearchDepth,
+                        applicationGraph
+                    )
+                }
             }
 
         val pathSelector = createPathSelector(
@@ -96,12 +100,18 @@ class GoMachine(
         )
         val statesCollector =
             when (options.stateCollectionStrategy) {
-                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<GoState>(coverageStatistics) {
-                    it.methodResult is GoMethodResult.Panic
+                StateCollectionStrategy.COVERED_NEW -> {
+                    CoveredNewStatesCollector<GoState>(coverageStatistics) {
+                        it.methodResult is GoMethodResult.Panic
+                    }
                 }
 
-                StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
-                StateCollectionStrategy.ALL -> AllStatesCollector()
+                StateCollectionStrategy.REACHED_TARGET -> {
+                    TargetsReachedStatesCollector()
+                }
+                StateCollectionStrategy.ALL -> {
+                    AllStatesCollector()
+                }
             }
         val stepsStatistics = StepsStatistics<GoMethod, GoState>()
         val stopStrategy = createStopStrategy(
@@ -143,6 +153,7 @@ class GoMachine(
             )
         }
 
+        interpreter.unsupportedOperations.clear()
         run(
             interpreter,
             pathSelector,
@@ -151,29 +162,28 @@ class GoMachine(
             stopStrategy = stopStrategy,
         )
 
-        val totalCoverage = coverageStatistics.getTotalCoverage().roundToInt()
-        logger.info { "Total coverage: $totalCoverage%" }
+        interpreter.unsupportedOperations.firstOrNull()?.let { throw it }
+
+        logger.debug("Total coverage: ${coverageStatistics.getTotalCoverage().roundToInt()}%")
         for (method in coverageStatistics.coverageZone) {
-            val methodCoverage = coverageStatistics.getMethodCoverage(method).roundToInt()
-            logger.info { "Method ${method.metName} coverage: $methodCoverage%" }
+            logger.debug(
+                "Method ${method.metName} coverage: ${coverageStatistics.getMethodCoverage(method).roundToInt()}%"
+            )
         }
-        val analyzedMethods = methods.map { it.metName }
-        val hasUnexpectedUncoveredMethods = totalCoverage < FULL_COVERAGE_PERCENT &&
-            !customOptions.uncoveredMethods.containsAll(analyzedMethods)
-        if (hasUnexpectedUncoveredMethods) {
-            if (customOptions.failOnNotFullCoverage) {
-                throw IllegalStateException("coverage not 100%")
-            } else {
-                logger.warn { "Analysis of methods $analyzedMethods led to coverage < 100%" }
-            }
+        val methodsAllowPartialCoverage = customOptions.uncoveredMethods.containsAll(methods.map { it.metName })
+        if (coverageStatistics.getTotalCoverage() < FULL_COVERAGE && !methodsAllowPartialCoverage) {
+            check(!customOptions.failOnNotFullCoverage) { "coverage not 100%" }
+            logger.warn("Analysis of methods ${methods.map { it.metName }} reached coverage < 100%")
         }
 
         return statesCollector.collectedStates
+    }
+
+    private companion object {
+        const val FULL_COVERAGE = 100.0
     }
 
     private fun isStateTerminated(state: GoState): Boolean {
         return state.callStack.isEmpty()
     }
 }
-
-private const val FULL_COVERAGE_PERCENT = 100

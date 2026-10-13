@@ -60,9 +60,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Compile Go prototype and run lint
+      - name: Run Go regression tests and lint
         run: >-
-          ./gradlew :usvm-go:compileTestKotlin :usvm-go:detektMain :usvm-go:detektTest
+          ./gradlew :usvm-go:check :usvm-go:detektMain :usvm-go:detektTest
           --configure-on-demand --no-daemon --max-workers=1
 
       - name: Check Go exporter variadic method signatures

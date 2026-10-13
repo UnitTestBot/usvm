@@ -53,3 +53,36 @@ func TestMethodSignaturesPreserveVariadicParameters(t *testing.T) {
 		})
 	}
 }
+
+func TestTypeIdentitiesPreserveDistinctLocalDeclarations(t *testing.T) {
+	pkg := types.NewPackage("records", "records")
+	first := types.NewNamed(
+		types.NewTypeName(token.Pos(1), pkg, "record", nil),
+		types.NewStruct([]*types.Var{types.NewVar(token.NoPos, pkg, "number", types.Typ[types.Int])}, nil),
+		nil,
+	)
+	second := types.NewNamed(
+		types.NewTypeName(token.Pos(2), pkg, "record", nil),
+		types.NewStruct([]*types.Var{types.NewVar(token.NoPos, pkg, "pointer", types.NewPointer(types.Typ[types.Int]))}, nil),
+		nil,
+	)
+	exporter := Package{Types: make(map[string]Type)}
+
+	exporter.AddType(first)
+	exporter.AddType(second)
+	firstName, secondName := exporter.TypeName(first), exporter.TypeName(second)
+	if firstName == secondName {
+		t.Fatal("distinct local named types share an exported identity")
+	}
+	firstRecord := exporter.Types[exporter.Types[firstName].(Named).Underlying].(Struct)
+	secondRecord := exporter.Types[exporter.Types[secondName].(Named).Underlying].(Struct)
+	if firstRecord.Fields[0] != "int" || secondRecord.Fields[0] != "*int" {
+		t.Fatalf("local record fields changed: first=%v, second=%v", firstRecord.Fields, secondRecord.Fields)
+	}
+	if exporter.TypeName(types.NewPointer(first)) == exporter.TypeName(types.NewPointer(second)) {
+		t.Fatal("pointers to distinct local types share an exported identity")
+	}
+	if exporter.TypeName(types.NewPointer(first)) != exporter.TypeName(types.NewPointer(first)) {
+		t.Fatal("identical pointer types have different exported identities")
+	}
+}

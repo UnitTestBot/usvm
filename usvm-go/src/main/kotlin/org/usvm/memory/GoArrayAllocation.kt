@@ -13,7 +13,7 @@ internal fun <SizeSort : USort> UWritableMemory<GoType>.allocateGoArray(
     count: UExpr<SizeSort>,
 ): UConcreteHeapRef {
     val reference = allocConcrete(type)
-    initializeArrayLength(reference, type, sizeSort, count)
+    initializeArrayLength(reference, type.arrayStorageType(), sizeSort, count)
     return reference
 }
 
@@ -24,6 +24,6 @@ internal fun <Sort : USort, SizeSort : USort> UWritableMemory<GoType>.allocateGo
     contents: Sequence<UExpr<Sort>>,
 ): UConcreteHeapRef {
     val reference = allocConcrete(type)
-    initializeArray(reference, type, sort, sizeSort, contents)
+    initializeArray(reference, type.arrayStorageType(), sort, sizeSort, contents)
     return reference
 }

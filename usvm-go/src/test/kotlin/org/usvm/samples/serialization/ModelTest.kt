@@ -1,13 +1,15 @@
-package org.usvm.model
+package org.usvm.samples.serialization
 
 import org.junit.jupiter.api.Test
+import org.usvm.generatedGoFile
+import org.usvm.model.Parser
 import java.io.File
 import kotlin.test.assertEquals
 
 class ModelTest {
     @Test
     fun testEqualContent() {
-        val filename = "out/usvm_examples.json"
+        val filename = generatedGoFile("examples/usvm_examples.json").path
         val file = File(filename)
 
         val parser = Parser()

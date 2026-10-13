@@ -21,6 +21,10 @@ sealed class GoUnaryOperator(
         onFp = GoContext::mkFpNegationExpr,
     )
 
+    data object Complement : GoUnaryOperator(
+        onBv = GoContext::mkBvNotExpr,
+    )
+
     data object CastToBool : GoUnaryOperator(
         onBool = { it },
         onBv = { operand -> operand neq mkBv(0, operand.sort) }
@@ -60,10 +64,18 @@ sealed class GoUnaryOperator(
 
     open operator fun invoke(operand: UExpr<out USort>): UExpr<out USort> =
         when (operand.sort) {
-            is UBoolSort -> operand.goCtx.onBool(operand.cast())
-            is UBvSort -> operand.goCtx.onBv(operand.cast())
-            is UFpSort -> operand.goCtx.onFp(operand.cast())
-            else -> error("Expressions mismatch: $operand")
+            is UBoolSort -> {
+                operand.goCtx.onBool(operand.cast())
+            }
+            is UBvSort -> {
+                operand.goCtx.onBv(operand.cast())
+            }
+            is UFpSort -> {
+                operand.goCtx.onFp(operand.cast())
+            }
+            else -> {
+                error("Expressions mismatch: $operand")
+            }
         }
 
     companion object {

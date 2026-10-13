@@ -1,7 +1,13 @@
 package org.usvm.state
 
-import org.jacodb.go.api.GoMethod
+import org.jacodb.go.api.GoType
 import org.usvm.GoCall
+import org.usvm.UBoolExpr
+import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.USort
+import org.usvm.memory.GoArrayView
+import org.usvm.memory.ULValue
 
 enum class GoFlowStatus {
     NORMAL,
@@ -12,26 +18,62 @@ enum class GoFlowStatus {
 class GoStateData(
     val flowStack: ArrayDeque<GoFlowStatus> = ArrayDeque(),
 ) {
-    private val deferredCalls: MutableMap<GoMethod, ArrayDeque<GoCall>> = hashMapOf()
+    internal val arrayViews: MutableMap<UHeapRef, GoArrayView> = hashMapOf()
+
+    internal val pointerTargets: MutableMap<UHeapRef, ULValue<*, *>> = hashMapOf()
+
+    internal val pointerConversions: MutableMap<UHeapRef, GoPointerConversion> = hashMapOf()
+
+    // Lists are replaced on append, so cloned states never share mutable key histories.
+    internal val mapKeyRepresentatives: MutableMap<GoType, List<GoMapKeyRepresentative>> = hashMapOf()
+
+    internal var pendingArrayCopy: GoArrayCopyOperation? = null
+    internal var builtinResult: UExpr<out USort>? = null
+
+    private val deferredCalls: ArrayDeque<ArrayDeque<GoCall>> = ArrayDeque()
 
     val flowStatus: GoFlowStatus
         get() = flowStack.last()
 
-    fun getDeferredCalls(method: GoMethod): ArrayDeque<GoCall> = deferredCalls[method] ?: ArrayDeque()
-
-    fun addDeferredCall(method: GoMethod, call: GoCall) {
-        if (method !in deferredCalls) {
-            deferredCalls[method] = ArrayDeque()
-        }
-        deferredCalls[method]!!.addLast(call)
+    fun pushDeferredFrame() {
+        deferredCalls.addLast(ArrayDeque())
     }
 
-    fun clone(): GoStateData = GoStateData(clonedFlowStack()).mergeWith(this)
+    fun popDeferredFrame() {
+        deferredCalls.removeLast()
+    }
 
-    fun mergeWith(other: GoStateData) = GoStateData(clonedFlowStack()).also {
-        for (entry in other.deferredCalls) {
-            entry.value.forEach { c -> it.addDeferredCall(entry.key, c) }
-        }
+    fun getDeferredCalls(): ArrayDeque<GoCall> = deferredCalls.last()
+
+    fun addDeferredCall(call: GoCall) {
+        getDeferredCalls().addLast(call)
+    }
+
+    fun clone(): GoStateData = GoStateData(clonedFlowStack()).also {
+        it.pointerTargets.putAll(pointerTargets)
+        it.pointerConversions.putAll(pointerConversions)
+        it.arrayViews.putAll(arrayViews)
+        it.mapKeyRepresentatives.putAll(mapKeyRepresentatives)
+        it.pendingArrayCopy = pendingArrayCopy
+        it.builtinResult = builtinResult
+        deferredCalls.forEach { calls -> it.deferredCalls.addLast(ArrayDeque(calls)) }
+    }
+
+    fun mergeWith(other: GoStateData): GoStateData? {
+        val thisCalls = deferredCalls.map { it.toList() }
+        val otherCalls = other.deferredCalls.map { it.toList() }
+        val sameCalls = thisCalls == otherCalls
+        val sameOperation = pendingArrayCopy == other.pendingArrayCopy && builtinResult == other.builtinResult
+        if (!sameOperation) return null
+
+        val sameFlow = flowStack.toList() == other.flowStack.toList() && sameCalls
+        val sameHeapViews = arrayViews == other.arrayViews && pointerTargets == other.pointerTargets
+        val sameKeyAndPointerHistory = pointerConversions == other.pointerConversions &&
+            mapKeyRepresentatives == other.mapKeyRepresentatives
+        val canMerge = sameFlow && sameHeapViews && sameKeyAndPointerHistory
+        if (!canMerge) return null
+
+        return clone()
     }
 
     private fun clonedFlowStack(): ArrayDeque<GoFlowStatus> {
@@ -40,3 +82,16 @@ class GoStateData(
         return newStack
     }
 }
+
+internal data class GoPointerConversion(
+    val source: UHeapRef,
+    val sourceType: GoType,
+    val targetType: GoType,
+)
+
+internal data class GoMapKeyRepresentative(
+    val reference: UHeapRef,
+    val snapshot: UExpr<out USort>,
+    val guard: UBoolExpr,
+    val canonicalReference: UHeapRef = reference,
+)

@@ -157,9 +157,8 @@ class UInputToAllocatedSymbolicRefSetUnionAdapter<SetType>(
 
     override fun collectSetElements(elements: USymbolicSetElementsCollector.Elements<UHeapRef>) {
         val setElements = USymbolicSetElementsCollector.collect(setOfKeys.updates)
-        if (setElements.isInput) {
-            elements.isInput = true
-        }
+        // The initial input collection can contain elements absent from its update tree.
+        elements.isInput = true
         setElements.elements.mapTo(elements.elements) { it.second }
     }
 
@@ -211,9 +210,8 @@ class UInputToInputSymbolicRefSetUnionAdapter<SetType>(
 
     override fun collectSetElements(elements: USymbolicSetElementsCollector.Elements<USymbolicSetElement<UAddressSort>>) {
         val setElements = USymbolicSetElementsCollector.collect(setOfKeys.updates)
-        if (setElements.isInput) {
-            elements.isInput = true
-        }
+        // The initial input collection can contain elements absent from its update tree.
+        elements.isInput = true
         setElements.elements.mapTo(elements.elements) { dstSetRef to it.second }
     }
 

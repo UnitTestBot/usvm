@@ -20,6 +20,7 @@ import org.jacodb.go.api.GoRunDefersInst
 import org.jacodb.go.api.GoSendInst
 import org.jacodb.go.api.GoStoreInst
 import org.jacodb.go.api.GoVar
+import org.jacodb.go.api.MapType
 import org.jacodb.go.api.NullType
 import org.jacodb.go.api.TupleType
 import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
@@ -29,10 +30,14 @@ import org.usvm.collection.map.primitive.UMapEntryLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
+import org.usvm.interpreter.GoStepAbort
 import org.usvm.interpreter.GoStepScope
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.key.USizeExprKeyInfo
+import org.usvm.state.copyValue
+import org.usvm.state.mapKeyPayloadLValue
 import org.usvm.statistics.ApplicationGraph
+import org.usvm.type.needsMapKeyRepresentative
 import org.usvm.type.underlying
 
 class GoInstVisitor(
@@ -63,12 +68,18 @@ class GoInstVisitor(
     override fun visitGoReturnInst(inst: GoReturnInst): GoInst {
         scope.doWithState {
             when (inst.returnValues.size) {
-                0 -> returnValue(ctx.voidValue, NullType())
-                1 -> returnValue(inst.returnValues[0].accept(exprVisitor), inst.returnValues[0].type)
+                0 -> {
+                    returnValue(ctx.voidValue, NullType())
+                }
+                1 -> {
+                    returnValue(inst.returnValues[0].accept(exprVisitor), inst.returnValues[0].type)
+                }
                 else -> {
                     val type = TupleType(inst.returnValues.map { it.type })
-                    val fields = inst.returnValues.map { it.accept(exprVisitor) }.toTypedArray()
-                    returnValue(mkTuple(type, fields = fields), type)
+                    returnValue(
+                        mkTuple(type, fields = inst.returnValues.map { it.accept(exprVisitor) }.toTypedArray()),
+                        type
+                    )
                 }
             }
         }
@@ -99,12 +110,11 @@ class GoInstVisitor(
         val name = (inst.func.accept(exprVisitor) as KConst).toString()
         val method = program.findMethod(inst.location, name)
 
-        val parameters = inst.args.map { it.accept(exprVisitor) }.toTypedArray()
-        val call = GoCall(method, applicationGraph.entryPoints(method).first())
-        ctx.setMethodInfo(method, parameters)
+        val parameters = inst.args.map { it.accept(exprVisitor) }
 
         scope.doWithState {
-            data.addDeferredCall(lastEnteredMethod, call)
+            val call = createCall(method, applicationGraph.entryPoints(method).first(), parameters)
+            data.addDeferredCall(call)
         }
         return next(inst)
     }
@@ -115,15 +125,11 @@ class GoInstVisitor(
 
     override fun visitGoStoreInst(inst: GoStoreInst): GoInst {
         val pointer = inst.lhv.accept(exprVisitor).asExpr(ctx.addressSort)
-        if (pointer is UNullRef) {
-            return scope.calcOnState {
-                panic("null pointer dereference")
-                next(inst)
-            }
-        }
+        val nonNil = ctx.mkNot(ctx.mkHeapRefEq(pointer, ctx.nullRef))
+        scope.fork(nonNil, blockOnFalseState = { panic("null pointer dereference") }) ?: throw GoStepAbort()
         val rvalue = inst.rhv.accept(exprVisitor)
         scope.doWithState {
-            store(pointer, rvalue)
+            store(pointer, copyValue(rvalue, inst.rhv.type))
         }
 
         return next(inst)
@@ -132,12 +138,30 @@ class GoInstVisitor(
     override fun visitGoMapUpdateInst(inst: GoMapUpdateInst): GoInst {
         val map = exprVisitor.unboxNamedRef(inst.map.accept(exprVisitor).asExpr(ctx.addressSort), inst.map.type)
         val type = inst.map.type.underlying()
-        val key = exprVisitor.resolveMapKey(inst.key)
+        val snapshot = exprVisitor.evaluateMapKey(inst.key)
         val value = inst.value.accept(exprVisitor)
-        val isRefKey = key.sort == ctx.addressSort
+        exprVisitor.checkMapWritable(map) ?: throw GoStepAbort()
 
-        exprVisitor.checkNotNull(map) ?: throw IllegalStateException()
-        scope.ensureObjectMapSizeCorrect(map, type) ?: throw IllegalStateException()
+        val resolvedKey = exprVisitor.resolveMapKeySnapshot(snapshot, inst.key.type)
+        val key = resolvedKey.key
+        val isRefKey = key.sort == ctx.addressSort
+        val mapType = type as MapType
+        val canMatch = exprVisitor.mapKeyCanMatch(key, mapType.keyType)
+
+        scope.ensureObjectMapSizeCorrect(map, type) ?: throw GoStepAbort()
+        exprVisitor.ensureMapKeyCanonicality(map, mapType)
+        val previousMembership = scope.calcOnState {
+            if (isRefKey) {
+                memory.read(URefSetEntryLValue(map, key.asExpr(ctx.addressSort), type))
+            } else {
+                memory.read(USetEntryLValue(key.sort, map, key.asExpr(key.sort), type, USizeExprKeyInfo()))
+            }
+        }
+        if (mapType.keyType.needsMapKeyRepresentative()) {
+            exprVisitor.validateStoredMapKey(map, key.asExpr(ctx.addressSort), mapType, guard = previousMembership)
+        }
+        // A NaN insertion needs a fresh entry even when the map came from the input model.
+        scope.assert(ctx.mkOr(canMatch, ctx.mkNot(previousMembership))) ?: throw GoStepAbort()
 
         scope.doWithState {
             val mapContainsLValue = if (isRefKey) {
@@ -152,15 +176,18 @@ class GoInstVisitor(
             }
             val currentSize = symbolicObjectMapSize(map, type)
 
-            memory.write(mapEntryLValue, value.asExpr(value.sort), ctx.trueExpr)
+            val keyIsNew = ctx.mkNot(ctx.mkAnd(canMatch, memory.read(mapContainsLValue)))
+
+            val copiedValue = copyValue(value, inst.value.type)
+            memory.write(mapEntryLValue, copiedValue.asExpr(value.sort), ctx.trueExpr)
             memory.write(mapContainsLValue, ctx.trueExpr, ctx.trueExpr)
+            if (mapType.keyType.needsMapKeyRepresentative()) {
+                val payload = ctx.mapKeyPayloadLValue(map, key.asExpr(ctx.addressSort), mapType)
+                memory.write(payload, resolvedKey.snapshot.asExpr(payload.sort), ctx.trueExpr)
+            }
 
             val updatedSize = ctx.mkSizeAddExpr(currentSize, ctx.mkSizeExpr(1))
-            memory.write(
-                UMapLengthLValue(map, type, ctx.sizeSort),
-                updatedSize,
-                ctx.mkNot(memory.read(mapContainsLValue)),
-            )
+            memory.write(UMapLengthLValue(map, type, ctx.sizeSort), updatedSize, keyIsNew)
         }
 
         return next(inst)

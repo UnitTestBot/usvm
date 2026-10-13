@@ -13,16 +13,17 @@ import org.usvm.util.isOsInit
 class GoMethodInfo(
     val variablesCount: Int,
     val argumentsCount: Int,
-    val arguments: Array<UExpr<out USort>>,
 ) {
     override fun toString(): String {
         return "variables: $variablesCount, arguments: $argumentsCount"
     }
 }
 
-class GoCall(
+data class GoCall(
     val method: GoMethod,
     val entrypoint: GoInst,
+    val arguments: List<UExpr<out USort>>? = null,
+    val freeVariables: List<UExpr<out USort>> = emptyList(),
 )
 
 class GoPackage(
@@ -30,6 +31,8 @@ class GoPackage(
     val methods: List<GoMethod>,
     val globals: List<GoGlobal>,
     val types: Map<String, GoType>,
+    val intSize: Int,
+    val methodSets: Map<GoType, List<String>> = emptyMap(),
 ) {
     private val methodsIndex: Map<String, GoMethod> = methods.associateBy { it.metName }
 
@@ -39,8 +42,13 @@ class GoPackage(
 }
 
 class GoProgram(packages: List<GoPackage>) {
+    val intSize: Int = packages.map { it.intSize }.distinct().single().also {
+        require(it == Int.SIZE_BITS || it == Long.SIZE_BITS) { "Unsupported Go int width: $it" }
+    }
+
     val globals = packages.flatMap { it.globals }
     val types = packages.flatMap { it.types.entries }.associate { it.key to it.value }
+    val methodSets = packages.flatMap { it.methodSets.entries }.associate { it.key to it.value }
 
     private val packagesIndex: Map<String, GoPackage> = packages.associateBy { it.name }
 
@@ -50,9 +58,9 @@ class GoProgram(packages: List<GoPackage>) {
 
     fun findMethod(location: GoInstLocation, name: String): GoMethod {
         if (name.contains('.') && !name.contains('(')) {
-            val split = name.split('.')
-            val packageName = split[0]
-            val methodName = split[1]
+            val separator = name.lastIndexOf('.')
+            val packageName = name.substring(0, separator)
+            val methodName = name.substring(separator + 1)
             return findPackage(packageName).findMethod(methodName)
         }
 
@@ -60,7 +68,7 @@ class GoProgram(packages: List<GoPackage>) {
     }
 
     fun findInitMethods(packageName: String): List<GoMethod> {
-        return packagesIndex[packageName]!!.methods.filter { it.isInit() }.sortedBy { it.metName }
+        return packagesIndex.getValue(packageName).methods.filter { it.isInit() }.sortedBy { it.metName }
     }
 
     fun findOsInitMethods(): List<GoMethod> {

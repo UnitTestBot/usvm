@@ -2,6 +2,7 @@ package org.usvm.state
 
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KConst
+import io.ksmt.expr.KIteExpr
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.go.api.ArrayType
@@ -14,9 +15,14 @@ import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoParameter
 import org.jacodb.go.api.GoType
+import org.jacodb.go.api.InterfaceType
+import org.jacodb.go.api.MapType
 import org.jacodb.go.api.NamedType
+import org.jacodb.go.api.NullType
 import org.jacodb.go.api.PointerType
+import org.jacodb.go.api.SignatureType
 import org.jacodb.go.api.SliceType
+import org.jacodb.go.api.StructType
 import org.usvm.GoCall
 import org.usvm.GoContext
 import org.usvm.GoTarget
@@ -26,12 +32,10 @@ import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.ULValuePointer
 import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.api.readField
-import org.usvm.api.writeArrayLength
 import org.usvm.api.writeField
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.collections.immutable.internal.MutabilityOwnership
@@ -39,6 +43,8 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.memory.allocateGoArrayInitialized
+import org.usvm.memory.writeGoArrayLength
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
@@ -47,8 +53,6 @@ import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.type.GoBasicTypes
 import org.usvm.type.underlying
-import org.usvm.memory.allocateGoArray as allocateArray
-import org.usvm.memory.allocateGoArrayInitialized as allocateArrayInitialized
 
 class GoState(
     ctx: GoContext,
@@ -84,7 +88,7 @@ class GoState(
         this.ownership = newThisOwnership
         return GoState(
             ctx,
-            ownership,
+            cloneOwnership,
             entrypoint,
             callStack.clone(),
             clonedConstraints,
@@ -127,7 +131,7 @@ class GoState(
         val mergedTargets = targets.takeIf { it == other.targets } ?: return null
         mergedPathConstraints += ctx.mkOr(mergeGuard.thisConstraint, mergeGuard.otherConstraint)
 
-        val mergedData = data.mergeWith(other.data)
+        val mergedData = data.mergeWith(other.data) ?: return null
 
         return GoState(
             ctx,
@@ -160,6 +164,7 @@ class GoState(
     fun returnValue(valueToReturn: UExpr<out USort>, type: GoType) {
         val returnFromMethod = lastEnteredMethod
         val returnSite = callStack.pop()
+        data.popDeferredFrame()
         if (callStack.isNotEmpty()) {
             memory.stack.pop()
         }
@@ -179,6 +184,7 @@ class GoState(
         require(methodResult is GoMethodResult.Panic)
 
         val returnSite = callStack.pop()
+        data.popDeferredFrame()
         if (callStack.isNotEmpty()) {
             memory.stack.pop()
         }
@@ -208,13 +214,16 @@ class GoState(
         data.flowStack.add(GoFlowStatus.DEFER)
     }
 
+    fun createCall(method: GoMethod, entrypoint: GoInst, arguments: List<UExpr<out USort>>): GoCall {
+        val copiedArguments = arguments.mapIndexed { index, value ->
+            copyValue(value, method.parameters[index].type as GoType)
+        }
+        val freeVariables = (method as? GoFunction)?.freeVars.orEmpty().map(::findParam)
+        return GoCall(method, entrypoint, copiedArguments, freeVariables)
+    }
+
     fun addCall(call: GoCall, returnInst: GoInst? = null) = with(ctx) {
         val methodInfo = getMethodInfo(call.method)
-        val freeVariables = mutableListOf<UExpr<out USort>>().also {
-            if (call.method is GoFunction) {
-                call.method.freeVars.forEach { variable -> it.add(findParam(variable)) }
-            }
-        }
         val parameters = mutableListOf<GoParameter>().also {
             if (call.method is GoFunction) {
                 it.addAll(call.method.parameters)
@@ -223,22 +232,35 @@ class GoState(
 
         data.flowStack.add(GoFlowStatus.NORMAL)
         callStack.push(call.method, returnInst)
-        if (methodInfo.arguments.isEmpty()) {
+        data.pushDeferredFrame()
+        if (call.arguments == null) {
             memory.stack.push(methodInfo.argumentsCount, methodInfo.variablesCount)
         } else {
-            memory.stack.push(methodInfo.arguments, methodInfo.variablesCount)
+            memory.stack.push(call.arguments.toTypedArray(), methodInfo.variablesCount)
         }
 
         parameters.forEachIndexed { i, parameter ->
-            when (val type = parameter.type) {
+            val parameterType = parameter.type as GoType
+            val value = memory.read(URegisterStackLValue(typeToSort(parameterType), i))
+            pathConstraints += valueShape(value, parameterType)
+
+            when (val type = parameterType.underlying()) {
                 is ArrayType -> {
                     val ref = memory.read(URegisterStackLValue(addressSort, i)).asExpr(addressSort)
-                    memory.writeArrayLength(ref, mkSizeExpr(type.len.toInt()), type, sizeSort)
+                    memory.writeGoArrayLength(ref, mkSizeExpr(type.len.toInt()), type, sizeSort)
                 }
             }
         }
 
-        freeVariables.forEachIndexed { i, variable ->
+        if (call.arguments == null) {
+            parameters.forEachIndexed { index, parameter ->
+                val type = parameter.type as GoType
+                val lvalue = URegisterStackLValue(typeToSort(type), index)
+                memory.write(lvalue, copyValue(memory.read(lvalue), type).asExpr(lvalue.sort), trueExpr)
+            }
+        }
+
+        call.freeVariables.forEachIndexed { i, variable ->
             val lvalue = URegisterStackLValue(variable.sort, i + freeVariableOffset(call.method))
             memory.write(lvalue, variable.asExpr(variable.sort), trueExpr)
         }
@@ -247,24 +269,73 @@ class GoState(
     }
 
     fun deref(pointer: UHeapRef, sort: USort): UExpr<out USort> {
-        val lvaluePointer = tryLValuePointer(pointer)
-        if (lvaluePointer != null) {
-            return memory.read(lvaluePointer.lvalue)
+        if (pointer is KIteExpr) {
+            return ctx.mkIte(
+                pointer.condition,
+                deref(pointer.trueBranch, sort).asExpr(sort),
+                deref(pointer.falseBranch, sort).asExpr(sort)
+            )
         }
-
-        val index = 0
-        return memory.readField(pointer, index, sort)
+        data.pointerConversions[pointer]?.let { conversion ->
+            val value = deref(conversion.source, ctx.typeToSort(conversion.sourceType))
+            return reinterpretValue(value, conversion.sourceType, conversion.targetType)
+        }
+        val target = data.pointerTargets[pointer]
+        return if (target != null) memory.read(target) else memory.readField(pointer, 0, sort)
     }
 
     fun store(pointer: UHeapRef, rvalue: UExpr<out USort>) {
-        val lvaluePointer = tryLValuePointer(pointer)
-        if (lvaluePointer != null) {
-            memory.write(lvaluePointer.lvalue.withSort(rvalue.sort), rvalue.asExpr(rvalue.sort), ctx.trueExpr)
+        storeGuarded(pointer, rvalue, ctx.trueExpr)
+    }
+
+    private fun storeGuarded(pointer: UHeapRef, rvalue: UExpr<out USort>, guard: UExpr<UBoolSort>) {
+        if (pointer is KIteExpr) {
+            storeGuarded(pointer.trueBranch, rvalue, ctx.mkAnd(guard, pointer.condition))
+            storeGuarded(pointer.falseBranch, rvalue, ctx.mkAnd(guard, ctx.mkNot(pointer.condition)))
             return
         }
+        data.pointerConversions[pointer]?.let { conversion ->
+            val value = reinterpretValue(rvalue, conversion.targetType, conversion.sourceType)
+            storeGuarded(conversion.source, value, guard)
+            return
+        }
+        val target = data.pointerTargets[pointer]
+        if (target != null) {
+            memory.write(target.withSort(rvalue.sort), rvalue.asExpr(rvalue.sort), guard)
+        } else {
+            memory.writeField(pointer, 0, rvalue.sort, rvalue.asExpr(rvalue.sort), guard)
+        }
+    }
 
-        val index = 0
-        memory.writeField(pointer, index, rvalue.sort, rvalue.asExpr(rvalue.sort), ctx.trueExpr)
+    internal fun convertPointer(source: UHeapRef, sourceType: GoType, targetType: GoType): UHeapRef {
+        val pointer = memory.allocConcrete(PointerType(targetType))
+        memory.writeField(
+            ref = pointer,
+            field = 1,
+            sort = ctx.bv32Sort,
+            value = ctx.mkBv(POINTER_FIELD, ctx.bv32Sort),
+            guard = ctx.trueExpr
+        )
+        data.pointerConversions[pointer] = GoPointerConversion(source, sourceType, targetType)
+        return ctx.mkIte(ctx.mkHeapRefEq(source, ctx.nullRef), ctx.nullRef, pointer)
+    }
+
+    internal fun canonicalPointer(reference: UHeapRef): UHeapRef = when (reference) {
+        is KIteExpr -> ctx.mkIte(
+            reference.condition,
+            canonicalPointer(reference.trueBranch),
+            canonicalPointer(reference.falseBranch),
+        )
+        else -> data.pointerConversions[reference]?.let { canonicalPointer(it.source) } ?: reference
+    }
+
+    private fun reinterpretValue(value: UExpr<out USort>, sourceType: GoType, targetType: GoType): UExpr<out USort> {
+        val payload = if (sourceType is NamedType) {
+            unbox(value.asExpr(ctx.addressSort), ctx.typeToSort(sourceType.underlying()))
+        } else {
+            value
+        }
+        return if (targetType is NamedType) box(payload, targetType) else payload
     }
 
     fun isPointer(pointer: UHeapRef): UExpr<UBoolSort> {
@@ -286,9 +357,8 @@ class GoState(
     }
 
     fun box(expr: UExpr<out USort>, targetType: GoType): UHeapRef {
-        val alreadyBoxed = expr.sort == ctx.addressSort && expr !is UNullRef &&
-            expr !is KConst<*> && isBoxedConcrete(expr.asExpr(ctx.addressSort))
-        if (alreadyBoxed) {
+        val isReference = expr.sort == ctx.addressSort && expr !is UNullRef && expr !is KConst<*>
+        if (isReference && isBoxedConcrete(expr.asExpr(ctx.addressSort))) {
             return box(unbox(expr.asExpr(ctx.addressSort), ctx.typeToSort(targetType.underlying())), targetType)
         }
 
@@ -309,7 +379,17 @@ class GoState(
     }
 
     fun mkPointer(type: GoType, lvalue: ULValue<*, *>): UExpr<out USort> {
-        return mkPointer(type, ULValuePointer(ctx, lvalue))
+        data.pointerTargets.entries.firstOrNull { it.value == lvalue }?.let { return it.key }
+        val pointer = memory.allocConcrete(PointerType(type))
+        memory.writeField(
+            ref = pointer,
+            field = 1,
+            sort = ctx.bv32Sort,
+            value = ctx.mkBv(POINTER_FIELD, ctx.bv32Sort),
+            guard = ctx.trueExpr
+        )
+        data.pointerTargets[pointer] = lvalue
+        return pointer
     }
 
     fun mkTuple(type: GoType, vararg fields: UExpr<out USort>): UConcreteHeapRef = with(ctx) {
@@ -320,35 +400,39 @@ class GoState(
         return ref
     }
 
-    fun mkString(value: String): UExpr<out USort> {
-        return memory.allocateArrayInitialized(
+    fun mkString(value: String): UExpr<out USort> = mkString(value.toByteArray(Charsets.UTF_8))
+
+    fun mkString(value: ByteArray): UExpr<out USort> {
+        return memory.allocateGoArrayInitialized(
             GoBasicTypes.STRING,
             ctx.bv8Sort,
             ctx.sizeSort,
-            value.toByteArray().map { ctx.mkBv(it) }.asSequence()
+            value.map { ctx.mkBv(it) }.asSequence()
         )
     }
 
-    private fun sampleValue(type: GoType): UExpr<out USort> = when (type) {
+    fun sampleValue(type: GoType): UExpr<out USort> = when (type) {
         is ArrayType -> {
             val sort = ctx.typeToSort(type.elementType)
             val contents = Array(type.len.toInt()) { sampleValue(type.elementType).asExpr(sort) }.asSequence()
-            memory.allocateArrayInitialized(type, sort, ctx.sizeSort, contents)
+            memory.allocateGoArrayInitialized(type, sort, ctx.sizeSort, contents)
         }
 
-        is SliceType -> memory.allocateArray(type, ctx.sizeSort, ctx.mkSizeExpr(0))
-        is BasicType -> ctx.typeToSort(type).sampleUValue()
-        is NamedType -> box(sampleValue(type.underlyingType), type)
-        else -> memory.allocConcrete(type)
-    }
-
-    private fun tryLValuePointer(pointer: UHeapRef): ULValuePointer? {
-        val index = 0
-        val payload = memory.readField(pointer, index, ctx.addressSort)
-        if (payload is ULValuePointer) {
-            return payload
+        is SliceType, is MapType, is PointerType, is InterfaceType, is SignatureType, is NullType -> {
+            ctx.nullRef
         }
-        return null
+        is StructType -> {
+            mkTuple(type, fields = type.fields.orEmpty().map(::sampleValue).toTypedArray())
+        }
+        is BasicType -> {
+            if (type == GoBasicTypes.STRING) mkString("") else ctx.typeToSort(type).sampleUValue()
+        }
+        is NamedType -> {
+            if (type.underlying() is InterfaceType) ctx.nullRef else box(sampleValue(type.underlyingType), type)
+        }
+        else -> {
+            memory.allocConcrete(type)
+        }
     }
 
     private fun findParam(freeVar: GoFreeVar): UExpr<out USort> {
@@ -364,8 +448,7 @@ class GoState(
             registers.pop()
         }
 
-
-        throw IllegalStateException("param not found")
+        error("param not found")
     }
 
     private fun findParam(method: GoMethod, freeVar: GoFreeVar): Pair<GoType, Int>? {

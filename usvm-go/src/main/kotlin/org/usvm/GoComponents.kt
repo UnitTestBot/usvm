@@ -11,7 +11,7 @@ import org.usvm.types.UTypeSystem
 class GoComponents(
     private val typeSystem: GoTypeSystem,
     private val options: UMachineOptions,
-): UComponents<GoType, USizeSort> {
+) : UComponents<GoType, USizeSort> {
     override val useSolverForForks: Boolean get() = options.useSolverForForks
 
     override fun mkTypeSystem(ctx: UContext<USizeSort>): UTypeSystem<GoType> {
@@ -21,8 +21,12 @@ class GoComponents(
     override fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<GoType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
         val solver = when (options.solverType) {
-            SolverType.YICES -> KYicesSolver(ctx)
-            SolverType.Z3 -> KZ3Solver(ctx)
+            SolverType.YICES -> {
+                KYicesSolver(ctx)
+            }
+            SolverType.Z3 -> {
+                KZ3Solver(ctx)
+            }
         }
         val typeSolver = UTypeSolver(typeSystem)
 
