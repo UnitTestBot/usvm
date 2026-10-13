@@ -95,6 +95,7 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
+import org.usvm.util.resolveDeclaredConstructor
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.type
 import org.usvm.utils.ensureSat
@@ -257,6 +258,12 @@ class TsInterpreter(
                 )
 
                 scope.doWithState { newStmt(concreteCall) }
+                return
+            }
+
+            val constructor = stmt.resolveDeclaredConstructor(graph.hierarchy)
+            if (constructor != null) {
+                scope.doWithState { newStmt(stmt.toConcrete(constructor)) }
                 return
             }
 
@@ -773,6 +780,7 @@ class TsInterpreter(
             options = options,
             hierarchy = graph.hierarchy,
             unknownCallDispatcher = unknownCallDispatcher,
+            observer = observer,
         )
 
     fun getInitialState(method: EtsMethod, targets: List<TsTarget>): TsState = with(ctx) {

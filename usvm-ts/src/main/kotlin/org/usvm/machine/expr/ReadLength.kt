@@ -12,6 +12,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.sizeSort
@@ -26,6 +27,7 @@ fun TsContext.readLengthProperty(
     instanceLocal: EtsLocal,
     instance: UHeapRef,
     maxArraySize: Int,
+    onFeatureLimitation: ((TsRuntimeFeatureLimitationReason, String) -> Unit)? = null,
 ): UExpr<*>? {
     // Determine the array type.
     val storageType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) }
@@ -50,7 +52,13 @@ fun TsContext.readLengthProperty(
             )
         }
 
-        else -> error("Expected EtsArrayType, EtsAnyType or EtsUnknownType, but got: $type")
+        else -> {
+            val reason = TsRuntimeFeatureLimitationReason.ARRAY_STORAGE_TYPE
+            val detail = "Length read requires supported array storage: static=${instanceLocal.type}, storage=$type"
+            onFeatureLimitation?.invoke(reason, detail)
+            scope.doWithState { terminateAsUnsupported(reason = "$reason: $detail") }
+            return null
+        }
     }
 
     // Read the length of the array.

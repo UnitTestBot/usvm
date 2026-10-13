@@ -53,6 +53,10 @@ class TsTypeSystem(
         val unwrappedSupertype = unwrapAlias(supertype)
         val unwrappedType = unwrapAlias(type)
 
+        require(unwrappedType !is EtsFakeType && unwrappedSupertype !is EtsFakeType) {
+            "Fake types should not occur in type constraints"
+        }
+
         // Runtime object checks exclude primitive and nullish values, independently of TS assignability.
         if (unwrappedSupertype == EtsObjectType) return unwrappedType is EtsRefType
 
@@ -167,10 +171,6 @@ class TsTypeSystem(
         }
 
         // Class and structural types
-
-        require(unwrappedType !is EtsFakeType && unwrappedSupertype !is EtsFakeType) {
-            "Fake types should not occur in type constraints"
-        }
 
         if (unwrappedSupertype is EtsAuxiliaryType && unwrappedType is EtsAuxiliaryType) {
             return unwrappedType.properties.all { it in unwrappedSupertype.properties }

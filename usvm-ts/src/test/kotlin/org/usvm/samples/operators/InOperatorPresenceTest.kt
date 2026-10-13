@@ -114,7 +114,7 @@ class InOperatorPresenceTest : PropertyTestRunner("/samples/operators/InOperator
                 val rejectedByInterpreter = outcome.unsupportedPaths.any { "prototype mutation" in it }
                 // The native frontend rejects special __proto__ initializers before interpreter execution.
                 val rejectedByFrontend = isPrototypeInitializer && outcome.unsupportedPaths.any {
-                    it.startsWith("Unsupported frontend value: UnsupportedValue") &&
+                    it.startsWith("FRONTEND_UNSUPPORTED_VALUE: Unsupported frontend value: UnsupportedValue") &&
                         "\"kindName\":\"ObjectLiteralExpression\"" in it && "__proto__" in it
                 }
                 assertTrue(rejectedByInterpreter || rejectedByFrontend, "${outcome.unsupportedPaths}")
