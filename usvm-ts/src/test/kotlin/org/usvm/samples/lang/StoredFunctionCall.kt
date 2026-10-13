@@ -32,4 +32,15 @@ class StoredFunctionCall : TsMethodTestRunner() {
             invariants = arrayOf({ result -> result eq 5 }),
         )
     }
+
+    @Test
+    fun `test inherited callback field`() {
+        val method = getMethod("inheritedField")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 7 },
+            invariants = arrayOf({ result -> result eq 7 }),
+        )
+    }
 }

@@ -193,13 +193,14 @@ internal class CurrentTsCallsSymbolicEngine(
             bindings = prepared.inputBindings,
             lexicalEnvironment = prepared.lexicalEnvironment,
             captures = prepared.captures,
+            sourceScene = scene,
         )
         val interpreterObserver = UnknownCallEventSinkObserver(
             sink = request.unknownCallEventSink,
             runtimeLimitationSink = request.runtimeLimitationEventSink,
         )
         val analysis = TsMachine(
-            scene = scene,
+            scene = symbolicInputs.scene,
             options = machineOptions,
             tsOptions = tsOptions,
             machineObserver = targetObserver,
@@ -350,6 +351,7 @@ internal class CurrentTsCallsSymbolicEngine(
             inputs = request.function.inputs,
             bindings = mappedTarget.bindings.inputs,
             method = method,
+            scene = scene,
         )
         if (inputTypeLimitation != null) {
             return CallsFunctionPreparation.Rejected(

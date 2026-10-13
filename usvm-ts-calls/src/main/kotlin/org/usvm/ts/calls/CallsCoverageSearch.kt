@@ -7,8 +7,10 @@ import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.machine.TsAnalysisStopReason
+import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.call.TsUnknownCallModelSelection
 import org.usvm.machine.interpreter.TsInitialStateSolverUnknownException
 import org.usvm.machine.state.TsMethodResult
@@ -63,6 +65,7 @@ internal data class CallsCoverageSearchResult(
     val unsupportedCall: Boolean = false,
     val engineFailed: Boolean = false,
     val runtimeLimited: Boolean = false,
+    val runtimeLimitationReasons: List<String> = emptyList(),
     val diagnostic: String? = null,
 )
 
@@ -111,6 +114,7 @@ internal class CurrentTsCallsCoverageEngine(
             bindings = preparation.inputBindings,
             lexicalEnvironment = preparation.lexicalEnvironment,
             captures = preparation.captures,
+            sourceScene = preparation.scene,
         )
         val candidates = mutableListOf<CallsCoverageCandidate>()
         val extractionFailures = mutableListOf<String>()
@@ -133,16 +137,25 @@ internal class CurrentTsCallsCoverageEngine(
         } else {
             TsUnknownCallModelSelection.Only(emptySet())
         }
+        val runtimeLimitationReasons = linkedSetOf<String>()
+        val interpreterObserver = object : TsInterpreterObserver {
+            override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
+                runtimeLimitationReasons += event.reason.name
+            }
+        }
+        val inputCapacity = request.function.inputs.maxOfOrNull { it.domain.callsInputCapacity() } ?: 0
         val machineOptions = coverageMachineOptions(request)
         val machineResult = runCatching {
             TsMachine(
-                scene = preparation.scene,
+                scene = symbolicInputs.scene,
                 options = machineOptions,
                 tsOptions = TsOptions(
+                    maxArraySize = maxOf(TsOptions().maxArraySize, inputCapacity),
                     unknownCallModelSelection = modelSelection,
                     unknownCallFallback = request.profile.fallback,
                 ),
                 machineObserver = observer,
+                observer = interpreterObserver,
             ).use { machine ->
                 machine.analyzeWithMetadata(
                     methods = listOf(preparation.method),
@@ -177,7 +190,8 @@ internal class CurrentTsCallsCoverageEngine(
             machineTeardownElapsedMillis = machineTeardownElapsedMillis,
             unsupportedCall = outcome?.unsupportedCall == true,
             engineFailed = outcome?.engineFailed == true,
-            runtimeLimited = outcome?.runtimeLimited == true,
+            runtimeLimited = outcome?.runtimeLimited == true || runtimeLimitationReasons.isNotEmpty(),
+            runtimeLimitationReasons = runtimeLimitationReasons.toList(),
             diagnostic = machineResult.exceptionOrNull()?.let { error -> error.message ?: error::class.java.name },
         )
     }

@@ -82,6 +82,17 @@ internal data class ArrayInputSnapshot(
     }
 }
 
+internal data class ObjectInputSnapshot(
+    val fields: Map<String, CallsInputSnapshot>,
+) : CallsInputSnapshot {
+    override fun markDenseInputs(state: TsState) {
+        fields.values.forEach { field -> field.markDenseInputs(state) }
+    }
+
+    override fun resolve(model: UModelBase<EtsType>): JsConcreteValue =
+        JsConcreteValue.Object(fields.mapValues { (_, snapshot) -> snapshot.resolve(model) })
+}
+
 internal data class ConstantInputSnapshot(val value: JsConcreteValue) : CallsInputSnapshot {
     override fun resolve(model: UModelBase<EtsType>): JsConcreteValue = value
 }
