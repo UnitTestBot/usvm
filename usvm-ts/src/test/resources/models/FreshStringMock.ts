@@ -12,6 +12,12 @@ export class FreshStringMock {
         return ExternalString.value() + "!";
     }
 
+    static concatWithinBound(): string {
+        const value = ExternalString.value();
+        if (value.length >= 8) return "!";
+        return value + "!";
+    }
+
     static branchOnLength(): number {
         const value = ExternalString.value();
         return value.length === 0 ? 0 : 1;

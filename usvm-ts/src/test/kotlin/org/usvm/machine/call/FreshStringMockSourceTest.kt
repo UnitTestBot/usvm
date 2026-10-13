@@ -59,9 +59,28 @@ class FreshStringMockSourceTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `fresh string result retains backing through ordinary concatenation`() {
+    fun `fresh concatenation reports its capacity residual and preserves supported suffix witnesses`() {
+        val method = method("concat")
+
+        TsMachine(scene = scene, options = options, tsOptions = tsOptions).use { machine ->
+            val outcome = machine.analyzeWithOutcome(methods = listOf(method))
+            val values = outcome.states.map { state -> TsTestResolver().resolve(method, state).returnValue }
+            val onlyCapacityResiduals = outcome.unsupportedPaths.all { diagnostic ->
+                "String concatenation result exceeds configured length bound 8" in diagnostic
+            }
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+            assertTrue(outcome.unsupportedPaths.isNotEmpty())
+            assertTrue(onlyCapacityResiduals)
+            assertTrue(values.isNotEmpty())
+            assertTrue(values.all { value -> value is TsTestValue.TsString && value.value.endsWith("!") })
+        }
+    }
+
+    @Test
+    fun `fresh string concatenation exhausts the supported source domain without residuals`() {
         discoverProperties<TsTestValue.TsString>(
-            method = method("concat"),
+            method = method("concatWithinBound"),
             { result -> result.value.endsWith("!") },
             invariants = arrayOf({ result -> result.value.endsWith("!") }),
         )
