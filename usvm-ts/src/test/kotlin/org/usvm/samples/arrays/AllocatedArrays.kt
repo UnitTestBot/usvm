@@ -2,6 +2,7 @@ package org.usvm.samples.arrays
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsInterpreterObserver
@@ -10,14 +11,20 @@ import org.usvm.machine.TsOptions
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.test.util.checkers.eq as exactly
-import org.usvm.test.util.checkers.noResultsExpected
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.assertNodeReplay
 import org.usvm.util.eq
+import org.usvm.util.getResourcePath
 import org.usvm.util.neq
+import java.nio.file.Path
+import kotlin.io.path.readText
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class AllocatedArrays : TsMethodTestRunner() {
+    @TempDir
+    lateinit var directory: Path
+
     private val tsPath = "/samples/arrays/AllocatedArrays.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
@@ -112,7 +119,34 @@ class AllocatedArrays : TsMethodTestRunner() {
 
     @Test
     fun `test writeInTheIndexEqualToLength`() {
-        assertArrayIndexGrowthLimitation("writeInTheIndexEqualToLength")
+        val method = getMethod(methodName = "writeInTheIndexEqualToLength")
+        val expected = listOf(1.0, 2.0, 3.0, 4.0)
+
+        checkMatches<TsTestValue.TsArray<TsTestValue.TsNumber>>(
+            method = method,
+            analysisResultNumberMatches = exactly(1),
+            { result -> result.values.map { it.number } == expected },
+        )
+    }
+
+    @Test
+    fun `write at the allocated array length appends in native JavaScript`() {
+        val source = getResourcePath(tsPath).readText()
+        val script = source + """
+
+            const values = new AllocatedArrays().writeInTheIndexEqualToLength();
+            const expected = [1, 2, 3, 4];
+            if (values.length !== expected.length || values.some((value, index) => value !== expected[index])) {
+                throw new Error('Appending at the allocated array length changed its contents');
+            }
+        """.trimIndent()
+
+        assertNodeReplay(
+            source = script,
+            directory = directory,
+            name = "allocated-array-append",
+            timeoutMessage = "Allocated array append replay timed out",
+        )
     }
 
     private fun assertArrayIndexGrowthLimitation(methodName: String) {
