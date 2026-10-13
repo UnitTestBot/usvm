@@ -1524,9 +1524,12 @@ class TsExprResolver(
         expr.constructorValue?.let { return@with constructRuntimeClass(it) }
 
         val classType = expr.type as? EtsClassType
-        val intrinsicRegex = classType?.signature?.name == "RegExp" &&
-            (classType.signature.file == EtsFileSignature.UNKNOWN ||
-                scene.sdkClasses.any { owner -> owner.signature == classType.signature })
+        val hasRegexName = classType?.signature?.name == "RegExp"
+        val hasIntrinsicOwner = classType != null && (
+            classType.signature.file == EtsFileSignature.UNKNOWN ||
+                scene.sdkClasses.any { owner -> owner.signature == classType.signature }
+            )
+        val intrinsicRegex = hasRegexName && hasIntrinsicOwner
         if (intrinsicRegex) {
             stopRuntimeFeatureLimitation(
                 reason = TsRuntimeFeatureLimitationReason.REGULAR_EXPRESSION_LITERAL,

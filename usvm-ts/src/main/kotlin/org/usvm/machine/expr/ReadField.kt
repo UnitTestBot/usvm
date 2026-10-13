@@ -95,16 +95,17 @@ internal fun TsExprResolver.handleInstanceFieldRef(
         storageType.signature.file == EtsClassSignature.UNKNOWN.file &&
         storageType.signature.name in NATIVE_TYPED_ARRAY_NAMES
     if (value.field.name == "length" && (usesArrayLength || nativeTypedArray)) {
-        val storageType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) }
         val isObjectProperty = storageType is EtsClassType || storageType is EtsUnclearRefType ||
             scope.calcOnState { trackedObjectProperties.any { it.instance == instance && it.name == "length" } }
-        if (!isObjectProperty) return readLengthProperty(
-            scope = scope,
-            instanceLocal = instanceLocal,
-            instance = instance,
-            maxArraySize = options.maxArraySize,
-            onFeatureLimitation = ::reportRuntimeFeatureLimitation,
-        )
+        if (!isObjectProperty) {
+            return readLengthProperty(
+                scope = scope,
+                instanceLocal = instanceLocal,
+                instance = instance,
+                maxArraySize = options.maxArraySize,
+                onFeatureLimitation = ::reportRuntimeFeatureLimitation,
+            )
+        }
     }
 
     // Read the field.
