@@ -38,7 +38,6 @@ import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.TsUnresolvedArrayKind
 import org.usvm.sizeSort
-import org.usvm.util.TsTypedArrayStorage
 import org.usvm.util.arrayStorageType
 import org.usvm.util.componentType
 import org.usvm.util.copyArrayElements
@@ -49,6 +48,8 @@ import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.moveInitializedArrayIndices
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.truncateKnownArrayIndices
+import org.usvm.util.typedArrayBoxedLValue
+import org.usvm.util.typedArrayOverrideLValue
 
 private val logger = KotlinLogging.logger {}
 
@@ -1237,14 +1238,14 @@ private fun TsExprResolver.handleArrayReverse(
             }
         } else {
             initializeTypedArrayOverrides(array)
-            val hasBoxedValues = reversedIndices.asSequence().map { index ->
-                memory.readArrayIndex(array, index, TsTypedArrayStorage.HAS_BOXED_VALUE, boolSort)
+            for ((destination, source) in reversedIndices.withIndex()) {
+                val target = destination.toBv()
+                val hasBoxedValue = memory.read(typedArrayOverrideLValue(array, source))
+                val boxedValue = memory.read(typedArrayBoxedLValue(array, source))
+
+                memory.write(typedArrayOverrideLValue(reversedArray, target), hasBoxedValue, guard = trueExpr)
+                memory.write(typedArrayBoxedLValue(reversedArray, target), boxedValue, guard = trueExpr)
             }
-            val boxedValues = reversedIndices.asSequence().map { index ->
-                memory.readArrayIndex(array, index, TsTypedArrayStorage.BOXED_VALUE, addressSort)
-            }
-            memory.initializeArray(reversedArray, TsTypedArrayStorage.HAS_BOXED_VALUE, boolSort, sizeSort, hasBoxedValues)
-            memory.initializeArray(reversedArray, TsTypedArrayStorage.BOXED_VALUE, addressSort, sizeSort, boxedValues)
         }
 
         copyArrayElements(
