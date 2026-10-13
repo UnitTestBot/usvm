@@ -81,5 +81,4 @@ internal object TsArrayIsArrayIntrinsicModel : TsBuiltInUnknownCallModel {
 
         TsUnknownCallModelExecution(successors = listOf(successor))
     }
-
 }
