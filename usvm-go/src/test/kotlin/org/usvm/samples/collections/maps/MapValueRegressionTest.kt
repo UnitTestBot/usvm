@@ -89,24 +89,24 @@ class MapValueRegressionTest : GoNativeTestRunner() {
 
     @Test
     @GoSample(method = "negativeMapZero", fixture = "regressions")
-    fun negativeMapZero() = checkDiscoveredProperties(
+    fun negativeMapZero() = checkDiscoveredProperties<Double>(
         method = "negativeMapZero",
-        { value: Double, result: GoResult ->
+        analysisResultsMatchers = arrayOf({ value: Double, result: GoResult ->
             val actual = result.value as? Double
             result.isSuccess && actual != null &&
                 (value.isNaN() && actual.isNaN() || actual.toRawBits() == (-value).toRawBits())
-        },
+        }),
     )
 
     @Test
     @GoSample(method = "mapNaN", fixture = "regressions")
-    fun mapNaN() = checkDiscoveredProperties(
+    fun mapNaN() = checkDiscoveredProperties<Double>(
         method = "mapNaN",
-        { value: Double, result: GoResult ->
+        analysisResultsMatchers = arrayOf({ value: Double, result: GoResult ->
             val expected = value / value
             val actual = result.value as? Double
             result.isSuccess && actual != null && (actual == expected || actual.isNaN() && expected.isNaN())
-        },
+        }),
     )
 
     @Test
