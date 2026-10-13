@@ -1,10 +1,10 @@
 package org.usvm.ts.calls
 
 import org.junit.jupiter.api.io.TempDir
-import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ArrayDomain
-import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
+import org.usvm.ts.pbt.model.NumberDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
@@ -84,10 +84,12 @@ class CallsCoverageExperimentTest {
         val fixture = fixture(
             source = "export function replace(values: number[]): number { values[0] = 2; return values[0]; }",
             exportName = "replace",
-            inputs = listOf(PropertyInput(
-                name = "values",
-                domain = ArrayDomain(element = NumberDomain(), minLength = 1, maxLength = 1),
-            )),
+            inputs = listOf(
+                PropertyInput(
+                    name = "values",
+                    domain = ArrayDomain(element = NumberDomain(), minLength = 1, maxLength = 1),
+                ),
+            ),
         )
         val inputs = listOf(JsConcreteValue.Array(listOf(JsConcreteValue.number(1.0))))
 
@@ -118,10 +120,12 @@ class CallsCoverageExperimentTest {
                 }
             """.trimIndent(),
             exportName = "replace",
-            inputs = listOf(PropertyInput(
-                name = "values",
-                domain = ArrayDomain(element = NumberDomain(), minLength = 1, maxLength = 1),
-            )),
+            inputs = listOf(
+                PropertyInput(
+                    name = "values",
+                    domain = ArrayDomain(element = NumberDomain(), minLength = 1, maxLength = 1),
+                ),
+            ),
         )
         val inputs = listOf(JsConcreteValue.Array(listOf(JsConcreteValue.number(1.0))))
 

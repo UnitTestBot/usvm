@@ -97,6 +97,17 @@ interface ProjectionCase {
 
 const projectionCases: ProjectionCase[] = [
   {
+    name: 'plain object',
+    domain: { kind: 'object', fields: { score: { kind: 'integer', min: 0, max: 3 }, enabled: { kind: 'boolean' } } },
+    matches: (value) => {
+      if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+      const fields = value as Record<string, unknown>;
+      return Object.getPrototypeOf(value) === Object.prototype
+        && typeof fields.enabled === 'boolean' && typeof fields.score === 'number'
+        && fields.score >= 0 && fields.score <= 3;
+    },
+  },
+  {
     name: 'boolean',
     domain: { kind: 'boolean' },
     matches: (value) => typeof value === 'boolean',
@@ -161,15 +172,15 @@ test('fast-check capability is exact for supported recursive domains', () => {
 });
 
 test('unknown domain kinds are rejected and reported as unsupported', () => {
-  assert.throws(() => projectDomain({ kind: 'object' }), /domain\.kind\.unknown/);
+  assert.throws(() => projectDomain({ kind: 'symbol' }), /domain\.kind\.unknown/);
 
   assert.deepEqual(
-    projectionCapability({ kind: 'object' }, 'inputs[0].domain'),
+    projectionCapability({ kind: 'symbol' }, 'inputs[0].domain'),
     {
       level: 'unsupported',
       diagnostics: [{
         code: 'domain.kind.unknown',
-        message: 'Unknown property domain kind: object',
+        message: 'Unknown property domain kind: symbol',
         path: 'inputs[0].domain',
       }],
     },
@@ -211,3 +222,17 @@ function taggedNumber(value: number): { value: 'finite'; bits: string } {
 
   return { value: 'finite', bits: view.getBigUint64(0, false).toString(16).padStart(16, '0') };
 }
+
+
+test('plain object domains reject unsafe keys and oversized shapes', () => {
+  const invalidFields = [
+    Object.fromEntries([['__proto__', { kind: 'boolean' }]]),
+    Object.fromEntries(Array.from({ length: 33 }, (_, index) => [`x${index}`, { kind: 'boolean' }])),
+  ];
+
+  for (const fields of invalidFields) {
+    assert.throws(() => projectDomain({ kind: 'object', fields }), /domain\.object\.fields/);
+  }
+  assert.throws(() => projectDomain({ kind: 'constant', value: { kind: 'object', fields: {} } }),
+    /domain\.constant\.unsupported/);
+});

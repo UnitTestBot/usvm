@@ -39,9 +39,7 @@ class UsvmPropertySearcher(
         maxSymbolicCollectionLength = minOf(projectionOptions.maxSymbolicCollectionLength, tsOptions.maxArraySize),
         maxSymbolicStringLength = minOf(projectionOptions.maxSymbolicStringLength, tsOptions.maxArraySize),
     )
-    private val capabilityResolver = UsvmProjectionCapabilityResolver()
-    private val domainProjector = UsvmDomainProjector(this.projectionOptions)
-    private val inputResolver = UsvmCandidateInputResolver()
+    private val capabilityResolver = UsvmProjectionCapabilityResolver(scene)
 
     fun search(
         manifest: PropertyManifest,
@@ -92,9 +90,11 @@ class UsvmPropertySearcher(
         lateinit var projection: UsvmDeclaredDomainProjection
         val target = UsvmViolationTsTarget()
         val observer = UsvmViolationObserver(target)
+        val objectShapes = PlainObjectInputShapes(scene, manifest.inputs.map { it.domain })
+        val domainProjector = UsvmDomainProjector(projectionOptions, objectShapes)
 
         return TsMachine(
-            scene = scene,
+            scene = objectShapes.scene,
             options = machineOptions,
             tsOptions = tsOptions,
             machineObserver = observer,
@@ -328,7 +328,7 @@ class UsvmPropertySearcher(
     ): UsvmPropertySearchResult {
         val violationTarget = classifyViolation(violationState)
         val inputs = runCatching {
-            inputResolver.resolve(violationState, manifest.inputs, projection)
+            UsvmCandidateInputResolver(projection.objectShapes).resolve(violationState, manifest.inputs, projection)
         }.getOrElse { failure ->
             val diagnostic = CapabilityDiagnostic(
                 code = PbtDiagnosticCode.USVM_INPUT_RESOLUTION_FAILED,

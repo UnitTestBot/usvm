@@ -1,3 +1,4 @@
+import { types } from 'node:util';
 import {
   adapterDiagnostic,
   type AdapterDiagnosticDescriptor,
@@ -10,7 +11,8 @@ export type JsConcreteValue =
   | boolean
   | string
   | number
-  | JsConcreteValue[];
+  | JsConcreteValue[]
+  | { [key: string]: JsConcreteValue };
 
 export type TaggedJsNumber =
   | { value: 'finite'; bits: string }
@@ -24,7 +26,8 @@ export type TaggedJsValue =
   | { kind: 'boolean'; value: boolean }
   | { kind: 'string'; value: string }
   | ({ kind: 'number' } & TaggedJsNumber)
-  | { kind: 'array'; elements: TaggedJsValue[] };
+  | { kind: 'array'; elements: TaggedJsValue[] }
+  | { kind: 'object'; fields: Record<string, TaggedJsValue> };
 
 export interface ProtocolDiagnostic {
   kind: AdapterDiagnosticKind;
@@ -92,6 +95,20 @@ export function decodeJsValue(value: unknown, path = 'value'): JsConcreteValue {
       return value.elements.map((element: unknown, index: number) =>
         decodeJsValue(element, `${path}.elements[${index}]`));
 
+    case 'object': {
+      const fields = value.fields;
+      if (fields === null || typeof fields !== 'object' || Array.isArray(fields)) {
+        throw protocolError(adapterDiagnostic.jsValueObjectInvalid, 'Object value must contain fields', path);
+      }
+
+      const entries = Object.entries(fields).map(([name, field]) => {
+        requireSafeObjectKey(name, `${path}.fields.${name}`);
+        return [name, decodeJsValue(field, `${path}.fields.${name}`)] as const;
+      });
+
+      return Object.fromEntries(entries);
+    }
+
     default:
       throw protocolError(
         adapterDiagnostic.jsValueKindUnknown,
@@ -102,18 +119,64 @@ export function decodeJsValue(value: unknown, path = 'value'): JsConcreteValue {
 }
 
 export function encodeJsValue(value: unknown): TaggedJsValue {
+  return encodeValue(value, new WeakSet());
+}
+
+function encodeValue(value: unknown, seen: WeakSet<object>): TaggedJsValue {
   if (value === undefined) return { kind: 'undefined' };
   if (value === null) return { kind: 'null' };
   if (typeof value === 'boolean') return { kind: 'boolean', value };
   if (typeof value === 'string') return { kind: 'string', value };
   if (typeof value === 'number') return { kind: 'number', ...encodeJsNumber(value) };
-  if (Array.isArray(value)) return { kind: 'array', elements: value.map(encodeJsValue) };
 
-  throw protocolError(
+  if (typeof value !== 'object' || types.isProxy(value) || seen.has(value)) {
+    throw unsupportedValue();
+  }
+  seen.add(value);
+  const isArray = Array.isArray(value);
+  const expectedPrototype = isArray ? Array.prototype : Object.prototype;
+  if (Object.getPrototypeOf(value) !== expectedPrototype || Object.getOwnPropertySymbols(value).length > 0) {
+    throw unsupportedValue();
+  }
+
+  if (isArray) {
+    const elements: TaggedJsValue[] = [];
+    for (let index = 0; index < value.length; index += 1) {
+      elements.push(encodeValue(ownDataValue(value, String(index)), seen));
+    }
+    if (Object.getOwnPropertyNames(value).length !== value.length + 1) throw unsupportedValue();
+
+    return { kind: 'array', elements };
+  }
+
+  const entries = Object.getOwnPropertyNames(value).map((name) => {
+    requireSafeObjectKey(name, `value.fields.${name}`);
+
+    return [name, encodeValue(ownDataValue(value, name), seen)] as const;
+  });
+
+  return { kind: 'object', fields: Object.fromEntries(entries) };
+}
+
+function ownDataValue(value: object, name: string): unknown {
+  const descriptor = Object.getOwnPropertyDescriptor(value, name);
+  if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) throw unsupportedValue();
+
+  return descriptor.value;
+}
+
+function unsupportedValue(): ProtocolError {
+  return protocolError(
     adapterDiagnostic.jsValueTypeUnsupported,
-    `Unsupported JavaScript value type: ${typeof value}`,
+    'Only primitive values, dense arrays, and plain own-data objects without aliases are supported',
     'value',
   );
+}
+
+function requireSafeObjectKey(name: string, path: string): void {
+  if (['__proto__', 'constructor', 'prototype'].includes(name)) {
+    throw protocolError(adapterDiagnostic.jsValueObjectInvalid, 'Unsupported object property name', path);
+  }
 }
 
 export function decodeJsNumber(taggedNumber: unknown, path = 'number'): number {

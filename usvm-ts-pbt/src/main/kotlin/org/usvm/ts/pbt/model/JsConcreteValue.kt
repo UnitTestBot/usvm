@@ -98,7 +98,7 @@ data class JsNumber(
     }
 }
 
-/** Lossless transport value for JavaScript primitives and recursively nested arrays. */
+/** Lossless transport value for JavaScript primitives, arrays, and plain objects. */
 @Serializable(with = JsConcreteValueSerializer::class)
 sealed interface JsConcreteValue {
     /** JavaScript `undefined`. */
@@ -120,6 +120,9 @@ sealed interface JsConcreteValue {
 
     /** Ordered recursively tagged elements of one concrete JavaScript array. */
     data class Array(val elements: List<JsConcreteValue>) : JsConcreteValue
+
+    /** Own data properties of a plain JavaScript object. */
+    data class Object(val fields: Map<KotlinString, JsConcreteValue>) : JsConcreteValue
 
     companion object {
         /** Creates a lossless tagged value from any ECMAScript binary64 number. */
@@ -172,6 +175,17 @@ object JsConcreteValueSerializer : KSerializer<JsConcreteValue> {
                         put("kind", "array")
                         put("elements", jsonElements)
                     }
+
+                    is JsConcreteValue.Object -> {
+                        val fields = buildJsonObject {
+                            value.fields.forEach { (name, fieldValue) ->
+                                put(name, jsonEncoder.json.encodeToJsonElement(JsConcreteValueSerializer, fieldValue))
+                            }
+                        }
+
+                        put("kind", "object")
+                        put("fields", fields)
+                    }
                 }
             },
         )
@@ -212,6 +226,11 @@ object JsConcreteValueSerializer : KSerializer<JsConcreteValue> {
             "array" -> {
                 value.requireExactKeys("kind", "elements")
                 deserializeArray(jsonDecoder, value)
+            }
+
+            "object" -> {
+                value.requireExactKeys("kind", "fields")
+                deserializeObject(jsonDecoder, value)
             }
 
             else -> {
@@ -268,6 +287,16 @@ private fun deserializeArray(jsonDecoder: JsonDecoder, value: JsonObject): JsCon
     }
 
     return JsConcreteValue.Array(elements)
+}
+
+private fun deserializeObject(jsonDecoder: JsonDecoder, value: JsonObject): JsConcreteValue.Object {
+    val jsonFields = value["fields"] as? JsonObject
+        ?: throw SerializationException("Object JsConcreteValue requires fields")
+    val fields = jsonFields.mapValues { (_, fieldValue) ->
+        jsonDecoder.json.decodeFromJsonElement(JsConcreteValueSerializer, fieldValue)
+    }
+
+    return JsConcreteValue.Object(fields)
 }
 
 private val JsNumberKind.serialName: String

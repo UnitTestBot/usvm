@@ -19,6 +19,7 @@ import org.usvm.ts.pbt.model.ExecutionKind
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
@@ -50,6 +51,18 @@ class UsvmProjectionCapabilityTest {
             assertEquals(case.level, capability.symbolic.level, case.exportName)
             assertEquals(case.diagnosticPaths, capability.symbolic.diagnostics.map { it.path }, case.exportName)
         }
+    }
+
+    @Test
+    fun `object domains have exact symbolic projection with their own runtime identity`() {
+        val capability = resolve(
+            domain = ObjectDomain(mapOf("value" to NumberDomain())),
+            exportName = "acceptsObject",
+        )
+
+        assertEquals(ProjectionLevel.EXACT, capability.symbolic.level)
+        assertEquals(PropertyCapabilityLevel.EXACT, capability.property)
+        assertEquals(emptyList(), capability.symbolic.diagnostics)
     }
 
     @Test
@@ -227,7 +240,7 @@ class UsvmProjectionCapabilityTest {
 
     companion object {
         private lateinit var mapper: PropertyEtsMapper
-        private val resolver = UsvmProjectionCapabilityResolver()
+        private lateinit var resolver: UsvmProjectionCapabilityResolver
 
         @JvmStatic
         @BeforeAll
@@ -235,8 +248,10 @@ class UsvmProjectionCapabilityTest {
             val source = testResourcePath("/usvm/UsvmCapabilityFixture.ts")
             val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
 
+            val scene = EtsScene(listOf(file))
+            resolver = UsvmProjectionCapabilityResolver(scene)
             mapper = PropertyEtsMapper(
-                scene = EtsScene(listOf(file)),
+                scene = scene,
                 sourceRoots = listOf(source.parent),
             )
         }

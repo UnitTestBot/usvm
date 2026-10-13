@@ -57,6 +57,19 @@ class JsConcreteValueTest {
     }
 
     @Test
+    fun `plain objects keep nested tagged values through JSON`() {
+        val fields = mapOf(
+            "score" to JsConcreteValue.number(-0.0),
+            "nested" to JsConcreteValue.Object(mapOf("enabled" to JsConcreteValue.Boolean(true))),
+        )
+        val value = JsConcreteValue.Object(fields = fields)
+
+        val encoded = PropertyManifestJson.json.encodeToString<JsConcreteValue>(value)
+
+        assertEquals(value, PropertyManifestJson.json.decodeFromString<JsConcreteValue>(encoded))
+    }
+
+    @Test
     fun `string tags require string values`() {
         assertFailsWith<SerializationException> {
             PropertyManifestJson.json.decodeFromString<JsConcreteValue>("""{"kind":"string","value":123}""")

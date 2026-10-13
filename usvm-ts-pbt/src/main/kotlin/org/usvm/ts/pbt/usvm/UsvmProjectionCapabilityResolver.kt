@@ -1,17 +1,23 @@
 package org.usvm.ts.pbt.usvm
 
+import org.jacodb.ets.model.EtsAliasType
+import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberLiteralType
 import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
+import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.CapabilityDiagnostic
 import org.usvm.ts.pbt.backend.ProjectionCapability
@@ -30,14 +36,19 @@ import org.usvm.ts.pbt.model.ExecutionKind
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TupleDomain
+import org.usvm.util.EtsHierarchy
 import org.usvm.util.componentType
+import org.usvm.util.declaredInstanceProperty
 
 /** Calculates USVM fidelity without constructing or mutating a symbolic state. */
-class UsvmProjectionCapabilityResolver {
+class UsvmProjectionCapabilityResolver(scene: EtsScene? = null) {
+    private val hierarchy = scene?.let(::EtsHierarchy)
+
     fun resolve(
         manifest: PropertyManifest,
         mapping: PropertyEtsMappingArtifact,
@@ -179,6 +190,9 @@ class UsvmProjectionCapabilityResolver {
         path: String,
         options: UsvmProjectionOptions,
     ): ProjectionCapability {
+        if (domain is ObjectDomain) {
+            return objectCapability(domain, etsType, path, options)
+        }
         if (!domainCompatibilityForProjector(domain, etsType)) {
             return unsupported(
                 code = PbtDiagnosticCode.USVM_DOMAIN_TYPE_UNSUPPORTED,
@@ -209,6 +223,119 @@ class UsvmProjectionCapabilityResolver {
 
             is TupleDomain -> tupleCapability(domain, etsType, path, options)
             is ArrayDomain -> arrayCapability(domain, etsType, path, options)
+            is ObjectDomain -> error("Object domains are validated before scalar compatibility")
+        }
+    }
+
+    private fun objectCapability(
+        domain: ObjectDomain,
+        etsType: EtsType,
+        path: String,
+        options: UsvmProjectionOptions,
+    ): ProjectionCapability {
+        if (etsType is EtsAliasType) {
+            return objectCapability(domain, etsType.originalType, path, options)
+        }
+        if (etsType is EtsUnionType) {
+            val alternatives = etsType.types.map { member -> objectCapability(domain, member, path, options) }
+            return alternatives.firstOrNull { it.level == ProjectionLevel.EXACT }
+                ?: aggregateProjectionCapabilities(alternatives)
+        }
+
+        if (etsType == EtsAnyType || etsType == EtsUnknownType) {
+            return untypedDomainCapability(domain, path, options)
+        }
+
+        val acceptsObject = etsType is EtsClassType || etsType is EtsUnclearRefType
+        if (!acceptsObject) {
+            return unsupported(
+                code = PbtDiagnosticCode.USVM_DOMAIN_TYPE_UNSUPPORTED,
+                message = "Object domain requires an object declaration, got $etsType",
+                path = path,
+            )
+        }
+        val metadata = hierarchy ?: return unsupported(
+            code = PbtDiagnosticCode.USVM_DOMAIN_TYPE_UNSUPPORTED,
+            message = "Object projection requires the source scene to resolve field declarations",
+            path = path,
+        )
+        val fieldCapabilities = domain.fields.map { (name, fieldDomain) ->
+            val fieldPath = "$path.fields.$name"
+            val declaration = declaredInstanceProperty(etsType, name, metadata)
+            if (declaration == null) {
+                unsupported(
+                    code = PbtDiagnosticCode.USVM_DOMAIN_TYPE_UNSUPPORTED,
+                    message = "Cannot resolve compatible declarations for object field $name in $etsType",
+                    path = fieldPath,
+                )
+            } else {
+                val declaredTypes = (declaration.type as? EtsUnionType)?.types ?: listOf(declaration.type)
+                val fieldType = if (declaration.optional && fieldDomain is OptionalDomain) {
+                    EtsUnionType(types = (declaredTypes + EtsUndefinedType).distinct())
+                } else {
+                    declaration.type
+                }
+                objectFieldCapability(fieldDomain, fieldType, fieldPath, options)
+            }
+        }
+
+        return aggregateProjectionCapabilities(fieldCapabilities)
+    }
+
+    private fun objectFieldCapability(
+        domain: PropertyDomain,
+        etsType: EtsType,
+        path: String,
+        options: UsvmProjectionOptions,
+    ): ProjectionCapability {
+        if (etsType is EtsAliasType) {
+            return objectFieldCapability(domain, etsType.originalType, path, options)
+        }
+        if (etsType is EtsUnionType && domain !is OptionalDomain) {
+            val alternatives = etsType.types.map { member -> objectFieldCapability(domain, member, path, options) }
+            return alternatives.firstOrNull { it.level == ProjectionLevel.EXACT }
+                ?: aggregateProjectionCapabilities(alternatives)
+        }
+        if (etsType == EtsAnyType || etsType == EtsUnknownType) {
+            return untypedDomainCapability(domain, path, options)
+        }
+
+        return domainCapabilityForProjector(domain, etsType, path, options)
+    }
+
+    /** An untyped declaration adds no type restriction; domain bounds still apply to every supplied value. */
+    private fun untypedDomainCapability(
+        domain: PropertyDomain,
+        path: String,
+        options: UsvmProjectionOptions,
+    ): ProjectionCapability = when (domain) {
+        is ObjectDomain -> {
+            val capabilities = domain.fields.map { (name, field) ->
+                untypedDomainCapability(field, "$path.fields.$name", options)
+            }
+            aggregateProjectionCapabilities(capabilities)
+        }
+        is OptionalDomain -> untypedDomainCapability(domain.value, "$path.value", options)
+        is ArrayDomain -> {
+            if (domain.maxLength > options.maxSymbolicCollectionLength) {
+                collectionTooLarge(domain.maxLength, options, path)
+            } else {
+                untypedDomainCapability(domain.element, "$path.element", options)
+            }
+        }
+        is TupleDomain -> {
+            if (domain.elements.size > options.maxSymbolicCollectionLength) {
+                collectionTooLarge(domain.elements.size, options, path)
+            } else {
+                val capabilities = domain.elements.mapIndexed { index, element ->
+                    untypedDomainCapability(element, "$path.elements[$index]", options)
+                }
+                aggregateProjectionCapabilities(capabilities)
+            }
+        }
+        else -> {
+            val storageType = domain.symbolicInputRuntimeType { error("Object domain was handled recursively") }
+            domainCapabilityForProjector(domain, storageType, path, options)
         }
     }
 
@@ -268,6 +395,16 @@ class UsvmProjectionCapabilityResolver {
         is IntegerDomain, is NumberDomain -> etsType == EtsNumberType || etsType is EtsNumberLiteralType
         is StringDomain -> etsType == EtsStringType || etsType is EtsStringLiteralType
         is ConstantDomain -> isConstantCompatible(domain.value, etsType)
+        is ObjectDomain -> objectCapability(
+            domain = domain,
+            etsType = etsType,
+            path = "domain",
+            // This query selects a representation; domain bounds are checked separately with caller options.
+            options = UsvmProjectionOptions(
+                maxSymbolicCollectionLength = Int.MAX_VALUE,
+                maxSymbolicStringLength = Int.MAX_VALUE,
+            ),
+        ).level != ProjectionLevel.UNSUPPORTED
         is OptionalDomain -> isOptionalCompatible(domain, etsType)
         is TupleDomain -> when (etsType) {
             is EtsTupleType -> {
@@ -296,7 +433,7 @@ class UsvmProjectionCapabilityResolver {
         is JsConcreteValue.String -> etsType == EtsStringType || etsType is EtsStringLiteralType
         JsConcreteValue.Null -> etsType == EtsNullType
         JsConcreteValue.Undefined -> etsType == EtsUndefinedType
-        is JsConcreteValue.Array -> false
+        is JsConcreteValue.Array, is JsConcreteValue.Object -> false
     }
 
     private fun isOptionalCompatible(domain: OptionalDomain, etsType: EtsType): Boolean {

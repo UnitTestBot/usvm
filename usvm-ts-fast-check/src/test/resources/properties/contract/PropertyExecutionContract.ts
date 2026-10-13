@@ -160,3 +160,19 @@ export function mutatesAndFails(value: number[]): boolean {
 
     return false;
 }
+
+
+class AnnotatedRecord {
+    count: number = 0;
+    absent: () => number = () => 10;
+}
+
+export function mutatesObjectAndFails(value: { count: number }): boolean {
+    const before = value.count;
+    value.count += 1;
+    return before !== 2;
+}
+
+export function plainAnnotatedObject(value: AnnotatedRecord): boolean {
+    return !(value instanceof AnnotatedRecord) && value.absent === undefined;
+}

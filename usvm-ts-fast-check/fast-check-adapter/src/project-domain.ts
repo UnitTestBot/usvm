@@ -48,7 +48,7 @@ export function projectDomain(domain: unknown, path = 'domain'): fc.Arbitrary<Js
     case 'constant': {
       const value = decodeJsValue(domain.value, `${path}.value`);
 
-      if (Array.isArray(value)) {
+      if (value !== null && typeof value === 'object') {
         throw protocolError(
           adapterDiagnostic.domainConstantUnsupported,
           'Constant domains support JavaScript primitives only',
@@ -90,6 +90,14 @@ export function projectDomain(domain: unknown, path = 'domain'): fc.Arbitrary<Js
         maxLength: domain.maxLength,
       });
 
+    case 'object': {
+      const fields = requireObjectFields(domain.fields, path);
+      const arbitraries = Object.fromEntries(Object.entries(fields).map(([name, field]) =>
+        [name, projectDomain(field, `${path}.fields.${name}`)]));
+
+      return fc.record(arbitraries, { noNullPrototype: true });
+    }
+
     default:
       throw protocolError(
         adapterDiagnostic.domainKindUnknown,
@@ -97,6 +105,21 @@ export function projectDomain(domain: unknown, path = 'domain'): fc.Arbitrary<Js
         path,
       );
   }
+}
+
+function requireObjectFields(fields: unknown, path: string): Record<string, unknown> {
+  const isRecord = fields !== null && typeof fields === 'object' && !Array.isArray(fields);
+  if (!isRecord) {
+    throw protocolError(adapterDiagnostic.domainObjectFieldsInvalid, 'Invalid object fields', `${path}.fields`);
+  }
+  const names = Object.keys(fields);
+  const invalidNames = names.length > 32
+    || names.some((name) => ['__proto__', 'constructor', 'prototype'].includes(name));
+  if (invalidNames) {
+    throw protocolError(adapterDiagnostic.domainObjectFieldsInvalid, 'Invalid object fields', `${path}.fields`);
+  }
+
+  return fields as Record<string, unknown>;
 }
 
 export function projectionCapability(domain: unknown, path = 'domain'): ProjectionCapability {

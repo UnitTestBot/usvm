@@ -58,38 +58,14 @@ internal fun runCoverageCell(
     runtimeNativeFrontendRevision: String = CallsBuildIdentity.nativeFrontendRevision,
     searchFunction: (CallsCoverageSearchRequest) -> CallsCoverageSearchResult = CurrentTsCallsCoverageEngine()::search,
 ) {
-    require(args.size == 9) { "coverage-cell requires 9 arguments" }
-    val projectIndex = args[1].toInt()
-    val functionIndex = args[2].toInt()
-    val source = CallsCoverageSource.load(Path.of(args[0]), projectIndex, functionIndex)
-    val manifestPath = source.manifestPath
-    val manifest = source.manifest
-    val profile = CallsExperimentProfile.valueOf(args[3])
-    val seed = args[4].toLong()
-    val output = Path.of(args[5]).toAbsolutePath().normalize()
-    val budgetMillis = args[6].toLong()
-    val solverLimitMillis = args[7].toLong()
-    val candidateCap = args[8].toInt()
-    val project = source.project
-    val function = source.function
-    require(seed in manifest.seeds) { "Seed is outside the frozen source manifest" }
-    require(budgetMillis > 0 && solverLimitMillis in 1..budgetMillis && candidateCap > 0)
-    require(System.getenv("ETS_FRONTEND_SCRIPT") == null) { "ETS_FRONTEND_SCRIPT must be unset" }
-
-    val identity = CallsCoverageCellIdentity(
-        schemaVersion = 2,
-        toolRevision = runtimeToolRevision,
-        nativeFrontendRevision = runtimeNativeFrontendRevision,
-        sourceManifest = manifestPath.toString(),
-        sourceIdentity = source.identity,
-        projectIndex = projectIndex,
-        functionIndex = functionIndex,
-        profile = profile,
-        seed = seed,
-        budgetMillis = budgetMillis,
-        solverLimitMillis = solverLimitMillis,
-        candidateCap = candidateCap,
+    val request = parseCoverageCellRequest(
+        args = args,
+        runtimeToolRevision = runtimeToolRevision,
+        runtimeNativeFrontendRevision = runtimeNativeFrontendRevision,
     )
+    val source = request.source
+    val identity = request.identity
+    val output = request.output
     require(Regex("[0-9a-f]{40}").matches(identity.toolRevision)) { "Coverage build must be clean" }
 
     Files.createDirectories(output)
@@ -103,24 +79,101 @@ internal fun runCoverageCell(
     }
     require(!Files.exists(output.resolve("result.json"))) { "Cell already completed" }
 
+    val search = loadOrRunCoverageSearch(
+        source = source,
+        identity = identity,
+        output = output,
+        searchFunction = searchFunction,
+    )
+    val events = replayCoverageCandidates(source = source, search = search, output = output)
+
+    source.verifyUnchanged()
+    val result = CallsCoverageCellResult(
+        identity = identity,
+        search = search,
+        replayErrors = events.count { it.error != null },
+        completionMismatches = events.indices.count { index ->
+            events[index].replay?.completion != null &&
+                events[index].replay?.completion != search.candidates[index].completion
+        },
+        checkpoints = coverageCheckpoints(search = search, events = events, budgetMillis = identity.budgetMillis),
+    )
+    atomicWrite(output.resolve("result.json"), encode(result))
+    System.out.appendLine(encode(result))
+}
+
+private data class CoverageCellRequest(
+    val source: CallsCoverageSource,
+    val identity: CallsCoverageCellIdentity,
+    val output: Path,
+)
+
+private fun parseCoverageCellRequest(
+    args: List<String>,
+    runtimeToolRevision: String,
+    runtimeNativeFrontendRevision: String,
+): CoverageCellRequest {
+    require(args.size == COVERAGE_CELL_ARGUMENT_COUNT) {
+        "coverage-cell requires $COVERAGE_CELL_ARGUMENT_COUNT arguments"
+    }
+    val arguments = args.iterator()
+    val manifestPath = Path.of(arguments.next())
+    val projectIndex = arguments.next().toInt()
+    val functionIndex = arguments.next().toInt()
+    val source = CallsCoverageSource.load(manifestPath, projectIndex = projectIndex, functionIndex = functionIndex)
+    val profile = CallsExperimentProfile.valueOf(arguments.next())
+    val seed = arguments.next().toLong()
+    val output = Path.of(arguments.next()).toAbsolutePath().normalize()
+    val budgetMillis = arguments.next().toLong()
+    val solverLimitMillis = arguments.next().toLong()
+    val candidateCap = arguments.next().toInt()
+    require(seed in source.manifest.seeds) { "Seed is outside the frozen source manifest" }
+    require(budgetMillis > 0 && solverLimitMillis in 1..budgetMillis && candidateCap > 0)
+    require(System.getenv("ETS_FRONTEND_SCRIPT") == null) { "ETS_FRONTEND_SCRIPT must be unset" }
+
+    val identity = CallsCoverageCellIdentity(
+        schemaVersion = 2,
+        toolRevision = runtimeToolRevision,
+        nativeFrontendRevision = runtimeNativeFrontendRevision,
+        sourceManifest = source.manifestPath.toString(),
+        sourceIdentity = source.identity,
+        projectIndex = projectIndex,
+        functionIndex = functionIndex,
+        profile = profile,
+        seed = seed,
+        budgetMillis = budgetMillis,
+        solverLimitMillis = solverLimitMillis,
+        candidateCap = candidateCap,
+    )
+
+    return CoverageCellRequest(source = source, identity = identity, output = output)
+}
+
+private fun loadOrRunCoverageSearch(
+    source: CallsCoverageSource,
+    identity: CallsCoverageCellIdentity,
+    output: Path,
+    searchFunction: (CallsCoverageSearchRequest) -> CallsCoverageSearchResult,
+): CallsCoverageSearchResult {
     val candidatePath = output.resolve("candidates.jsonl")
     val searchPath = output.resolve("search.json")
-    val search = if (Files.exists(searchPath)) {
+
+    return if (Files.exists(searchPath)) {
         CallsExperimentJson.json.decodeFromString<CallsCoverageSearchResult>(Files.readString(searchPath))
     } else {
         require(!Files.exists(candidatePath)) { "Interrupted search requires investigation before restart" }
         source.verifyUnchanged()
         val request = CallsCoverageSearchRequest(
             sourceRoot = source.sourceRoot,
-            project = project,
-            function = function,
-            profile = profile,
-            frozenModelIds = manifest.modelSet.ids,
+            project = source.project,
+            function = source.function,
+            profile = identity.profile,
+            frozenModelIds = source.manifest.modelSet.ids,
             expectedNativeFrontendRevision = identity.nativeFrontendRevision,
-            seed = seed,
-            budget = budgetMillis.milliseconds,
-            solverQueryLimit = solverLimitMillis.milliseconds,
-            candidateCap = candidateCap,
+            seed = identity.seed,
+            budget = identity.budgetMillis.milliseconds,
+            solverQueryLimit = identity.solverLimitMillis.milliseconds,
+            candidateCap = identity.candidateCap,
             onCandidate = { candidate -> appendDurably(candidatePath, encode(candidate)) },
         )
         val result = searchFunction(request)
@@ -130,7 +183,13 @@ internal fun runCoverageCell(
         atomicWrite(searchPath, encode(result))
         result
     }
+}
 
+private fun replayCoverageCandidates(
+    source: CallsCoverageSource,
+    search: CallsCoverageSearchResult,
+    output: Path,
+): List<CallsCoverageReplayEvent> {
     val replayPath = output.resolve("replays.jsonl")
     val events = readLines<CallsCoverageReplayEvent>(replayPath).toMutableList()
     require(events.map(CallsCoverageReplayEvent::index) == events.indices.toList()) {
@@ -140,7 +199,7 @@ internal fun runCoverageCell(
     if (search.candidates.isNotEmpty()) {
         OriginalTypeScriptCoverageReplayer(
             sourceRoot = source.sourceRoot,
-            function = function,
+            function = source.function,
         ).use { replayer ->
             search.candidates.indices.drop(events.size).forEach { index ->
                 val candidate = search.candidates[index]
@@ -160,32 +219,26 @@ internal fun runCoverageCell(
         }
     }
 
-    source.verifyUnchanged()
-    val checkpoints = listOf(30_000L, 60_000L, 120_000L).filter { it <= budgetMillis }.map { checkpoint ->
-        val indices = search.candidates.indices.filter { index ->
-            search.candidates[index].emittedAtMillis <= checkpoint
-        }
-        val replayed = indices.mapNotNull { index -> events[index].replay }
-        CallsCoverageCheckpoint(
-            searchBudgetMillis = checkpoint,
-            emittedCandidates = indices.size,
-            replayedCandidates = replayed.size,
-            coveredStatements = replayed.flatMap { it.coveredStatementKeys }.toSet().size,
-            coveredIfArms = replayed.flatMap { it.coveredIfArmKeys }.toSet().size,
-        )
+    return events
+}
+
+private fun coverageCheckpoints(
+    search: CallsCoverageSearchResult,
+    events: List<CallsCoverageReplayEvent>,
+    budgetMillis: Long,
+): List<CallsCoverageCheckpoint> = COVERAGE_CHECKPOINT_MILLIS.filter { it <= budgetMillis }.map { checkpoint ->
+    val indices = search.candidates.indices.filter { index ->
+        search.candidates[index].emittedAtMillis <= checkpoint
     }
-    val result = CallsCoverageCellResult(
-        identity = identity,
-        search = search,
-        replayErrors = events.count { it.error != null },
-        completionMismatches = events.indices.count { index ->
-            events[index].replay?.completion != null &&
-                events[index].replay?.completion != search.candidates[index].completion
-        },
-        checkpoints = checkpoints,
+    val replayed = indices.mapNotNull { index -> events[index].replay }
+
+    CallsCoverageCheckpoint(
+        searchBudgetMillis = checkpoint,
+        emittedCandidates = indices.size,
+        replayedCandidates = replayed.size,
+        coveredStatements = replayed.flatMap { it.coveredStatementKeys }.toSet().size,
+        coveredIfArms = replayed.flatMap { it.coveredIfArmKeys }.toSet().size,
     )
-    atomicWrite(output.resolve("result.json"), encode(result))
-    println(encode(result))
 }
 
 private inline fun <reified T> readLines(path: Path): List<T> = if (Files.exists(path)) {
@@ -200,7 +253,12 @@ private inline fun <reified T> encode(value: T): String = CallsExperimentJson.js
 
 private fun appendDurably(path: Path, line: String) {
     val bytes = ByteBuffer.wrap((line + "\n").toByteArray(Charsets.UTF_8))
-    FileChannel.open(path, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.APPEND).use { channel ->
+    FileChannel.open(
+        path,
+        StandardOpenOption.CREATE,
+        StandardOpenOption.WRITE,
+        StandardOpenOption.APPEND,
+    ).use { channel ->
         while (bytes.hasRemaining()) channel.write(bytes)
         channel.force(true)
     }
@@ -213,4 +271,13 @@ private fun atomicWrite(path: Path, contents: String) {
     Files.move(temporary, path, StandardCopyOption.ATOMIC_MOVE)
 }
 
+private const val COVERAGE_CELL_ARGUMENT_COUNT = 9
 private const val REPLAY_TIMEOUT_MILLIS = 20_000L
+private const val FIRST_CHECKPOINT_MILLIS = 30_000L
+private const val SECOND_CHECKPOINT_MILLIS = 60_000L
+private const val THIRD_CHECKPOINT_MILLIS = 120_000L
+private val COVERAGE_CHECKPOINT_MILLIS = listOf(
+    FIRST_CHECKPOINT_MILLIS,
+    SECOND_CHECKPOINT_MILLIS,
+    THIRD_CHECKPOINT_MILLIS,
+)

@@ -10,11 +10,11 @@ import org.usvm.ts.pbt.backend.SourceFileCoverage
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
 import org.usvm.ts.pbt.fastcheck.FastCheckRuntime
 import org.usvm.ts.pbt.fastcheck.TypeScriptSourceInspector
-import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.BooleanDomain
-import org.usvm.ts.pbt.model.PropertyInput
+import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
+import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import java.nio.file.Files
@@ -54,38 +54,45 @@ internal class OriginalTypeScriptCoverageReplayer(
     private val backend: FastCheckBackend
 
     init {
-        try {
-            require(function.entryPoint.executionKind == org.usvm.ts.pbt.model.ExecutionKind.SYNC) {
-                "Coverage replay requires a synchronous entry point"
-            }
-            val source = this.sourceRoot.resolve(function.sourceFile).normalize()
-            require(source.startsWith(this.sourceRoot) && Files.isRegularFile(source)) {
-                "Coverage entry source is outside its frozen root"
-            }
-            val closure = TypeScriptSourceInspector.localSourceClosure(sourceRoot = this.sourceRoot, source = source)
-            require(closure.reasonCode == null) { closure.diagnostic ?: "Unsupported local source closure" }
-            allowedFiles = closure.files.toSet()
-
-            Files.createDirectory(overlayRoot)
-            Files.newDirectoryStream(this.sourceRoot).use { entries ->
-                entries.forEach { entry ->
-                    Files.createSymbolicLink(overlayRoot.resolve(entry.fileName), entry.toAbsolutePath())
-                }
-            }
-            Files.writeString(
-                overlayRoot.resolve(wrapperName),
-                coverageWrapper(
-                    sourceFile = function.sourceFile,
-                    exportName = function.entryPoint.exportName,
-                    observationPath = observationPath,
-                    dropSentinel = usesSentinel,
-                ),
-            )
-            backend = FastCheckBackend(sourceRoots = listOf(overlayRoot, this.sourceRoot))
-        } catch (error: Throwable) {
+        val setup = runCatching { prepareReplay() }.getOrElse { error ->
             deleteWorkspace()
             throw error
         }
+        allowedFiles = setup.allowedFiles
+        backend = setup.backend
+    }
+
+    private fun prepareReplay(): CoverageReplaySetup {
+        require(function.entryPoint.executionKind == org.usvm.ts.pbt.model.ExecutionKind.SYNC) {
+            "Coverage replay requires a synchronous entry point"
+        }
+        val source = sourceRoot.resolve(function.sourceFile).normalize()
+        require(source.startsWith(sourceRoot) && Files.isRegularFile(source)) {
+            "Coverage entry source is outside its frozen root"
+        }
+        val closure = TypeScriptSourceInspector.localSourceClosure(sourceRoot = sourceRoot, source = source)
+        require(closure.reasonCode == null) { closure.diagnostic ?: "Unsupported local source closure" }
+
+        Files.createDirectory(overlayRoot)
+        Files.newDirectoryStream(sourceRoot).use { entries ->
+            entries.forEach { entry ->
+                Files.createSymbolicLink(overlayRoot.resolve(entry.fileName), entry.toAbsolutePath())
+            }
+        }
+        Files.writeString(
+            overlayRoot.resolve(wrapperName),
+            coverageWrapper(
+                sourceFile = function.sourceFile,
+                exportName = function.entryPoint.exportName,
+                observationPath = observationPath,
+                dropSentinel = usesSentinel,
+            ),
+        )
+
+        return CoverageReplaySetup(
+            allowedFiles = closure.files.toSet(),
+            backend = FastCheckBackend(sourceRoots = listOf(overlayRoot, sourceRoot)),
+        )
     }
 
     fun replay(inputs: List<JsConcreteValue>, timeoutMillis: Long): CallsCoverageReplayResult {
@@ -169,6 +176,11 @@ internal class OriginalTypeScriptCoverageReplayer(
         }
     }
 }
+
+private data class CoverageReplaySetup(
+    val allowedFiles: Set<String>,
+    val backend: FastCheckBackend,
+)
 
 private fun collectHits(
     relative: String,

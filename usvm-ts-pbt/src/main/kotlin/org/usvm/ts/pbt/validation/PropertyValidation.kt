@@ -11,6 +11,7 @@ import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.JsNumber
 import org.usvm.ts.pbt.model.JsNumberKind
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyAssertion
 import org.usvm.ts.pbt.model.PropertyDefinition
@@ -248,7 +249,8 @@ private fun validateDomain(
         }
 
         is ConstantDomain -> {
-            if (domain.value is JsConcreteValue.Array) {
+            val isObjectConstant = domain.value is JsConcreteValue.Array || domain.value is JsConcreteValue.Object
+            if (isObjectConstant) {
                 diagnostics += diagnostic(
                     code = PbtDiagnosticCode.DOMAIN_CONSTANT_UNSUPPORTED,
                     message = "Constant domains support JavaScript primitives only",
@@ -292,6 +294,21 @@ private fun validateDomain(
                 diagnostics = diagnostics,
             )
             validateDomain(domain.element, "$path.element", diagnostics)
+        }
+
+        is ObjectDomain -> {
+            val invalidFields = domain.fields.size > MAX_OBJECT_FIELDS ||
+                domain.fields.keys.any { it in UNSAFE_OBJECT_KEYS }
+            if (invalidFields) {
+                diagnostics += diagnostic(
+                    code = PbtDiagnosticCode.DOMAIN_OBJECT_FIELDS,
+                    message = "Object domain has too many fields or an unsafe property name",
+                    path = path,
+                )
+            }
+            domain.fields.forEach { (name, fieldDomain) ->
+                validateDomain(fieldDomain, "$path.fields.$name", diagnostics)
+            }
         }
     }
 }
@@ -352,6 +369,11 @@ private fun validateJsConcreteValue(
     if (value is JsConcreteValue.Array) {
         value.elements.forEachIndexed { index, element ->
             validateJsConcreteValue(element, "$path.elements[$index]", diagnostics)
+        }
+    }
+    if (value is JsConcreteValue.Object) {
+        value.fields.forEach { (name, fieldValue) ->
+            validateJsConcreteValue(fieldValue, "$path.fields.$name", diagnostics)
         }
     }
 }
@@ -466,3 +488,6 @@ private const val MAX_DIRECT_ARRAY_LENGTH = 32
 // ECMAScript permits these otherwise invisible Unicode characters after the first identifier character.
 private const val ZERO_WIDTH_NON_JOINER_CODE_POINT = 0x200C
 private const val ZERO_WIDTH_JOINER_CODE_POINT = 0x200D
+
+private const val MAX_OBJECT_FIELDS = 32
+private val UNSAFE_OBJECT_KEYS = setOf("__proto__", "constructor", "prototype")

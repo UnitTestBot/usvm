@@ -43,6 +43,14 @@ test('tagged JavaScript primitives round trip without losing semantics', () => {
         && value[0] === undefined
         && Object.is(value[1], -0),
     },
+    {
+      tagged: {
+        kind: 'object',
+        fields: { score: { kind: 'number', value: 'finite', bits: '8000000000000000' } },
+      },
+      matches: (value) => value !== null && typeof value === 'object'
+        && !Array.isArray(value) && Object.is(value.score, -0),
+    },
   ];
 
   for (const { tagged, matches } of cases) {
@@ -79,4 +87,31 @@ test('finite tags reject nonfinite bit patterns at the tagged input boundary', (
 
 test('unknown tagged value kinds are rejected explicitly', () => {
   assert.throws(() => decodeJsValue({ kind: 'symbol' }), /js-value\.kind\.unknown/);
+});
+
+
+test('object transport refuses hooks and lossy property layouts', () => {
+  let calls = 0;
+  const accessor = Object.defineProperty({}, 'x', {
+    enumerable: true, get: () => { calls += 1; throw new Error('getter'); },
+  });
+  const nestedAccessor = Object.defineProperty([1], '0', {
+    enumerable: true, get: () => { calls += 1; throw new Error('getter'); },
+  });
+  const proxy = new Proxy({}, {
+    ownKeys: () => { calls += 1; throw new Error('proxy'); },
+  });
+  const shared = { x: 1 };
+  const invalid = [accessor, { array: nestedAccessor }, proxy, { a: shared, b: shared },
+    Object.defineProperty({}, 'hidden', { value: 1 }), { [Symbol('x')]: 1 }, Object.create(null)];
+
+  for (const value of invalid) assert.throws(() => encodeJsValue(value), /js-value\.type\.unsupported/);
+  assert.equal(calls, 0);
+});
+
+test('object transport rejects unsafe keys on decode without affecting Object prototype', () => {
+  const fields = Object.fromEntries([['__proto__', { kind: 'boolean', value: true }]]);
+
+  assert.throws(() => decodeJsValue({ kind: 'object', fields }), /js-value\.object\.invalid/);
+  assert.equal(Object.getPrototypeOf({}), Object.prototype);
 });

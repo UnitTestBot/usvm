@@ -34,6 +34,8 @@ internal class CallsCoverageSource private constructor(
     }
 
     companion object {
+        private const val UNSIGNED_BYTE_MASK = 0xff
+
         fun load(manifestPath: Path, projectIndex: Int, functionIndex: Int): CallsCoverageSource {
             val realManifestPath = manifestPath.toRealPath()
             val manifestBytes = Files.readAllBytes(realManifestPath)
@@ -59,6 +61,6 @@ internal class CallsCoverageSource private constructor(
         }
 
         private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(bytes)
-            .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and 0xff) }
+            .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and UNSIGNED_BYTE_MASK) }
     }
 }

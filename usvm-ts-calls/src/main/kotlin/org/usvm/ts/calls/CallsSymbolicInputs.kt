@@ -19,7 +19,7 @@ import org.usvm.util.mkRegisterStackLValue
 
 internal fun PropertyDomain.isSupportedCallsSymbolicDomain(): Boolean = when (this) {
     BooleanDomain, is IntegerDomain, is NumberDomain, is StringDomain -> true
-    is ConstantDomain -> value !is JsConcreteValue.Array
+    is ConstantDomain -> value !is JsConcreteValue.Array && value !is JsConcreteValue.Object
     is OptionalDomain -> value.isSupportedCallsSymbolicDomain() &&
         (nil == JsConcreteValue.Null || nil == JsConcreteValue.Undefined)
     is ArrayDomain -> element.isSupportedCallsSymbolicDomain()
