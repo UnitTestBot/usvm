@@ -24,6 +24,7 @@ import org.usvm.machine.call.resolvedInstanceInputs
 import org.usvm.machine.state.TsState
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
+import org.usvm.util.componentType
 import org.usvm.util.isUnmodifiedDenseInputArray
 import org.usvm.util.mkArrayLengthLValue
 
@@ -68,7 +69,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 if (hasUnsupportedArrayShape) {
                     falseExpr
                 } else {
-                    val elementSort = typeToSort(receiverType.elementType)
+                    val elementSort = typeToSort(receiverType.componentType)
                     val hasNoMissingSlots = array is UConcreteHeapRef &&
                         state.isUnmodifiedDenseInputArray(array, receiverType)
                     val excludesMissingSlot = when {
