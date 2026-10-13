@@ -404,11 +404,12 @@ internal class CurrentTsCallsSymbolicEngine(
                     expressionEndOffset = request.target.returnExpressionEndOffset,
                     marker = "__usvm_completed_return_preflight",
                 )
-                if (sourceTarget.reason != null) {
+                val sourceTargetReason = sourceTarget.reason
+                if (sourceTargetReason != null) {
                     return CallsTargetPreparation.Rejected(
                         status = CallsSymbolicStatus.UNSUPPORTED,
                         reasonCode = CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNSUPPORTED,
-                        diagnostic = sourceTarget.reason,
+                        diagnostic = sourceTargetReason,
                     )
                 }
 
