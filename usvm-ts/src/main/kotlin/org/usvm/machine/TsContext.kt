@@ -11,6 +11,7 @@ import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsGenericType
+import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
@@ -165,6 +166,13 @@ class TsContext(
         is EtsNullType -> addressSort
         is EtsUndefinedType -> addressSort
         is EtsUnionType -> unresolvedSort
+        is EtsIntersectionType -> {
+            val memberSorts = type.types.map(::typeToSort)
+            val commonSort = memberSorts.firstOrNull() ?: unresolvedSort
+            val hasCommonSort = memberSorts.all { it == commonSort }
+
+            if (hasCommonSort) commonSort else unresolvedSort
+        }
         is EtsRefType -> addressSort
         is EtsLexicalEnvType -> addressSort
         is EtsAnyType -> unresolvedSort

@@ -10,6 +10,7 @@ import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.mkFakeValue
@@ -58,7 +59,11 @@ internal fun TsExprResolver.handleArrayAccess(
         return resolveField(scope, value.array, array, field, hierarchy)
     }
     if (receiverType !is EtsArrayType) {
-        throw UnsupportedOperationException("Symbolic object property keys are not supported")
+        stopRuntimeFeatureLimitation(
+            reason = TsRuntimeFeatureLimitationReason.ARRAY_STORAGE_TYPE,
+            detail = "Indexed access requires supported storage: static=${value.array.type}, storage=$receiverType",
+        )
+        return null
     }
 
     check(resolvedIndex.sort == fp64Sort) {

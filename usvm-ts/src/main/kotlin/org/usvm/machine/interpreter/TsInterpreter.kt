@@ -780,6 +780,7 @@ class TsInterpreter(
             options = options,
             hierarchy = graph.hierarchy,
             unknownCallDispatcher = unknownCallDispatcher,
+            observer = observer,
         )
 
     fun getInitialState(method: EtsMethod, targets: List<TsTarget>): TsState = with(ctx) {

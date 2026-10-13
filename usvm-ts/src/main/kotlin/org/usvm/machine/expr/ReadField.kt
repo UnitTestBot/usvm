@@ -2,7 +2,9 @@ package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
@@ -17,6 +19,7 @@ import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -85,11 +88,24 @@ internal fun TsExprResolver.handleInstanceFieldRef(
     val instance = resolveHeapRef(scope, rawInstance) ?: return null
 
     // Handle reading "length" property.
-    if (value.field.name == "length") {
-        val storageType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) }
+    val storageType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) }
+    val usesArrayLength = storageType is EtsArrayType || storageType == EtsStringType ||
+        storageType == EtsAnyType || storageType == EtsUnknownType
+    val nativeTypedArray = storageType is EtsClassType &&
+        storageType.signature.file == EtsClassSignature.UNKNOWN.file &&
+        storageType.signature.name in NATIVE_TYPED_ARRAY_NAMES
+    if (value.field.name == "length" && (usesArrayLength || nativeTypedArray)) {
         val isObjectProperty = storageType is EtsClassType || storageType is EtsUnclearRefType ||
             scope.calcOnState { trackedObjectProperties.any { it.instance == instance && it.name == "length" } }
-        if (!isObjectProperty) return readLengthProperty(scope, instanceLocal, instance, options.maxArraySize)
+        if (!isObjectProperty) {
+            return readLengthProperty(
+                scope = scope,
+                instanceLocal = instanceLocal,
+                instance = instance,
+                maxArraySize = options.maxArraySize,
+                onFeatureLimitation = ::reportRuntimeFeatureLimitation,
+            )
+        }
     }
 
     // Read the field.
@@ -424,3 +440,8 @@ fun TsContext.readStaticField(
     // Read the field.
     return resolveField(scope, null, instance, field, hierarchy)
 }
+
+private val NATIVE_TYPED_ARRAY_NAMES = setOf(
+    "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array",
+    "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "BigInt64Array", "BigUint64Array",
+)

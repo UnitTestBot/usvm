@@ -1,5 +1,6 @@
 package org.usvm.machine.types
 
+import io.mockk.mockk
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
@@ -9,6 +10,7 @@ import org.jacodb.ets.model.EtsFieldImpl
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
+import org.jacodb.ets.model.EtsNeverType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
@@ -17,15 +19,46 @@ import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnknownType
 import org.junit.jupiter.api.Test
+import org.usvm.machine.TsContext
 import org.usvm.machine.withCoreRuntimeSdk
 import org.usvm.types.TypesResult
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.type
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 class TsTypeSystemTest {
+    @Test
+    fun `fake types are rejected in type constraints before subtype shortcuts`() {
+        val scene = EtsScene(projectFiles = emptyList())
+        val context = TsContext(scene = scene, components = mockk())
+        val typeSystem = TsTypeSystem(
+            scene = scene,
+            typeOperationsTimeout = 1.seconds,
+            hierarchy = EtsHierarchy(scene),
+        )
+        val fakeType = EtsFakeType.mkRef(context)
+        val comparisonTypes = listOf(
+            EtsAuxiliaryType(properties = setOf("style")),
+            EtsAnyType,
+            EtsUnknownType,
+            EtsNeverType,
+            EtsObjectType,
+            fakeType,
+        )
+
+        for (type in comparisonTypes) {
+            assertFailsWith<IllegalArgumentException> {
+                typeSystem.isSupertype(supertype = type, type = fakeType)
+            }
+            assertFailsWith<IllegalArgumentException> {
+                typeSystem.isSupertype(supertype = fakeType, type = type)
+            }
+        }
+    }
+
     @Test
     fun `runtime object constraint accepts references and excludes primitive or unresolved types`() {
         val scene = EtsScene(projectFiles = emptyList())

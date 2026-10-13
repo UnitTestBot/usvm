@@ -1,0 +1,152 @@
+package org.usvm.machine.call
+
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.EtsIrProvider
+import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.usvm.PathSelectionStrategy
+import org.usvm.StateCollectionStrategy
+import org.usvm.UMachineOptions
+import org.usvm.api.TsTest
+import org.usvm.api.TsTestValue
+import org.usvm.machine.TsAnalysisStopReason
+import org.usvm.machine.TsMachine
+import org.usvm.machine.TsOptions
+import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.TsTestResolver
+import org.usvm.util.getResourcePath
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class FreshStringMockSourceTest : TsMethodTestRunner() {
+    private val sourceFile = loadEtsFileAutoConvert(
+        getResourcePath("/models/FreshStringMock.ts"),
+        provider = EtsIrProvider.TS_FRONTEND,
+    )
+    override val scene = EtsScene(projectFiles = listOf(sourceFile))
+    override val tsOptions = TsOptions(
+        maxArraySize = 8,
+        unknownCallFallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
+    )
+    override val runner: (EtsMethod, UMachineOptions) -> List<TsTest> = { method, machineOptions ->
+        TsMachine(scene = scene, options = machineOptions, tsOptions = tsOptions).use { machine ->
+            val analysis = machine.analyzeWithOutcome(methods = listOf(method))
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
+            assertTrue(analysis.unsupportedPaths.isEmpty(), "${method.name}: ${analysis.unsupportedPaths}")
+            analysis.states.map { state -> TsTestResolver().resolve(method, state) }
+        }
+    }
+
+    init {
+        options = options.copy(
+            pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = 0,
+            throwExceptionOnStepFailure = true,
+            stepsFromLastCovered = 128L,
+        )
+    }
+
+    @Test
+    fun `fresh string result has a readable private length`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method("length"),
+            { result -> result.number in 0.0..8.0 },
+            invariants = arrayOf({ result -> result.number in 0.0..8.0 }),
+        )
+    }
+
+    @Test
+    fun `fresh concatenation reports its capacity residual and preserves supported suffix witnesses`() {
+        val method = method("concat")
+
+        TsMachine(scene = scene, options = options, tsOptions = tsOptions).use { machine ->
+            val outcome = machine.analyzeWithOutcome(methods = listOf(method))
+            val values = outcome.states.map { state -> TsTestResolver().resolve(method, state).returnValue }
+            val onlyCapacityResiduals = outcome.unsupportedPaths.all { diagnostic ->
+                "String concatenation result exceeds the configured length bound 8" in diagnostic
+            }
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+            assertTrue(outcome.unsupportedPaths.isNotEmpty())
+            assertTrue(onlyCapacityResiduals, outcome.unsupportedPaths.toString())
+            assertTrue(values.isNotEmpty())
+            assertTrue(values.all { value -> value is TsTestValue.TsString && value.value.endsWith("!") })
+        }
+    }
+
+    @Test
+    fun `fresh string concatenation exhausts the supported source domain without residuals`() {
+        discoverProperties<TsTestValue.TsString>(
+            method = method("concatWithinBound"),
+            { result -> result.value.endsWith("!") },
+            invariants = arrayOf({ result -> result.value.endsWith("!") }),
+        )
+    }
+
+    @Test
+    fun `fresh strings retain both empty and nonempty source branches`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method("branchOnLength"),
+            { result -> result.number == 0.0 },
+            { result -> result.number == 1.0 },
+            invariants = arrayOf({ result -> result.number == 0.0 || result.number == 1.0 }),
+        )
+    }
+
+    @Test
+    fun `opaque literal return keeps its declared string value`() {
+        discoverProperties<TsTestValue.TsString>(
+            method = method("literal"),
+            { result -> result.value == "known" },
+            invariants = arrayOf({ result -> result.value == "known" }),
+        )
+    }
+
+    @Test
+    fun `opaque string literal union retains exactly its allowed values`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method("stringUnion"),
+            { result -> result.number == 1.0 },
+            { result -> result.number == 2.0 },
+            invariants = arrayOf({ result -> result.number in setOf(1.0, 2.0) }),
+        )
+    }
+
+    @Test
+    fun `opaque finite union preserves string number boolean and nullish kinds`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method("finiteUnion"),
+            { result -> result.number == 1.0 },
+            { result -> result.number == 2.0 },
+            { result -> result.number == 3.0 },
+            { result -> result.number == 4.0 },
+            { result -> result.number == 5.0 },
+            invariants = arrayOf({ result -> result.number in setOf(1.0, 2.0, 3.0, 4.0, 5.0) }),
+        )
+    }
+
+    @Test
+    fun `opaque boolean union preserves both boolean values`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method("booleanUnion"),
+            { result -> result.number == 1.0 },
+            { result -> result.number == 2.0 },
+            { result -> result.number == 3.0 },
+            invariants = arrayOf({ result -> result.number in setOf(1.0, 2.0, 3.0) }),
+        )
+    }
+
+    @Test
+    fun `opaque primitive literals retain their exact declared values`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method("exactPrimitiveLiterals"),
+            { result -> result.number == 1.0 },
+            invariants = arrayOf({ result -> result.number == 1.0 }),
+        )
+    }
+
+    private fun method(name: String): EtsMethod = getMethod(methodName = name, className = "FreshStringMock")
+}

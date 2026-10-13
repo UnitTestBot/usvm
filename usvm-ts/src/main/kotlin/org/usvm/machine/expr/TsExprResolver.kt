@@ -2,6 +2,7 @@ package org.usvm.machine.expr
 
 import io.ksmt.expr.KFp64Value
 import io.ksmt.utils.asExpr
+import kotlinx.serialization.json.JsonPrimitive
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAddExpr
 import org.jacodb.ets.model.EtsAndExpr
@@ -30,6 +31,7 @@ import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsEqExpr
 import org.jacodb.ets.model.EtsExpExpr
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsGlobalRef
 import org.jacodb.ets.model.EtsGtEqExpr
@@ -111,7 +113,10 @@ import org.usvm.isTrue
 import org.usvm.machine.TS_TYPE_ERROR_TYPE
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsOptions
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.call.TsUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.dispatch
@@ -174,6 +179,7 @@ class TsExprResolver(
     internal val options: TsOptions,
     internal val hierarchy: EtsHierarchy,
     internal val unknownCallDispatcher: TsUnknownCallDispatcher,
+    internal val observer: TsInterpreterObserver? = null,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
@@ -183,12 +189,35 @@ class TsExprResolver(
         return expr.accept(this)
     }
 
-    override fun visit(value: EtsRawEntity): Nothing {
+    override fun visit(value: EtsRawEntity): UExpr<out USort>? {
         if (value.kind == "UnsupportedValue") {
-            throw UnsupportedOperationException("Unsupported frontend value: $value")
+            val kindName = when (val raw = value.extra["kindName"]) {
+                is JsonPrimitive -> raw.content
+                is String -> raw
+                else -> null
+            }
+            val reason = if (kindName == "RegularExpressionLiteral") {
+                TsRuntimeFeatureLimitationReason.REGULAR_EXPRESSION_LITERAL
+            } else {
+                TsRuntimeFeatureLimitationReason.FRONTEND_UNSUPPORTED_VALUE
+            }
+            stopRuntimeFeatureLimitation(reason = reason, detail = "Unsupported frontend value: $value")
+            return null
         }
 
         error("Cannot handle ${value::class.java.simpleName}: $value")
+    }
+
+    internal fun reportRuntimeFeatureLimitation(reason: TsRuntimeFeatureLimitationReason, detail: String) {
+        val statement = scope.calcOnState { lastStmt }
+        observer?.onRuntimeFeatureLimitation(
+            TsRuntimeFeatureLimitationEvent(statement = statement, reason = reason, detail = detail),
+        )
+    }
+
+    internal fun stopRuntimeFeatureLimitation(reason: TsRuntimeFeatureLimitationReason, detail: String) {
+        reportRuntimeFeatureLimitation(reason = reason, detail = detail)
+        scope.doWithState { terminateAsUnsupported(reason = "$reason: $detail") }
     }
 
     private fun resolveUnaryOperator(
@@ -807,7 +836,12 @@ class TsExprResolver(
         val operand = value.extractSingleValueFromFakeObjectOrNull(scope) ?: if (value.isFakeObject()) {
             val referenceKind = value.getFakeType(scope).refTypeExpr
             scope.fork(referenceKind, blockOnFalseState = {
-                terminateAsUnsupported(reason = "Unsupported string concatenation operand: $type, $value")
+                val detail = "Unsupported string concatenation operand: $type, $value"
+                reportRuntimeFeatureLimitation(
+                    reason = TsRuntimeFeatureLimitationReason.STRING_CONCAT_OPERAND_CONVERSION,
+                    detail = detail,
+                )
+                terminateAsUnsupported(reason = detail)
             }) ?: return null
             value.extractRef(scope)
         } else {
@@ -815,14 +849,22 @@ class TsExprResolver(
         }
         concreteStringValue(operand)?.let { return mkStringConstant(it, scope) }
         if (!isStringOperandType(type) || operand.sort != addressSort) {
-            throw UnsupportedOperationException("Unsupported string concatenation operand: $type, $operand")
+            stopRuntimeFeatureLimitation(
+                reason = TsRuntimeFeatureLimitationReason.STRING_CONCAT_OPERAND_CONVERSION,
+                detail = "Unsupported string concatenation operand: $type, $operand",
+            )
+            return null
         }
 
         // Resolve a conditional field payload through the same forker used for property and array receivers.
         val ref = resolveHeapRef(scope, operand.asExpr(addressSort)) ?: return null
         concreteStringValue(ref)?.let { return mkStringConstant(it, scope) }
         if (scope.calcOnState { ref !in boundedStringBackingRefs }) {
-            throw UnsupportedOperationException("String concatenation needs a modeled string backing for $ref")
+            stopRuntimeFeatureLimitation(
+                reason = TsRuntimeFeatureLimitationReason.STRING_CONCAT_OPERAND_CONVERSION,
+                detail = "String concatenation needs a modeled string backing for $ref",
+            )
+            return null
         }
         ref
     }
@@ -1480,6 +1522,21 @@ class TsExprResolver(
 
     override fun visit(expr: EtsNewExpr): UExpr<out USort>? = with(ctx) {
         expr.constructorValue?.let { return@with constructRuntimeClass(it) }
+
+        val classType = expr.type as? EtsClassType
+        val hasRegexName = classType?.signature?.name == "RegExp"
+        val hasIntrinsicOwner = classType != null && (
+            classType.signature.file == EtsFileSignature.UNKNOWN ||
+                scene.sdkClasses.any { owner -> owner.signature == classType.signature }
+            )
+        val intrinsicRegex = hasRegexName && hasIntrinsicOwner
+        if (intrinsicRegex) {
+            stopRuntimeFeatureLimitation(
+                reason = TsRuntimeFeatureLimitationReason.REGULAR_EXPRESSION_LITERAL,
+                detail = "Intrinsic RegExp allocation has no runtime model",
+            )
+            return@with null
+        }
 
         // Try to resolve the concrete type if possible.
         // Otherwise, create an object with UnclearRefType
