@@ -1,6 +1,8 @@
 package main
 
 import (
+	"go/types"
+
 	"golang.org/x/tools/go/ssa"
 )
 
@@ -81,7 +83,9 @@ type Package struct {
 	Types   map[string]Type `yaml:"types" json:"types"`
 	IntSize int             `yaml:"int_size" json:"int_size"`
 
-	program *ssa.Program
+	program     *ssa.Program
+	typeNames   map[types.Type]string
+	typesByName map[string][]types.Type
 }
 
 type Member interface {
