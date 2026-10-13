@@ -46,6 +46,10 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         )
     }
 
+    private val sourceModelIds by lazy {
+        models.filterIsInstance<TsEtsIrUnknownCallModel>().map { model -> model.id }.toSet()
+    }
+
     private val primitiveClassSignature by lazy {
         baseArtifact.file.allClasses.single { it.name == PRIMITIVES_CLASS_NAME }.signature
     }
@@ -436,9 +440,14 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         methodName: String,
         arity: Int,
         implementation: (TsState, List<UExpr<*>>) -> TsUnknownCallModelExecution?,
-    ): TsUnknownCallModel = ArrayPrimitiveModel(
+    ): TsUnknownCallModel = TsPrimitiveUnknownCallModel(
+        idPrefix = "ts.array.primitive",
         methodName = methodName,
+        enclosingClassName = PRIMITIVES_CLASS_NAME,
         arity = arity,
+        helperClassSignature = { primitiveClassSignature },
+        sourceClassSignature = { baseArtifact.entryPoint.signature.enclosingClass },
+        owningModelIds = { sourceModelIds },
         implementation = implementation,
     )
 
@@ -534,30 +543,6 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             successors = listOf(successor),
             residualGuard = guard.takeUnless { it == trueExpr }?.let(::mkNot),
         )
-    }
-
-    private class ArrayPrimitiveModel(
-        methodName: String,
-        private val arity: Int,
-        private val implementation: (TsState, List<UExpr<*>>) -> TsUnknownCallModelExecution?,
-    ) : TsUnknownCallModel {
-        override val id: String = "ts.array.primitive.$methodName"
-        override val target = TsUnknownCallTarget(
-            methodName = methodName,
-            enclosingClassName = PRIMITIVES_CLASS_NAME,
-            failureReason = TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE,
-        )
-
-        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
-            if (call.callee.enclosingClass != primitiveClassSignature) return null
-
-            if (call.receiver != null || call.arguments.size != arity) {
-                return null
-            }
-
-            val inputs = call.arguments.map { argument -> argument.resolved ?: return null }
-            return implementation(state, inputs)
-        }
     }
 
     private const val MATH_FLOOR_MODEL_ID = "ts.math.floor"
