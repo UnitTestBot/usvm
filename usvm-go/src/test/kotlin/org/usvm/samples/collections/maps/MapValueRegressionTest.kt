@@ -24,6 +24,16 @@ import kotlin.time.Duration.Companion.seconds
 
 class MapValueRegressionTest : GoNativeTestRunner() {
     @Test
+    @GoSample(method = "floatMapZeroRangeAfterOverwrite", fixture = "regressions")
+    fun floatMapZeroRangeAfterOverwrite() = checkNative(method = "floatMapZeroRangeAfterOverwrite")
+
+    @Test
+    @GoSample(method = "inputFloatMapZeroRangeSign", fixture = "regressions")
+    fun inputFloatMapZeroRangeSign() = replayMapInputs(
+        method = "inputFloatMapZeroRangeSign", observedKey = 0.0, expectedOutcomes = setOf(-1L, 0L, 1L),
+    )
+
+    @Test
     @GoSample(method = "pointerMapConvertedAlias", fixture = "regressions")
     fun pointerMapConvertedAlias() = checkNative(method = "pointerMapConvertedAlias")
 
@@ -129,10 +139,16 @@ class MapValueRegressionTest : GoNativeTestRunner() {
         replayMapOutputs(method = "namedArrayMapResult", executions = executions, expectedSummary = 119L)
     }
 
-    private fun replayMapInputs(method: String, observedKey: Any, needsAdditionalEntry: Boolean = false) {
+    private fun replayMapInputs(
+        method: String,
+        observedKey: Any,
+        needsAdditionalEntry: Boolean = false,
+        expectedOutcomes: Set<Long>? = null,
+    ) {
         val executions = runner(method, options)
         assertTrue(executions.isNotEmpty())
         assertTrue(executions.all { it.result.isSuccess })
+        if (expectedOutcomes != null) assertEquals(expectedOutcomes, executions.map { it.result.long }.toSet())
         if (needsAdditionalEntry) {
             val hasAdditionalEntry = executions.any {
                 val input = mapReplayEntries(it.arguments.single())

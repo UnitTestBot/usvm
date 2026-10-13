@@ -56,6 +56,8 @@ func TestReplayMapKeys(t *testing.T) {
 			}
 		}
 		switch request.Method {
+		case "inputFloatMapZeroRangeSign":
+			results[index] = inputFloatMapZeroRangeSign(floats)
 		case "inputFloatMapLookup":
 			results[index] = inputFloatMapLookup(floats)
 		case "inputStringMapLookup":

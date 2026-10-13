@@ -9,6 +9,7 @@ import (
 
 func TestNativeOracle(t *testing.T) {
 	cases := map[string]func() any{
+		"floatMapZeroRangeAfterOverwrite":            func() any { return floatMapZeroRangeAfterOverwrite() },
 		"pointerMapConvertedAlias":                   func() any { return pointerMapConvertedAlias() },
 		"float32MapZeroAndNaN":                       func() any { return float32MapZeroAndNaN() },
 		"interfaceMapUncomparableLookup":             func() any { return interfaceMapUncomparableLookup() },

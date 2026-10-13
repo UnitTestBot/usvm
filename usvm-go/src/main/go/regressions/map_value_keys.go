@@ -200,3 +200,34 @@ func pointerMapConvertedAlias() int {
 	restored := (*int)(converted)
 	return len(values)*10 + values[restored]
 }
+
+func floatMapZeroRangeAfterOverwrite() int {
+	values := map[float64]int{0: 7}
+	values[negativeMapZero(0)] = 9
+	for key := range values {
+		if 1/key < 0 {
+			return -1
+		}
+		return 1
+	}
+	return 0
+}
+
+func inputFloatMapZeroRangeSign(values map[float64]int) int {
+	if len(values) != 1 {
+		return 0
+	}
+	_, found := values[0]
+	if !found {
+		return 0
+	}
+	for key := range values {
+		if key == 0 && 1/key < 0 {
+			return -1
+		}
+		if key == 0 {
+			return 1
+		}
+	}
+	return 0
+}
