@@ -65,6 +65,10 @@ export async function startExecutionCoverage(): Promise<ExecutionCoverage | unde
 
   return {
     async write(): Promise<void> {
+      // Descendants already hold their inherited environment. Clear the main
+      // process before coverage is drained or any shutdown hook can serialize it.
+      delete process.env.NODE_V8_COVERAGE;
+
       const pending = receive();
       worker.postMessage('take');
       const snapshot = await pending;
@@ -87,6 +91,7 @@ export async function startExecutionCoverage(): Promise<ExecutionCoverage | unde
       writeFileSync(path.join(rawDirectory, `coverage-${process.pid}-usvm.json`), stringifyProtocolJson(report));
     },
     async close(): Promise<void> {
+      delete process.env.NODE_V8_COVERAGE;
       await worker.terminate();
     },
   };
