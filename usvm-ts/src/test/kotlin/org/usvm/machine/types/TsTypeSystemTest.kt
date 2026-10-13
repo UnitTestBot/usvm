@@ -1,9 +1,6 @@
 package org.usvm.machine.types
 
 import io.mockk.mockk
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.seconds
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
@@ -27,6 +24,9 @@ import org.usvm.types.TypesResult
 import org.usvm.types.USingleTypeStream
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.type
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 class TsTypeSystemTest {
     @Test

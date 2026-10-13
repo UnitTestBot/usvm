@@ -2,8 +2,6 @@ package org.usvm.machine
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.contract
 import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
@@ -57,6 +55,8 @@ import org.usvm.machine.types.EtsFakeType
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.types.single
 import org.usvm.util.mkFieldLValue
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 typealias TsSizeSort = UBv32Sort
 

@@ -1,5 +1,6 @@
 declare class ExternalString {
     static value(): string;
+    static literal(): "known";
 }
 
 export class FreshStringMock {
@@ -9,5 +10,14 @@ export class FreshStringMock {
 
     static concat(): string {
         return ExternalString.value() + "!";
+    }
+
+    static branchOnLength(): number {
+        const value = ExternalString.value();
+        return value.length === 0 ? 0 : 1;
+    }
+
+    static literal(): string {
+        return ExternalString.literal();
     }
 }
