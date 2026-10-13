@@ -6,6 +6,8 @@ import java.nio.file.Path
 
 /** Locates the private fast-check runtime in development and installed distributions. */
 internal object FastCheckRuntime {
+    fun sourceInspectorEntryPoint(): Path = locateEntryPoint(SOURCE_INSPECTOR_CLI)
+
     fun executionEntryPoint(): Path = locateEntryPoint(EXECUTION_CLI)
 
     fun projectionEntryPoint(): Path = locateEntryPoint(PROJECTION_CLI)
@@ -46,6 +48,7 @@ internal object FastCheckRuntime {
 
     private const val RUNTIME_DIRECTORY_PROPERTY = "org.usvm.ts.pbt.fastcheck.runtime"
     private const val ENTRY_POINT_DIRECTORY = "dist/src"
+    private const val SOURCE_INSPECTOR_CLI = "source-inspector-cli.js"
     private const val EXECUTION_CLI = "execution-cli.js"
     private const val PROJECTION_CLI = "projection-cli.js"
     private const val PROCESS_SUPERVISOR = "process-supervisor.js"

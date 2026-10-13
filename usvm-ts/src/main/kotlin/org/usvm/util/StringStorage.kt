@@ -68,3 +68,24 @@ internal fun TsState.stringFromUtf16CodeUnit(codeUnit: UExpr<KBv16Sort>): UConcr
     )
     result
 }
+
+/** Initialize the private UTF-16 backing of one bounded symbolic string input. */
+fun TsState.allocateBoundedString(
+    length: UExpr<TsSizeSort>,
+    codeUnits: List<UExpr<KBv16Sort>>,
+): UConcreteHeapRef = with(ctx) {
+    val maxLength = codeUnits.size
+    val nonnegativeLength = mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+    val boundedLength = mkBvSignedLessOrEqualExpr(length, mkBv(maxLength))
+    pathConstraints += mkAnd(nonnegativeLength, boundedLength)
+    val (string, characters) = allocateString(length = length, maxLength = maxLength)
+    codeUnits.forEachIndexed { index, codeUnit ->
+        val position = mkBv(index)
+        val liveIndex = mkBvSignedLessExpr(position, length)
+        val element = mkStringBackingElementLValue(ref = characters, index = position)
+
+        memory.write(element, codeUnit, guard = liveIndex)
+    }
+
+    string
+}

@@ -22,6 +22,7 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
+import org.usvm.util.componentType
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.readTypedArrayElement
@@ -143,7 +144,7 @@ private fun TsContext.readArrayElement(
     arrayType: EtsArrayType,
 ): UExpr<*> {
     // Determine the element sort.
-    val sort = typeToSort(arrayType.elementType)
+    val sort = typeToSort(arrayType.componentType)
 
     // If the element type is known, we can read it directly.
     if (sort !is TsUnresolvedSort) {

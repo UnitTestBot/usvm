@@ -320,7 +320,7 @@ open class TsTestStateResolver(
 
         val values = (0 until length.number.toInt()).map { i ->
             val index = mkSizeExpr(i)
-            val sort = typeToSort(type.elementType)
+            val sort = typeToSort(type.componentType)
 
             if (sort is TsUnresolvedSort) {
                 val value = readUnresolvedArrayElement(memory, heapRef, index)

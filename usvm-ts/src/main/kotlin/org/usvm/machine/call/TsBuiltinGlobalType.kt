@@ -54,7 +54,8 @@ internal fun TsContext.isBuiltinArrayConstructor(value: UExpr<*>): Boolean {
     return signature.name == "Array" && signature.file == EtsHierarchy.OBJECT_CLASS.signature.file
 }
 
-internal fun EtsType.isBuiltinDateGlobalType(): Boolean = this is EtsFunctionType &&
+/** Native frontend signature of the genuine Date global, independent of a lexical capture name. */
+fun EtsType.isBuiltinDateGlobalType(): Boolean = this is EtsFunctionType &&
     signature.enclosingClass == EtsClassSignature.UNKNOWN &&
     signature.name.isEmpty() &&
     signature.parameters.isEmpty() &&

@@ -1,5 +1,6 @@
 package org.usvm.machine.state
 
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBlockCfg
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsFile
@@ -32,6 +33,7 @@ import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
+import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
@@ -101,6 +103,7 @@ class TsState(
     var writtenConcreteFields: Set<Pair<UHeapRef, String>> = emptySet(),
     var initializedTypedArrayOverrides: Set<UHeapRef> = emptySet(),
     var writtenObjectLiteralFieldSorts: UPersistentHashMap<Pair<UHeapRef, String>, USort> = persistentHashMapOf(),
+    internal val denseInputArrays: MutableMap<UConcreteHeapRef, TsDenseInputArray> = mutableMapOf(),
     private val activeUnknownCallModels: MutableList<Pair<String, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
@@ -350,6 +353,7 @@ class TsState(
             writtenConcreteFields = writtenConcreteFields,
             initializedTypedArrayOverrides = initializedTypedArrayOverrides,
             writtenObjectLiteralFieldSorts = writtenObjectLiteralFieldSorts,
+            denseInputArrays = denseInputArrays.toMutableMap(),
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )
     }
@@ -357,3 +361,10 @@ class TsState(
     override val isExceptional: Boolean
         get() = methodResult is TsMethodResult.TsException
 }
+
+/** Snapshot of the regions that establish dense Calls input-array contents. */
+data class TsDenseInputArray(
+    val type: EtsArrayType,
+    val lengthRegion: UReadOnlyMemoryRegion<*, *>,
+    val elementRegion: UReadOnlyMemoryRegion<*, *>,
+)

@@ -32,6 +32,7 @@ import org.usvm.types.UTypeSystem
 import org.usvm.util.EtsFieldName
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.EtsMethodName
+import org.usvm.util.componentType
 import org.usvm.util.getAllFields
 import org.usvm.util.getAllProperties
 import org.usvm.util.getAllPropertiesCombined
@@ -157,7 +158,7 @@ class TsTypeSystem(
         // Arrays are unsoundly covariant in TS: ElementType<T>[] <: ElementType<S>[] if T <: S
         if (unwrappedSupertype is EtsArrayType && unwrappedType is EtsArrayType) {
             // array covariance (JS unsound)
-            return isSupertype(unwrappedSupertype.elementType, unwrappedType.elementType)
+            return isSupertype(unwrappedSupertype.componentType, unwrappedType.componentType)
         }
 
         // Tuple types

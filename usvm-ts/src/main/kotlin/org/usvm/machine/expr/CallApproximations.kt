@@ -41,6 +41,7 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
+import org.usvm.util.componentType
 import org.usvm.util.copyArrayElements
 import org.usvm.util.forEachArrayPayloadRegion
 import org.usvm.util.initializeArrayKind
@@ -175,7 +176,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     val instanceType = scope.calcOnState { arrayStorageType(array, expr.instance.type) }
 
     if (instanceType is EtsArrayType) {
-        val elementSort = typeToSort(instanceType.elementType)
+        val elementSort = typeToSort(instanceType.componentType)
             .takeIf { it !is TsUnresolvedSort }
             ?: addressSort
 
@@ -565,7 +566,7 @@ private fun TsExprResolver.removeArrayElement(
     arrayType: EtsArrayType,
     first: Boolean,
 ): UExpr<*>? = with(ctx) {
-    val storageSort = typeToSort(arrayType.elementType)
+    val storageSort = typeToSort(arrayType.componentType)
     val lengthLValue = mkArrayLengthLValue(array, arrayType)
     val length = scope.calcOnState { memory.read(lengthLValue) }
     val nonEmpty = mkNot(mkEq(length, mkBv(0)))
@@ -635,7 +636,7 @@ private fun TsExprResolver.handleArrayFill(
         "Array.fill() should have 1 to 3 arguments, but got ${expr.args.size}"
     }
     val resolvedValue = resolve(expr.args[0]) ?: return null
-    val value = if (typeToSort(arrayType.elementType) is TsUnresolvedSort) {
+    val value = if (typeToSort(arrayType.componentType) is TsUnresolvedSort) {
         resolvedValue.toFakeObject(scope)
     } else {
         resolvedValue
@@ -992,7 +993,7 @@ private fun TsExprResolver.handleArrayConcat(
     arrayType: EtsArrayType,
     array: UHeapRef,
 ): TsExprApproximationResult = with(ctx) {
-    val elementSort = typeToSort(arrayType.elementType)
+    val elementSort = typeToSort(arrayType.componentType)
     val arrayTypes = stmt.args.mapIndexed { index, arg ->
         if (arg.sort == addressSort) {
             val ref = arg.asExpr(addressSort)
@@ -1007,7 +1008,7 @@ private fun TsExprResolver.handleArrayConcat(
     }
     if (arrayTypes.withIndex().any { (index, type) ->
             if (type != null) {
-                typeToSort(type.elementType) != elementSort
+                typeToSort(type.componentType) != elementSort
             } else {
                 elementSort !is TsUnresolvedSort && stmt.args[index].sort != elementSort
             }
@@ -1213,7 +1214,7 @@ private fun TsExprResolver.handleArrayReverse(
             }
             memory.initializeArray(reversedArray, region, sort, sizeSort, contents)
         }
-        if (typeToSort(arrayType.elementType) is TsUnresolvedSort) {
+        if (typeToSort(arrayType.componentType) is TsUnresolvedSort) {
             TsUnresolvedArrayKind.entries.forEach { kind ->
                 val contents = reversedIndices.map { index -> memory.readArrayIndex(array, index, kind, boolSort) }
                 initializeArrayKind(reversedArray, kind, contents)

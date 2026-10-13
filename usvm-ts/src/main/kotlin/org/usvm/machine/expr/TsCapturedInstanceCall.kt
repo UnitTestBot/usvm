@@ -160,7 +160,9 @@ private fun isImplicitModeledGlobal(source: EtsLocal, callee: EtsMethodSignature
         return true
     }
 
-    if (source.type.isBuiltinDateGlobalType()) return true
+    if (source.type.isBuiltinDateGlobalType()) {
+        return true
+    }
 
     val modeled = when (source.name) {
         "Logger" -> true
