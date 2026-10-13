@@ -655,8 +655,9 @@ class GoExprVisitor(
                 val (rune, width) = decodeUtf8Rune(collection, index, length)
 
                 memory.writeField(iter, 1, ctx.sizeSort, ctx.mkSizeAddExpr(index, width), guard = ok)
-                val resultType = expr.type as TupleType
-                val goIndex = ctx.mkPrimitiveCast(index, ctx.typeToSort(resultType.types[1]))
+                // SSA marks discarded range components as invalid, but the iterator still yields an int and rune.
+                val resultType = TupleType(listOf(GoBasicTypes.BOOL, GoBasicTypes.INT, GoBasicTypes.RUNE))
+                val goIndex = ctx.mkPrimitiveCast(index, ctx.typeToSort(GoBasicTypes.INT))
                 mkTuple(resultType, ok, goIndex, rune)
             }
             is MapType -> nextMapEntry(iter, collection, collectionType)
