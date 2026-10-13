@@ -16,6 +16,17 @@ class InputArrays {
         return x[0];
     }
 
+    writeIntoNonEmptyInputArray(x: number[]) {
+        if (x.length === 0) return 0;
+        if (x[0] === 1) {
+            const result = this.writeIntoInputArray(x);
+            return result === 1 ? 1 : -1;
+        }
+
+        const result = this.writeIntoInputArray(x);
+        return result === 1 ? 2 : -1;
+    }
+
     idForArrayOfNumbers(x: number[]) {
         return x;
     }

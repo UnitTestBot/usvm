@@ -21,7 +21,7 @@ import org.usvm.api.memcpy
 import org.usvm.api.readArrayIndex
 import org.usvm.getIntValue
 import org.usvm.isAllocatedConcreteHeapRef
-import org.usvm.isFalse
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.call.TsUnknownCallFailureReason
@@ -37,17 +37,19 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.TsUnresolvedArrayKind
-import org.usvm.machine.types.mkFakeValue
-import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
 import org.usvm.util.componentType
 import org.usvm.util.copyArrayElements
 import org.usvm.util.forEachArrayPayloadRegion
 import org.usvm.util.initializeArrayKind
+import org.usvm.util.initializeTypedArrayOverrides
 import org.usvm.util.mkArrayLengthLValue
-import org.usvm.util.readTypedArrayElement
+import org.usvm.util.moveInitializedArrayIndices
 import org.usvm.util.resolveEtsMethods
+import org.usvm.util.truncateKnownArrayIndices
+import org.usvm.util.typedArrayBoxedLValue
+import org.usvm.util.typedArrayOverrideLValue
 
 private val logger = KotlinLogging.logger {}
 
@@ -151,6 +153,10 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 ): TsExprApproximationResult = with(ctx) {
     val expr = stmt.call
     val instance = stmt.instance
+    if (!ensureSupportedObjectMutation(stmt)) return TsExprApproximationResult.ResolveFailure
+
+    val iterator = tryApproximateBuiltinIteratorCall(stmt)
+    if (iterator !is TsExprApproximationResult.NoApproximation) return iterator
 
     // Mock `.toString()` method calls
     if (expr.callee.name == "toString") {
@@ -566,7 +572,6 @@ private fun TsExprResolver.removeArrayElement(
     arrayType: EtsArrayType,
     first: Boolean,
 ): UExpr<*>? = with(ctx) {
-    val storageSort = typeToSort(arrayType.componentType)
     val lengthLValue = mkArrayLengthLValue(array, arrayType)
     val length = scope.calcOnState { memory.read(lengthLValue) }
     val nonEmpty = mkNot(mkEq(length, mkBv(0)))
@@ -581,20 +586,13 @@ private fun TsExprResolver.removeArrayElement(
     scope.calcOnState {
         val newLength = mkBvSubExpr(length, mkBv(1))
         val index = if (first) mkBv(0) else newLength
-        val removed = if (storageSort is TsUnresolvedSort) {
-            mkFakeValue(scope, readUnresolvedArrayElement(memory, array, index))
-        } else {
-            val element = readTypedArrayElement(array, index, arrayType)
-            if (element.hasBoxedValue.isFalse) {
-                element.nativeValue
-            } else {
-                mkFakeValue(scope, element.unresolvedValue)
-            }
-        }
+        val removed = readArrayElement(scope, array, index, arrayType)
 
         if (first) {
             copyArrayElements(array, array, arrayType, fromSrc = mkBv(1), fromDst = mkBv(0), length = newLength)
+            moveInitializedArrayIndices(array) { sourceIndex -> mkBvSubExpr(sourceIndex, mkBv(1)) }
         }
+        truncateKnownArrayIndices(array, newLength)
         memory.write(lengthLValue, newLength, guard = trueExpr)
 
         removed
@@ -719,6 +717,11 @@ private fun TsExprResolver.handleArrayFill(
             length = fillLength,
         )
 
+        // This legacy fill path does not preserve boxed overrides or sparse-slot metadata.
+        knownArrayPropertyPresence -= array
+        initializedArrayIndices -= array
+        unsupportedIteratorArrays += array
+
         // Return the modified original array
         array
     }
@@ -753,10 +756,6 @@ private fun TsExprResolver.handleArrayShift(
     arrayType: EtsArrayType,
     array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    check(stmt.args.isEmpty()) {
-        "Array.shift() should have no arguments, but got ${stmt.args.size}"
-    }
-
     removeArrayElement(stmt, array, arrayType, first = true)
 }
 
@@ -807,6 +806,8 @@ private fun TsExprResolver.handleArrayUnshift(
             fromDst = mkBv(1),
             length = length,
         )
+
+        moveInitializedArrayIndices(array) { index -> mkBvAddExpr(index, mkBv(1)) }
 
         // Write the new element to the start of the array
         assignToArrayIndex(scope, array, index = mkBv(0), expr = arg, arrayType = arrayType)
@@ -1205,7 +1206,19 @@ private fun TsExprResolver.handleArrayReverse(
         val lengthLValue = mkArrayLengthLValue(array, arrayType)
         val length = memory.read(lengthLValue)
 
-        val reversedIndices = (0 until ARRAY_REVERSE_MAX_SIZE).map { index ->
+        val nonNegativeLength = mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+        val withinMaximumLength = mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize))
+        val withinCapacity = mkAnd(nonNegativeLength, withinMaximumLength)
+        val capacityExceeded = mkNot(withinCapacity)
+        if (scope.checkSat(capacityExceeded) != null) {
+            reportRuntimeFeatureLimitation(
+                reason = TsRuntimeFeatureLimitationReason.ARRAY_LENGTH_CAPACITY,
+                detail = "Array.reverse exceeds the configured length bound ${options.maxArraySize}",
+            )
+        }
+        scope.assert(withinCapacity) ?: return@calcOnState null
+
+        val reversedIndices = (0 until options.maxArraySize).map { index ->
             mkBvSubExpr(mkBvSubExpr(length, mkBv(1)), index.toBv())
         }
         forEachArrayPayloadRegion(arrayType) { region, sort ->
@@ -1219,6 +1232,16 @@ private fun TsExprResolver.handleArrayReverse(
                 val contents = reversedIndices.map { index -> memory.readArrayIndex(array, index, kind, boolSort) }
                 initializeArrayKind(reversedArray, kind, contents)
             }
+        } else {
+            initializeTypedArrayOverrides(array)
+            for ((destination, source) in reversedIndices.withIndex()) {
+                val target = destination.toBv()
+                val hasBoxedValue = memory.read(typedArrayOverrideLValue(array, source))
+                val boxedValue = memory.read(typedArrayBoxedLValue(array, source))
+
+                memory.write(typedArrayOverrideLValue(reversedArray, target), hasBoxedValue, guard = trueExpr)
+                memory.write(typedArrayBoxedLValue(reversedArray, target), boxedValue, guard = trueExpr)
+            }
         }
 
         copyArrayElements(
@@ -1230,9 +1253,9 @@ private fun TsExprResolver.handleArrayReverse(
             length = length
         )
 
+        moveInitializedArrayIndices(array) { index -> mkBvSubExpr(mkBvSubExpr(length, mkBv(1)), index) }
+
         // Return the modified original array
         array
     }
 }
-
-private const val ARRAY_REVERSE_MAX_SIZE = 5000

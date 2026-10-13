@@ -17,6 +17,7 @@ import org.usvm.machine.state.TsState
 import org.usvm.model.UModelBase
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.util.componentType
+import org.usvm.util.markDenseArrayOwnSlots
 import org.usvm.util.markDenseInputArray
 
 internal sealed interface CallsInputSnapshot {
@@ -65,6 +66,8 @@ internal data class ArrayInputSnapshot(
 ) : CallsInputSnapshot {
     override fun markDenseInputs(state: TsState) {
         elements.forEach { element -> element.markDenseInputs(state) }
+        state.markDenseArrayOwnSlots(array = reference, length = length, capacity = elements.size)
+
         val elementSort = state.ctx.typeToSort(runtimeType.componentType)
         if (elementSort !is TsUnresolvedSort) {
             state.markDenseInputArray(array = reference, type = runtimeType)

@@ -6,15 +6,15 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
-import org.jacodb.ets.utils.EtsIrProvider
-import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.machine.TsAnalysisStopReason
+import org.usvm.machine.TsGraph
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallModelSelection
 import org.usvm.machine.interpreter.TsInitialStateSolverUnknownException
@@ -54,10 +54,15 @@ internal enum class CallsSymbolicPreflightStatus {
 internal enum class CallsSymbolicPreflightReasonCode {
     INPUT_DOMAIN_UNSUPPORTED,
     IMPORTED_CALLEES_UNSUPPORTED,
+    TOP_LEVEL_INITIALIZATION_UNSUPPORTED,
     ENTRY_MAPPING_UNSUPPORTED,
     ENTRY_MAPPING_UNMAPPED,
     ENTRY_MAPPING_AMBIGUOUS,
     LEXICAL_CAPTURE_UNSUPPORTED,
+    DESTRUCTURING_UNSUPPORTED,
+    SPREAD_UNSUPPORTED,
+    REGEX_LITERAL_UNSUPPORTED,
+    RAW_ENTITY_UNSUPPORTED,
     TARGET_ORIGIN_UNMAPPED,
     TARGET_ORIGIN_UNSUPPORTED,
     FRONTEND_OR_PREFLIGHT_ERROR,
@@ -80,7 +85,7 @@ internal class CurrentTsCallsSymbolicEngine(
     private val bundledNativeFrontendRevision: String = CallsBuildIdentity.nativeFrontendRevision,
 ) : CallsSymbolicEngine {
     private val verifiedProjects = mutableMapOf<Path, String>()
-    private val preparedTargets = mutableMapOf<CallsSymbolicPreflightRequest, CallsTargetPreparation>()
+    private var preparedTarget: Pair<CallsSymbolicPreflightRequest, CallsTargetPreparation>? = null
     private var verifiedNativeFrontendIdentity: String? = null
 
     override fun search(request: CallsSymbolicSearchRequest): CallsSymbolicSearchResult {
@@ -165,7 +170,10 @@ internal class CurrentTsCallsSymbolicEngine(
             lexicalEnvironment = prepared.lexicalEnvironment,
             captures = prepared.captures,
         )
-        val interpreterObserver = request.unknownCallEventSink?.let(::UnknownCallEventSinkObserver)
+        val interpreterObserver = UnknownCallEventSinkObserver(
+            sink = request.unknownCallEventSink,
+            runtimeLimitationSink = request.runtimeLimitationEventSink,
+        )
         val analysis = TsMachine(
             scene = scene,
             options = machineOptions,
@@ -187,10 +195,10 @@ internal class CurrentTsCallsSymbolicEngine(
         if (states.isEmpty()) {
             val status = when (analysis.stopReason) {
                 TsAnalysisStopReason.EXHAUSTED -> {
-                    if (analysis.unsupportedPaths.isEmpty()) {
-                        CallsSymbolicStatus.UNREACHED
-                    } else {
-                        CallsSymbolicStatus.UNSUPPORTED
+                    when {
+                        interpreterObserver.runtimeLimitations.isNotEmpty() -> CallsSymbolicStatus.RUNTIME_LIMITATION
+                        analysis.unsupportedPaths.isNotEmpty() -> CallsSymbolicStatus.UNSUPPORTED
+                        else -> CallsSymbolicStatus.UNREACHED
                     }
                 }
                 // The machine options above disable every stop condition except the per-target timeout.
@@ -202,7 +210,12 @@ internal class CurrentTsCallsSymbolicEngine(
             return result(
                 status = status,
                 startedAt = startedAt,
-                diagnostic = analysis.unsupportedPaths.joinToString().ifEmpty { null },
+                diagnostic = buildList {
+                    addAll(analysis.unsupportedPaths)
+                    if (interpreterObserver.runtimeLimitations.isNotEmpty()) {
+                        add(interpreterObserver.runtimeLimitations.joinToString(prefix = "Runtime feature limitations: "))
+                    }
+                }.joinToString().ifEmpty { null },
             )
         }
 
@@ -231,7 +244,9 @@ internal class CurrentTsCallsSymbolicEngine(
     }
 
     private fun prepareSafely(request: CallsSymbolicPreflightRequest): CallsTargetPreparation {
-        preparedTargets[request]?.let { preparation -> return preparation }
+        val cached = preparedTarget
+        val cachedRevisionMatches = verifiedProjects[request.sourceRoot] == request.project.revision
+        if (cached?.first == request && cachedRevisionMatches) return cached.second
 
         val preparation = runCatching { prepare(request) }.getOrElse { error ->
             CallsTargetPreparation.Rejected(
@@ -240,7 +255,9 @@ internal class CurrentTsCallsSymbolicEngine(
                 diagnostic = error.message ?: error::class.java.name,
             )
         }
-        preparedTargets[request] = preparation
+        if (preparation !is CallsTargetPreparation.Rejected || preparation.status != CallsSymbolicStatus.TOOL_ERROR) {
+            preparedTarget = request to preparation
+        }
 
         return preparation
     }
@@ -273,19 +290,16 @@ internal class CurrentTsCallsSymbolicEngine(
             )
         }
 
-        val sourceFile = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
-        if (sourceFile.importInfos.isNotEmpty()) {
-            return CallsTargetPreparation.Rejected(
+        val loaded = when (val project = loadCallsSourceProject(sourceRoot = request.sourceRoot, source = source)) {
+            is CallsSourceProject.Loaded -> project
+            is CallsSourceProject.Unsupported -> return CallsTargetPreparation.Rejected(
                 status = CallsSymbolicStatus.UNSUPPORTED,
-                reasonCode = CallsSymbolicPreflightReasonCode.IMPORTED_CALLEES_UNSUPPORTED,
-                diagnostic = "Single-file symbolic replay does not support imported project callees",
+                reasonCode = project.issue.reasonCode,
+                diagnostic = project.issue.diagnostic,
             )
         }
-
-        val scene = EtsScene(projectFiles = listOf(sourceFile))
-        val frontendEntryPoint = request.function.entryPoint.copy(
-            module = requireNotNull(source.fileName).toString(),
-        )
+        val scene = loaded.scene
+        val frontendEntryPoint = request.function.entryPoint.copy(module = loaded.entryModule)
         val propertyManifest = PropertyManifest(
             propertyId = "calls.mapping",
             inputs = request.function.inputs,
@@ -345,6 +359,19 @@ internal class CurrentTsCallsSymbolicEngine(
             )
         }
 
+        val readinessIssue = callsIrReadinessIssue(
+            method = method,
+            graph = TsGraph(scene),
+            sourceByFile = loaded.sourceByFile,
+        )
+        if (readinessIssue != null) {
+            return CallsTargetPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = readinessIssue.reasonCode,
+                diagnostic = readinessIssue.diagnostic,
+            )
+        }
+
         val exactTargetCandidates = exactTargetCandidates(method, request.target)
         val targetObservation = when (request.target.mode) {
             CallsSourceTargetMode.ENTRY -> {
@@ -368,6 +395,24 @@ internal class CurrentTsCallsSymbolicEngine(
             }
 
             CallsSourceTargetMode.COMPLETED_RETURN -> {
+                val sourceTarget = TypeScriptSourceInspector.instrumentReplay(
+                    source = source,
+                    mode = request.target.mode.name,
+                    startOffset = request.target.startOffset,
+                    endOffset = request.target.endOffset,
+                    expressionStartOffset = request.target.returnExpressionStartOffset,
+                    expressionEndOffset = request.target.returnExpressionEndOffset,
+                    marker = "__usvm_completed_return_preflight",
+                )
+                val sourceTargetReason = sourceTarget.reason
+                if (sourceTargetReason != null) {
+                    return CallsTargetPreparation.Rejected(
+                        status = CallsSymbolicStatus.UNSUPPORTED,
+                        reasonCode = CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNSUPPORTED,
+                        diagnostic = sourceTargetReason,
+                    )
+                }
+
                 val returnStatement = completedReturnCandidate(
                     method = method,
                     target = request.target,
@@ -612,10 +657,18 @@ internal class CurrentTsCallsSymbolicEngine(
     }
 
     private class UnknownCallEventSinkObserver(
-        private val sink: (TsUnknownCallEvent) -> Unit,
+        private val sink: ((TsUnknownCallEvent) -> Unit)?,
+        private val runtimeLimitationSink: ((TsRuntimeFeatureLimitationEvent) -> Unit)?,
     ) : TsInterpreterObserver {
+        val runtimeLimitations = linkedSetOf<String>()
+
         override fun onUnknownCall(event: TsUnknownCallEvent) {
-            sink(event)
+            sink?.invoke(event)
+        }
+
+        override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
+            runtimeLimitations += event.reason.name
+            runtimeLimitationSink?.invoke(event)
         }
     }
 

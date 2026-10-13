@@ -23,6 +23,7 @@ import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
 import org.usvm.util.componentType
+import org.usvm.util.knownArrayIndexPresence
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.readTypedArrayElement
@@ -62,6 +63,8 @@ internal fun TsExprResolver.handleArrayAccess(
 
     val propertyName = concreteStringValue(resolvedIndex)
     if (propertyName != null && storageType !is EtsArrayType) {
+        if (!ensureSupportedArrayPrototypeAccess(array, propertyName)) return null
+
         val field = EtsFieldSignature(
             name = propertyName,
             enclosingClass = EtsClassSignature.UNKNOWN,
@@ -137,7 +140,27 @@ private fun TsContext.readArrayProperty(
     )
 }
 
-private fun TsContext.readArrayElement(
+internal fun TsContext.readArrayElement(
+    scope: TsStepScope,
+    array: UHeapRef,
+    index: UExpr<TsSizeSort>,
+    arrayType: EtsArrayType,
+): UExpr<*> {
+    val present = scope.calcOnState { knownArrayIndexPresence(array, index) }
+    if (present?.isFalse == true) return mkUndefinedValue()
+
+    val element = readArrayElementPayload(scope, array, index, arrayType)
+    if (present == null || present.isTrue) return element
+
+    return iteWriteIntoFakeObject(
+        scope = scope,
+        condition = present,
+        trueBranchValue = element,
+        falseBranchValue = mkUndefinedValue(),
+    )
+}
+
+private fun TsContext.readArrayElementPayload(
     scope: TsStepScope,
     array: UHeapRef,
     index: UExpr<TsSizeSort>,

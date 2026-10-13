@@ -67,9 +67,21 @@ export class ArrayShiftIntrinsic {
     }
 
     shiftWithArguments(): number {
-        const values = [1];
-        values.shift(0);
-        return 48;
+        const values = [1, 2];
+        const first = values.shift(99);
+        return first === 1 && values[0] === 2 && values.length === 1 ? 48 : 0;
+    }
+
+    shiftWithArgumentSideEffects(): number {
+        const values = [10, 20, 30];
+        const first = values.shift(values.pop(), values[0] = 7);
+        return first === 7 && values[0] === 20 && values.length === 1 ? 1 : 0;
+    }
+
+    shiftAfterArgumentEmptiesReceiver(): number {
+        const values = [10];
+        const first = values.shift(values.pop());
+        return first === undefined && values.length === 0 ? 1 : 0;
     }
 
     readBeforeShift(values: any[]): number {

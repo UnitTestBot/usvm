@@ -11,6 +11,7 @@ import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.usvm.PathNode
+import org.usvm.UBoolExpr
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -27,8 +28,12 @@ import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsInputPropertyPresence
+import org.usvm.machine.TsSizeSort
 import org.usvm.machine.expr.TrackedObjectProperty
+import org.usvm.machine.expr.TsArrayIterator
 import org.usvm.machine.expr.TsCapturedInstanceCall
+import org.usvm.machine.expr.TsIteratorResult
+import org.usvm.machine.expr.TsStringIterator
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
@@ -72,6 +77,12 @@ class TsState(
     var methodToRef: UPersistentHashMap<EtsMethod, UConcreteHeapRef> = persistentHashMapOf(),
     var associatedFunction: UPersistentHashMap<UConcreteHeapRef, TsFunction> = persistentHashMapOf(),
     var capturedInstanceCalls: UPersistentHashMap<UConcreteHeapRef, TsCapturedInstanceCall> = persistentHashMapOf(),
+    internal var arrayIterators: Map<UConcreteHeapRef, TsArrayIterator> = emptyMap(),
+    internal var stringIterators: Map<UConcreteHeapRef, TsStringIterator> = emptyMap(),
+    internal var iteratorResults: Map<UConcreteHeapRef, TsIteratorResult> = emptyMap(),
+    internal var knownArrayPropertyPresence: Set<UHeapRef> = emptySet(),
+    internal var unsupportedIteratorArrays: Set<UHeapRef> = emptySet(),
+    internal var initializedArrayIndices: Map<UHeapRef, Map<UExpr<TsSizeSort>, UBoolExpr>> = emptyMap(),
     var boundThis: UPersistentHashMap<UConcreteHeapRef, UHeapRef> = persistentHashMapOf(),
     var dfltObject: UPersistentHashMap<EtsFileSignature, UConcreteHeapRef> = persistentHashMapOf(),
 
@@ -341,6 +352,12 @@ class TsState(
             methodToRef = methodToRef,
             associatedFunction = associatedFunction,
             capturedInstanceCalls = capturedInstanceCalls,
+            arrayIterators = arrayIterators,
+            iteratorResults = iteratorResults,
+            stringIterators = stringIterators,
+            initializedArrayIndices = initializedArrayIndices,
+            unsupportedIteratorArrays = unsupportedIteratorArrays,
+            knownArrayPropertyPresence = knownArrayPropertyPresence,
             boundThis = boundThis,
             dfltObject = dfltObject,
             dfltObjectFieldSorts = dfltObjectFieldSorts,

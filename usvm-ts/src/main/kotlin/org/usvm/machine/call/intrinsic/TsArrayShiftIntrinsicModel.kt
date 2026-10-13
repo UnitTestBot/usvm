@@ -6,6 +6,7 @@ import org.usvm.UAddressSort
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.call.TsUnknownCall
 import org.usvm.machine.call.TsUnknownCallFailureReason
@@ -15,11 +16,17 @@ import org.usvm.machine.call.TsUnknownCallModelSuccessor
 import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.state.TsState
+import org.usvm.machine.types.EtsFakeType
+import org.usvm.machine.types.TsUnresolvedValue
+import org.usvm.machine.types.iteUnresolvedValue
 import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.util.arrayStorageType
 import org.usvm.util.copyArrayElements
+import org.usvm.util.knownArrayIndexPresence
 import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.moveInitializedArrayIndices
 import org.usvm.util.readTypedArrayElement
+import org.usvm.util.truncateKnownArrayIndices
 
 /** Engine intrinsic for `Array.shift`, whose bulk move is implemented by symbolic-memory `memcpy`. */
 internal object TsArrayShiftIntrinsicModel : TsBuiltInUnknownCallModel {
@@ -59,6 +66,8 @@ internal object TsArrayShiftIntrinsicModel : TsBuiltInUnknownCallModel {
                     length = newLength,
                 )
                 memory.write(lengthLValue, newLength, guard = trueExpr)
+                moveInitializedArrayIndices(input.array) { index -> mkBvSubExpr(index, one) }
+                truncateKnownArrayIndices(input.array, newLength)
             },
         )
 
@@ -66,10 +75,6 @@ internal object TsArrayShiftIntrinsicModel : TsBuiltInUnknownCallModel {
     }
 
     private fun resolveInput(state: TsState, call: TsUnknownCall): ArrayShiftInput? = with(state.ctx) {
-        if (call.arguments.isNotEmpty()) {
-            return@with null
-        }
-
         val receiver = call.receiver ?: return@with null
         val receiverValue = receiver.resolved ?: return@with null
         if (receiverValue.sort != addressSort) {
@@ -91,17 +96,28 @@ internal object TsArrayShiftIntrinsicModel : TsBuiltInUnknownCallModel {
         input: ArrayShiftInput,
         index: UExpr<TsSizeSort>,
     ): TsUnknownCallModelCompletion = with(ctx) {
-        if (input.elementSort !is TsUnresolvedSort) {
-            val element = readTypedArrayElement(input.array, index, input.arrayType)
-            return@with if (element.hasBoxedValue.isFalse) {
-                TsUnknownCallModelCompletion.Normal { element.nativeValue }
-            } else {
-                TsUnknownCallModelCompletion.Unresolved(element.unresolvedValue)
-            }
-        }
+        val present = knownArrayIndexPresence(input.array, index)
+        if (present?.isFalse == true) return@with TsUnknownCallModelCompletion.Normal { ctx.mkUndefinedValue() }
 
-        val firstElement = readUnresolvedArrayElement(memory, input.array, index)
-        TsUnknownCallModelCompletion.Unresolved(firstElement)
+        val element = if (input.elementSort !is TsUnresolvedSort) {
+            val typed = readTypedArrayElement(input.array, index, input.arrayType)
+            val unboxedPresent = (present == null || present.isTrue) && typed.hasBoxedValue.isFalse
+            if (unboxedPresent) {
+                return@with TsUnknownCallModelCompletion.Normal { typed.nativeValue }
+            }
+            typed.unresolvedValue
+        } else {
+            readUnresolvedArrayElement(memory, input.array, index)
+        }
+        if (present == null || present.isTrue) return@with TsUnknownCallModelCompletion.Unresolved(element)
+
+        val absent = TsUnresolvedValue(
+            boolValue = falseExpr,
+            fpValue = mkFp64(0.0),
+            refValue = mkUndefinedValue(),
+            type = EtsFakeType.mkRef(ctx),
+        )
+        TsUnknownCallModelCompletion.Unresolved(iteUnresolvedValue(present, element, absent))
     }
 
     private class ArrayShiftInput(

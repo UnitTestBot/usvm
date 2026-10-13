@@ -565,6 +565,8 @@ class TsExprResolver(
 
                 scope.doWithState {
                     memory.write(deletedFieldLValue(instance, operand.field), trueExpr, guard = trueExpr)
+                    val storageType = arrayStorageType(instance, operand.instance.type)
+                    if (storageType is EtsArrayType) unsupportedIteratorArrays += instance
                 }
 
                 mkTrue()
@@ -578,6 +580,12 @@ class TsExprResolver(
             is EtsCastExpr -> visit(EtsDeleteExpr(arg = operand.arg))
 
             is EtsArrayAccess -> {
+                when (val result = tryDeleteArrayIndex(operand)) {
+                    is TsExprApproximationResult.SuccessfulApproximation -> return result.expr
+                    TsExprApproximationResult.ResolveFailure -> return null
+                    TsExprApproximationResult.NoApproximation -> {}
+                }
+
                 val index = resolve(operand.index) ?: return null
                 val propertyName = concreteStringValue(index)
                     ?: throw UnsupportedOperationException("Symbolic object property keys in delete are not supported")
@@ -1552,6 +1560,7 @@ class TsExprResolver(
             val descriptor = arrayDescriptorOf(arrayType)
             val address = memory.allocConcrete(descriptor)
             memory.initializeArrayLength(address, descriptor, sizeSort, bvSize.asExpr(sizeSort))
+            knownArrayPropertyPresence += address
 
             address
         }
@@ -1739,6 +1748,10 @@ class TsSimpleValueResolver(
             val isImported = currentFile?.importInfos?.any { it.name == local.name } == true
             val hasSourceBinding = isParameter || isGlobal || isImported
             if (hasSourceBinding) return resolveLocal(local)
+
+            if (local.name == "Symbol") {
+                throw UnsupportedOperationException("Builtin Symbol values are not modeled")
+            }
 
             val sdkConstructor = ctx.scene.sdkConstructorForGlobal(local)
             if (sdkConstructor != null) return ctx.classConstructorRef(sdkConstructor.signature)

@@ -3,12 +3,22 @@ package org.usvm.samples.arrays
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.assertNodeReplay
 import org.usvm.util.eq
+import org.usvm.util.getResourcePath
 import org.usvm.util.neq
+import java.nio.file.Path
+import kotlin.io.path.readText
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class InputArrays : TsMethodTestRunner() {
+    @TempDir
+    lateinit var directory: Path
+
     private val tsPath = "/samples/arrays/InputArrays.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
@@ -39,11 +49,102 @@ class InputArrays : TsMethodTestRunner() {
 
     @Test
     fun testWriteIntoInputArray() {
-        val method = getMethod("writeIntoInputArray")
+        val method = getMethod(methodName = "writeIntoInputArray")
         discoverProperties<TsTestValue.TsArray<TsTestValue.TsNumber>, TsTestValue.TsNumber>(
             method = method,
-            { x, r -> (r eq 1) && (x.values[0] eq 1) },
-            { x, r -> (r eq 1) && (x.values[0] neq 1) },
+            { x, r ->
+                val first = x.values.firstOrNull()
+                (r eq 1) && first != null && (first eq 1)
+            },
+            { x, r ->
+                val first = x.values.firstOrNull()
+                (r eq 1) && (first == null || (first neq 1))
+            },
+            invariants = arrayOf({ _, result -> result eq 1 }),
+        )
+    }
+
+    @Test
+    fun `writing a nonempty input retains both original first element branches`() {
+        val method = getMethod(methodName = "writeIntoNonEmptyInputArray")
+
+        discoverProperties<TsTestValue.TsArray<TsTestValue.TsNumber>, TsTestValue.TsNumber>(
+            method = method,
+            { x, r -> (r eq 0) && x.values.isEmpty() },
+            { x, r ->
+                val first = x.values.firstOrNull()
+                (r eq 1) && first != null && (first eq 1)
+            },
+            { x, r ->
+                val first = x.values.firstOrNull()
+                (r eq 2) && first != null && (first neq 1)
+            },
+            invariants = arrayOf({ input, result ->
+                val first = input.values.firstOrNull()
+                val expected = when {
+                    first == null -> 0
+                    first eq 1 -> 1
+                    else -> 2
+                }
+                result eq expected
+            }),
+        )
+    }
+
+    @Test
+    fun `input array append and overwrite witnesses replay in native JavaScript`() {
+        val source = getResourcePath(tsPath).readText()
+        val methodNames = listOf("writeIntoInputArray", "writeIntoNonEmptyInputArray")
+        val script = buildString {
+            appendLine(source)
+            appendLine("function assertOriginalWrite(input) {")
+            appendLine("  const expected = [1, ...input.slice(1)];")
+            appendLine("  const result = new InputArrays().writeIntoInputArray(input);")
+            appendLine("  const valuesMatch = input.every((value, index) => Object.is(value, expected[index]));")
+            appendLine("  if (result !== 1 || input.length !== expected.length || !valuesMatch) {")
+            appendLine("    throw new Error('Original input write failed to preserve length or tail');")
+            appendLine("  }")
+            appendLine("}")
+            appendLine("assertOriginalWrite([2, 7, 11]);")
+            appendLine("assertOriginalWrite([NaN, -0, Infinity]);")
+
+            for (methodName in methodNames) {
+                val method = getMethod(methodName = methodName)
+                val tests = runner(method, options)
+                assertTrue(tests.isNotEmpty(), methodName)
+
+                for (test in tests) {
+                    val before = assertIs<TsTestValue.TsArray<*>>(test.before.parameters.single())
+                    val after = assertIs<TsTestValue.TsArray<*>>(test.after.parameters.single())
+                    val expectedResult = assertIs<TsTestValue.TsNumber>(test.returnValue).number
+                    val beforeValues = before.values.joinToString { value ->
+                        assertIs<TsTestValue.TsNumber>(value).number.toString()
+                    }
+                    val afterValues = after.values.joinToString { value ->
+                        assertIs<TsTestValue.TsNumber>(value).number.toString()
+                    }
+
+                    appendLine("{")
+                    appendLine("  assertOriginalWrite([$beforeValues]);")
+                    appendLine("  const actual = [$beforeValues];")
+                    appendLine("  const expected = [$afterValues];")
+                    appendLine("  const result = new InputArrays().$methodName(actual);")
+                    appendLine("  const valuesMatch = actual.every((value, index) =>")
+                    appendLine("    Object.is(value, expected[index]));")
+                    appendLine("  const resultMatches = Object.is(result, $expectedResult);")
+                    appendLine("  if (!resultMatches || actual.length !== expected.length || !valuesMatch) {")
+                    appendLine("    throw new Error('$methodName changed its result or post-call array');")
+                    appendLine("  }")
+                    appendLine("}")
+                }
+            }
+        }
+
+        assertNodeReplay(
+            source = script,
+            directory = directory,
+            name = "input-array-append-and-overwrite",
+            timeoutMessage = "Input array append and overwrite replay timed out",
         )
     }
 

@@ -1,6 +1,7 @@
 package org.usvm.ts.calls
 
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyInput
@@ -21,14 +22,22 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
         targetStatement: String,
         targetMode: CallsSourceTargetMode = CallsSourceTargetMode.ENTRY,
         returnExpression: String? = null,
+        sourceFileName: String = "Fixture.ts",
+        dependencies: Map<String, String> = emptyMap(),
     ): SymbolicFixture {
         val sourceRoot = Files.createDirectory(directory.resolve(exportName))
-        val sourceFile = sourceRoot.resolve("Fixture.ts")
+        val sourceFile = sourceRoot.resolve(sourceFileName)
+        Files.createDirectories(sourceFile.parent)
         Files.writeString(sourceFile, source)
+        dependencies.forEach { (relative, content) ->
+            val dependency = sourceRoot.resolve(relative)
+            Files.createDirectories(dependency.parent)
+            Files.writeString(dependency, content)
+        }
         runGit(sourceRoot, "init")
         runGit(sourceRoot, "config", "user.name", "USVM Tests")
         runGit(sourceRoot, "config", "user.email", "usvm@example.test")
-        runGit(sourceRoot, "add", "Fixture.ts")
+        runGit(sourceRoot, "add", ".")
         runGit(sourceRoot, "commit", "-m", "fixture")
         val revision = runGit(sourceRoot, "rev-parse", "HEAD").trim()
         val targetStart = source.indexOf(targetStatement)
@@ -43,7 +52,7 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
         val target = CallsSourceTarget(
             targetId = "$exportName#$targetStatement",
             siteId = "$exportName:$targetStart:$targetEnd",
-            sourcePath = "Fixture.ts",
+            sourcePath = sourceFileName,
             startOffset = targetStart,
             endOffset = targetEnd,
             start = sourcePositionAt(source = source, offset = targetStart),
@@ -54,8 +63,8 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
         )
         val function = CallsFunctionCase(
             functionId = exportName,
-            sourceFile = "Fixture.ts",
-            entryPoint = TypeScriptEntryPoint(module = "Fixture.ts", exportName = exportName),
+            sourceFile = sourceFileName,
+            entryPoint = TypeScriptEntryPoint(module = sourceFileName, exportName = exportName),
             inputs = inputs,
             targets = listOf(target),
         )
@@ -75,7 +84,7 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
         )
     }
 
-    private fun runGit(directory: Path, vararg arguments: String): String {
+    protected fun runGit(directory: Path, vararg arguments: String): String {
         val process = ProcessBuilder(listOf("git", "-C", directory.toString()) + arguments)
             .redirectErrorStream(true)
             .start()
@@ -95,7 +104,7 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
             bundledNativeFrontendRevision = "bundled:test",
         )
 
-        fun preflight(): CallsSymbolicPreflightResult = engine.preflight(
+        fun preflight(project: CallsProjectCase = this.project): CallsSymbolicPreflightResult = engine.preflight(
             CallsSymbolicPreflightRequest(
                 sourceRoot = sourceRoot,
                 project = project,
@@ -108,6 +117,7 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
         fun search(
             modelIds: Set<String>,
             unknownCallEventSink: ((TsUnknownCallEvent) -> Unit)? = null,
+            runtimeLimitationEventSink: ((TsRuntimeFeatureLimitationEvent) -> Unit)? = null,
             profile: CallsExperimentProfile = CallsExperimentProfile.FROZEN_STOP,
         ): CallsSymbolicSearchResult = engine.search(
             CallsSymbolicSearchRequest(
@@ -121,6 +131,7 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
                 seed = 0,
                 budget = 10.seconds,
                 unknownCallEventSink = unknownCallEventSink,
+                runtimeLimitationEventSink = runtimeLimitationEventSink,
             )
         )
 

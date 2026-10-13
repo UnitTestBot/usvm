@@ -25,6 +25,7 @@ import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.resolveEtsField
+import org.usvm.util.truncateKnownArrayIndices
 
 private val logger = KotlinLogging.logger {}
 
@@ -85,6 +86,7 @@ internal fun TsExprResolver.handleAssignToInstanceField(
     // Check for undefined or null field access.
     checkUndefinedOrNullPropertyRead(scope, rawInstance, field.name) ?: return null
     val instance = resolveHeapRef(scope, rawInstance) ?: return null
+    if (!ensureSupportedArrayPrototypeAccess(instance, field.name)) return null
 
     val arrayType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) } as? EtsArrayType
     if (field.name == "length" && arrayType != null) {
@@ -165,6 +167,7 @@ private fun TsContext.assignToArrayLength(
 
     return scope.doWithState {
         memory.write(lengthLValue, length, guard = trueExpr)
+        truncateKnownArrayIndices(array, length)
     }
 }
 
@@ -285,6 +288,11 @@ internal fun TsExprResolver.handleAssignToStaticField(
     lhv: EtsStaticFieldRef,
     expr: UExpr<*>,
 ): Unit? = with(ctx) {
+    if (lhv.field.name == "prototype") {
+        val constructor = classConstructorRef(lhv.field.enclosingClass)
+        if (!ensureSupportedArrayPrototypeAccess(constructor, lhv.field.name)) return null
+    }
+
     assignToStaticField(scope, lhv.field, expr)
 }
 

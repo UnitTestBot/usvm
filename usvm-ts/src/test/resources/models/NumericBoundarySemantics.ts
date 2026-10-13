@@ -135,7 +135,7 @@ export class NumericBoundarySemantics {
 
     outOfRangeArrayWrite(): number {
         const values = [11, 22];
-        values[2] = 7;
+        values[3] = 7;
         return values[1];
     }
 
