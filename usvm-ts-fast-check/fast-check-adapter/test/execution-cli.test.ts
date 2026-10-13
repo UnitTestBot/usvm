@@ -98,8 +98,14 @@ export function predicate(value: boolean): boolean { return helper(value); }
       const response = JSON.parse(invocation.stdout) as Record<string, unknown>;
       const reports = await Promise.all((await readdir(raw)).filter(name => name.endsWith('.json'))
         .map(async name => JSON.parse(await readFile(path.join(raw, name), 'utf8')) as {
-          result: { url: string; functions: { functionName: string; ranges: { count: number }[] }[] }[];
-          'source-map-cache'?: Record<string, { data: { sources: string[] }; lineLengths: number[] }>;
+          result: { url: string; functions: {
+            functionName: string;
+            ranges: { startOffset: number; endOffset: number; count: number }[];
+          }[] }[];
+          'source-map-cache'?: Record<string, {
+            data: { sources: string[]; sourcesContent?: (string | null)[] };
+            lineLengths: number[];
+          }>;
         }));
 
       assert.equal(response.status, 'ok');
@@ -107,12 +113,23 @@ export function predicate(value: boolean): boolean { return helper(value); }
         const url = pathToFileURL(sourcePath).href;
         const scripts = reports.flatMap(report => report.result.filter(script => script.url === url));
         assert.equal(scripts.length, 1, `Expected exactly one coverage script for ${url}`);
-        const invokedFunction = scripts[0]?.functions.find(fn => fn.functionName === functionName);
+        // tsx gives an export getter the same name as the function. Select the
+        // larger body range so the assertion checks the actual invocation.
+        const namedFunctions = scripts[0]?.functions.filter(fn => fn.functionName === functionName) ?? [];
+        const invokedFunction = namedFunctions.sort((left, right) => {
+          const leftRange = left.ranges[0];
+          const rightRange = right.ranges[0];
+          assert.ok(leftRange);
+          assert.ok(rightRange);
+
+          return rightRange.endOffset - rightRange.startOffset - (leftRange.endOffset - leftRange.startOffset);
+        })[0];
         assert.equal(invokedFunction?.ranges[0]?.count, 1);
 
         const maps = reports.flatMap(report => report['source-map-cache']?.[url] ?? []);
         assert.equal(maps.length, 1, `Expected exactly one source map for ${url}`);
         assert.deepEqual(maps[0]?.data.sources, [url]);
+        assert.deepEqual(maps[0]?.data.sourcesContent, [await readFile(sourcePath, 'utf8')]);
         assert.ok((maps[0]?.lineLengths.length ?? 0) > 0);
       }
 
@@ -120,6 +137,13 @@ export function predicate(value: boolean): boolean { return helper(value); }
       const helper = branches.files.find(file => file.path === helperPath);
       assert.deepEqual(helper?.branches.map(branch => branch.arms.map(arm => arm.hits)), [[1, 0]]);
       assert.deepEqual(branches.diagnostics, []);
+
+      await writeFile(helperPath, `${await readFile(helperPath, 'utf8')}\n// Changed after execution.\n`);
+      const changed = await convertV8IfBranches(raw, [sourceRoot]);
+
+      assert.deepEqual(changed.files.find(file => file.path === helperPath)?.branches, []);
+      assert.equal(changed.diagnostics.some(entry => entry.path === helperPath &&
+        entry.code === 'coverage.branch.unsupported'), true);
     } finally {
       await rm(sourceRoot, { recursive: true, force: true });
     }
