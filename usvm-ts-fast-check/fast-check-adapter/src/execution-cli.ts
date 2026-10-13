@@ -1,4 +1,5 @@
 import { adapterDiagnostic } from './diagnostics.js';
+import { startExecutionCoverage } from './execution-coverage.js';
 import { stringifyProtocolJson } from './protocol-json.js';
 import { executeProperty, type FastCheckExecutionSuccess } from './execute-property.js';
 import { ProtocolError, protocolError } from './js-value.js';
@@ -12,18 +13,25 @@ interface FastCheckExecutionFailure {
 const writeProtocolOutput = process.stdout.write.bind(process.stdout) as typeof process.stdout.write;
 process.stdout.write = process.stderr.write.bind(process.stderr) as typeof process.stdout.write;
 
-let response: FastCheckExecutionSuccess | FastCheckExecutionFailure;
+const coverage = await startExecutionCoverage();
 try {
-  const request = parseRequest(await readStdin());
+  let response: FastCheckExecutionSuccess | FastCheckExecutionFailure;
+  try {
+    const request = parseRequest(await readStdin());
 
-  response = await executeProperty(request);
-} catch (error: unknown) {
-  if (!(error instanceof ProtocolError)) throw error;
+    response = await executeProperty(request);
+  } catch (error: unknown) {
+    if (!(error instanceof ProtocolError)) throw error;
 
-  response = protocolErrorResponse(error);
+    response = protocolErrorResponse(error);
+  }
+
+  await coverage?.write();
+  await writeResponse(response);
+} finally {
+  await coverage?.close();
 }
 
-await writeResponse(response);
 process.exit(0);
 
 async function readStdin(): Promise<string> {
