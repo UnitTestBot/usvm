@@ -98,7 +98,12 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
             detail = "property key is not a supported numeric array index: $resolvedIndex",
         )
     }
-    scope.assert(indexIsSupported) ?: return null
+    scope.fork(indexIsSupported, blockOnFalseState = {
+        terminateAsUnsupported(
+            reason = "${TsRuntimeFeatureLimitationReason.ARRAY_NAMED_PROPERTY_WRITE}: " +
+                "Property key is not a supported numeric array index: $resolvedIndex",
+        )
+    }) ?: return null
 
     val bvIndex = mkFpToUint32AfterValidation(index.value, indexIsSupported).asExpr(sizeSort)
     extendArrayForIndexAppend(array = array, index = bvIndex, arrayType = storageType) ?: return null

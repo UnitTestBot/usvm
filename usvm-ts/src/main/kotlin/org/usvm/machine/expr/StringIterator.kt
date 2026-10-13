@@ -64,12 +64,16 @@ internal fun TsExprResolver.tryCreateStringIterator(
 internal fun TsExprResolver.advanceStringIterator(
     reference: UConcreteHeapRef,
     iterator: TsStringIterator,
-): UHeapRef = with(ctx) {
+): UHeapRef? = with(ctx) {
     val length = scope.calcOnState { stringLength(iterator.string) }
     val done = mkOr(iterator.exhausted, mkBvSignedGreaterOrEqualExpr(iterator.index, length))
+    val isDone = scope.calcOnState { models.first().eval(done).isTrue }
+    val exhaustionBranch = if (isDone) done else mkNot(done)
+    scope.fork(exhaustionBranch) ?: return null
+
     val width: UExpr<TsSizeSort>
     val value: UHeapRef
-    if (done.isTrue) {
+    if (isDone) {
         width = mkBv(0)
         value = mkUndefinedValue()
     } else {
@@ -82,21 +86,24 @@ internal fun TsExprResolver.advanceStringIterator(
         val firstIsHighSurrogate = mkEq(mkBvAndExpr(first, mkBv(0xfc00, bv16Sort)), mkBv(0xd800, bv16Sort))
         val secondIsLowSurrogate = mkEq(mkBvAndExpr(second, mkBv(0xfc00, bv16Sort)), mkBv(0xdc00, bv16Sort))
         val pair = mkAnd(firstIsHighSurrogate, mkBvSignedLessExpr(nextIndex, length), secondIsLowSurrogate)
-        width = mkIte(pair, mkBv(2), mkBv(1))
+        val isPair = scope.calcOnState { models.first().eval(pair).isTrue }
+        val widthBranch = if (isPair) pair else mkNot(pair)
+        scope.fork(widthBranch) ?: return null
 
-        val character = scope.calcOnState {
+        width = if (isPair) mkBv(2) else mkBv(1)
+
+        value = scope.calcOnState {
             allocateBoundedString(length = width, codeUnits = listOf(first, second))
         }
-        value = mkIte(done, mkUndefinedValue(), character)
     }
 
     scope.calcOnState {
         stringIterators += reference to iterator.copy(
-            index = mkIte(done, iterator.index, mkBvAddExpr(iterator.index, width)),
-            exhausted = done,
+            index = mkBvAddExpr(iterator.index, width),
+            exhausted = mkBool(isDone),
         )
         val result = memory.allocConcrete(iteratorResultType)
-        iteratorResults += result to TsIteratorResult(done = done, value = value)
+        iteratorResults += result to TsIteratorResult(done = mkBool(isDone), value = value)
         result
     }
 }
