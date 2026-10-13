@@ -121,6 +121,10 @@ internal fun TsContext.resolveField(
 ): UExpr<*>? {
     checkNotFake(instance)
     val receiver = resolveHeapRef(scope, instance) ?: return null
+    if (isDateModelTimestamp(scope = scope, instance = receiver, field = field)) {
+        val timestamp = dateModelTimestampLValue(receiver)
+        return scope.calcOnState { memory.read(timestamp) }
+    }
 
     // Input fields have symbolic initial presence. Allocations use their declaration and later writes.
     return if (!isAllocatedConcreteHeapRef(receiver) && instanceLocal?.type !is EtsArrayType) {

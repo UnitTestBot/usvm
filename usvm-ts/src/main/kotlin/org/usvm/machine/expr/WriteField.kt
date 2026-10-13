@@ -171,6 +171,12 @@ fun TsContext.assignToInstanceField(
 ): Unit? {
     // Unwrap to get non-fake reference.
     val unwrappedInstance = resolveHeapRef(scope, instance.unwrapRef(scope)) ?: return null
+    if (isDateModelTimestamp(scope = scope, instance = unwrappedInstance, field = field)) {
+        val timestamp = dateModelTimestampLValue(unwrappedInstance)
+        return scope.doWithState {
+            memory.write(timestamp, expr.asExpr(fp64Sort), guard = trueExpr)
+        }
+    }
 
     if (!isAllocatedConcreteHeapRef(unwrappedInstance) && instanceLocal.type !is EtsArrayType) {
         trackInputProperty(scope, unwrappedInstance, instanceLocal, field.name, hierarchy) ?: return null

@@ -39,6 +39,16 @@ class TsEtsIrUnknownCallModelExecutionTest {
     private val models = TsUnknownCallModelCatalog(
         models = listOf(
             model(
+                id = "test.ets-ir.namespace-adapter",
+                targetName = "abs",
+                entryPointName = "absolute",
+                inputAdapter = TsEtsIrUnknownCallModelInputAdapter { _, call ->
+                    call.arguments.map { argument ->
+                        argument.resolved ?: return@TsEtsIrUnknownCallModelInputAdapter null
+                    }
+                },
+            ),
+            model(
                 id = "test.ets-ir.absolute",
                 targetName = "absolute",
                 entryPointName = "absolute",
@@ -92,6 +102,17 @@ class TsEtsIrUnknownCallModelExecutionTest {
             ),
         ),
     )
+
+    @Test
+    fun `custom adapter can ignore an unresolved namespace receiver`() {
+        val result = analyze(methodName = "namespaceReceiverCanBeIgnored")
+
+        assertTrue(
+            result.values.filterIsInstance<TsTestValue.TsNumber>().any { value -> value.number == 2.0 },
+            result.values.toString(),
+        )
+        assertEquals(listOf("test.ets-ir.namespace-adapter"), result.modelIds.distinct())
+    }
 
     @Test
     fun `pure EtsIR body maps argument and return value`() {
@@ -202,6 +223,7 @@ class TsEtsIrUnknownCallModelExecutionTest {
         targetName: String,
         entryPointName: String,
         domainGuard: TsEtsIrUnknownCallModelDomainGuard = TsEtsIrUnknownCallModelDomainGuard.ALWAYS,
+        inputAdapter: TsEtsIrUnknownCallModelInputAdapter = TsEtsIrUnknownCallModelInputAdapter.IDENTITY,
     ): TsUnknownCallModel {
         val artifact = baseArtifact.copy(
             entryPoint = modelClass.methods.single { it.name == entryPointName },
@@ -212,6 +234,7 @@ class TsEtsIrUnknownCallModelExecutionTest {
             target = TsUnknownCallTarget(methodName = targetName),
             artifact = artifact,
             domainGuard = domainGuard,
+            inputAdapter = inputAdapter,
         )
     }
 

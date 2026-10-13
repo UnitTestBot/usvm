@@ -192,8 +192,14 @@ fun interface TsEtsIrUnknownCallModelDomainGuard {
 }
 
 private fun TsUnknownCall.resolvedInputs(): List<UExpr<*>>? = buildList {
-    receiver?.let { receiver -> add(receiver.resolved ?: return null) }
-    arguments.forEach { argument -> add(argument.resolved ?: return null) }
+    receiver?.let { receiver ->
+        val value = receiver.resolved ?: return null
+        add(value)
+    }
+    arguments.forEach { argument ->
+        val value = argument.resolved ?: return null
+        add(value)
+    }
 }
 
 private fun findEntryPoint(

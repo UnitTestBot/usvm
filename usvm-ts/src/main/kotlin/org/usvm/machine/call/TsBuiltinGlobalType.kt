@@ -6,6 +6,7 @@ import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUnknownType
@@ -52,3 +53,9 @@ internal fun TsContext.isBuiltinArrayConstructor(value: UExpr<*>): Boolean {
 
     return signature.name == "Array" && signature.file == EtsHierarchy.OBJECT_CLASS.signature.file
 }
+
+internal fun EtsType.isBuiltinDateGlobalType(): Boolean = this is EtsFunctionType &&
+    signature.enclosingClass == EtsClassSignature.UNKNOWN &&
+    signature.name.isEmpty() &&
+    signature.parameters.isEmpty() &&
+    signature.returnType == EtsStringType
