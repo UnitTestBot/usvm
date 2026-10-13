@@ -99,10 +99,9 @@ private fun TsExprResolver.advanceArrayIterator(
     }
 
     val length = scope.calcOnState { memory.read(mkArrayLengthLValue(iterator.array, iterator.arrayType)) }
-    val withinCapacity = mkAnd(
-        mkBvSignedGreaterOrEqualExpr(length, mkBv(0)),
-        mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize)),
-    )
+    val nonNegativeLength = mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+    val withinMaximumLength = mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize))
+    val withinCapacity = mkAnd(nonNegativeLength, withinMaximumLength)
     val activeBeyondCapacity = mkAnd(mkNot(iterator.exhausted), mkNot(withinCapacity))
     if (scope.checkSat(activeBeyondCapacity) != null) {
         reportRuntimeFeatureLimitation(

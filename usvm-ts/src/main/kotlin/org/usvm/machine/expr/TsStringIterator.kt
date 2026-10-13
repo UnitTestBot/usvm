@@ -87,14 +87,11 @@ internal fun TsExprResolver.advanceStringIterator(
             memory.read(mkStringBackingElementLValue(characters, iterator.index)) to
                 memory.read(mkStringBackingElementLValue(characters, nextIndex))
         }
-        val firstIsHighSurrogate = mkEq(
-            mkBvAndExpr(first, mkBv(SURROGATE_KIND_MASK, bv16Sort)),
-            mkBv(HIGH_SURROGATE_KIND, bv16Sort),
-        )
-        val secondIsLowSurrogate = mkEq(
-            mkBvAndExpr(second, mkBv(SURROGATE_KIND_MASK, bv16Sort)),
-            mkBv(LOW_SURROGATE_KIND, bv16Sort),
-        )
+        val surrogateKindMask = mkBv(SURROGATE_KIND_MASK, bv16Sort)
+        val firstKind = mkBvAndExpr(first, surrogateKindMask)
+        val secondKind = mkBvAndExpr(second, surrogateKindMask)
+        val firstIsHighSurrogate = mkEq(firstKind, mkBv(HIGH_SURROGATE_KIND, bv16Sort))
+        val secondIsLowSurrogate = mkEq(secondKind, mkBv(LOW_SURROGATE_KIND, bv16Sort))
         val pair = mkAnd(firstIsHighSurrogate, mkBvSignedLessExpr(nextIndex, length), secondIsLowSurrogate)
         val isPair = scope.calcOnState { models.first().eval(pair).isTrue }
         val widthBranch = if (isPair) pair else mkNot(pair)

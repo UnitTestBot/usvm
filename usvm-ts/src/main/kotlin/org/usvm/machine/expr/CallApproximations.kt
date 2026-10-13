@@ -1206,10 +1206,9 @@ private fun TsExprResolver.handleArrayReverse(
         val lengthLValue = mkArrayLengthLValue(array, arrayType)
         val length = memory.read(lengthLValue)
 
-        val withinCapacity = mkAnd(
-            mkBvSignedGreaterOrEqualExpr(length, mkBv(0)),
-            mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize)),
-        )
+        val nonNegativeLength = mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+        val withinMaximumLength = mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize))
+        val withinCapacity = mkAnd(nonNegativeLength, withinMaximumLength)
         val capacityExceeded = mkNot(withinCapacity)
         if (scope.checkSat(capacityExceeded) != null) {
             reportRuntimeFeatureLimitation(
