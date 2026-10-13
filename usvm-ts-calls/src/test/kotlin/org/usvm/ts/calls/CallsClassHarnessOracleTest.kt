@@ -377,11 +377,14 @@ class CallsClassHarnessOracleTest {
 
     @Test
     fun `native empty object shape rejects builtin internal slot values`() {
-        Files.writeString(directory.resolve("Builtin.ts"), """
-            export class Builtin {
-              result(): object { return new Date(1234); }
-            }
-        """.trimIndent())
+        Files.writeString(
+            directory.resolve("Builtin.ts"),
+            """
+                export class Builtin {
+                  result(): object { return new Date(1234); }
+                }
+            """.trimIndent(),
+        )
         val surface = CallsClassSurface(
             sourceFile = "Builtin.ts",
             exportName = "Builtin",

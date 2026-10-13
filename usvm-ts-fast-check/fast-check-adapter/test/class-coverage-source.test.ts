@@ -186,4 +186,8 @@ test('rejects mutable callable identity and dynamic lifecycle state without reje
   assert.match(instrument('export class Target { value = 1; run() { delete this.value; return 1; } }').reason!, /Deleted properties/)
   assert.match(instrument('export class Target { run() { Target.prototype.run = Target.prototype.other; return 1; } other() { return 2; } }').reason!, /Prototype/)
   assert.match(instrument('export class Target { run() { Object.defineProperty(Target.prototype, "extra", {value: 1}); return 1; } }').reason!, /Dynamic property/)
+  assert.match(instrument('export class Target { static run() { const Alias = Target; return Alias.hidden(); } private static hidden() { return 1; } }').reason!, /Aliased, escaping or computed class/)
+  assert.match(instrument('export class Target { static run(key: string) { return Target[key](); } private static hidden() { return 1; } }').reason!, /Aliased, escaping or computed class/)
+  assert.match(instrument('export class Target { static run() { Object.assign(Target.prototype, {extra: 1}); return 1; } }').reason!, /Dynamic property/)
+  assert.match(instrument('export class Target { static run() { Reflect.set(Target.prototype, "extra", 1); return 1; } }').reason!, /Dynamic property/)
 })

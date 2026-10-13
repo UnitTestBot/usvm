@@ -155,7 +155,14 @@ export function instrumentClassCoverage(file: ts.SourceFile, className: string):
       if (ts.isDeleteExpression(node)) invalidReason = 'Deleted properties are outside the complete fixed-state snapshot subset'
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)
         && ts.isIdentifier(node.expression.expression) && ['Object', 'Reflect'].includes(node.expression.expression.text)
-        && ['setPrototypeOf', 'defineProperty', 'defineProperties'].includes(node.expression.name.text)) {
+        && ['setPrototypeOf', 'defineProperty', 'defineProperties', 'set', 'deleteProperty'].includes(node.expression.name.text)) {
+        invalidReason = 'Dynamic property or prototype mutation is outside the checked class lifecycle subset'
+      }
+      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)
+        && ts.isIdentifier(node.expression.expression) && node.expression.expression.text === 'Object'
+        && node.expression.name.text === 'assign' && node.arguments[0] !== undefined
+        && (hasPrototypeAccess(node.arguments[0])
+          || (ts.isIdentifier(node.arguments[0]) && node.arguments[0].text === className))) {
         invalidReason = 'Dynamic property or prototype mutation is outside the checked class lifecycle subset'
       }
       if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'eval') {
@@ -167,6 +174,18 @@ export function instrumentClassCoverage(file: ts.SourceFile, className: string):
       if ((ts.isParameter(node) || ts.isVariableDeclaration(node) || ts.isBindingElement(node))
         && ts.isIdentifier(node.name) && node.name.text === className) {
         invalidReason = 'A shadowed class binding would make static private-member reachability ambiguous'
+      }
+      if (ts.isIdentifier(node) && node.text === className) {
+        const parent = node.parent
+        const typeReference = ts.isTypeReferenceNode(parent) && parent.typeName === node
+        const constructorCall = ts.isNewExpression(parent) && parent.expression === node
+        const directClassMember = ts.isPropertyAccessExpression(parent) && parent.expression === node
+        const memberNameOnly = (ts.isPropertyAccessExpression(parent) && parent.name === node)
+          || (ts.isMethodDeclaration(parent) && parent.name === node)
+          || (ts.isPropertyAssignment(parent) && parent.name === node)
+        if (!typeReference && !constructorCall && !directClassMember && !memberNameOnly) {
+          invalidReason = 'Aliased, escaping or computed class receivers require a checked static private-member reachability graph'
+        }
       }
       if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === className) {
         names.add(memberKey(node.name.text, true))

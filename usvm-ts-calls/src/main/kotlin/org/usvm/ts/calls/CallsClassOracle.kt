@@ -498,7 +498,9 @@ private fun nativeCheckedClassHarness(source: String): String {
           const fail = (reason: string): never => { throw new Error('USVM class observation shape: ' + reason); };
           if (domain.kind === 'optional') {
             const nil = domain.nil?.kind === 'null' ? null : undefined;
-            if (value !== nil) __usvmAssertObservedShape(value, domain.value, skipCallableProperties, allowedClass, callablePropertyNames);
+            if (value !== nil) {
+              __usvmAssertObservedShape(value, domain.value, skipCallableProperties, allowedClass, callablePropertyNames);
+            }
           } else if (domain.kind === 'object') {
             if (value === null || typeof value !== 'object' || Array.isArray(value)) fail('Expected object');
             const prototype = Object.getPrototypeOf(value);
