@@ -4,6 +4,7 @@ import kotlinx.serialization.decodeFromString
 import org.junit.jupiter.api.io.TempDir
 import org.usvm.SolverType
 import org.usvm.ts.pbt.model.BooleanDomain
+import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
@@ -132,6 +133,54 @@ class CallsCoverageSourceTest {
     }
 
     @Test
+    fun `only completion-matching native replays contribute checkpoint coverage`() {
+        val fixture = fixture()
+        val universe = OriginalTypeScriptCoverageReplayer(
+            sourceRoot = fixture.source.sourceRoot,
+            function = fixture.source.function,
+        ).use { replayer -> replayer.probeUniverse(timeoutMillis = 20_000L) }
+        fixture.writeUniverse(universe)
+
+        for (completion in CallsCoverageCompletion.entries) {
+            val candidate = CallsCoverageCandidate(
+                emittedAtMillis = 1L,
+                emittedAtStep = 1L,
+                inputs = listOf(JsConcreteValue.Boolean(true)),
+                newSymbolicStatements = 1,
+                completion = completion,
+            )
+            val cell = fixture.copy(output = Files.createDirectory(directory.resolve(completion.name)))
+            cell.persistSearch(search = emptySearch.copy(candidates = listOf(candidate), selectedStates = 1))
+
+            cell.runCell()
+
+            val result = CallsExperimentJson.json.decodeFromString<CallsCoverageCellResult>(
+                Files.readString(cell.output.resolve("result.json")),
+            )
+            val event = CallsExperimentJson.json.decodeFromString<CallsCoverageReplayEvent>(
+                Files.readAllLines(cell.output.resolve("replays.jsonl")).single(),
+            )
+            val replay = requireNotNull(event.replay)
+            val checkpoint = result.checkpoints.single()
+            val isAccepted = completion == CallsCoverageCompletion.RETURNED
+            val acceptedCount = if (isAccepted) 1 else 0
+
+            assertEquals(expected = 0, actual = result.replayErrors)
+            assertEquals(expected = 1 - acceptedCount, actual = result.completionMismatches)
+            assertEquals(expected = CallsCoverageCompletion.RETURNED, actual = replay.completion)
+            assertTrue(replay.coveredStatementKeys.isNotEmpty())
+            assertEquals(expected = 1, actual = checkpoint.emittedCandidates)
+            assertEquals(expected = 1, actual = checkpoint.replayedCandidates)
+            if (isAccepted) {
+                assertTrue(checkpoint.coveredStatements > 0)
+            } else {
+                assertEquals(expected = 0, actual = checkpoint.coveredStatements)
+                assertEquals(expected = 0, actual = checkpoint.coveredIfArms)
+            }
+        }
+    }
+
+    @Test
     fun `resumed search rejects changed export domain and frozen models at the same manifest path`() {
         val fixture = fixture()
         fixture.persistSearch()
@@ -156,6 +205,20 @@ class CallsCoverageSourceTest {
                         )
                     )
                 )
+            ),
+            original.copy(
+                projects = listOf(
+                    project.copy(
+                        functions = listOf(
+                            function.copy(
+                                symbolicCoverageClass = CallsSymbolicCoverageClass(
+                                    sourceFile = "Fixture.ts",
+                                    className = "DifferentClass",
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
             ),
             original.copy(modelSet = original.modelSet.copy(ids = setOf("ts.array.includes"))),
         )
@@ -338,7 +401,7 @@ class CallsCoverageSourceTest {
     ) {
         private val universePath: Path = manifestPath.resolveSibling("universe.json")
 
-        fun writeUniverse() {
+        fun writeUniverse(universe: CallsCoverageUniverse = sampleUniverse) {
             val identity = CallsCoverageUniverseIdentity(
                 toolRevision = TOOL_REVISION,
                 nativeFrontendRevision = FRONTEND_REVISION,
@@ -348,7 +411,7 @@ class CallsCoverageSourceTest {
                 functionIndex = 0,
                 sourceFile = source.function.sourceFile,
             )
-            val record = CallsCoverageUniverseRecord(identity = identity, universe = sampleUniverse)
+            val record = CallsCoverageUniverseRecord(identity = identity, universe = universe)
             Files.writeString(universePath, CallsExperimentJson.json.encodeToUtf8SafeString(record))
         }
 
@@ -368,7 +431,11 @@ class CallsCoverageSourceTest {
             return output
         }
 
-        fun persistSearch(schemaVersion: Int = 3, solver: String = source.manifest.solver) {
+        fun persistSearch(
+            schemaVersion: Int = 3,
+            solver: String = source.manifest.solver,
+            search: CallsCoverageSearchResult = emptySearch,
+        ) {
             val identity = CallsCoverageCellIdentity(
                 schemaVersion = schemaVersion,
                 toolRevision = TOOL_REVISION,
@@ -392,7 +459,7 @@ class CallsCoverageSourceTest {
             )
             Files.writeString(
                 output.resolve("search.json"),
-                CallsExperimentJson.json.encodeToUtf8SafeString(emptySearch)
+                CallsExperimentJson.json.encodeToUtf8SafeString(search)
             )
         }
 

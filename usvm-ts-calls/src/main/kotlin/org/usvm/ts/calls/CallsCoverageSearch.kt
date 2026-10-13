@@ -3,6 +3,7 @@ package org.usvm.ts.calls
 import kotlinx.serialization.Serializable
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStmt
+import org.usvm.CoverageZone
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
@@ -90,26 +91,26 @@ internal data class CallsCoverageSearchRequest(
     }
 }
 
-/** Runs one function without a return target and records completed coverage-novel paths. */
+/** Runs one function and records completed paths adding coverage in its declared symbolic scope. */
 internal class CurrentTsCallsCoverageEngine(
     private val sourceEngine: CurrentTsCallsSymbolicEngine = CurrentTsCallsSymbolicEngine(),
 ) {
     fun search(request: CallsCoverageSearchRequest): CallsCoverageSearchResult {
         val preparationStarted = TimeSource.Monotonic.markNow()
-        val preparation = sourceEngine.prepareFunction(
-            CallsFunctionPreflightRequest(
-                sourceRoot = request.sourceRoot,
-                project = request.project,
-                function = request.function,
-                expectedNativeFrontendRevision = request.expectedNativeFrontendRevision,
-            ),
-        )
-        val preparationElapsedMillis = preparationStarted.elapsedNow().inWholeMilliseconds
+        val preparation = sourceEngine.prepareFunction(request.toFunctionPreflightRequest())
         if (preparation is CallsFunctionPreparation.Rejected) {
-            return preparation.coverageResult(preparationElapsedMillis = preparationElapsedMillis)
+            return preparation.coverageResult(
+                preparationElapsedMillis = preparationStarted.elapsedNow().inWholeMilliseconds,
+            )
         }
 
         preparation as CallsFunctionPreparation.Eligible
+        val scope = resolveCallsSymbolicCoverageScope(preparation, target = request.function.symbolicCoverageClass)
+        val preparationElapsedMillis = preparationStarted.elapsedNow().inWholeMilliseconds
+        if (scope is CallsSymbolicCoverageScope.Rejected) {
+            return emptyCoverageResult(scope.status, preparationElapsedMillis, scope.diagnostic)
+        }
+        scope as CallsSymbolicCoverageScope.Selected
         val symbolicInputs = CallsSymbolicInputs(
             inputs = request.function.inputs,
             bindings = preparation.inputBindings,
@@ -122,6 +123,7 @@ internal class CurrentTsCallsCoverageEngine(
         val machineCallStarted = TimeSource.Monotonic.markNow()
         val observer = CompletedCoverageCandidateObserver(
             method = preparation.method,
+            coverageStatements = scope.statements,
             inputDomains = request.function.inputs,
             symbolicInputs = symbolicInputs,
             candidateCap = request.candidateCap,
@@ -145,7 +147,7 @@ internal class CurrentTsCallsCoverageEngine(
             }
         }
         val inputCapacity = request.function.inputs.maxOfOrNull { it.domain.callsInputCapacity() } ?: 0
-        val machineOptions = coverageMachineOptions(request)
+        val machineOptions = coverageMachineOptions(request, scope)
         val machineResult = runCatching {
             TsMachine(
                 scene = symbolicInputs.scene,
@@ -154,6 +156,7 @@ internal class CurrentTsCallsCoverageEngine(
                     maxArraySize = maxOf(TsOptions().maxArraySize, inputCapacity),
                     unknownCallModelSelection = modelSelection,
                     unknownCallFallback = request.profile.fallback,
+                    classCoverageTargets = scope.classSignature?.let { signature -> setOf(signature) },
                 ),
                 machineObserver = observer,
                 observer = interpreterObserver,
@@ -197,7 +200,10 @@ internal class CurrentTsCallsCoverageEngine(
         )
     }
 
-    private fun coverageMachineOptions(request: CallsCoverageSearchRequest): UMachineOptions =
+    private fun coverageMachineOptions(
+        request: CallsCoverageSearchRequest,
+        scope: CallsSymbolicCoverageScope.Selected,
+    ): UMachineOptions =
         UMachineOptions(
             pathSelectionStrategies = listOf(CALLS_PATH_SELECTION_STRATEGY),
             stateCollectionStrategy = StateCollectionStrategy.COVERED_NEW,
@@ -206,16 +212,36 @@ internal class CurrentTsCallsCoverageEngine(
             solverTimeout = request.solverQueryLimit,
             solverType = request.solverType,
             stopOnCoverage = CALLS_STOP_ON_COVERAGE,
+            coverageZone = if (scope.classSignature == null) CoverageZone.METHOD else CoverageZone.CLASS,
+            removeCoveredEntryPoints = scope.classSignature == null,
             stopOnTargetsReached = false,
             throwExceptionOnStepFailure = true,
         )
 }
 
+private fun CallsCoverageSearchRequest.toFunctionPreflightRequest(): CallsFunctionPreflightRequest =
+    CallsFunctionPreflightRequest(
+        sourceRoot = sourceRoot,
+        project = project,
+        function = function,
+        expectedNativeFrontendRevision = expectedNativeFrontendRevision,
+    )
+
 private fun CallsFunctionPreparation.Rejected.coverageResult(
     preparationElapsedMillis: Long,
+): CallsCoverageSearchResult = emptyCoverageResult(
+    status = status.toCoverageStatus(),
+    preparationElapsedMillis = preparationElapsedMillis,
+    diagnostic = "$reasonCode: $diagnostic",
+)
+
+private fun emptyCoverageResult(
+    status: CallsCoverageSearchStatus,
+    preparationElapsedMillis: Long,
+    diagnostic: String,
 ): CallsCoverageSearchResult {
     return CallsCoverageSearchResult(
-        status = status.toCoverageStatus(),
+        status = status,
         candidates = emptyList(),
         selectedStates = 0,
         executedSteps = 0,
@@ -226,12 +252,13 @@ private fun CallsFunctionPreparation.Rejected.coverageResult(
         machineSetupElapsedMillis = 0,
         searchElapsedMillis = 0,
         machineTeardownElapsedMillis = 0,
-        diagnostic = "$reasonCode: $diagnostic",
+        diagnostic = diagnostic,
     )
 }
 
 private class CompletedCoverageCandidateObserver(
     private val method: EtsMethod,
+    private val coverageStatements: Set<EtsStmt>,
     private val inputDomains: List<org.usvm.ts.pbt.model.PropertyInput>,
     private val symbolicInputs: CallsSymbolicInputs,
     private val candidateCap: Int,
@@ -240,7 +267,6 @@ private class CompletedCoverageCandidateObserver(
     private val onCandidate: (CallsCoverageCandidate) -> Unit,
     private val onExtractionFailure: (String) -> Unit,
 ) : UMachineObserver<TsState> {
-    private val entryStatements: Set<EtsStmt> = method.cfg.stmts.toSet()
     private val coveredStatements = hashSetOf<EtsStmt>()
     private val inputKeys = hashSetOf<String>()
     private var machineStarted: TimeSource.Monotonic.ValueTimeMark? = null
@@ -295,7 +321,7 @@ private class CompletedCoverageCandidateObserver(
             }
         }
         val pathStatements = state.pathNode.allStatements.filterTo(hashSetOf()) { statement ->
-            statement in entryStatements
+            statement in coverageStatements
         }
         val newStatements = pathStatements.count { statement -> statement !in coveredStatements }
         if (newStatements == 0) return

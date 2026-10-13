@@ -345,8 +345,13 @@ private fun coverageCheckpoints(
             search.candidates[index].emittedAtMillis <= checkpoint
         }
         val replayed = indices.mapNotNull { index -> events[index].replay }
-        val coveredStatements = replayed.flatMap { it.coveredStatementKeys }.toSet()
-        val coveredIfArms = replayed.flatMap { it.coveredIfArmKeys }.toSet()
+        val accepted = indices.mapNotNull { index ->
+            val event = events[index]
+            val expectedCompletion = search.candidates[index].completion
+            event.replay?.takeIf { replay -> event.error == null && replay.completion == expectedCompletion }
+        }
+        val coveredStatements = accepted.flatMap { it.coveredStatementKeys }.toSet()
+        val coveredIfArms = accepted.flatMap { it.coveredIfArmKeys }.toSet()
         require(universe.supportedStatementKeys.containsAll(coveredStatements)) {
             "Replayed statements extend beyond the frozen coverage universe"
         }
