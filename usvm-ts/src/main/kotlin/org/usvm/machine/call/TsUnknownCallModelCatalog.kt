@@ -75,6 +75,16 @@ class TsUnknownCallModelCatalog(
         return candidates[call.callee.enclosingClass.name] ?: candidates[null]
     }
 
+    internal fun hasTarget(
+        methodName: String,
+        enclosingClassName: String,
+        failureReason: TsUnknownCallFailureReason,
+        allowUnqualifiedTarget: Boolean,
+    ): Boolean {
+        val candidates = index[methodName]?.get(failureReason) ?: return false
+        return enclosingClassName in candidates || (allowUnqualifiedTarget && null in candidates)
+    }
+
     fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication {
         val directModel = select(call)
         val modelCall = if (directModel == null) {

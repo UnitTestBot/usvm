@@ -61,9 +61,25 @@ class TsInstanceCallReceiverTest {
                 assertEquals(case.results, results)
                 assertEquals(case.throws, tests.any { it.returnValue is TsTestValue.TsException })
                 assertTrue(tests.isNotEmpty())
-                if (method.parameters.singleOrNull()?.name == "index") {
+                val modelToStringIsUnsupported = case.method == "primitiveToString" && !case.compatibility
+                val exploresBothReceiverAlternatives = method.parameters.singleOrNull()?.name == "index" &&
+                    !modelToStringIsUnsupported
+                if (exploresBothReceiverAlternatives) {
                     val indices = tests.map { assertIs<TsTestValue.TsNumber>(it.before.parameters.single()).number }
                     assertTrue(indices.containsAll(listOf(0.0, 1.0)), "Both receiver alternatives must be explored")
+                }
+
+                if (modelToStringIsUnsupported) {
+                    assertTrue(events.isNotEmpty(), "Primitive toString calls must reach the residual policy")
+                    events.forEach { event ->
+                        assertEquals("toString", event.callee.name)
+                        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, event.outcome)
+                        assertEquals(TsUnknownCallFailureReason.PARTIAL_APPROXIMATION, event.failureReason)
+                        assertEquals(
+                            TsUnknownCallDecision.ResidualFallback(TsResidualCallPolicy.STOP_PATH),
+                            event.decision,
+                        )
+                    }
                 }
 
                 if (case.method == "wrappedShift") {
@@ -138,6 +154,7 @@ class TsInstanceCallReceiverTest {
             Case(method = "conditionalEmptyArray", results = setOf(0.0, 1.0)),
             Case(method = "arrayOrUserMethod", results = setOf(0.0, 1.0)),
             Case(method = "primitiveValueOf", results = setOf(0.0, 1.0)),
+            Case(method = "primitiveToString", results = setOf(0.0)),
             Case(method = "primitiveToString", results = setOf(0.0, 1.0), compatibility = true),
             Case(method = "constrainedFake", results = setOf(0.0, 1.0, 2.0)),
             Case(method = "nullableReceiver", results = setOf(0.0, 1.0), throws = true),

@@ -10,7 +10,6 @@ import org.usvm.machine.call.TsEtsIrUnknownCallModel
 import org.usvm.machine.call.TsEtsIrUnknownCallModelArtifact
 import org.usvm.machine.call.TsEtsIrUnknownCallModelDomainGuard
 import org.usvm.machine.call.TsEtsIrUnknownCallModelInputAdapter
-import org.usvm.machine.call.TsUnknownCall
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModel
 import org.usvm.machine.call.TsUnknownCallModelCompletion
@@ -39,6 +38,10 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             entryPointClassName = CLASS_NAME,
             entryPointMethodName = "charAt",
         )
+    }
+
+    private val sourceModelIds by lazy {
+        models.filterIsInstance<TsEtsIrUnknownCallModel>().map { model -> model.id }.toSet()
     }
 
     private val primitiveClassSignature by lazy {
@@ -328,9 +331,14 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         methodName: String,
         arity: Int,
         implementation: (TsState, List<UExpr<*>>) -> TsUnknownCallModelExecution?,
-    ): TsUnknownCallModel = StringPrimitiveModel(
+    ): TsUnknownCallModel = TsPrimitiveUnknownCallModel(
+        idPrefix = "ts.string.primitive",
         methodName = methodName,
+        enclosingClassName = PRIMITIVES_CLASS_NAME,
         arity = arity,
+        helperClassSignature = { primitiveClassSignature },
+        sourceClassSignature = { baseArtifact.entryPoint.signature.enclosingClass },
+        owningModelIds = { sourceModelIds },
         implementation = implementation,
     )
 
@@ -404,32 +412,6 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             successors = listOf(successor),
             residualGuard = guard.takeUnless { it == state.ctx.trueExpr }?.let(state.ctx::mkNot),
         )
-    }
-
-    private class StringPrimitiveModel(
-        methodName: String,
-        private val arity: Int,
-        private val implementation: (TsState, List<UExpr<*>>) -> TsUnknownCallModelExecution?,
-    ) : TsUnknownCallModel {
-        override val id: String = "ts.string.primitive.$methodName"
-        override val target = TsUnknownCallTarget(
-            methodName = methodName,
-            enclosingClassName = PRIMITIVES_CLASS_NAME,
-            failureReason = TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE,
-        )
-
-        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
-            if (call.callee.enclosingClass != primitiveClassSignature) {
-                return null
-            }
-
-            if (call.receiver != null || call.arguments.size != arity) {
-                return null
-            }
-
-            val inputs = call.arguments.map { argument -> argument.resolved ?: return null }
-            return implementation(state, inputs)
-        }
     }
 
     private const val PRIMITIVE_CODE_UNIT_AT_ID = "ts.string.primitive.codeUnitAt"

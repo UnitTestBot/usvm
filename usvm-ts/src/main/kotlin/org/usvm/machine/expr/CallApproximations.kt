@@ -24,6 +24,7 @@ import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
+import org.usvm.machine.call.TsBuiltInUnknownCallModels
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModelDispatcher
 import org.usvm.machine.call.dispatch
@@ -52,24 +53,6 @@ import org.usvm.util.typedArrayBoxedLValue
 import org.usvm.util.typedArrayOverrideLValue
 
 private val logger = KotlinLogging.logger {}
-private val modeledArrayMethods = setOf("concat", "fill", "push", "reverse", "slice", "unshift")
-
-private val modeledStringMethods = setOf(
-    "substring",
-    "trim",
-    "trimStart",
-    "trimEnd",
-    "charAt",
-    "charCodeAt",
-    "endsWith",
-    "includes",
-    "indexOf",
-    "lastIndexOf",
-    "slice",
-    "startsWith",
-    "toLowerCase",
-    "toUpperCase",
-)
 
 internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     expr: EtsInstanceCallExpr,
@@ -161,6 +144,11 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
     // Mock `.toString()` method calls
     if (expr.callee.name == "toString") {
+        if (unknownCallDispatcher is TsUnknownCallModelDispatcher) {
+            dispatchLegacyInstanceCall(stmt)
+            return TsExprApproximationResult.ResolveFailure
+        }
+
         if (expr.args.isNotEmpty()) {
             logger.warn { "toString() should have no arguments, but got ${expr.args.size}" }
         }
@@ -187,9 +175,15 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
             .takeIf { it !is TsUnresolvedSort }
             ?: addressSort
 
-        val usesSemanticArrayModel = expr.callee.name in modeledArrayMethods &&
-            unknownCallDispatcher is TsUnknownCallModelDispatcher
-        if (usesSemanticArrayModel) {
+        val usesModelDispatcher = unknownCallDispatcher is TsUnknownCallModelDispatcher
+        val modeledArrayCall = usesModelDispatcher && TsBuiltInUnknownCallModels.hasPartialApproximationModel(
+            methodName = expr.callee.name,
+            enclosingClassName = "Array",
+            allowUnqualifiedTarget = true,
+        )
+
+        // join has no source model yet; the model run intentionally sends it to the residual policy.
+        if (modeledArrayCall || (usesModelDispatcher && expr.callee.name == "join")) {
             dispatchArrayModel(stmt)
             return TsExprApproximationResult.ResolveFailure
         }
@@ -250,12 +244,13 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         }
     }
 
-    if (instanceType is EtsStringType && expr.callee.name in modeledStringMethods) {
-        val dispatcher = unknownCallDispatcher
-        if (dispatcher !is TsUnknownCallModelDispatcher) {
-            return TsExprApproximationResult.NoApproximation
-        }
-
+    val dispatcher = unknownCallDispatcher
+    val modeledStringCall = instanceType is EtsStringType && dispatcher is TsUnknownCallModelDispatcher &&
+        TsBuiltInUnknownCallModels.hasPartialApproximationModel(
+            methodName = expr.callee.name,
+            enclosingClassName = "String",
+        )
+    if (modeledStringCall) {
         dispatcher.dispatch(
             scope = scope,
             call = stmt.call,
@@ -310,6 +305,17 @@ private fun TsExprResolver.dispatchArrayModel(stmt: TsVirtualMethodCallStmt) {
         callSite = stmt.returnSite,
         failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
         callee = stmt.call.callee.withEnclosingClassName("Array"),
+        resolvedReceiver = stmt.instance,
+        resolvedArguments = stmt.args,
+    )
+}
+
+private fun TsExprResolver.dispatchLegacyInstanceCall(stmt: TsVirtualMethodCallStmt) {
+    unknownCallDispatcher.dispatch(
+        scope = scope,
+        call = stmt.call,
+        callSite = stmt.returnSite,
+        failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
         resolvedReceiver = stmt.instance,
         resolvedArguments = stmt.args,
     )
