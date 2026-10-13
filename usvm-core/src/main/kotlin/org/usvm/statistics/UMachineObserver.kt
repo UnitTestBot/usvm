@@ -3,7 +3,7 @@ package org.usvm.statistics
 /**
  * Symbolic machine events observer.
  */
-interface UMachineObserver<State> {
+interface UMachineObserver<State> : UStepFailureObserver<State> {
 
     /**
      * Called after symbolic machine starts running.
@@ -35,6 +35,10 @@ class CompositeUMachineObserver<State>(
     private val observers: List<UMachineObserver<State>>
 ) : UMachineObserver<State> {
     constructor(vararg observers: UMachineObserver<State>) : this(observers.toList())
+
+    override fun onStepFailure(state: State, error: Throwable) {
+        observers.forEach { it.onStepFailure(state, error) }
+    }
 
     override fun onMachineStarted() {
         observers.forEach { it.onMachineStarted() }

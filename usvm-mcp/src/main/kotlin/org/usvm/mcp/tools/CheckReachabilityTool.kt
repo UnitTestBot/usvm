@@ -1,0 +1,89 @@
+package org.usvm.mcp.tools
+
+import io.modelcontextprotocol.kotlin.sdk.server.Server
+import kotlinx.serialization.encodeToString
+import org.usvm.mcp.McpToolException
+import org.usvm.mcp.json.McpJson
+import org.usvm.mcp.json.ReachabilityResultDto
+import org.usvm.mcp.json.incomplete
+import org.usvm.mcp.json.toDiagnosticsDto
+import org.usvm.mcp.json.toTestCaseDto
+import org.usvm.mcp.runTool
+import org.usvm.mcp.scene.MethodLookup
+import org.usvm.mcp.scene.MethodLookup.qualifiedName
+import org.usvm.mcp.textResult
+
+fun Server.registerCheckReachabilityTool(ctx: UsvmToolContext) {
+    addTool(
+        name = "check_reachability",
+        description = """
+            Checks whether a specific IR statement of a TypeScript method is reachable and,
+            if so, returns a witness: concrete input values that drive execution to it.
+            'stmtIndex' is the statement index from the get_method_ir tool output — call it
+            first to pick the target (e.g. a particular 'return' or a branch of an 'if').
+            Status NOT_REACHED_WITHIN_BUDGET means the directed search failed within the time
+            budget; it is strong evidence but NOT a proof of unreachability.
+        """.trimIndent(),
+        inputSchema = toolSchema(required = listOf("file", "method", "stmtIndex")) {
+            fileProp()
+            classProp()
+            methodProp()
+            intProp("stmtIndex", "Index of the target statement in the method CFG (see get_method_ir).")
+            timeoutProp()
+        },
+    ) { request ->
+        runTool {
+            val args = request.arguments
+            val scene = ctx.scenes.getScene(args.requireStringArg("file"))
+            val method = MethodLookup.findMethod(scene, args.stringArg("class"), args.requireStringArg("method"))
+            val stmts = method.cfg.stmts
+            val stmtIndex = args.intArg("stmtIndex")
+                ?: throw McpToolException("Missing required integer argument 'stmtIndex'.")
+            if (stmtIndex !in stmts.indices) {
+                throw McpToolException(
+                    "stmtIndex $stmtIndex is out of range: method '${method.name}' has ${stmts.size} " +
+                        "statements (valid indices 0..${stmts.size - 1}). Use get_method_ir to list them."
+                )
+            }
+            val target = stmts[stmtIndex]
+            val outcome = ctx.runner.runReachability(scene, method, target, args.timeoutArg())
+            val reachability = outcome.result
+            val witness = reachability.witness?.toTestCaseDto()
+            val resolutionErrors = listOfNotNull(witness?.resolutionError)
+            val diagnostics = outcome.toDiagnosticsDto(resolutionErrors)
+            val incompleteAnalysis = diagnostics.incomplete
+            val status = when {
+                reachability.reached -> "REACHABLE"
+                incompleteAnalysis -> "INCOMPLETE_ANALYSIS"
+                else -> "NOT_REACHED_WITHIN_BUDGET"
+            }
+
+            textResult(
+                McpJson.encodeToString(
+                    ReachabilityResultDto(
+                        method = method.qualifiedName(),
+                        stmtIndex = stmtIndex,
+                        statement = target.toString(),
+                        status = status,
+                        witness = witness,
+                        analysis = diagnostics,
+                        note = when {
+                            reachability.reached ->
+                                "The target was reached according to the symbolic model. " +
+                                    "Validate any resolved witness by running the method with its inputs. " +
+                                    "Inspect resolutionErrors when no concrete witness is available."
+
+                            incompleteAnalysis ->
+                                "The target was not reached in an incomplete analysis. " +
+                                    "Inspect stopped search, unsupported paths, engine errors and witness errors."
+
+                            else ->
+                                "The target was not reached within the budget. " +
+                                    "This is evidence, not a proof of unreachability."
+                        },
+                    )
+                )
+            )
+        }
+    }
+}

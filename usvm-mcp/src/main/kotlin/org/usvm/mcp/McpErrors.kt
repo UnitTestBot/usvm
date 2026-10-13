@@ -1,0 +1,33 @@
+package org.usvm.mcp
+
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import kotlinx.coroutines.CancellationException
+
+fun textResult(text: String): CallToolResult =
+    CallToolResult(content = listOf(TextContent(text)))
+
+fun errorResult(text: String): CallToolResult =
+    CallToolResult(content = listOf(TextContent(text)), isError = true)
+
+/**
+ * Wraps a tool handler body: expected errors become `isError` results with
+ * actionable messages, unexpected ones become `isError` results with a short
+ * diagnostic. The server never crashes because of a single tool call.
+ */
+suspend fun runTool(block: suspend () -> CallToolResult): CallToolResult =
+    try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: InterruptedException) {
+        Thread.currentThread().interrupt()
+        throw CancellationException("Tool execution interrupted").apply { initCause(e) }
+    } catch (e: McpToolException) {
+        errorResult(e.message ?: "Tool failed")
+    } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
+        val frames = e.stackTrace.take(ERROR_STACK_FRAMES).joinToString("\n") { "  at $it" }
+        errorResult("Internal error: ${e::class.simpleName}: ${e.message}\n$frames")
+    }
+
+private const val ERROR_STACK_FRAMES = 5

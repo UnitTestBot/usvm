@@ -6,6 +6,7 @@ import org.usvm.stopstrategies.StopStrategy
 import org.usvm.util.bracket
 import org.usvm.util.debug
 import org.usvm.utils.isSat
+import java.util.concurrent.CancellationException
 
 val logger = object : KLogging() {}.logger
 
@@ -40,17 +41,22 @@ abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
             observer.onMachineStarted()
             try {
                 while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
+                    if (Thread.currentThread().isInterrupted) {
+                        throw InterruptedException("Symbolic analysis interrupted")
+                    }
+
                     val state = pathSelector.peek()
                     observer.onStatePeeked(state)
 
                     val (forkedStates, stateAlive) = try {
                         interpreter.step(state)
                     } catch (e: Throwable) {
-                        if (options.throwExceptionOnStepFailure) {
+                        if (shouldPropagateFailure(e)) {
                             throw e
                         }
 
                         logger.error(e) { "Step failed" }
+                        observer.onStepFailure(state, e)
                         observer.onState(state, forks = emptySequence())
                         pathSelector.remove(state)
                         observer.onStateTerminated(state, stateReachable = false)
@@ -96,6 +102,9 @@ abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
             }
         }
     }
+
+    private fun shouldPropagateFailure(error: Throwable): Boolean =
+        error is CancellationException || error is InterruptedException || options.throwExceptionOnStepFailure
 
     override fun toString(): String = this::class.simpleName?:"<empty>"
 }

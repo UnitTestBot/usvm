@@ -99,6 +99,7 @@ import org.usvm.util.resolveDeclaredConstructor
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.type
 import org.usvm.utils.ensureSat
+import java.util.concurrent.CancellationException
 
 private val logger = KotlinLogging.logger {}
 private typealias Reason = TsUnknownCallFailureReason
@@ -177,6 +178,10 @@ class TsInterpreter(
                     }
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: InterruptedException) {
+            throw e
         } catch (e: UnsupportedOperationException) {
             if (throwExceptionOnStepFailure) {
                 throw e
@@ -197,6 +202,7 @@ class TsInterpreter(
             logger.error {
                 "Exception: $e\n${e.stackTrace.take(5).joinToString("\n") { "    $it" }}"
             }
+            observer?.onStepFailure(state, e)
             return StepResult(forkedStates = emptySequence(), originalStateAlive = false)
         }
 
