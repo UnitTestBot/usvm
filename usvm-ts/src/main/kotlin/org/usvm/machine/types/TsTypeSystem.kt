@@ -53,6 +53,10 @@ class TsTypeSystem(
         val unwrappedSupertype = unwrapAlias(supertype)
         val unwrappedType = unwrapAlias(type)
 
+        require(unwrappedType !is EtsFakeType && unwrappedSupertype !is EtsFakeType) {
+            "Fake types should not occur in type constraints"
+        }
+
         // Runtime object checks exclude primitive and nullish values, independently of TS assignability.
         if (unwrappedSupertype == EtsObjectType) return unwrappedType is EtsRefType
 
@@ -73,12 +77,6 @@ class TsTypeSystem(
         if (unwrappedType is EtsAnyType) return true
         // "never" is the universal subtype: never can be assigned to any type.
         if (unwrappedType is EtsNeverType) return true
-
-        // A fake type only matches itself. Distinct wrappers do not establish a
-        // TypeScript subtype relation; callers handle those branches explicitly.
-        if (unwrappedType is EtsFakeType || unwrappedSupertype is EtsFakeType) {
-            return unwrappedSupertype === unwrappedType
-        }
 
         // When "never" is in supertype position, only never <: never.
         if (unwrappedSupertype is EtsNeverType) return type is EtsNeverType
