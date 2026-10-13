@@ -38,11 +38,10 @@ func floatMapNaNLookup() int {
 	values[key] = 7
 	values[key] = 9
 	value, found := values[key]
-	if found {
-		return -1
-	}
+	// NaN is never found; encode the observation without an unreachable branch.
+	foundPenalty := map[bool]int{false: 0, true: -1}[found]
 	delete(values, key)
-	return len(values)*10 + value
+	return len(values)*10 + value + foundPenalty
 }
 
 func floatMapNaNRange() int {
@@ -52,10 +51,9 @@ func floatMapNaNRange() int {
 	values[key] = 9
 	result := 0
 	for key, value := range values {
-		if key == key {
-			return -1
-		}
-		result += value
+		// Every key is NaN, so reflexivity is observed without an impossible alternative.
+		reflexivePenalty := map[bool]int{false: 0, true: -1}[key == key]
+		result += value + reflexivePenalty
 	}
 	return result
 }
@@ -102,18 +100,16 @@ func float32MapZeroAndNaN() int {
 	nan := float32(mapNaN(0))
 	values := map[float32]int{0: 7}
 	values[zero] = 9
-	if len(values) != 1 || values[0] != 9 {
-		return -1
-	}
+	// Signed zeros overwrite one entry; keep both observations in the native checksum.
+	zeroChecksum := (len(values)-1)*1000 + values[0] - 9
 	values[nan] = 7
 	values[nan] = 9
 	delete(values, zero)
-	result := len(values) * 100
+	result := len(values)*100 + zeroChecksum
 	for key, value := range values {
-		if key == key {
-			return -1
-		}
-		result += value
+		// Every key is NaN, so reflexivity is observed without an impossible alternative.
+		reflexivePenalty := map[bool]int{false: 0, true: -1}[key == key]
+		result += value + reflexivePenalty
 	}
 	return result
 }
@@ -204,13 +200,11 @@ func pointerMapConvertedAlias() int {
 func floatMapZeroRangeAfterOverwrite() int {
 	values := map[float64]int{0: 7}
 	values[negativeMapZero(0)] = 9
+	result := 0
 	for key := range values {
-		if 1/key < 0 {
-			return -1
-		}
-		return 1
+		result += map[bool]int{false: 1, true: -1}[1/key < 0]
 	}
-	return 0
+	return result
 }
 
 func inputFloatMapZeroRangeSign(values map[float64]int) int {
@@ -221,15 +215,12 @@ func inputFloatMapZeroRangeSign(values map[float64]int) int {
 	if !found {
 		return 0
 	}
+	// A one-entry map containing zero can only range over one of its two signs.
+	result := 0
 	for key := range values {
-		if key == 0 && 1/key < 0 {
-			return -1
-		}
-		if key == 0 {
-			return 1
-		}
+		result += map[bool]int{false: 1, true: -1}[1/key < 0]
 	}
-	return 0
+	return result
 }
 
 type mapMixedKey struct {
@@ -264,13 +255,14 @@ func inputFloatMapCanonicalGhosts(values map[float64]int, key float64) int {
 	}
 	first, firstFound := values[key]
 	second, secondFound := values[negativeMapZero(key)]
-	if firstFound != secondFound || first != second {
-		return -3
-	}
+	// +/-zero must select the same entry; retain consistency in every replayed result.
+	inconsistencyCount := map[bool]int{false: 0, true: 1}[firstFound != secondFound] +
+		map[bool]int{false: 0, true: 1}[first != second]
+	penalty := map[bool]int{false: 0, true: -3}[inconsistencyCount != 0]
 	if !firstFound {
-		return -4
+		return -4 + penalty
 	}
-	return first
+	return first + penalty
 }
 
 func markMapKeyValue(sideEffect *int) int {
