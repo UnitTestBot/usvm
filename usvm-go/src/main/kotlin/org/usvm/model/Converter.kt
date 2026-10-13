@@ -598,8 +598,10 @@ class Converter private constructor() {
         return types.map { unpack(typesMap, it) }
     }
 
-    private fun unpack(types: Map<String, Type>, type: Type): GoType = internType(
-        when (type) {
+    private fun unpack(types: Map<String, Type>, type: Type): GoType {
+        typesMap[type.name]?.let { return it }
+
+        val result = when (type) {
             is Type.Alias -> {
                 unpack(types, type.from)
             }
@@ -653,7 +655,9 @@ class Converter private constructor() {
                 UnionType(emptyList()) // TODO(buraindo) proper type list when generics are supported
             }
         }
-    )
+        typesMap[type.name] = result
+        return result
+    }
 
     private fun unpack(types: Map<String, Type>, type: String): GoType {
         if (type in typesMap) {
@@ -747,9 +751,4 @@ class Converter private constructor() {
         return GoNullInst(parent)
     }
 
-    private val internTypeMap = mutableMapOf<GoType, GoType>()
-
-    private fun internType(type: GoType): GoType {
-        return internTypeMap.computeIfAbsent(type) { type }
-    }
 }
