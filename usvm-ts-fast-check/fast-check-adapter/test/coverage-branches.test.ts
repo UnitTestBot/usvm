@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
 import ts from 'typescript';
 import { convertV8IfBranches, type GeneratedModuleIdentity } from '../src/coverage-branches.js';
@@ -39,7 +39,10 @@ async function runCoverage(source: string): Promise<{
   return { root, raw, sourcePath };
 }
 
-async function runGeneratedCoverage(source: string): Promise<{
+async function runGeneratedCoverage(source: string, options: {
+  newLine?: ts.NewLineKind;
+  trailingLineBreak?: boolean;
+} = {}): Promise<{
   root: string;
   raw: string;
   identity: GeneratedModuleIdentity;
@@ -56,15 +59,17 @@ async function runGeneratedCoverage(source: string): Promise<{
   const output = ts.transpileModule(source, {
     fileName: originalPath,
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext,
-      sourceMap: true, inlineSources: true },
+      sourceMap: true, inlineSources: true, newLine: options.newLine ?? ts.NewLineKind.LineFeed },
   });
   const map = JSON.parse(output.sourceMapText ?? '{}') as Record<string, unknown>;
   map.file = path.basename(generatedModule);
   map.sourceRoot = '';
   map.sources = [originalPath];
   const sourceMap = JSON.stringify(map);
+  const newLine = options.newLine === ts.NewLineKind.CarriageReturnLineFeed ? '\r\n' : '\n';
+  const trailingLineBreak = options.trailingLineBreak === true ? newLine : '';
   const generatedSource = output.outputText.replace(/\/\/# sourceMappingURL=.*$/m,
-    `//# sourceMappingURL=${path.basename(generatedModule)}.map`);
+    `//# sourceMappingURL=${path.basename(generatedModule)}.map`) + trailingLineBreak;
   await writeFile(generatedModule, generatedSource);
   await writeFile(`${generatedModule}.map`, sourceMap);
 
@@ -148,6 +153,50 @@ subject(1);
     assert.equal(duplicate.diagnostics.some(entry => entry.code === 'coverage.branch.ambiguous'), true);
   } finally {
     await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test('generated identity preserves CRLF and trailing empty line lengths', async () => {
+  for (const newLine of [ts.NewLineKind.LineFeed, ts.NewLineKind.CarriageReturnLineFeed]) {
+    const fixture = await runGeneratedCoverage(`
+export function subject(value: number): boolean {
+  if (value > 0) { return true; }
+  else { return false; }
+}
+subject(1);
+`, { newLine, trailingLineBreak: true });
+
+    try {
+      const sourceRoot = path.dirname(fixture.identity.originalPath);
+      const report = await convertV8IfBranches(fixture.raw, [sourceRoot], fixture.identity);
+
+      assert.deepEqual(report.files.map(file => file.path), [fixture.identity.originalPath]);
+      assert.deepEqual(report.files[0]?.branches.map(branch => branch.arms.map(arm => arm.hits)), [[1, 0]]);
+      assert.deepEqual(report.diagnostics, []);
+
+      const names = (await readdir(fixture.raw)).filter(name => name.endsWith('.json'));
+      const reports = await Promise.all(names.map(async name => ({
+        path: path.join(fixture.raw, name),
+        data: JSON.parse(await readFile(path.join(fixture.raw, name), 'utf8')) as {
+          'source-map-cache'?: Record<string, { lineLengths: number[] }>;
+        },
+      })));
+      const generatedUrl = pathToFileURL(fixture.identity.generatedModule).href;
+      const raw = reports.find(candidate => candidate.data['source-map-cache']?.[generatedUrl] !== undefined);
+      const lengths = raw?.data['source-map-cache']?.[generatedUrl]?.lineLengths;
+      assert.ok(raw);
+      assert.ok(lengths);
+      assert.equal(lengths.at(-1), 0);
+
+      lengths[lengths.length - 1] = 1;
+      await writeFile(raw.path, JSON.stringify(raw.data));
+      const changed = await convertV8IfBranches(fixture.raw, [sourceRoot], fixture.identity);
+
+      assert.deepEqual(changed.files, []);
+      assert.equal(changed.diagnostics.some(entry => entry.code === 'coverage.branch.ambiguous'), true);
+    } finally {
+      await rm(fixture.root, { recursive: true, force: true });
+    }
   }
 });
 

@@ -267,8 +267,9 @@ async function verifyGeneratedIdentity(
     return diagnostic(identity.originalPath, 'unsupported', 'Covered generated module or original source changed');
   }
 
-  const lineLengths = generated.split('\n').map(line => line.endsWith('\r') ? line.length - 1 : line.length);
-  if (generated.endsWith('\n')) lineLengths.pop();
+  // Match Node's source-map cache and V8's UTF-16 offsets, including CR and
+  // the final empty line after a line terminator.
+  const lineLengths = generated.split(/[\n\u2028\u2029]/).map(line => line.length);
   if (JSON.stringify(lineLengths) !== JSON.stringify(coverage.cache.lineLengths)) {
     return diagnostic(identity.originalPath, 'ambiguous', 'V8 generated script lengths differ from the pinned module');
   }
