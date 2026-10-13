@@ -45,9 +45,10 @@ internal fun GoState.mapKeyCanonicalityConstraint(
             result = mkAnd(result, mkOr(mkNot(present), nonnullProxy))
         }
 
-        val alreadyCounted = mkOr(previousEntries.map { previous ->
+        val previousMatches = previousEntries.map { previous ->
             mkAnd(previous.guard, mkHeapRefEq(previous.reference, entry.reference))
-        })
+        }
+        val alreadyCounted = mkOr(previousMatches)
         val contributes = mkAnd(entry.guard, present, mkNot(alreadyCounted))
         minimumSize = mkIte(contributes, mkSizeAddExpr(minimumSize, mkSizeExpr(1)), minimumSize)
         previousEntries += entry

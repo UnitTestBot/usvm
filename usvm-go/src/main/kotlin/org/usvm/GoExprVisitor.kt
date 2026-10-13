@@ -138,7 +138,6 @@ import org.usvm.state.GoArrayValueCopy
 import org.usvm.state.GoMapKeyRepresentative
 import org.usvm.state.GoMethodResult
 import org.usvm.state.GoResolvedMapKey
-import org.usvm.state.GoState.Companion.POINTER_FIELD
 import org.usvm.state.copyValue
 import org.usvm.state.decodeUtf8Rune
 import org.usvm.state.mapKeyCanonicalityConstraint
@@ -1148,17 +1147,6 @@ class GoExprVisitor(
 
     private fun isPointer(pointer: UHeapRef): UExpr<UBoolSort> {
         return scope.calcOnState { isPointer(pointer) }
-    }
-
-    private fun isPointerConcrete(pointer: UHeapRef): Boolean {
-        if (pointer is UNullRef) {
-            return false
-        }
-        return scope.calcOnState {
-            val index = 1
-            val field = memory.readField(pointer, index, ctx.bv32Sort)
-            field is KBitVec32Value && field.intValue == POINTER_FIELD
-        }
     }
 
     private fun isBoxed(ref: UHeapRef): UExpr<UBoolSort> {
