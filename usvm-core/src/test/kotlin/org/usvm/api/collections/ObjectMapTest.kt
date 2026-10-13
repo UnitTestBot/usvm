@@ -260,8 +260,9 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
     fun testRepeatedInputMapCopyCanSelectAnInitialKey() = testInputCopyRetainsUnknownKey(throughSecondCopy = true)
 
     private fun testInputCopyRetainsUnknownKey(throughSecondCopy: Boolean) = scope.doWithState {
-        val source = ctx.mkRegisterReading(99, ctx.addressSort)
+        val source = ctx.mkRegisterReading(idx = 99, sort = ctx.addressSort)
         val firstCopy = mkSymbolicObjectMap(mapType)
+
         symbolicObjectMapMergeInto(firstCopy, source, mapType, ctx.sizeSort)
         val copy = if (throughSecondCopy) {
             val secondCopy = mkSymbolicObjectMap(mapType)
