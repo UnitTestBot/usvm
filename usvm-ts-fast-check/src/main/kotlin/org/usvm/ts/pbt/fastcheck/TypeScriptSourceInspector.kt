@@ -10,6 +10,16 @@ import java.util.concurrent.TimeUnit
 
 /** Uses the native TypeScript AST when lowered source ranges need validation or replay instrumentation. */
 object TypeScriptSourceInspector {
+    fun instrumentClassCoverage(source: Path, className: String): TypeScriptClassCoverageInstrumentation {
+        val output = inspect(
+            source = source,
+            operation = "instrument-class-coverage",
+            arguments = listOf(className),
+        )
+
+        return PropertyManifestJson.json.decodeFromString(output)
+    }
+
     fun localSourceClosure(sourceRoot: Path, source: Path): TypeScriptLocalSourceClosure {
         val output = inspect(
             source = sourceRoot,
@@ -147,4 +157,53 @@ data class TypeScriptLocalSourceClosure(
     val files: List<String>,
     val reasonCode: String? = null,
     val diagnostic: String? = null,
+)
+
+@Serializable
+data class TypeScriptClassStatementDescriptor(
+    val id: String,
+    val memberName: String,
+    val kind: String,
+    val startOffset: Int,
+    val endOffset: Int,
+    val startLine: Int,
+    val startColumn: Int,
+    val endLine: Int,
+    val endColumn: Int,
+)
+
+@Serializable
+data class TypeScriptClassCoverageInstrumentation(
+    val source: String?,
+    val reason: String?,
+    val sourceSha256: String,
+    val instrumentedSha256: String?,
+    val counterGlobalName: String,
+    val instrumenterVersion: String,
+    val statements: List<TypeScriptClassStatementDescriptor>,
+    val inventory: TypeScriptClassSurfaceInventory?,
+)
+
+@Serializable
+data class TypeScriptClassCallableDescriptor(
+    val name: String,
+    val kind: String,
+    val isStatic: Boolean,
+    val parameterNames: List<String>,
+    val parameterTypeTexts: List<String?>,
+    val resultTypeText: String?,
+)
+
+@Serializable
+data class TypeScriptClassStateFieldDescriptor(
+    val name: String,
+    val isEcmaPrivate: Boolean,
+    val typeText: String?,
+)
+
+@Serializable
+data class TypeScriptClassSurfaceInventory(
+    val constructorParameterNames: List<String>,
+    val publicMembers: List<TypeScriptClassCallableDescriptor>,
+    val instanceDataFields: List<TypeScriptClassStateFieldDescriptor>,
 )
