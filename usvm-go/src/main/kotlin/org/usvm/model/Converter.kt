@@ -750,5 +750,4 @@ class Converter private constructor() {
     private fun unsupportedInstruction(parent: GoMethod): GoInst {
         return GoNullInst(parent)
     }
-
 }
