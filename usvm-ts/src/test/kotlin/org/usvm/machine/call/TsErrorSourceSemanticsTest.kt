@@ -58,6 +58,16 @@ class TsErrorSourceSemanticsTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `deletion and reassignment preserve modeled message storage on both branches`() {
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean>(
+            method = getMethod(methodName = "deletedAndReassignedMessage", className = "ErrorEtsIr"),
+            { flag, result -> flag.value && result.value },
+            { flag, result -> !flag.value && result.value },
+            invariants = arrayOf({ _, result -> result.value }),
+        )
+    }
+
+    @Test
     fun `ordinary symbolic string message remains eligible and retains identity`() {
         discoverProperties<TsTestValue.TsString, TsTestValue.TsBoolean>(
             method = getMethod(methodName = "symbolicMessage", className = "ErrorEtsIr"),

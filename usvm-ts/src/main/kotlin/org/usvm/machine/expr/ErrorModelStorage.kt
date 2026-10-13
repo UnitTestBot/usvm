@@ -4,9 +4,7 @@ import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
-import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
-import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
@@ -22,9 +20,7 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.call.intrinsic.TsErrorEtsIrModelFamily
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.types.singleOrNull
-import org.usvm.util.EtsHierarchy
-import org.usvm.util.TsResolutionResult
-import org.usvm.util.resolveEtsField
+import org.usvm.util.boxArrayValue
 
 internal val builtInErrorSignature = EtsClassSignature.UNKNOWN.copy(name = "Error")
 
@@ -75,47 +71,57 @@ internal fun EtsFieldSignature.errorModelStorageField(): ErrorStorageField? {
     }
 }
 
-internal data class ModelStorageFieldResolution(
-    val storageField: ErrorStorageField?,
-    val etsField: TsResolutionResult<EtsField>,
-    val isModelStorageField: Boolean,
-)
+/** Only unresolved SDK Error fields need the unqualified declaration lookup. */
+internal fun EtsFieldSignature.runtimeFieldSignature(): EtsFieldSignature =
+    if (isUnresolvedErrorField()) copy(enclosingClass = EtsClassSignature.UNKNOWN) else this
 
-internal fun TsContext.resolveModelStorageField(
+private fun TsContext.resolveErrorStorageField(
     scope: TsStepScope,
-    instanceLocal: EtsLocal?,
     instance: UHeapRef,
     field: EtsFieldSignature,
-    hierarchy: EtsHierarchy,
-): ModelStorageFieldResolution {
+): ErrorStorageField? {
     val definitionStorageField = field.errorModelDefinitionStorageField().takeIf {
         applicationAndSdkClasses.none { owner -> owner.signature == field.enclosingClass } &&
             TsErrorEtsIrModelFamily.ownsStorageDefinitionField(field)
     }
-    val candidateStorageField = definitionStorageField ?: field.errorModelStorageField()
-    val runtimeType = (instance as? UConcreteHeapRef)
-        ?.takeIf { candidateStorageField != null }
-        ?.let { concreteInstance ->
-            scope.calcOnState { memory.typeStreamOf(concreteInstance).singleOrNull() }
-        }
-    val storageField = candidateStorageField.takeIf {
-        runtimeType == EtsClassType(signature = builtInErrorSignature)
-    }
-    val etsField = when {
-        storageField != null -> TsResolutionResult.Empty
-        field.isUnresolvedErrorField() -> resolveEtsField(
-            instance = instanceLocal,
-            field = field.copy(enclosingClass = EtsClassSignature.UNKNOWN),
-            hierarchy = hierarchy,
-        )
-        else -> resolveEtsField(instanceLocal, field, hierarchy)
-    }
+    val candidateStorageField = definitionStorageField ?: field.errorModelStorageField() ?: return null
+    val concreteInstance = instance as? UConcreteHeapRef ?: return null
+    val runtimeType = scope.calcOnState { memory.typeStreamOf(concreteInstance).singleOrNull() }
 
-    return ModelStorageFieldResolution(
-        storageField = storageField,
-        etsField = etsField,
-        isModelStorageField = storageField != null,
-    )
+    return candidateStorageField.takeIf { runtimeType == EtsClassType(signature = builtInErrorSignature) }
+}
+
+internal fun TsContext.readModeledErrorField(
+    scope: TsStepScope,
+    instance: UHeapRef,
+    field: EtsFieldSignature,
+): UExpr<*>? {
+    val storageField = resolveErrorStorageField(scope, instance, field) ?: return null
+
+    return scope.calcOnState {
+        memory.read(mkErrorModelStorageLValue(addressSort, instance, storageField))
+    }
+}
+
+internal fun TsContext.writeModeledErrorField(
+    scope: TsStepScope,
+    instance: UHeapRef,
+    field: EtsFieldSignature,
+    value: UExpr<*>,
+): Boolean {
+    val storageField = resolveErrorStorageField(scope, instance, field) ?: return false
+    val payload = boxArrayValue(scope, value)
+
+    scope.doWithState {
+        memory.write(
+            mkErrorModelStorageLValue(addressSort, instance, storageField),
+            payload.asExpr(addressSort),
+            guard = trueExpr,
+        )
+        memory.write(deletedFieldLValue(instance, field), falseExpr, guard = trueExpr)
+        writtenConcreteFields += instance to field.name
+    }
+    return true
 }
 
 internal fun TsContext.normalizeThrownValue(scope: TsStepScope, exception: UExpr<*>): UExpr<*>? {

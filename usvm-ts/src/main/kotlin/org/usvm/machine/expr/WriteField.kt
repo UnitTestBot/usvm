@@ -23,7 +23,6 @@ import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.arrayStorageType
-import org.usvm.util.boxArrayValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.resolveEtsField
@@ -178,51 +177,6 @@ private fun TsContext.assignToArrayLength(
     }
 }
 
-private fun TsContext.writeErrorModelStorageField(
-    scope: TsStepScope,
-    instance: UHeapRef,
-    field: EtsFieldSignature,
-    storageField: ErrorStorageField,
-    value: UExpr<*>,
-) {
-    val payload = boxArrayValue(scope, value)
-    scope.doWithState {
-        memory.write(
-            mkErrorModelStorageLValue(addressSort, instance, storageField),
-            payload.asExpr(addressSort),
-            guard = trueExpr,
-        )
-        memory.write(deletedFieldLValue(instance, field), falseExpr, guard = trueExpr)
-        writtenConcreteFields += instance to field.name
-    }
-}
-
-private fun TsContext.writeModeledErrorField(
-    scope: TsStepScope,
-    instanceLocal: EtsLocal,
-    instance: UHeapRef,
-    field: EtsFieldSignature,
-    value: UExpr<*>,
-    hierarchy: EtsHierarchy,
-): Boolean {
-    val storageField = resolveModelStorageField(
-        scope = scope,
-        instanceLocal = instanceLocal,
-        instance = instance,
-        field = field,
-        hierarchy = hierarchy,
-    ).storageField ?: return false
-
-    writeErrorModelStorageField(
-        scope = scope,
-        instance = instance,
-        field = field,
-        storageField = storageField,
-        value = value,
-    )
-    return true
-}
-
 fun TsContext.assignToInstanceField(
     scope: TsStepScope,
     instanceLocal: EtsLocal,
@@ -248,11 +202,9 @@ fun TsContext.assignToInstanceField(
 
     val wroteModeledErrorField = writeModeledErrorField(
         scope = scope,
-        instanceLocal = instanceLocal,
         instance = unwrappedInstance,
         field = field,
         value = expr,
-        hierarchy = hierarchy,
     )
     if (wroteModeledErrorField) return Unit
 

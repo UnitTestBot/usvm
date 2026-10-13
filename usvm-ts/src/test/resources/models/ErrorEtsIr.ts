@@ -26,6 +26,16 @@ export class ErrorEtsIr {
         return error.message === payload && error.message.marker === 7;
     }
 
+    static deletedAndReassignedMessage(flag: boolean): boolean {
+        const error: any = new Error("initial");
+        if (flag) delete error.message;
+        const afterDelete = error.message;
+        const deletionMatches = flag ? afterDelete === undefined : afterDelete === "initial";
+
+        error.message = 7;
+        return deletionMatches && error.message === 7 && typeof error.message === "number";
+    }
+
     static symbolicMessage(message: string): boolean {
         const error = new Error(message);
         if (message.length === 0) return error.message === message && error.name === "Error";
