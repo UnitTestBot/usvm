@@ -17,6 +17,7 @@ func TestNativeOracle(t *testing.T) {
 		"interfaceMapUncomparableLookup":             func() any { return interfaceMapUncomparableLookup() },
 		"interfaceMapUncomparableUpdate":             func() any { return interfaceMapUncomparableUpdate() },
 		"floatMapNaNResult":                          func() any { return floatMapNaNResult() },
+		"nilPointerMapKeyLookupAndRange":             func() any { return nilPointerMapKeyLookupAndRange() },
 		"pointerMapKeyResult":                        func() any { return pointerMapKeyResult() },
 		"namedStringMapResult":                       func() any { return namedStringMapResult() },
 		"namedArrayMapResult":                        func() any { return namedArrayMapResult() },

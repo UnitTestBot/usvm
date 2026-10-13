@@ -17,6 +17,7 @@ import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
 import org.usvm.mkSizeGeExpr
 import org.usvm.sizeSort
+import org.usvm.type.needsMapKeyRepresentative
 
 /** Canonical identities and observed membership must agree with the declared map size. */
 internal fun GoState.mapKeyCanonicalityConstraint(
@@ -24,7 +25,12 @@ internal fun GoState.mapKeyCanonicalityConstraint(
     type: MapType,
     sourceMemory: UReadOnlyMemory<GoType> = memory,
 ): UBoolExpr = with(ctx) {
-    var result: UBoolExpr = trueExpr
+    val usesRepresentatives = type.keyType.needsMapKeyRepresentative()
+    var result: UBoolExpr = if (usesRepresentatives) {
+        mkNot(sourceMemory.refSetContainsElement(map, nullRef, type))
+    } else {
+        trueExpr
+    }
     var minimumSize: UExpr<USizeSort> = mkSizeExpr(0)
     val previousEntries = mutableListOf<GoMapKeyRepresentative>()
     for (entry in data.mapKeyRepresentatives[type.keyType].orEmpty()) {
@@ -32,6 +38,12 @@ internal fun GoState.mapKeyCanonicalityConstraint(
         val present = sourceMemory.refSetContainsElement(map, entry.reference, type)
         val valid = mkOr(mkNot(entry.guard), canonical, mkNot(present))
         result = mkAnd(result, valid)
+
+        if (usesRepresentatives) {
+            // Logical nil keys live in a nonnull proxy; inactive range proxies cannot add null entries.
+            val nonnullProxy = mkNot(mkHeapRefEq(entry.reference, nullRef))
+            result = mkAnd(result, mkOr(mkNot(present), nonnullProxy))
+        }
 
         val alreadyCounted = mkOr(previousEntries.map { previous ->
             mkAnd(previous.guard, mkHeapRefEq(previous.reference, entry.reference))

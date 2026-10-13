@@ -84,6 +84,10 @@ class MapValueRegressionTest : GoNativeTestRunner() {
     )
 
     @Test
+    @GoSample(method = "nilPointerMapKeyLookupAndRange", fixture = "regressions")
+    fun nilPointerMapKeyLookupAndRange() = checkNative(method = "nilPointerMapKeyLookupAndRange")
+
+    @Test
     @GoSample(method = "pointerMapConvertedAlias", fixture = "regressions")
     fun pointerMapConvertedAlias() = checkNative(method = "pointerMapConvertedAlias")
 

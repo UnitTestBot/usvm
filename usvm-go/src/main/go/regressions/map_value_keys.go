@@ -135,6 +135,19 @@ func floatMapNaNResult() map[float64]int {
 	return values
 }
 
+func nilPointerMapKeyLookupAndRange() int {
+	values := map[*int]int{nil: 7}
+	value, found := values[nil]
+	foundPenalty := map[bool]int{false: -1000, true: 0}[found]
+
+	rangeChecksum := 0
+	for key, rangedValue := range values {
+		nonNilPenalty := map[bool]int{false: -1000, true: 0}[key == nil]
+		rangeChecksum += rangedValue + nonNilPenalty
+	}
+	return len(values)*100 + value*10 + rangeChecksum + foundPenalty
+}
+
 func pointerMapKeyResult() map[*int]int {
 	first, second := new(int), new(int)
 	values := map[*int]int{first: 7, second: 9}
