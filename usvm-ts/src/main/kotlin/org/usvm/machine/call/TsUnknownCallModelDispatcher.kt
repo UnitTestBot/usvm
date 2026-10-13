@@ -6,6 +6,7 @@ import org.usvm.api.makeFreshUnknownCallResult
 import org.usvm.api.mockMethodCall
 import org.usvm.api.setMockMethodCallResult
 import org.usvm.machine.TsInterpreterObserver
+import org.usvm.machine.call.intrinsic.TsDateEtsIrModelFamily
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -35,7 +36,16 @@ class TsModelUnknownCallDispatcher(
 ) : TsUnknownCallModelDispatcher {
     override fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome {
         val application = scope.calcOnState {
-            this@TsModelUnknownCallDispatcher.models.apply(this, call)
+            val catalog = this@TsModelUnknownCallDispatcher.models
+            val hasDirectTarget = catalog.select(call) != null
+            // A direct target retains precedence even when its model rejects the call or is already active.
+            val modelCall = if (hasDirectTarget) {
+                call
+            } else {
+                TsDateEtsIrModelFamily.canonicalModelCall(this, call) ?: call
+            }
+
+            catalog.apply(this, modelCall)
         }
 
         return when (application) {
