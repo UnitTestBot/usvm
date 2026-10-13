@@ -5,14 +5,17 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 /** Locates the private fast-check runtime in development and installed distributions. */
-internal object FastCheckRuntime {
-    fun sourceInspectorEntryPoint(): Path = locateEntryPoint(SOURCE_INSPECTOR_CLI)
+object FastCheckRuntime {
+    /** Passive JSON serializer shared by generated replay wrappers and the adapter protocol. */
+    fun protocolJsonModule(): Path = locateEntryPoint("protocol-json.js")
 
-    fun executionEntryPoint(): Path = locateEntryPoint(EXECUTION_CLI)
+    internal fun executionEntryPoint(): Path = locateEntryPoint(EXECUTION_CLI)
 
-    fun projectionEntryPoint(): Path = locateEntryPoint(PROJECTION_CLI)
+    internal fun projectionEntryPoint(): Path = locateEntryPoint(PROJECTION_CLI)
 
-    fun processSupervisorEntryPoint(): Path = locateEntryPoint(PROCESS_SUPERVISOR)
+    internal fun processSupervisorEntryPoint(): Path = locateEntryPoint(PROCESS_SUPERVISOR)
+
+    internal fun sourceInspectorEntryPoint(): Path = locateEntryPoint(SOURCE_INSPECTOR_CLI)
 
     private fun locateEntryPoint(fileName: String): Path {
         val candidates = runtimeDirectories().map { runtimeDirectory ->

@@ -43,6 +43,29 @@ internal data class CallsSymbolicPreflightRequest(
     val expectedNativeFrontendRevision: String,
 )
 
+internal data class CallsFunctionPreflightRequest(
+    val sourceRoot: Path,
+    val project: CallsProjectCase,
+    val function: CallsFunctionCase,
+    val expectedNativeFrontendRevision: String,
+)
+
+internal sealed interface CallsFunctionPreparation {
+    data class Eligible(
+        val scene: EtsScene,
+        val method: EtsMethod,
+        val inputBindings: List<EtsInputBinding>,
+        val lexicalEnvironment: EtsLexicalEnvironmentBinding?,
+        val captures: List<TypeScriptSourceCapture>,
+    ) : CallsFunctionPreparation
+
+    data class Rejected(
+        val status: CallsSymbolicStatus,
+        val reasonCode: CallsSymbolicPreflightReasonCode,
+        val diagnostic: String,
+    ) : CallsFunctionPreparation
+}
+
 internal enum class CallsSymbolicPreflightStatus {
     ELIGIBLE,
     UNSUPPORTED,
@@ -263,10 +286,19 @@ internal class CurrentTsCallsSymbolicEngine(
         return preparation
     }
 
+    internal fun prepareFunction(request: CallsFunctionPreflightRequest): CallsFunctionPreparation =
+        runCatching { prepareFunctionSupported(request) }.getOrElse { error ->
+            CallsFunctionPreparation.Rejected(
+                status = CallsSymbolicStatus.TOOL_ERROR,
+                reasonCode = CallsSymbolicPreflightReasonCode.FRONTEND_OR_PREFLIGHT_ERROR,
+                diagnostic = error.message ?: error::class.java.name,
+            )
+        }
+
     @Suppress("LongMethod")
-    private fun prepare(request: CallsSymbolicPreflightRequest): CallsTargetPreparation {
+    private fun prepareFunctionSupported(request: CallsFunctionPreflightRequest): CallsFunctionPreparation {
         callsSymbolicInputPreflight(request.function.inputs)?.let { diagnostic ->
-            return CallsTargetPreparation.Rejected(
+            return CallsFunctionPreparation.Rejected(
                 status = CallsSymbolicStatus.UNSUPPORTED,
                 reasonCode = CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED,
                 diagnostic = diagnostic,
@@ -282,18 +314,11 @@ internal class CurrentTsCallsSymbolicEngine(
 
         val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
         require(source.startsWith(request.sourceRoot)) { "Function source escapes its frozen source root" }
-        val sourceText = java.nio.file.Files.readString(source)
-        callsTargetCoordinateDiagnostic(source = sourceText, target = request.target)?.let { diagnostic ->
-            return CallsTargetPreparation.Rejected(
-                status = CallsSymbolicStatus.UNMAPPED,
-                reasonCode = CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNMAPPED,
-                diagnostic = diagnostic,
-            )
-        }
 
-        val loaded = when (val project = loadCallsSourceProject(sourceRoot = request.sourceRoot, source = source)) {
+        val project = loadCallsSourceProject(sourceRoot = request.sourceRoot, source = source)
+        val loaded = when (project) {
             is CallsSourceProject.Loaded -> project
-            is CallsSourceProject.Unsupported -> return CallsTargetPreparation.Rejected(
+            is CallsSourceProject.Unsupported -> return CallsFunctionPreparation.Rejected(
                 status = CallsSymbolicStatus.UNSUPPORTED,
                 reasonCode = project.issue.reasonCode,
                 diagnostic = project.issue.diagnostic,
@@ -308,7 +333,7 @@ internal class CurrentTsCallsSymbolicEngine(
         )
         val mapping = PropertyEtsMapper(scene = scene, sourceRoots = listOf(request.sourceRoot)).map(propertyManifest)
         if (mapping.predicate.status != EtsMappingStatus.EXACT) {
-            return CallsTargetPreparation.Rejected(
+            return CallsFunctionPreparation.Rejected(
                 status = mapping.predicate.status.toSymbolicStatus(),
                 reasonCode = mapping.predicate.status.toPreflightReasonCode(),
                 diagnostic = mapping.predicate.diagnostics.joinToString { diagnostic -> diagnostic.message },
@@ -323,7 +348,7 @@ internal class CurrentTsCallsSymbolicEngine(
             method = method,
         )
         if (inputTypeLimitation != null) {
-            return CallsTargetPreparation.Rejected(
+            return CallsFunctionPreparation.Rejected(
                 status = CallsSymbolicStatus.UNSUPPORTED,
                 reasonCode = CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED,
                 diagnostic = inputTypeLimitation,
@@ -332,7 +357,7 @@ internal class CurrentTsCallsSymbolicEngine(
 
         val lexicalEnvironment = mappedTarget.bindings.lexicalEnvironment
         if (lexicalEnvironment != null && lexicalEnvironment.parameter.type !is EtsLexicalEnvType) {
-            return CallsTargetPreparation.Rejected(
+            return CallsFunctionPreparation.Rejected(
                 status = CallsSymbolicStatus.UNSUPPORTED,
                 reasonCode = CallsSymbolicPreflightReasonCode.LEXICAL_CAPTURE_UNSUPPORTED,
                 diagnostic = "Mapped lexical environment does not have a lexical-environment type",
@@ -353,7 +378,7 @@ internal class CurrentTsCallsSymbolicEngine(
             callsCapturePreflight(scene, binding, sourceCaptures)
         }
         if (captureLimitation != null) {
-            return CallsTargetPreparation.Rejected(
+            return CallsFunctionPreparation.Rejected(
                 status = CallsSymbolicStatus.UNSUPPORTED,
                 reasonCode = CallsSymbolicPreflightReasonCode.LEXICAL_CAPTURE_UNSUPPORTED,
                 diagnostic = captureLimitation,
@@ -366,10 +391,43 @@ internal class CurrentTsCallsSymbolicEngine(
             sourceByFile = loaded.sourceByFile,
         )
         if (readinessIssue != null) {
-            return CallsTargetPreparation.Rejected(
+            return CallsFunctionPreparation.Rejected(
                 status = CallsSymbolicStatus.UNSUPPORTED,
                 reasonCode = readinessIssue.reasonCode,
                 diagnostic = readinessIssue.diagnostic,
+            )
+        }
+
+        return CallsFunctionPreparation.Eligible(
+            scene = scene,
+            method = method,
+            inputBindings = mappedTarget.bindings.inputs,
+            lexicalEnvironment = lexicalEnvironment,
+            captures = sourceCaptures,
+        )
+    }
+
+    private fun prepare(request: CallsSymbolicPreflightRequest): CallsTargetPreparation {
+        val function = prepareFunction(
+            CallsFunctionPreflightRequest(
+                sourceRoot = request.sourceRoot,
+                project = request.project,
+                function = request.function,
+                expectedNativeFrontendRevision = request.expectedNativeFrontendRevision,
+            ),
+        )
+        if (function is CallsFunctionPreparation.Rejected) {
+            return CallsTargetPreparation.Rejected(function.status, function.reasonCode, function.diagnostic)
+        }
+        function as CallsFunctionPreparation.Eligible
+        val method = function.method
+        val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
+        val sourceText = java.nio.file.Files.readString(source)
+        callsTargetCoordinateDiagnostic(source = sourceText, target = request.target)?.let { diagnostic ->
+            return CallsTargetPreparation.Rejected(
+                status = CallsSymbolicStatus.UNMAPPED,
+                reasonCode = CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNMAPPED,
+                diagnostic = diagnostic,
             )
         }
 
@@ -437,11 +495,11 @@ internal class CurrentTsCallsSymbolicEngine(
         }
 
         return CallsTargetPreparation.Eligible(
-            scene = scene,
+            scene = function.scene,
             method = method,
-            inputBindings = mappedTarget.bindings.inputs,
-            lexicalEnvironment = lexicalEnvironment,
-            captures = sourceCaptures,
+            inputBindings = function.inputBindings,
+            lexicalEnvironment = function.lexicalEnvironment,
+            captures = function.captures,
             targetObservation = targetObservation,
             exactTargetCandidateCount = exactTargetCandidates.size,
         )
@@ -761,7 +819,7 @@ internal fun verifyCallsGitCheckout(checkout: Path, expectedRevision: String) {
     runCallsGit(checkout, "diff", "--quiet", "HEAD", "--")
 }
 
-private fun runCallsGit(checkout: Path, vararg arguments: String): String {
+internal fun runCallsGit(checkout: Path, vararg arguments: String): String {
     val process = ProcessBuilder(listOf("git", "-C", checkout.toString()) + arguments)
         .redirectErrorStream(true)
         .start()
