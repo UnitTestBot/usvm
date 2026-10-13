@@ -6,6 +6,7 @@ import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -49,6 +50,10 @@ internal fun TsExprResolver.handleArrayAccess(
     // Resolve the index.
     val resolvedIndex = resolve(value.index) ?: return null
     val receiverType = scope.calcOnState { arrayStorageType(array, value.array.type) }
+    if (receiverType == EtsStringType) {
+        return readStringIndex(receiver = array, index = resolvedIndex)
+    }
+
     val propertyName = concreteStringValue(resolvedIndex)
     if (propertyName != null && receiverType !is EtsArrayType) {
         val field = EtsFieldSignature(

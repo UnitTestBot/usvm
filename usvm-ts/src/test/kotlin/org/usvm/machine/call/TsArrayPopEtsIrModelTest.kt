@@ -222,8 +222,11 @@ class TsArrayPopEtsIrModelTest {
     }
 
     @Test
-    fun `arity mismatch uses fallback`() {
-        assertUsesResidualFallback(methodName = "popWithArguments")
+    fun `pop ignores extra arguments`() {
+        val result = analyze(methodName = "popWithArguments")
+
+        assertEquals(49.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+        assertEquals(listOf("ts.array.pop"), result.modelIds)
     }
 
     @Test
@@ -273,16 +276,6 @@ class TsArrayPopEtsIrModelTest {
                 events = observer.events.toList(),
             )
         }
-    }
-
-    private fun assertUsesResidualFallback(methodName: String) {
-        val result = analyze(methodName)
-
-        assertTrue(
-            result.values.isEmpty(),
-            "Expected fallback to stop the path, got values=${result.values}, events=${result.events}",
-        )
-        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.last().outcome)
     }
 
     private fun makeFakeReceiver(state: TsState): UConcreteHeapRef {

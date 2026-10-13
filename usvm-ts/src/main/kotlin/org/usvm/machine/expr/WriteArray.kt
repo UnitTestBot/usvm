@@ -5,6 +5,7 @@ import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -40,6 +41,10 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     // Resolve the index.
     val resolvedIndex = resolve(lhv.index) ?: return null
     val receiverType = scope.calcOnState { arrayStorageType(array, lhv.array.type) }
+    if (receiverType == EtsStringType) {
+        throw UnsupportedOperationException("Writes to string indexes are not modeled")
+    }
+
     val propertyName = concreteStringValue(resolvedIndex)
     if (propertyName != null && receiverType !is EtsArrayType) {
         val field = EtsFieldSignature(

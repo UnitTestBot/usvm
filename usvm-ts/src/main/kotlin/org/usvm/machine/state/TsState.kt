@@ -87,11 +87,11 @@ class TsState(
      */
     var stringConstantAllocatedRefs: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
     /**
-     * References whose string backing and length bound have been modeled.
+     * Maps references with modeled string backing to their maximum length.
      * A new symbolic string producer must register its reference here after creating the backing model.
      * String literals are recognized separately through [TsContext.getStringConstantValue].
      */
-    var boundedStringBackingRefs: Set<UHeapRef> = emptySet(),
+    var boundedStringBackingRefs: Map<UHeapRef, Int> = emptyMap(),
     /** Unresolved reference payloads that may acquire string backing after type refinement. */
     var symbolicStringCandidates: Set<UHeapRef> = emptySet(),
     /** Exception delivered to the current catch block, before its binding is initialized. */
@@ -300,6 +300,7 @@ class TsState(
             ref
         }
         stringConstantAllocatedRefs = updated
+        boundedStringBackingRefs += result to value.length
         result
     }
 

@@ -82,6 +82,32 @@ class TsUnknownCallModelCatalogTest {
     }
 
     @Test
+    fun `selection includes transitive model dependencies`() {
+        val catalog = TsUnknownCallModelCatalog(
+            models = listOf(
+                model(id = "entry", requiredModelIds = setOf("helper")),
+                model(id = "helper", requiredModelIds = setOf("primitive")),
+                model(id = "primitive"),
+                model(id = "unrelated"),
+            ),
+            selection = TsUnknownCallModelSelection.Only(setOf("entry")),
+        )
+
+        assertEquals(listOf("entry", "helper", "primitive"), catalog.modelIds)
+    }
+
+    @Test
+    fun `missing model dependency is rejected`() {
+        val error = assertFailsWith<IllegalArgumentException> {
+            TsUnknownCallModelCatalog(
+                models = listOf(model(id = "entry", requiredModelIds = setOf("missing"))),
+            )
+        }
+
+        assertEquals("Semantic model entry requires unknown model IDs: missing", error.message)
+    }
+
+    @Test
     fun `selection does not depend on model order`() {
         val forward = listOf(
             model(id = "a", methodName = "first"),
@@ -152,7 +178,10 @@ class TsUnknownCallModelCatalogTest {
         val catalog = TsBuiltInUnknownCallModels.catalog()
 
         val expectedModelIds = listOf(
+            "ts.array.includes",
+            "ts.array.indexOf",
             "ts.array.isArray",
+            "ts.array.lastIndexOf",
             "ts.array.pop",
             TsArrayShiftIntrinsicModel.MODEL_ID,
             TsNumericIntrinsicModelFamily.MATH_ABS_ID,
@@ -167,6 +196,18 @@ class TsUnknownCallModelCatalogTest {
             TsNumericIntrinsicModelFamily.NUMBER_IS_INTEGER_ID,
             TsNumericIntrinsicModelFamily.NUMBER_IS_NAN_ID,
             TsNumericIntrinsicModelFamily.NUMBER_IS_SAFE_INTEGER_ID,
+            "ts.string.charAt",
+            "ts.string.charCodeAt",
+            "ts.string.endsWith",
+            "ts.string.includes",
+            "ts.string.indexOf",
+            "ts.string.lastIndexOf",
+            "ts.string.primitive.codeUnitAt",
+            "ts.string.primitive.fromCodeUnit",
+            "ts.string.slice",
+            "ts.string.startsWith",
+            "ts.string.toLowerCase",
+            "ts.string.toUpperCase",
         )
 
         assertEquals(expectedModelIds, catalog.modelIds)
@@ -177,6 +218,29 @@ class TsUnknownCallModelCatalogTest {
             TsBuiltInUnknownCallModels.catalog().modelIds,
         )
         assertTrue(TsBuiltInUnknownCallModels.catalog(TsUnknownCallModelSelection.Only(emptySet())).modelIds.isEmpty())
+    }
+
+    @Test
+    fun `array and string built in model families are discovered`() {
+        val modelIds = TsBuiltInUnknownCallModels.catalog().modelIds
+        val expectedModelIds = listOf(
+            "ts.array.includes",
+            "ts.array.indexOf",
+            "ts.array.lastIndexOf",
+            "ts.string.charAt",
+            "ts.string.charCodeAt",
+            "ts.string.endsWith",
+            "ts.string.includes",
+            "ts.string.indexOf",
+            "ts.string.lastIndexOf",
+            "ts.string.primitive.codeUnitAt",
+            "ts.string.primitive.fromCodeUnit",
+            "ts.string.slice",
+            "ts.string.startsWith",
+            "ts.string.toLowerCase",
+            "ts.string.toUpperCase",
+        )
+        assertTrue(modelIds.containsAll(expectedModelIds))
     }
 
     @Test
@@ -281,6 +345,7 @@ class TsUnknownCallModelCatalogTest {
         failureReason: TsUnknownCallFailureReason? = null,
         className: String? = null,
         additionalSceneFiles: List<EtsFile> = emptyList(),
+        requiredModelIds: Set<String> = emptySet(),
     ): TsUnknownCallModel = FakeModel(
         id = id,
         target = TsUnknownCallTarget(
@@ -289,12 +354,14 @@ class TsUnknownCallModelCatalogTest {
             enclosingClassName = className,
         ),
         additionalSceneFiles = additionalSceneFiles,
+        requiredModelIds = requiredModelIds,
     )
 
     private class FakeModel(
         override val id: String,
         override val target: TsUnknownCallTarget,
         override val additionalSceneFiles: List<EtsFile> = emptyList(),
+        override val requiredModelIds: Set<String> = emptySet(),
     ) : TsUnknownCallModel {
         override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution =
             error("Fake model must not execute in catalog metadata tests")

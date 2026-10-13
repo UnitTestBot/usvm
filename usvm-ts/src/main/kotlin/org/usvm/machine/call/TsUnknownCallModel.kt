@@ -32,6 +32,8 @@ data class TsUnknownCallTarget(
 interface TsUnknownCallModel {
     val id: String
     val target: TsUnknownCallTarget
+    val requiredModelIds: Set<String>
+        get() = emptySet()
 
     /** EtsIR files that must be visible to the interpreter while this model is enabled. */
     val additionalSceneFiles: List<EtsFile>

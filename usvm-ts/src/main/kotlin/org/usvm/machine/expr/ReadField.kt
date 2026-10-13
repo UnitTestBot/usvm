@@ -410,7 +410,7 @@ private fun TsContext.materializeTypedStringField(
     val activeStringConstraints = mkImplies(activeGuard, constraints)
     scope.assert(activeStringConstraints) ?: return null
 
-    scope.doWithState { boundedStringBackingRefs += stringRef }
+    scope.doWithState { boundedStringBackingRefs += stringRef to maxStringLength }
 
     return stringRef
 }

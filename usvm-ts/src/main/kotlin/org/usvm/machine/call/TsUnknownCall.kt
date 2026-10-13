@@ -47,6 +47,14 @@ data class TsUnknownCallValue(
     val resolved: UExpr<*>?,
 )
 
+/** Takes the meaningful values from arguments already evaluated by the caller. */
+internal fun TsUnknownCall.resolvedInstanceInputs(maxArgumentCount: Int): List<UExpr<*>>? {
+    val resolvedReceiver = receiver?.resolved ?: return null
+    val resolvedArguments = arguments.take(maxArgumentCount).map { argument -> argument.resolved ?: return null }
+
+    return listOf(resolvedReceiver) + resolvedArguments
+}
+
 /** Identifies the execution stage that prevented a TypeScript call from continuing normally. */
 enum class TsUnknownCallFailureReason {
     STATIC_METHOD_NOT_FOUND,

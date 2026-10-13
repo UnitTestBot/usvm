@@ -143,6 +143,6 @@ private fun TsState.makeFreshBoundedString(): UConcreteHeapRef = with(ctx) {
     )
     memory.write(mkStringBackingLengthLValue(characters), length, guard = trueExpr)
     memory.write(mkStringBackingLValue(string), characters, guard = trueExpr)
-    boundedStringBackingRefs += string
+    boundedStringBackingRefs += string to maxStringLength
     string
 }

@@ -783,7 +783,10 @@ class TsInterpreter(
             observer = observer,
         )
 
-    fun getInitialState(method: EtsMethod, targets: List<TsTarget>): TsState = with(ctx) {
+    fun getInitialState(
+        method: EtsMethod,
+        targets: List<TsTarget>,
+    ): TsState = with(ctx) {
         val state = TsState(
             ctx = ctx,
             ownership = MutabilityOwnership(),
@@ -811,7 +814,6 @@ class TsInterpreter(
 
         method.parameters.forEachIndexed { i, param ->
             val idx = i + 1 // +1 because 0 is reserved for `this`
-
             val ref by lazy {
                 val lValue = mkRegisterStackLValue(addressSort, idx)
                 state.memory.read(lValue).asExpr(addressSort)
@@ -859,7 +861,7 @@ class TsInterpreter(
                 state.pathConstraints += state.memory.types.evalTypeEquals(ref, EtsStringType)
 
                 state.pathConstraints += state.symbolicStringBackingConstraint(ref)
-                state.boundedStringBackingRefs += ref
+                state.boundedStringBackingRefs += ref to state.maxStringLength
             }
 
             val parameterSort = typeToSort(parameterType)
