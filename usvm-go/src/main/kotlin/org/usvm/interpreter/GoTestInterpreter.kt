@@ -366,7 +366,10 @@ class GoTestInterpreter(
             val seenRepresentatives = mutableSetOf<UHeapRef>()
             val seenValueKeys = mutableSetOf<Any?>()
             val losslessEntries = mutableListOf<GoMapEntry>()
-            val observedKeys = mutableSetOf<UHeapRef>()
+            val observedKeys = state.data.mapKeyRepresentatives[keyType].orEmpty()
+                .filter { entry -> resolveBool(entry.guard) }
+                .flatMap { entry -> listOf(entry.reference, entry.canonicalReference) }
+                .toMutableSet()
             var needsLosslessWitness = false
             val addToMap: (
                 MutableMap<Any?, Any?>,
@@ -374,7 +377,11 @@ class GoTestInterpreter(
                 UWritableMemory<GoType>,
                 UHeapRef,
             ) -> Unit = { destination, entries, entryMemory, entryMap ->
-                val entryScope = if (entryMemory === memory) this@MemoryScope else MemoryScope(ctx, state, model, entryMemory)
+                val entryScope = if (entryMemory === memory) {
+                    this@MemoryScope
+                } else {
+                    MemoryScope(ctx, state, model, entryMemory)
+                }
                 destination.putAll(
                     entries.mapNotNull { entry ->
                         val key = when (entry) {
@@ -557,12 +564,16 @@ class GoTestInterpreter(
         private fun mapKeyPayload(
             key: UHeapRef,
             type: GoType,
+            map: UHeapRef,
+            mapType: MapType,
         ): Pair<UExpr<out USort>, UWritableMemory<GoType>> = with(ctx) {
             val known = state.data.mapKeyRepresentatives[type].orEmpty().firstOrNull {
                 model.eval(it.reference) == model.eval(key) && resolveBool(it.guard)
             }
-            val source = if (known == null) memory else state.memory
-            val snapshot = known?.snapshot ?: source.read(ctx.mapKeySnapshotLValue(key, type))
+            val source = if (known == null) model else state.memory
+            val snapshot = known?.snapshot ?: source.read(
+                ctx.mapKeyPayloadLValue(model.eval(map), model.eval(key), mapType),
+            )
             val underlying = type.underlying()
             val sort = typeToSort(underlying)
             val payload = if (type is NamedType) {
@@ -588,10 +599,10 @@ class GoTestInterpreter(
         ): UBoolExpr = with(ctx) {
             val underlying = keyType.underlying()
             val keys = observed.toMutableList()
-            val payloads = keys.map { mapKeyPayload(it, keyType).first }.toMutableList()
+            val payloads = keys.map { mapKeyPayload(it, keyType, map, mapType as MapType).first }.toMutableList()
             val stringLengthExpressions = if (underlying == GoBasicTypes.STRING) {
                 keys.map { key ->
-                    val (payload, source) = mapKeyPayload(key, keyType)
+                    val (payload, source) = mapKeyPayload(key, keyType, map, mapType as MapType)
                     state.arrayView(payload.asExpr(addressSort), underlying, sourceMemory = source).length
                 }.toMutableList()
             } else {
