@@ -114,8 +114,7 @@ private fun TsExprResolver.advanceArrayIterator(
     val initialized = scope.calcOnState {
         // Inputs are dense; known allocations distinguish written own slots from holes.
         val array = iterator.array
-        val denseInput = !isAllocatedConcreteHeapRef(array) ||
-            (array is UConcreteHeapRef && denseInputArrays[array] != null)
+        val denseInput = !isAllocatedConcreteHeapRef(array) || denseInputArrays[array] != null
         val knownOwnSlots = array in knownArrayPropertyPresence
         if (denseInput || knownOwnSlots) {
             trueExpr
