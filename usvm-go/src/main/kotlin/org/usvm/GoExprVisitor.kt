@@ -479,11 +479,7 @@ class GoExprVisitor(
     }
 
     override fun visitGoSliceExpr(expr: GoSliceExpr): UExpr<out USort> {
-        val boxedArray = expr.array.accept(this).asExpr(ctx.addressSort)
-        val array = unboxNamedRef(boxedArray, expr.array.type).let {
-            if (isPointerConcrete(it)) deref(it, ctx.addressSort) else it
-        }
-        val arrayType = expr.array.type.let { if (it is PointerType) it.baseType else it }.underlying()
+        val (array, arrayType) = resolveArrayInstance(expr.array)
         val view = scope.calcOnState { arrayView(array, arrayType) }
         val low = collectionSize(expr.low)
         val high = sliceBound(expr.high, view.length)
@@ -1096,11 +1092,21 @@ class GoExprVisitor(
         return tryBox(result, expr.type)
     }
 
-    private fun visitIndexExpr(instance: GoValue, idx: GoValue): Pair<GoArrayView, UExpr<USizeSort>> {
-        val array = unboxNamedRef(instance.accept(this).asExpr(ctx.addressSort), instance.type).let {
-            if (isPointerConcrete(it)) deref(it, ctx.addressSort) else it
+    private fun resolveArrayInstance(instance: GoExpr): Pair<UHeapRef, GoType> {
+        val reference = instance.accept(this).asExpr(ctx.addressSort)
+        val instanceType = instance.type.underlying()
+        val unboxed = unboxNamedRef(reference, instance.type)
+        if (instanceType is PointerType) {
+            val value = deref(unboxed, ctx.addressSort)
+            val array = unboxNamedRef(value, instanceType.baseType)
+            return array to instanceType.baseType.underlying()
         }
-        val arrayType = instance.type.let { if (it is PointerType) it.baseType else it }.underlying()
+
+        return unboxed to instanceType
+    }
+
+    private fun visitIndexExpr(instance: GoValue, idx: GoValue): Pair<GoArrayView, UExpr<USizeSort>> {
+        val (array, arrayType) = resolveArrayInstance(instance)
         val originalIndex = bv(unboxNamedPrimitive(idx.accept(this), idx.type))
         val view = scope.calcOnState { arrayView(array, arrayType) }
         val signed = !(idx.type.underlying() as BasicType).typeName.startsWith("uint")
