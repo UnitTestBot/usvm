@@ -20,9 +20,8 @@ fun GoMethod.isInit(location: GoInstLocation): Boolean {
 }
 
 fun GoMethod.isInit(): Boolean {
-    return name.matches(
-        "^init$".toRegex()
-    ) // ^init(#\d+)?$ for all inits is not needed because init#1, init#2 and others are called in init()
+    // Synthetic init#N methods are invoked by the package init method.
+    return name == "init"
 }
 
 fun GoMethod.isOsInit(): Boolean {

@@ -187,5 +187,3 @@ class GoMachine(
         return state.callStack.isEmpty()
     }
 }
-
-private const val FULL_COVERAGE_PERCENT = 100
