@@ -17,8 +17,8 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
 import org.usvm.util.boxArrayValue
-import org.usvm.util.initializeTypedArrayOverrides
 import org.usvm.util.componentType
+import org.usvm.util.initializeTypedArrayOverrides
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.typedArrayBoxedLValue

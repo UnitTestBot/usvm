@@ -45,7 +45,7 @@ internal fun TsState.readTypedArrayElement(
     arrayType: EtsArrayType,
 ): TsTypedArrayElement = with(ctx) {
     initializeTypedArrayOverrides(array)
-    val sort = typeToSort(arrayType.elementType)
+    val sort = typeToSort(arrayType.componentType)
     val nativeValue = memory.read(mkArrayIndexLValue(sort, array, index, arrayType))
     val native = TsUnresolvedValue(
         boolValue = if (sort == boolSort) nativeValue.asExpr(boolSort) else falseExpr,
