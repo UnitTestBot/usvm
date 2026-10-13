@@ -689,6 +689,8 @@ class TsInterpreter(
             assignTo(scope, stmt.lhv, expr) ?: return
         }
 
+        observer?.onAssignmentCompleted(exprResolver.simpleValueResolver, stmt, scope)
+
         val nextStmt = stmt.nextStmt ?: return
         scope.doWithState { newStmt(nextStmt) }
     }
@@ -701,8 +703,10 @@ class TsInterpreter(
             return
         }
 
+        val exprResolver = exprResolverWithScope(scope)
+        observer?.onCallStatement(exprResolver.simpleValueResolver, stmt, scope)
+
         if (options.interproceduralAnalysis) {
-            val exprResolver = exprResolverWithScope(scope)
             exprResolver.resolve(stmt.expr) ?: return
             val nextStmt = stmt.nextStmt ?: return
             scope.doWithState { newStmt(nextStmt) }

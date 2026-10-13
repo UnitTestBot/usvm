@@ -1,5 +1,12 @@
 export function inlineChoose(value: number): number { if (value > 0) { return 1; } return 0; }
 
+export function isolatedSurrogate(value: string): number {
+  if (value.length === 1 && value.charCodeAt(0) === 0xd800) {
+    return 13;
+  }
+  return 0;
+}
+
 export function throwsAtTarget(): never {
   throw new Error('expected');
 }
