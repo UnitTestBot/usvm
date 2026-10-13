@@ -4,6 +4,7 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":usvm-core"))
     implementation(project(":usvm-ts"))
     implementation(Libs.jacodb_ets)
     implementation(Libs.kotlinx_serialization_json)

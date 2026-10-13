@@ -11,7 +11,10 @@ import org.usvm.UMachineOptions
 import org.usvm.api.targets.TsTarget
 import org.usvm.machine.call.TsBuiltInUnknownCallModels
 import org.usvm.machine.call.TsModelUnknownCallDispatcher
+import org.usvm.machine.call.TsResidualCallPolicy
+import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallDispatcher
+import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallModelCatalog
 import org.usvm.machine.call.deduplicateEtsFilesBySignature
 import org.usvm.machine.interpreter.TsInterpreter
@@ -54,6 +57,16 @@ data class TsAnalysisResult(
     val unsupportedPaths: List<String>,
 )
 
+/** Terminal states and failure metadata for one TypeScript analysis. */
+data class TsMachineAnalysisResult(
+    val states: List<TsState>,
+    val stopReason: TsAnalysisStopReason,
+    val timedOut: Boolean,
+    val unsupportedCall: Boolean,
+    val engineFailed: Boolean,
+    val unsupportedPaths: List<String>,
+)
+
 class TsMachine(
     scene: EtsScene,
     override val options: UMachineOptions,
@@ -92,10 +105,11 @@ class TsMachine(
         applicationAndSdkClasses = scene.projectClasses + runtimeScene.sdkClasses,
         dateNowMilliseconds = tsOptions.dateNowMilliseconds,
     )
+    private val failureTrackingUnknownCallObserver = FailureTrackingUnknownCallObserver(observer)
     private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsModelUnknownCallDispatcher(
         models = requireNotNull(resolvedUnknownCallModels),
         fallback = tsOptions.unknownCallFallback,
-        observer = observer,
+        observer = failureTrackingUnknownCallObserver,
     )
     private val interpreter = TsInterpreter(
         ctx = ctx,
@@ -111,17 +125,42 @@ class TsMachine(
     fun analyze(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
-    ): List<TsState> = analyzeWithOutcome(methods = methods, targets = targets).states
+        configureInitialState: (EtsMethod, TsState) -> Unit = { _, _ -> },
+    ): List<TsState> = analyzeWithMetadata(
+        methods = methods,
+        targets = targets,
+        configureInitialState = configureInitialState,
+    ).states
 
     fun analyzeWithOutcome(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
         configureInitialState: (EtsMethod, TsState) -> Unit = { _, _ -> },
     ): TsAnalysisResult {
+        val result = analyzeWithMetadata(
+            methods = methods,
+            targets = targets,
+            configureInitialState = configureInitialState,
+        )
+        return TsAnalysisResult(
+            states = result.states,
+            stopReason = result.stopReason,
+            unsupportedPaths = result.unsupportedPaths,
+        )
+    }
+
+    fun analyzeWithMetadata(
+        methods: List<EtsMethod>,
+        targets: List<TsTarget> = emptyList(),
+        configureInitialState: (EtsMethod, TsState) -> Unit = { _, _ -> },
+    ): TsMachineAnalysisResult {
+        interpreter.resetStepFailure()
+        failureTrackingUnknownCallObserver.reset()
+
         val (initialStates, unsupportedPaths) = createInitialStates(methods, targets, configureInitialState)
 
         if (initialStates.isEmpty()) {
-            return TsAnalysisResult(emptyList(), TsAnalysisStopReason.EXHAUSTED, unsupportedPaths.toList())
+            return emptyAnalysisResult(unsupportedPaths)
         }
 
         val methodsToTrackCoverage =
@@ -174,6 +213,7 @@ class TsMachine(
         }
 
         val stepsStatistics = StepsStatistics<EtsMethod, TsState>()
+        var timedOut = false
         val stopStrategy = object : StopStrategy {
             val strategy = createStopStrategy(
                 options,
@@ -185,7 +225,15 @@ class TsMachine(
             )
 
             override fun shouldStop(): Boolean {
+                if (options.timeout <= kotlin.time.Duration.ZERO) {
+                    timedOut = true
+                    return true
+                }
+
                 val result = strategy.shouldStop()
+                if (result && timeStatistics.runningTime >= options.timeout) {
+                    timedOut = true
+                }
 
                 if (result) {
                     logger.warn { "Stop strategy finished execution: ${strategy.stopReason()}" }
@@ -213,19 +261,7 @@ class TsMachine(
         }
 
         val supportedObserver = CompositeUMachineObserver(observers)
-        val outcomeObserver = object : UMachineObserver<TsState> by supportedObserver {
-            override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
-                val unsupportedReason = state.unsupportedReason
-                if (unsupportedReason != null) {
-                    if (stateReachable) {
-                        unsupportedPaths += unsupportedReason
-                    }
-                    return
-                }
-
-                supportedObserver.onStateTerminated(state, stateReachable)
-            }
-        }
+        val outcomeObserver = UnsupportedPathsObserver(supportedObserver, unsupportedPaths)
 
         run(
             interpreter,
@@ -241,12 +277,24 @@ class TsMachine(
             TsAnalysisStopReason.STOPPED
         }
 
-        return TsAnalysisResult(
+        return TsMachineAnalysisResult(
             states = statesCollector.collectedStates,
             stopReason = stopReason,
+            timedOut = timedOut,
+            unsupportedCall = failureTrackingUnknownCallObserver.pathStopped,
+            engineFailed = interpreter.stepFailed,
             unsupportedPaths = unsupportedPaths.toList(),
         )
     }
+
+    private fun emptyAnalysisResult(unsupportedPaths: Set<String>) = TsMachineAnalysisResult(
+        states = emptyList(),
+        stopReason = TsAnalysisStopReason.EXHAUSTED,
+        timedOut = false,
+        unsupportedCall = false,
+        engineFailed = false,
+        unsupportedPaths = unsupportedPaths.toList(),
+    )
 
     private fun createInitialStates(
         methods: List<EtsMethod>,
@@ -273,5 +321,45 @@ class TsMachine(
 
     override fun close() {
         components.close()
+    }
+}
+
+private class FailureTrackingUnknownCallObserver(
+    private val delegate: TsInterpreterObserver?,
+) : TsInterpreterObserver {
+    var pathStopped: Boolean = false
+        private set
+
+    override fun onUnknownCall(event: TsUnknownCallEvent) {
+        val decision = event.decision
+        val stopsPath = decision is TsUnknownCallDecision.ResidualFallback &&
+            decision.policy == TsResidualCallPolicy.STOP_PATH
+        if (stopsPath) {
+            pathStopped = true
+        }
+
+        delegate?.onUnknownCall(event)
+    }
+
+    fun reset() {
+        pathStopped = false
+    }
+}
+
+/** Keeps excluded satisfiable paths out of the ordinary witness collector. */
+private class UnsupportedPathsObserver(
+    private val delegate: UMachineObserver<TsState>,
+    private val unsupportedPaths: MutableSet<String>,
+) : UMachineObserver<TsState> by delegate {
+    override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
+        val unsupportedReason = state.unsupportedReason
+        if (unsupportedReason != null) {
+            if (stateReachable) {
+                unsupportedPaths += unsupportedReason
+            }
+            return
+        }
+
+        delegate.onStateTerminated(state, stateReachable)
     }
 }

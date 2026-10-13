@@ -193,7 +193,7 @@ class TsContext(
         else -> TODO("${type::class.simpleName} is not yet supported: $type")
     }
 
-    fun arrayDescriptorOf(type: EtsArrayType): EtsType {
+    fun arrayDescriptorOf(type: EtsArrayType): EtsArrayType {
         val storageElement = type.componentType
         return when (storageElement) {
             is EtsBooleanType -> EtsArrayType(EtsBooleanType, dimensions = 1)
