@@ -4,6 +4,8 @@ declare class ArrayModelPrimitives {
     static allocateLike(receiver: any[], length: number): any[];
     static elementString(value: any): string;
     static requireDense(receiver: any[]): void;
+    static prepareOwnSlots(receiver: any[]): void;
+    static hasOwnSlot(receiver: any[], index: number): boolean;
 }
 
 export class ArrayModels {
@@ -189,26 +191,38 @@ export class ArrayModels {
     }
 
     static reverse(receiver: any[]): any[] {
+        ArrayModelPrimitives.prepareOwnSlots(receiver);
         const length = receiver.length;
         let lower = 0;
         while (lower < Math.floor(length / 2)) {
             const upper = length - lower - 1;
-            const value = receiver[lower];
-            receiver[lower] = receiver[upper];
-            receiver[upper] = value;
+            const lowerPresent = ArrayModelPrimitives.hasOwnSlot(receiver, lower);
+            const upperPresent = ArrayModelPrimitives.hasOwnSlot(receiver, upper);
+            const lowerValue = receiver[lower];
+            const upperValue = receiver[upper];
+
+            if (upperPresent) receiver[lower] = upperValue;
+            else delete receiver[lower];
+
+            if (lowerPresent) receiver[upper] = lowerValue;
+            else delete receiver[upper];
+
             lower++;
         }
         return receiver;
     }
 
     static unshift(receiver: any[], first: any, second: any, third: any, count: number): number {
+        ArrayModelPrimitives.prepareOwnSlots(receiver);
         const length = receiver.length;
         const resultLength = length + count;
         ArrayModelPrimitives.grow(receiver, resultLength);
         let index = length;
         while (index > 0) {
             index--;
-            receiver[index + count] = receiver[index];
+            const present = ArrayModelPrimitives.hasOwnSlot(receiver, index);
+            if (present) receiver[index + count] = receiver[index];
+            else delete receiver[index + count];
         }
         if (count >= 1) receiver[0] = first;
         if (count >= 2) receiver[1] = second;

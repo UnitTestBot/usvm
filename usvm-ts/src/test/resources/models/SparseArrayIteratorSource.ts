@@ -1,4 +1,38 @@
 export class SparseArrayIteratorSource {
+    static unshiftSeveralHoles(): number {
+        const values = [, 11];
+        const length = values.unshift(7, 8, 9);
+        const copy = [...values];
+        return length === 5 && copy.length === 5 && copy[0] === 7 && copy[1] === 8 &&
+            copy[2] === 9 && copy[3] === undefined && copy[4] === 11 ? 1 : 0;
+    }
+
+    static unshiftNoItems(): number {
+        const values = [, 11];
+        const length = values.unshift();
+        const copy = [...values];
+        return length === 2 && copy.length === 2 && copy[0] === undefined && copy[1] === 11 ? 1 : 0;
+    }
+
+    static reverseBoxedValues(): number {
+        const values = [7, , 11];
+        const alias: any[] = values;
+        alias[0] = true;
+        values.reverse();
+        const copy = [...values];
+        return copy.length === 3 && copy[0] === 11 && copy[1] === undefined && copy[2] === true ? 1 : 0;
+    }
+
+    static symbolicDeleteThenReverse(index: number): number {
+        if (index !== 0 && index !== 1) return 0;
+        const values = [7, 11];
+        delete values[index];
+        values.reverse();
+        const copy = [...values];
+        if (index === 0) return copy[0] === 11 && copy[1] === undefined ? 1 : 3;
+        return copy[0] === undefined && copy[1] === 7 ? 2 : 3;
+    }
+
     static reverseAsymmetricHoles(): number {
         const values = [, 7, 11];
         const alias = values.reverse();

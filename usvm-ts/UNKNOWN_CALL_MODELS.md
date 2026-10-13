@@ -84,10 +84,11 @@ The built-in catalog includes the following public APIs and their internal stora
 | `ts.error.constructor`, `ts.typeError.constructor` | TypeScript/EtsIR bodies | Genuine `new Error(message)` / `new TypeError(message)` with one string argument; initializes `name` and `message`. Other arities, coercions, subclasses, `cause` and stack inspection are outside these models. |
 | `ts.date.*` (38 IDs) | TypeScript/EtsIR bodies | Numeric Date construction, `UTC`, fixed-clock `now`, getters, setters, `valueOf`, and source `toISOString`; see the Date boundary below. |
 
-When their models are enabled, arrays with known own-slot presence use the existing
-zero-argument `reverse` and one-argument `unshift`
-storage operations before model dispatch. These operations preserve holes and boxed overrides without requiring
-a dense-input proof. Arrays without either a slot-presence proof or a current dense-input proof still use fallback.
+The `reverse` and `unshift` source models accept known own-slot presence as well as a current dense-array proof.
+Their TypeScript bodies distinguish missing slots from present values, including `undefined`, and use ordinary
+indexed writes and deletes to preserve holes and boxed overrides. Two model-owned primitives prepare trusted
+own-slot metadata and read slot presence. Model selection, application events, and residual fallback all use the
+normal dispatcher; receivers without either proof remain residual. These models retain the length/result bound of 16.
 
 Matching standard calls are assumed to refer to genuine builtins. Monkey patching and prototype replacement are
 outside this experiment; no runtime provenance protocol is imposed. Receiver and argument checks establish the

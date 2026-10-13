@@ -193,6 +193,8 @@ class TsUnknownCallModelCatalogTest {
             "ts.array.primitive.allocateStrings",
             "ts.array.primitive.elementString",
             "ts.array.primitive.grow",
+            "ts.array.primitive.hasOwnSlot",
+            "ts.array.primitive.prepareOwnSlots",
             "ts.array.primitive.requireDense",
             "ts.array.primitive.truncateDense",
             "ts.array.push",

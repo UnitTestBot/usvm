@@ -25,7 +25,6 @@ import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.call.TsBuiltInUnknownCallModels
-import org.usvm.machine.call.TsModelUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModelDispatcher
 import org.usvm.machine.call.dispatch
@@ -133,31 +132,6 @@ private fun TsExprResolver.tryDispatchNumericBuiltin(
     return TsExprApproximationResult.ResolveFailure
 }
 
-private fun TsExprResolver.tryApproximateKnownSlotMutation(
-    stmt: TsVirtualMethodCallStmt,
-    arrayType: EtsArrayType,
-    array: UHeapRef,
-): TsExprApproximationResult {
-    val expr = stmt.call
-    val dispatcher = unknownCallDispatcher as? TsModelUnknownCallDispatcher
-    val modelEnabled = dispatcher?.hasModel(modelId = "ts.array.${expr.callee.name}") == true
-    if (!modelEnabled) return TsExprApproximationResult.NoApproximation
-
-    val hasKnownSlots = scope.calcOnState { array in knownArrayPropertyPresence }
-    val preservesKnownSlots = hasKnownSlots && when (expr.callee.name) {
-        "reverse" -> expr.args.isEmpty()
-        "unshift" -> expr.args.size == 1
-        else -> false
-    }
-    if (!preservesKnownSlots) return TsExprApproximationResult.NoApproximation
-
-    // These storage operations preserve known holes; the dense source models cannot handle them.
-    return when (expr.callee.name) {
-        "reverse" -> from(handleArrayReverse(expr, arrayType, array))
-        else -> from(handleArrayUnshift(expr, arrayType, array))
-    }
-}
-
 internal fun TsExprResolver.tryApproximateInstanceCall(
     stmt: TsVirtualMethodCallStmt,
 ): TsExprApproximationResult = with(ctx) {
@@ -200,9 +174,6 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         val elementSort = typeToSort(instanceType.componentType)
             .takeIf { it !is TsUnresolvedSort }
             ?: addressSort
-
-        val knownSlotMutation = tryApproximateKnownSlotMutation(stmt, instanceType, array)
-        if (knownSlotMutation !is TsExprApproximationResult.NoApproximation) return knownSlotMutation
 
         val usesModelDispatcher = unknownCallDispatcher is TsUnknownCallModelDispatcher
         val modeledArrayCall = usesModelDispatcher && TsBuiltInUnknownCallModels.hasPartialApproximationModel(

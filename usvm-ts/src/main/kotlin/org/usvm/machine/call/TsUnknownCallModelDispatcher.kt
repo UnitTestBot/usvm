@@ -33,8 +33,6 @@ class TsModelUnknownCallDispatcher(
     private val fallback: TsResidualCallPolicy,
     private val observer: TsInterpreterObserver? = null,
 ) : TsUnknownCallModelDispatcher {
-    internal fun hasModel(modelId: String): Boolean = modelId in models.modelIds
-
     override fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome {
         val application = scope.calcOnState {
             this@TsModelUnknownCallDispatcher.models.apply(this, call)

@@ -150,20 +150,6 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         state.boundedArrayGuard(array, arrayType, maximumLength = MAX_SOURCE_ARRAY_LENGTH)
     }
 
-    private val unshiftDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
-        val (array, arrayType) = state.concreteArray(call, inputs)
-            ?: return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
-        val arguments = call.arguments.map { argument ->
-            argument.resolved ?: return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
-        }
-        val isDenseInput = state.isUnmodifiedDenseInputArray(array, arrayType)
-        if (!isDenseInput) {
-            return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
-        }
-
-        state.boundedArrayGuard(array, arrayType, maximumLength = MAX_SOURCE_ARRAY_LENGTH - arguments.size)
-    }
-
     private val concatDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
         val (array, arrayType) = state.concreteArray(call, inputs)
             ?: return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
@@ -378,13 +364,13 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 id = "ts.array.reverse",
                 methodName = "reverse",
                 inputAdapter = noArgumentsAdapter,
-                domainGuard = denseReceiverDomain,
+                domainGuard = TsArraySlotPrimitives.reverseDomain,
             ),
             sourceModel(
                 id = "ts.array.unshift",
                 methodName = "unshift",
                 inputAdapter = variadicMutationAdapter,
-                domainGuard = unshiftDomain,
+                domainGuard = TsArraySlotPrimitives.unshiftDomain,
             ),
             sourceModel(
                 id = "ts.array.slice",
@@ -406,6 +392,16 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 methodName = "requireDense",
                 arity = 1,
                 implementation = TsDenseArrayPrimitives::requireDense,
+            ),
+            primitiveModel(
+                methodName = "prepareOwnSlots",
+                arity = 1,
+                implementation = TsArraySlotPrimitives::prepareOwnSlots,
+            ),
+            primitiveModel(
+                methodName = "hasOwnSlot",
+                arity = 2,
+                implementation = TsArraySlotPrimitives::hasOwnSlot,
             ),
             primitiveModel(
                 methodName = "grow",
@@ -444,6 +440,10 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             domainGuard = domainGuard,
             inputAdapter = inputAdapter,
             requiredModelIds = buildSet {
+                if (methodName in setOf("reverse", "unshift")) {
+                    add("ts.array.primitive.prepareOwnSlots")
+                    add("ts.array.primitive.hasOwnSlot")
+                }
                 if (methodName == "join") {
                     add("ts.array.primitive.elementString")
                     add(TsNumericIntrinsicModelFamily.NUMBER_IS_SAFE_INTEGER_ID)
