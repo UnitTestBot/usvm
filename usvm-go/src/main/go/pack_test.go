@@ -28,13 +28,13 @@ func TestMethodSignaturesPreserveVariadicParameters(t *testing.T) {
 	}
 	variadic := pkg.Scope().Lookup("Variadic").Type().Underlying().(*types.Interface)
 	slice := pkg.Scope().Lookup("Slice").Type().Underlying().(*types.Interface)
-	sliceReceiver := pkg.Scope().Lookup("SliceReceiver").Type()
-	variadicReceiver := pkg.Scope().Lookup("VariadicReceiver").Type()
+	sliceReceiver := pkg.Scope().Lookup("SliceReceiver").Type().(*types.Named)
+	variadicReceiver := pkg.Scope().Lookup("VariadicReceiver").Type().(*types.Named)
 	exporter := new(Package)
 
 	cases := []struct {
 		name     string
-		receiver types.Type
+		receiver *types.Named
 		contract *types.Interface
 	}{
 		{"slice versus variadic", sliceReceiver, variadic},
