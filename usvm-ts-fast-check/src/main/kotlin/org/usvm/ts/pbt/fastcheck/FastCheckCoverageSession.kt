@@ -41,6 +41,7 @@ internal class FastCheckCoverageSession private constructor(
                 add("--exclude-node-modules=false")
             }
             add(nodeExecutable)
+            add(workspace.adapterRoot.resolve("dist/src/coverage-launcher.js").toString())
             add(adapterEntryPoint.toString())
         }
 
