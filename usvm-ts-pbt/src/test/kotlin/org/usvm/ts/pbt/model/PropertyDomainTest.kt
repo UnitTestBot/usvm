@@ -8,10 +8,11 @@ class PropertyDomainTest {
     @Test
     fun `object membership requires every declared field and no extras`() {
         val domain = ObjectDomain(mapOf("score" to NumberDomain(), "enabled" to BooleanDomain))
-        val valid = JsConcreteValue.Object(mapOf(
+        val fields = mapOf(
             "score" to JsConcreteValue.number(2.0),
             "enabled" to JsConcreteValue.Boolean(true),
-        ))
+        )
+        val valid = JsConcreteValue.Object(fields = fields)
 
         assertTrue(valid in domain)
         assertFalse(JsConcreteValue.Object(valid.fields - "enabled") in domain)

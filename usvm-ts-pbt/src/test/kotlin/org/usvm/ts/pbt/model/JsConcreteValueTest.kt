@@ -58,10 +58,11 @@ class JsConcreteValueTest {
 
     @Test
     fun `plain objects keep nested tagged values through JSON`() {
-        val value = JsConcreteValue.Object(mapOf(
+        val fields = mapOf(
             "score" to JsConcreteValue.number(-0.0),
             "nested" to JsConcreteValue.Object(mapOf("enabled" to JsConcreteValue.Boolean(true))),
-        ))
+        )
+        val value = JsConcreteValue.Object(fields = fields)
 
         val encoded = PropertyManifestJson.json.encodeToString<JsConcreteValue>(value)
 
