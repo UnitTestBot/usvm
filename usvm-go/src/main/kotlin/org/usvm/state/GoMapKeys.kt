@@ -6,26 +6,42 @@ import org.usvm.GoContext
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.api.refSetContainsElement
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.collection.map.length.UMapLengthLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.memory.UReadOnlyMemory
+import org.usvm.mkSizeAddExpr
+import org.usvm.mkSizeExpr
+import org.usvm.mkSizeGeExpr
+import org.usvm.sizeSort
 
-/** Unselected representative branches cannot create extra equal-value input-map entries. */
+/** Canonical identities and observed membership must agree with the declared map size. */
 internal fun GoState.mapKeyCanonicalityConstraint(
     map: UHeapRef,
     type: MapType,
     sourceMemory: UReadOnlyMemory<GoType> = memory,
 ): UBoolExpr = with(ctx) {
     var result: UBoolExpr = trueExpr
+    var minimumSize: UExpr<USizeSort> = mkSizeExpr(0)
+    val previousEntries = mutableListOf<GoMapKeyRepresentative>()
     for (entry in data.mapKeyRepresentatives[type.keyType].orEmpty()) {
         val canonical = mkHeapRefEq(entry.reference, entry.canonicalReference)
         val present = sourceMemory.refSetContainsElement(map, entry.reference, type)
         val valid = mkOr(mkNot(entry.guard), canonical, mkNot(present))
         result = mkAnd(result, valid)
+
+        val alreadyCounted = mkOr(previousEntries.map { previous ->
+            mkAnd(previous.guard, mkHeapRefEq(previous.reference, entry.reference))
+        })
+        val contributes = mkAnd(entry.guard, present, mkNot(alreadyCounted))
+        minimumSize = mkIte(contributes, mkSizeAddExpr(minimumSize, mkSizeExpr(1)), minimumSize)
+        previousEntries += entry
     }
-    result
+    val declaredSize = sourceMemory.read(UMapLengthLValue(map, type, sizeSort))
+    mkAnd(result, mkSizeGeExpr(declaredSize, minimumSize))
 }
 
 /** Storage identity and the supplied Go value have separate responsibilities. */
