@@ -16,11 +16,13 @@ import kotlin.test.assertTrue
 
 internal class CurrentTsCallsInputDomainsTest : CurrentTsCallsSymbolicEngineTestSupport() {
     @Test
-    fun `object input domains are rejected before symbolic materialization`() {
+    fun `object input domains produce field witnesses after symbolic materialization`() {
         val fixture = fixture(
             source = """
-                export function objectInput(value: any): boolean {
-                  if (typeof value === "object") {
+                export interface ObjectInput { count: number }
+
+                export function objectInput(value: ObjectInput): boolean {
+                  if (value.count === 1) {
                     return true;
                   }
                   return false;
@@ -39,9 +41,13 @@ internal class CurrentTsCallsInputDomainsTest : CurrentTsCallsSymbolicEngineTest
         val preflight = fixture.preflight()
         val result = fixture.search(modelIds = emptySet())
 
-        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, preflight.status, preflight.toString())
-        assertEquals(CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED, preflight.reasonCode)
-        assertEquals(CallsSymbolicStatus.UNSUPPORTED, result.status, result.toString())
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, preflight.status, preflight.toString())
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+
+        val inputs = assertNotNull(result.inputs, result.toString())
+        val value = assertIs<JsConcreteValue.Object>(inputs.single())
+        assertEquals(JsConcreteValue.number(1.0), value.fields.getValue("count"))
+        fixture.assertReplayConfirmed(inputs)
     }
 
     @Test

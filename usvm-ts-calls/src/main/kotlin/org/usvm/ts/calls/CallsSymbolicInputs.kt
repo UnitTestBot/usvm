@@ -1,6 +1,7 @@
 package org.usvm.ts.calls
 
 import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsScene
 import org.usvm.machine.state.TsState
 import org.usvm.ts.pbt.fastcheck.TypeScriptSourceCapture
 import org.usvm.ts.pbt.mapping.EtsInputBinding
@@ -11,10 +12,12 @@ import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
+import org.usvm.ts.pbt.usvm.PlainObjectInputShapes
 import org.usvm.util.mkRegisterStackLValue
 
 internal fun PropertyDomain.isSupportedCallsSymbolicDomain(): Boolean = when (this) {
@@ -23,6 +26,7 @@ internal fun PropertyDomain.isSupportedCallsSymbolicDomain(): Boolean = when (th
     is OptionalDomain -> value.isSupportedCallsSymbolicDomain() &&
         (nil == JsConcreteValue.Null || nil == JsConcreteValue.Undefined)
     is ArrayDomain -> element.isSupportedCallsSymbolicDomain()
+    is ObjectDomain -> fields.values.all { it.isSupportedCallsSymbolicDomain() }
     else -> false
 }
 
@@ -31,6 +35,7 @@ internal fun PropertyDomain.callsInputCapacity(): Int = when (this) {
     is ConstantDomain -> (value as? JsConcreteValue.String)?.value?.length ?: 0
     is OptionalDomain -> value.callsInputCapacity()
     is ArrayDomain -> maxOf(maxLength, element.callsInputCapacity())
+    is ObjectDomain -> fields.values.maxOfOrNull { it.callsInputCapacity() } ?: 0
     else -> 0
 }
 
@@ -46,7 +51,11 @@ internal class CallsSymbolicInputs(
     bindings: List<EtsInputBinding>,
     private val lexicalEnvironment: EtsLexicalEnvironmentBinding?,
     private val captures: List<TypeScriptSourceCapture>,
+    sourceScene: EtsScene,
 ) {
+    private val objectShapes = PlainObjectInputShapes(sourceScene, inputs.map(PropertyInput::domain))
+    val scene: EtsScene = objectShapes.scene
+
     private val boundInputs: List<Pair<PropertyInput, EtsInputBinding>>
     private var snapshots: List<CallsInputSnapshot>? = null
 
@@ -69,6 +78,7 @@ internal class CallsSymbolicInputs(
             state.initializeInput(
                 stackSlot = binding.stackSlot,
                 domain = input.domain,
+                objectShapes = objectShapes,
             )
         }
         initializedSnapshots.forEach { snapshot -> snapshot.markDenseInputs(state) }
@@ -86,8 +96,9 @@ internal class CallsSymbolicInputs(
 private fun TsState.initializeInput(
     stackSlot: Int,
     domain: PropertyDomain,
+    objectShapes: PlainObjectInputShapes,
 ): CallsInputSnapshot = with(ctx) {
-    val input = materializeCallsInput(domain)
+    val input = materializeCallsInput(domain = domain, objectShapes = objectShapes)
     when (input.value.sort) {
         boolSort -> memory.write(
             mkRegisterStackLValue(boolSort, stackSlot),

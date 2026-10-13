@@ -5,15 +5,19 @@ import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberLiteralType
 import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsRefType
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
@@ -24,18 +28,23 @@ import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
+import org.usvm.util.EtsHierarchy
 import org.usvm.util.componentType
+import org.usvm.util.declaredInstanceProperty
 
 /** Rejects bindings whose frozen domain would replace a source parameter with an incompatible runtime kind. */
 internal fun callsInputTypePreflight(
     inputs: List<PropertyInput>,
     bindings: List<EtsInputBinding>,
     method: EtsMethod,
+    scene: EtsScene,
 ): String? {
+    val hierarchy = EtsHierarchy(scene)
     val domainsByName = inputs.associate { input -> input.name to input.domain }
     val genericParameters = method.typeParameters.filterIsInstance<EtsGenericType>().associateBy { it.typeName }
     for (binding in bindings) {
@@ -43,6 +52,7 @@ internal fun callsInputTypePreflight(
             type = binding.parameter.type,
             genericParameters = genericParameters,
             path = "inputs.${binding.propertyInputName}",
+            hierarchy = hierarchy,
         )
         if (limitation != null) {
             return "$limitation (source parameter ${binding.parameter.name}, stack slot ${binding.stackSlot})"
@@ -56,13 +66,14 @@ private fun PropertyDomain.inputTypeLimitation(
     type: EtsType,
     genericParameters: Map<String, EtsGenericType>,
     path: String,
+    hierarchy: EtsHierarchy,
     visitedGenerics: Set<String> = emptySet(),
 ): String? {
     if (this is OptionalDomain) {
-        val valueLimitation = value.inputTypeLimitation(type, genericParameters, path, visitedGenerics)
+        val valueLimitation = value.inputTypeLimitation(type, genericParameters, path, hierarchy, visitedGenerics)
         if (valueLimitation != null) return valueLimitation
 
-        return ConstantDomain(nil).inputTypeLimitation(type, genericParameters, "$path.nil", visitedGenerics)
+        return ConstantDomain(nil).inputTypeLimitation(type, genericParameters, "$path.nil", hierarchy, visitedGenerics)
     }
 
     val constant = (this as? ConstantDomain)?.value
@@ -106,10 +117,10 @@ private fun PropertyDomain.inputTypeLimitation(
             }
 
             val upperBound = type.constraint ?: genericParameters[type.typeName]?.constraint ?: EtsUnknownType
-            return inputTypeLimitation(upperBound, genericParameters, path, visitedGenerics + type.typeName)
+            return inputTypeLimitation(upperBound, genericParameters, path, hierarchy, visitedGenerics + type.typeName)
         }
         is EtsAliasType -> {
-            return inputTypeLimitation(type.originalType, genericParameters, path, visitedGenerics)
+            return inputTypeLimitation(type.originalType, genericParameters, path, hierarchy, visitedGenerics)
         }
         is EtsArrayType -> {
             val isSupportedArray = this is ArrayDomain && type.dimensions >= 1
@@ -118,17 +129,35 @@ private fun PropertyDomain.inputTypeLimitation(
                     type = type.componentType,
                     genericParameters = genericParameters,
                     path = "$path[]",
+                    hierarchy = hierarchy,
                     visitedGenerics = visitedGenerics,
                 )
             }
             false
         }
+        is EtsClassType, is EtsUnclearRefType -> {
+            return objectFieldTypeLimitation(
+                type = type as EtsRefType,
+                genericParameters = genericParameters,
+                path = path,
+                hierarchy = hierarchy,
+                visitedGenerics = visitedGenerics,
+            )
+        }
         is EtsUnionType -> {
-            type.types.any { member -> inputTypeLimitation(member, genericParameters, path, visitedGenerics) == null }
+            type.types.any { member ->
+                inputTypeLimitation(
+                    type = member,
+                    genericParameters = genericParameters,
+                    path = path,
+                    hierarchy = hierarchy,
+                    visitedGenerics = visitedGenerics,
+                ) == null
+            }
         }
         is EtsIntersectionType -> {
             for (member in type.types) {
-                val limitation = inputTypeLimitation(member, genericParameters, path, visitedGenerics)
+                val limitation = inputTypeLimitation(member, genericParameters, path, hierarchy, visitedGenerics)
                 if (limitation != null) return limitation
             }
             true
@@ -139,4 +168,32 @@ private fun PropertyDomain.inputTypeLimitation(
     }
 
     return if (compatible) null else "$path: frozen domain $this is not supported for declared type $type"
+}
+
+private fun PropertyDomain.objectFieldTypeLimitation(
+    type: EtsRefType,
+    genericParameters: Map<String, EtsGenericType>,
+    path: String,
+    hierarchy: EtsHierarchy,
+    visitedGenerics: Set<String>,
+): String? {
+    if (this !is ObjectDomain) {
+        return "$path: frozen domain $this requires a compatible object domain for declared type $type"
+    }
+
+    for ((name, domain) in fields) {
+        val fieldPath = "$path.$name"
+        val fieldType = declaredInstanceProperty(type, name, hierarchy)?.type
+            ?: return "$fieldPath: cannot resolve the declared field type in $type"
+        val limitation = domain.inputTypeLimitation(
+            type = fieldType,
+            genericParameters = genericParameters,
+            path = fieldPath,
+            hierarchy = hierarchy,
+            visitedGenerics = visitedGenerics,
+        )
+        if (limitation != null) return limitation
+    }
+
+    return null
 }

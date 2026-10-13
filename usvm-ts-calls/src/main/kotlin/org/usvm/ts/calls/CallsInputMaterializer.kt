@@ -5,13 +5,6 @@ import io.ksmt.sort.KBv16Sort
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
-import org.jacodb.ets.model.EtsBooleanType
-import org.jacodb.ets.model.EtsNullType
-import org.jacodb.ets.model.EtsNumberType
-import org.jacodb.ets.model.EtsStringType
-import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsUndefinedType
-import org.jacodb.ets.model.EtsUnionType
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.api.initializeArrayLength
@@ -29,14 +22,20 @@ import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.StringDomain
+import org.usvm.ts.pbt.usvm.PlainObjectInputShapes
 import org.usvm.util.allocateBoundedString
 import org.usvm.util.componentType
 import org.usvm.util.mkArrayIndexLValue
+import org.usvm.util.mkFieldLValue
 
-internal fun TsState.materializeCallsInput(domain: PropertyDomain): MaterializedCallsInput = with(ctx) {
+internal fun TsState.materializeCallsInput(
+    domain: PropertyDomain,
+    objectShapes: PlainObjectInputShapes,
+): MaterializedCallsInput = with(ctx) {
     when (domain) {
         BooleanDomain -> {
             val value = makeSymbolicPrimitive(boolSort)
@@ -63,15 +62,39 @@ internal fun TsState.materializeCallsInput(domain: PropertyDomain): Materialized
             )
         }
         is OptionalDomain -> {
-            materializeCallsOptional(domain)
+            materializeCallsOptional(domain = domain, objectShapes = objectShapes)
         }
         is ArrayDomain -> {
-            materializeCallsArray(domain)
+            materializeCallsArray(domain = domain, objectShapes = objectShapes)
+        }
+        is ObjectDomain -> {
+            materializeCallsObject(domain = domain, objectShapes = objectShapes)
         }
         else -> {
             error("Unsupported Calls input domain: $domain")
         }
     }
+}
+
+private fun TsState.materializeCallsObject(
+    domain: ObjectDomain,
+    objectShapes: PlainObjectInputShapes,
+): MaterializedCallsInput = with(ctx) {
+    val runtimeType = objectShapes.typeOf(domain)
+    val reference = memory.allocConcrete(runtimeType)
+    val fields = domain.fields.mapValues { (name, fieldDomain) ->
+        val field = materializeCallsInput(domain = fieldDomain, objectShapes = objectShapes)
+        val sort = field.value.sort
+
+        memory.write(
+            mkFieldLValue(sort, reference, name),
+            field.value.asExpr(sort),
+            guard = trueExpr,
+        )
+        field.snapshot
+    }
+
+    MaterializedCallsInput(reference, ObjectInputSnapshot(fields))
 }
 
 private fun TsState.initializeIntegerInput(domain: IntegerDomain): UExpr<KFp64Sort> = with(ctx) {
@@ -105,8 +128,11 @@ private fun TsState.materializeCallsConstant(value: JsConcreteValue): UExpr<*> =
     }
 }
 
-private fun TsState.materializeCallsOptional(domain: OptionalDomain): MaterializedCallsInput = with(ctx) {
-    val nested = materializeCallsInput(domain.value)
+private fun TsState.materializeCallsOptional(
+    domain: OptionalDomain,
+    objectShapes: PlainObjectInputShapes,
+): MaterializedCallsInput = with(ctx) {
+    val nested = materializeCallsInput(domain = domain.value, objectShapes = objectShapes)
     val nil = materializeCallsConstant(domain.nil)
     val chooseValue: UBoolExpr = makeSymbolicPrimitive(boolSort)
     val nestedBool = extractValue(nested.value, boolSort, ::getIntermediateBoolLValue)
@@ -131,48 +157,12 @@ private fun TsState.materializeCallsOptional(domain: OptionalDomain): Materializ
     MaterializedCallsInput(value, OptionalInputSnapshot(chooseValue, nested.snapshot, domain.nil))
 }
 
-private fun PropertyDomain.callsRuntimeType(): EtsType = when (this) {
-    BooleanDomain -> {
-        EtsBooleanType
-    }
-    is IntegerDomain, is NumberDomain -> {
-        EtsNumberType
-    }
-    is StringDomain -> {
-        EtsStringType
-    }
-    is ArrayDomain -> {
-        val nestedType = element.callsRuntimeType()
-        if (nestedType is EtsArrayType) {
-            nestedType.copy(dimensions = nestedType.dimensions + 1)
-        } else {
-            EtsArrayType(elementType = nestedType, dimensions = 1)
-        }
-    }
-    is OptionalDomain -> {
-        val nestedType = value.callsRuntimeType()
-        val nilType = ConstantDomain(nil).callsRuntimeType()
-        EtsUnionType(types = listOf(nestedType, nilType))
-    }
-    is ConstantDomain -> {
-        when (value) {
-            is JsConcreteValue.Boolean -> EtsBooleanType
-            is JsConcreteValue.Number -> EtsNumberType
-            is JsConcreteValue.String -> EtsStringType
-            JsConcreteValue.Null -> EtsNullType
-            JsConcreteValue.Undefined -> EtsUndefinedType
-            is JsConcreteValue.Array, is JsConcreteValue.Object -> error(
-                "Structured constants are not primitive domains",
-            )
-        }
-    }
-    else -> {
-        error("Unsupported array element domain: $this")
-    }
-}
 
-private fun TsState.materializeCallsArray(domain: ArrayDomain): MaterializedCallsInput = with(ctx) {
-    val runtimeType = domain.callsRuntimeType() as EtsArrayType
+private fun TsState.materializeCallsArray(
+    domain: ArrayDomain,
+    objectShapes: PlainObjectInputShapes,
+): MaterializedCallsInput = with(ctx) {
+    val runtimeType = objectShapes.runtimeTypeOf(domain) as EtsArrayType
     val descriptor = arrayDescriptorOf(runtimeType)
     val arrayRef = memory.allocConcrete(runtimeType)
     val length = initializeLength(minLength = domain.minLength, maxLength = domain.maxLength)
@@ -184,7 +174,7 @@ private fun TsState.materializeCallsArray(domain: ArrayDomain): MaterializedCall
     )
     val elementSort = typeToSort(runtimeType.componentType)
     val elements = List(domain.maxLength) { index ->
-        val element = materializeCallsInput(domain.element)
+        val element = materializeCallsInput(domain = domain.element, objectShapes = objectShapes)
         val liveIndex = mkBvSignedLessExpr(mkBv(index), length)
         when (elementSort) {
             boolSort -> memory.write(

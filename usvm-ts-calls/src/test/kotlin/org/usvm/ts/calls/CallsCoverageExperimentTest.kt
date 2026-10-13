@@ -5,6 +5,7 @@ import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
@@ -197,7 +198,7 @@ class CallsCoverageExperimentTest {
         ).use { replayer -> replayer.replay(inputs = inputs, timeoutMillis = 20_000L) }
 
         assertEquals(CallsCoverageCompletion.RETURNED, replay.completion)
-        assertTrue(replay.coveredStatementKeys.isNotEmpty())
+        assertTrue(replay.coveredStatementKeys.isNotEmpty(), replay.toString())
     }
 
     @Test
@@ -214,6 +215,56 @@ class CallsCoverageExperimentTest {
         ).use { replayer ->
             replayer.replay(inputs = emptyList(), timeoutMillis = 20_000L)
         }
+
+        assertEquals(CallsCoverageCompletion.RETURNED, replay.completion)
+        assertTrue(replay.coveredStatementKeys.isNotEmpty())
+    }
+
+    @Test
+    fun `coverage search reports the concrete runtime limitation reason`() {
+        val fixture = fixture(
+            source = """
+                export function writesNamedProperty(value: number): boolean {
+                  const values = [1];
+                  values[0.5] = value;
+                  return true;
+                }
+            """.trimIndent(),
+            exportName = "writesNamedProperty",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+        )
+
+        val search = CurrentTsCallsCoverageEngine(testSourceEngine()).search(
+            request = coverageRequest(fixture, onCandidate = {}),
+        )
+
+        assertTrue(search.runtimeLimited, search.toString())
+        assertTrue("ARRAY_NAMED_PROPERTY_WRITE" in search.runtimeLimitationReasons, search.toString())
+    }
+
+    @Test
+    fun `coverage replay compares the object before the source mutates it`() {
+        val fixture = fixture(
+            source = """
+                export function increment(input: { score: number }): number {
+                  input.score += 1;
+                  return input.score;
+                }
+            """.trimIndent(),
+            exportName = "increment",
+            inputs = listOf(
+                PropertyInput(
+                    name = "input",
+                    domain = ObjectDomain(mapOf("score" to NumberDomain())),
+                ),
+            ),
+        )
+        val inputs = listOf(JsConcreteValue.Object(mapOf("score" to JsConcreteValue.number(3.0))))
+
+        val replay = OriginalTypeScriptCoverageReplayer(
+            sourceRoot = fixture.sourceRoot,
+            function = fixture.function,
+        ).use { replayer -> replayer.replay(inputs = inputs, timeoutMillis = 20_000L) }
 
         assertEquals(CallsCoverageCompletion.RETURNED, replay.completion)
         assertTrue(replay.coveredStatementKeys.isNotEmpty())
