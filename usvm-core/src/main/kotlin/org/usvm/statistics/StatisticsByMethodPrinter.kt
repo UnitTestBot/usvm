@@ -20,10 +20,17 @@ class StatisticsByMethodPrinter<Method, Statement, State : UState<*, Method, Sta
         if (methods.isEmpty()) {
             return
         }
+
+        val trackedMethods = coverageStatistics.coverageZone.toHashSet()
         val statsStrings = mutableListOf(StatisticsRow("Method", "Coverage, %", "Time spent, ms", "Steps"))
         methods.forEach {
             val name = getMethodSignature(it)
-            val coverage = coverageStatistics.getMethodCoverage(it).roundToInt().toString()
+            val coverage = if (it in trackedMethods) {
+                coverageStatistics.getMethodCoverage(it).roundToInt().toString()
+            } else {
+                "N/A"
+            }
+
             val time = timeStatistics.getTimeSpentOnMethod(it).inWholeMilliseconds.toString()
             val stepsCount = stepsStatistics.getMethodSteps(it).toString()
             statsStrings.add(StatisticsRow(name, coverage, time, stepsCount))

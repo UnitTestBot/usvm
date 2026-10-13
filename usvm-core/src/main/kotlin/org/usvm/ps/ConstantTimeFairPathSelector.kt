@@ -9,9 +9,9 @@ import kotlin.time.Duration
  * [UPathSelector] implementation which uses strategy similar to Linux O(1) scheduler
  * to switch between states with different [Key]s (for example, different entry point methods).
  * Keys are switched in round-robin fashion (so, all keys are guaranteed to be selected). Each key is given
- * an equal time quantum which is calculated using the value returned by [getRemainingTime]. If such quantum is
- * exceeded by some key, quantum for the remaining keys in round is recalculated (decreased equally). From other side,
- * if some key takes less time than the quantum, another round is likely to happen.
+ * an equal time quantum calculated from [getRemainingTime] and bounded by [maxTimeQuantum]. An uncapped overrun is
+ * redistributed over the remaining keys; capped turns recompute their share of the actual remaining budget.
+ * If a key finishes before its quantum ends, there may be time for another round.
  * Spent time is estimated as timespan between successive peeks. Keys in queue are sorted by [KeyPriority] and total time spent.
  *
  * @param initialKeys complete set of [Key]s which will be used with this instance. Operations with states having other keys
@@ -22,6 +22,7 @@ import kotlin.time.Duration
  * @param getKeyPriority returns priority by key. Priority can change over time. Smaller values have greater priority.
  * @param basePathSelectorFactory function to create a [UPathSelector] associated with specific key. States
  * with the same key are maintained in path selector created by this function.
+ * @param maxTimeQuantum upper bound for each turn. It cannot interrupt an in-flight interpreter step.
  */
 class ConstantTimeFairPathSelector<State, Key, KeyPriority : Comparable<KeyPriority>>(
     initialKeys: Set<Key>,
@@ -29,7 +30,8 @@ class ConstantTimeFairPathSelector<State, Key, KeyPriority : Comparable<KeyPrior
     private val getRemainingTime: () -> Duration,
     getKey: (State) -> Key,
     private val getKeyPriority: (Key) -> KeyPriority,
-    basePathSelectorFactory: (Key) -> UPathSelector<State>
+    basePathSelectorFactory: (Key) -> UPathSelector<State>,
+    private val maxTimeQuantum: Duration = Duration.INFINITE,
 ) : KeyedPathSelector<State, Key>(getKey) {
 
     private data class KeysQueueElement<Key, KeyPriority>(val key: Key, var priority: KeyPriority, var elapsed: Duration)
@@ -44,15 +46,18 @@ class ConstantTimeFairPathSelector<State, Key, KeyPriority : Comparable<KeyPrior
 
     init {
         require(initialKeys.any()) { "initialKeys must contain at least one element" }
+        require(maxTimeQuantum > Duration.ZERO) { "maxTimeQuantum must be positive" }
         stopwatch.reset()
         initialKeys.forEach {
             pathSelectors[it] = basePathSelectorFactory(it)
             activeQueue.add(KeysQueueElement(it, getKeyPriority(it), Duration.ZERO))
         }
         val pathSelectorsCount = pathSelectors.size
-        val remainingTime = getRemainingTime()
-        currentTimeQuantum = remainingTime / pathSelectorsCount
+        currentTimeQuantum = calculateTimeQuantum(pathSelectorsCount)
     }
+
+    private fun calculateTimeQuantum(keysCount: Int): Duration =
+        minOf(getRemainingTime() / keysCount, maxTimeQuantum)
 
     private fun peekFromQueues(): KeysQueueElement<Key, KeyPriority> {
         check(activeQueue.isNotEmpty() || expiredList.isNotEmpty()) { "Trying to peek from empty path selector" }
@@ -62,8 +67,7 @@ class ConstantTimeFairPathSelector<State, Key, KeyPriority : Comparable<KeyPrior
                 activeQueue.add(it)
             }
             expiredList.clear()
-            val remainingTime = getRemainingTime()
-            currentTimeQuantum = remainingTime / activeQueue.size
+            currentTimeQuantum = calculateTimeQuantum(activeQueue.size)
         }
         return activeQueue.peek()
     }
@@ -91,7 +95,11 @@ class ConstantTimeFairPathSelector<State, Key, KeyPriority : Comparable<KeyPrior
                 pathSelectors.remove(currentKey.key)
             }
             if (stopwatch.elapsed > currentTimeQuantum && activeQueue.isNotEmpty()) {
-                currentTimeQuantum -= (stopwatch.elapsed - currentTimeQuantum) / activeQueue.size
+                currentTimeQuantum = if (maxTimeQuantum.isFinite()) {
+                    calculateTimeQuantum(activeQueue.size)
+                } else {
+                    currentTimeQuantum - (stopwatch.elapsed - currentTimeQuantum) / activeQueue.size
+                }
             }
             currentKey = peekFromQueues()
             currentPathSelector = pathSelectors[currentKey.key]
