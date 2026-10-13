@@ -228,7 +228,10 @@ fun <Method, Statement, Target, State> createPathSelector(
                 getKeyPriority = getMethodCoverage,
                 basePathSelectorFactory = ::createBasePathSelector,
                 maxTimeQuantum = options.maxEntryPointTimeQuantum,
-            )
+                onTimeQuantum = timeStatistics.onEntryPointTimeQuantum,
+            ).also { selector ->
+                timeStatistics.finishTimeQuantum = selector::finishTimeQuantum
+            }
         }
 
         PathSelectorFairnessStrategy.COMPLETELY_FAIR ->
