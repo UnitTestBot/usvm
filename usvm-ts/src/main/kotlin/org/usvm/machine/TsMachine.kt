@@ -163,6 +163,14 @@ class TsMachine(
         )
     }
 
+    private fun createTimeStatistics(): TimeStatistics<EtsMethod, TsState> = TimeStatistics(
+        onEntryPointTimeQuantum = { method, requested, elapsed ->
+            observer?.onEntryPointTimeQuantum(
+                TsEntryPointTimeQuantumEvent(entrypoint = method, requested = requested, elapsed = elapsed),
+            )
+        },
+    )
+
     fun analyzeWithMetadata(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
@@ -194,13 +202,7 @@ class TsMachine(
                 else -> TODO("Unsupported yet")
             }
 
-        val timeStatistics = TimeStatistics<EtsMethod, TsState>(
-            onEntryPointTimeQuantum = { method, requested, elapsed ->
-                observer?.onEntryPointTimeQuantum(
-                    TsEntryPointTimeQuantumEvent(entrypoint = method, requested = requested, elapsed = elapsed),
-                )
-            },
-        )
+        val timeStatistics = createTimeStatistics()
 
         val pathSelector = createPathSelector(
             initialStates = initialStates,

@@ -30,6 +30,8 @@ internal data class CallsCoverageCandidate(
     val inputs: List<JsConcreteValue>,
     val newSymbolicStatements: Int,
     val completion: CallsCoverageCompletion,
+    val entryPointId: String? = null,
+    val observation: CallsClassObservation? = null,
 )
 
 @Serializable
@@ -95,6 +97,7 @@ internal data class CallsCoverageSearchRequest(
 internal class CurrentTsCallsCoverageEngine(
     private val sourceEngine: CurrentTsCallsSymbolicEngine = CurrentTsCallsSymbolicEngine(),
 ) {
+    @Suppress("LongMethod")
     fun search(request: CallsCoverageSearchRequest): CallsCoverageSearchResult {
         val preparationStarted = TimeSource.Monotonic.markNow()
         val preparation = sourceEngine.prepareFunction(request.toFunctionPreflightRequest())
@@ -122,10 +125,14 @@ internal class CurrentTsCallsCoverageEngine(
         val extractionFailures = mutableListOf<String>()
         val machineCallStarted = TimeSource.Monotonic.markNow()
         val observer = CompletedCoverageCandidateObserver(
-            method = preparation.method,
+            contexts = listOf(
+                CallsCoverageCandidateContext(
+                    method = preparation.method,
+                    inputDomains = request.function.inputs,
+                    symbolicInputs = symbolicInputs,
+                ),
+            ),
             coverageStatements = scope.statements,
-            inputDomains = request.function.inputs,
-            symbolicInputs = symbolicInputs,
             candidateCap = request.candidateCap,
             budgetMillis = request.budget.inWholeMilliseconds,
             machineCallStarted = machineCallStarted,
@@ -167,6 +174,7 @@ internal class CurrentTsCallsCoverageEngine(
                 )
             }
         }
+        observer.finishTiming()
         val machineCallElapsedMillis = machineCallStarted.elapsedNow().inWholeMilliseconds
         val machineTeardownElapsedMillis = (
             machineCallElapsedMillis - observer.machineSetupElapsedMillis - observer.searchElapsedMillis
@@ -256,20 +264,30 @@ private fun emptyCoverageResult(
     )
 }
 
-private class CompletedCoverageCandidateObserver(
-    private val method: EtsMethod,
+internal data class CallsCoverageCandidateContext(
+    val method: EtsMethod,
+    val inputDomains: List<org.usvm.ts.pbt.model.PropertyInput>,
+    val symbolicInputs: CallsSymbolicInputs,
+    val entryPointId: String? = null,
+    val observationFields: Map<String, org.usvm.ts.pbt.model.PropertyDomain>? = null,
+)
+
+internal class CompletedCoverageCandidateObserver(
+    contexts: List<CallsCoverageCandidateContext>,
     private val coverageStatements: Set<EtsStmt>,
-    private val inputDomains: List<org.usvm.ts.pbt.model.PropertyInput>,
-    private val symbolicInputs: CallsSymbolicInputs,
     private val candidateCap: Int,
     private val budgetMillis: Long,
     private val machineCallStarted: TimeSource.Monotonic.ValueTimeMark,
     private val onCandidate: (CallsCoverageCandidate) -> Unit,
     private val onExtractionFailure: (String) -> Unit,
+    private val requireEntryPointWitness: Boolean = false,
 ) : UMachineObserver<TsState> {
+    private val contextsByMethod = contexts.associateBy(CallsCoverageCandidateContext::method)
     private val coveredStatements = hashSetOf<EtsStmt>()
     private val inputKeys = hashSetOf<String>()
+    private val witnessedMethods = hashSetOf<EtsMethod>()
     private var machineStarted: TimeSource.Monotonic.ValueTimeMark? = null
+    private var machineStopped = false
 
     var selectedStates: Int = 0
         private set
@@ -296,6 +314,16 @@ private class CompletedCoverageCandidateObserver(
 
     override fun onMachineStopped() {
         searchElapsedMillis = elapsedSinceMachineStart()
+        machineStopped = true
+    }
+
+    fun finishTiming() {
+        if (machineStarted == null) {
+            machineSetupElapsedMillis = machineCallStarted.elapsedNow().inWholeMilliseconds
+        } else if (!machineStopped) {
+            searchElapsedMillis = elapsedSinceMachineStart()
+            machineStopped = true
+        }
     }
 
     override fun onState(parent: TsState, forks: Sequence<TsState>) {
@@ -308,6 +336,10 @@ private class CompletedCoverageCandidateObserver(
     override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
         if (!stateReachable) return
 
+        val context = contextsByMethod[state.entrypoint] ?: return
+        val method = context.method
+        val inputDomains = context.inputDomains
+        val symbolicInputs = context.symbolicInputs
         val completion = when (val result = state.methodResult) {
             is TsMethodResult.Success.RegularCall -> {
                 if (result.method != method) return
@@ -324,7 +356,8 @@ private class CompletedCoverageCandidateObserver(
             statement in coverageStatements
         }
         val newStatements = pathStatements.count { statement -> statement !in coveredStatements }
-        if (newStatements == 0) return
+        val needsWitness = requireEntryPointWitness && method !in witnessedMethods
+        if (newStatements == 0 && !needsWitness) return
 
         if (selectedStates >= candidateCap) {
             capReached = true
@@ -332,12 +365,19 @@ private class CompletedCoverageCandidateObserver(
         }
         selectedStates++
         val candidate = runCatching {
-            val inputs = symbolicInputs.resolve(state).firstOrNull { candidate ->
+            val extractedInputs = symbolicInputs.resolve(state)
+            val eligibleInputs = if (context.observationFields == null) {
+                extractedInputs
+            } else {
+                // Output/state extraction uses the first model too; do not pair it with another model's inputs.
+                extractedInputs.take(1)
+            }
+            val inputs = eligibleInputs.firstOrNull { candidate ->
                 candidate.size == inputDomains.size &&
                     candidate.zip(inputDomains).all { (value, input) -> value in input.domain }
             }
             requireNotNull(inputs) { "No extracted input is inside every frozen domain" }
-            val key = CallsExperimentJson.json.encodeToUtf8SafeString(inputs)
+            val key = context.entryPointId.orEmpty() + CallsExperimentJson.json.encodeToUtf8SafeString(inputs)
             if (inputKeys.add(key)) {
                 CallsCoverageCandidate(
                     emittedAtMillis = elapsedSinceMachineStart(),
@@ -345,6 +385,10 @@ private class CompletedCoverageCandidateObserver(
                     inputs = inputs,
                     newSymbolicStatements = newStatements,
                     completion = completion,
+                    entryPointId = context.entryPointId,
+                    observation = context.observationFields?.let { fields ->
+                        extractCallsClassObservation(state = state, method = method, fields = fields)
+                    },
                 )
             } else {
                 null
@@ -357,6 +401,7 @@ private class CompletedCoverageCandidateObserver(
         if (candidate != null) {
             onCandidate(candidate)
             coveredStatements += pathStatements
+            witnessedMethods += method
         }
     }
 

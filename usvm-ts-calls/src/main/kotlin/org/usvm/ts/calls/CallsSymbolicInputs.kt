@@ -52,8 +52,11 @@ internal class CallsSymbolicInputs(
     private val lexicalEnvironment: EtsLexicalEnvironmentBinding?,
     private val captures: List<TypeScriptSourceCapture>,
     sourceScene: EtsScene,
+    private val objectShapes: PlainObjectInputShapes = PlainObjectInputShapes(
+        sourceScene = sourceScene,
+        domains = inputs.map(PropertyInput::domain),
+    ),
 ) {
-    private val objectShapes = PlainObjectInputShapes(sourceScene, inputs.map(PropertyInput::domain))
     val scene: EtsScene = objectShapes.scene
 
     private val boundInputs: List<Pair<PropertyInput, EtsInputBinding>>
