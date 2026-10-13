@@ -6,7 +6,6 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
-import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.machine.TsAnalysisStopReason
@@ -176,7 +175,7 @@ internal class CurrentTsCallsSymbolicEngine(
             stateCollectionStrategy = StateCollectionStrategy.REACHED_TARGET,
             randomSeed = request.seed,
             timeout = request.budget,
-            solverType = SolverType.Z3,
+            solverType = request.solverType,
             stopOnCoverage = CALLS_STOP_ON_COVERAGE,
             stopOnTargetsReached = false,
             throwExceptionOnStepFailure = true,

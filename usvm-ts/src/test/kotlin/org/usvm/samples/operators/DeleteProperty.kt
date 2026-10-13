@@ -2,6 +2,7 @@ package org.usvm.samples.operators
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
@@ -43,6 +44,7 @@ class DeleteProperty : TsMethodTestRunner() {
     fun `delete example exhausts paths without interpreter failure`() {
         val method = getMethod("readAfterDelete")
         val options = UMachineOptions(
+            solverType = SolverType.YICES,
             stopOnCoverage = 0,
             timeout = Duration.INFINITE,
             throwExceptionOnStepFailure = true,
@@ -134,6 +136,7 @@ class DeleteProperty : TsMethodTestRunner() {
         )
 
         val options = UMachineOptions(
+            solverType = SolverType.YICES,
             stateCollectionStrategy = StateCollectionStrategy.ALL,
             stopOnCoverage = 0,
             timeout = Duration.INFINITE,
@@ -259,6 +262,7 @@ class DeleteProperty : TsMethodTestRunner() {
     fun `type assertion losing a property reference reports unsupported`() {
         val method = getMethod("deleteCastedField")
         val options = UMachineOptions(
+            solverType = SolverType.YICES,
             stateCollectionStrategy = StateCollectionStrategy.ALL,
             stopOnCoverage = 0,
             timeout = Duration.INFINITE,
@@ -279,7 +283,11 @@ class DeleteProperty : TsMethodTestRunner() {
             "deleteInput", "untouchedInput", "deleteInputAlias", "restoreInput", "conditionalDeleteInput",
             "deleteValueExpression", "deleteAssignmentExpression", "deleteCastedValue",
         )
-        val options = UMachineOptions(stateCollectionStrategy = StateCollectionStrategy.ALL, stopOnCoverage = 0)
+        val options = UMachineOptions(
+            solverType = SolverType.YICES,
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = 0,
+        )
         val tests = names.associateWith { name -> runner(getMethod(name), options) }
 
         fun serialize(value: TsTestValue): String = when (value) {
@@ -323,6 +331,7 @@ class DeleteProperty : TsMethodTestRunner() {
     fun `deleting an own property with a prototype fallback reports unsupported outcome`() {
         val method = getMethod("deleteOwnToString")
         val options = UMachineOptions(
+            solverType = SolverType.YICES,
             stateCollectionStrategy = StateCollectionStrategy.ALL,
             stopOnCoverage = 0,
             timeout = Duration.INFINITE,
@@ -340,6 +349,7 @@ class DeleteProperty : TsMethodTestRunner() {
     @Test
     fun `deleting prototype methods reports unsupported while own field remains supported`() {
         val options = UMachineOptions(
+            solverType = SolverType.YICES,
             stateCollectionStrategy = StateCollectionStrategy.ALL,
             stopOnCoverage = 0,
             timeout = Duration.INFINITE,

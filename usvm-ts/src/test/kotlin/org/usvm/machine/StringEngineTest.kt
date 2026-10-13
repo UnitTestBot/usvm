@@ -6,6 +6,7 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
+import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -48,7 +49,8 @@ class StringEngineTest : TsMethodTestRunner() {
     fun `shared allocation and bounded decoding preserve a solver selected surrogate`() {
         val method = getMethod(methodName = "inputRoundtrip", className = "SymbolicStringEngine")
         lateinit var input: UConcreteHeapRef
-        val options = UMachineOptions(stateCollectionStrategy = StateCollectionStrategy.ALL)
+        val options =
+            UMachineOptions(solverType = SolverType.YICES, stateCollectionStrategy = StateCollectionStrategy.ALL)
 
         TsMachine(scene = scene, options = options, tsOptions = TsOptions()).use { machine ->
             val states = machine.analyze(

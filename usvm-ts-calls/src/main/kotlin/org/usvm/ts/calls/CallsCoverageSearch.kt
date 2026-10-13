@@ -79,7 +79,7 @@ internal data class CallsCoverageSearchRequest(
     val seed: Long,
     val budget: Duration,
     val solverQueryLimit: Duration,
-    val solverType: SolverType,
+    val solverType: SolverType = SolverType.YICES,
     val candidateCap: Int,
     val onCandidate: (CallsCoverageCandidate) -> Unit = {},
 ) {

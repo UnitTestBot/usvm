@@ -5,6 +5,7 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
+import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.machine.TsMachine
@@ -30,7 +31,8 @@ class UsvmInitialStateConfigurationTest {
         val method = scene.projectClasses
             .flatMap { etsClass -> etsClass.methods }
             .single { candidate -> candidate.name == "isPositive" }
-        val options = UMachineOptions(stateCollectionStrategy = StateCollectionStrategy.ALL)
+        val options =
+            UMachineOptions(solverType = SolverType.YICES, stateCollectionStrategy = StateCollectionStrategy.ALL)
 
         val states = TsMachine(
             scene = scene,
@@ -85,7 +87,8 @@ class UsvmInitialStateConfigurationTest {
         )
         val mapper = PropertyEtsMapper(scene = scene, sourceRoots = listOf(source.parent))
         val predicate = requireNotNull(mapper.map(manifest).predicate.exactTargetOrNull())
-        val options = UMachineOptions(stateCollectionStrategy = StateCollectionStrategy.ALL)
+        val options =
+            UMachineOptions(solverType = SolverType.YICES, stateCollectionStrategy = StateCollectionStrategy.ALL)
 
         val analysis = TsMachine(
             scene = scene,

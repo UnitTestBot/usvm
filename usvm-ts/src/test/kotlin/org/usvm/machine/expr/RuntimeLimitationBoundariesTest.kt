@@ -4,6 +4,7 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsAnalysisStopReason
@@ -36,7 +37,11 @@ class RuntimeLimitationBoundariesTest : TsMethodTestRunner() {
 
         TsMachine(
             scene = scene,
-            options = UMachineOptions(throwExceptionOnStepFailure = true, stepsFromLastCovered = 128L),
+            options = UMachineOptions(
+                solverType = SolverType.YICES,
+                throwExceptionOnStepFailure = true,
+                stepsFromLastCovered = 128L
+            ),
             tsOptions = TsOptions(),
             observer = observer,
         ).use { machine ->
@@ -59,7 +64,11 @@ class RuntimeLimitationBoundariesTest : TsMethodTestRunner() {
 
         TsMachine(
             scene = scene,
-            options = UMachineOptions(throwExceptionOnStepFailure = true, stepsFromLastCovered = 128L),
+            options = UMachineOptions(
+                solverType = SolverType.YICES,
+                throwExceptionOnStepFailure = true,
+                stepsFromLastCovered = 128L
+            ),
             tsOptions = TsOptions(),
             observer = observer,
         ).use { machine ->

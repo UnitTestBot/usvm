@@ -32,7 +32,7 @@ class TsSharedAnalysisTest {
         stateCollectionStrategy = StateCollectionStrategy.ALL,
         stopOnCoverage = 0,
         timeout = Duration.INFINITE,
-        solverType = SolverType.Z3,
+        solverType = SolverType.YICES,
     )
     private val tsOptions = TsOptions(
         unknownCallModelSelection = TsUnknownCallModelSelection.Only(emptySet()),

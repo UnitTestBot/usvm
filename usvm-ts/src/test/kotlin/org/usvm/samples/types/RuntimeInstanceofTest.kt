@@ -3,6 +3,7 @@ package org.usvm.samples.types
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
@@ -651,6 +652,7 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     private val machineOptions = UMachineOptions(
+        solverType = SolverType.YICES,
         stateCollectionStrategy = StateCollectionStrategy.ALL,
         stopOnCoverage = 0,
         timeout = 30.seconds,

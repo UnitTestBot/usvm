@@ -71,7 +71,7 @@ class CallsCoverageExperimentTest {
     }
 
     @Test
-    fun `coverage search can use Yices for both symbolic branches`() {
+    fun `coverage search honors either explicitly configured solver`() {
         val fixture = fixture(
             source = """
                 export function classify(flag: boolean): number {
@@ -82,15 +82,17 @@ class CallsCoverageExperimentTest {
             exportName = "classify",
             inputs = listOf(PropertyInput(name = "flag", domain = BooleanDomain)),
         )
-        val emitted = mutableListOf<CallsCoverageCandidate>()
+        for (solverType in listOf(SolverType.YICES, SolverType.Z3)) {
+            val emitted = mutableListOf<CallsCoverageCandidate>()
 
-        val search = CurrentTsCallsCoverageEngine(testSourceEngine()).search(
-            request = coverageRequest(fixture, onCandidate = emitted::add, solverType = SolverType.YICES),
-        )
+            val search = CurrentTsCallsCoverageEngine(testSourceEngine()).search(
+                request = coverageRequest(fixture, onCandidate = emitted::add, solverType = solverType),
+            )
 
-        assertEquals(CallsCoverageSearchStatus.EXHAUSTED, search.status, search.toString())
-        assertEquals(2, search.candidates.size)
-        assertEquals(search.candidates, emitted)
+            assertEquals(CallsCoverageSearchStatus.EXHAUSTED, search.status, search.toString())
+            assertEquals(2, search.candidates.size)
+            assertEquals(search.candidates, emitted)
+        }
     }
 
     @Test
@@ -297,7 +299,7 @@ class CallsCoverageExperimentTest {
     private fun coverageRequest(
         fixture: CoverageFixture,
         onCandidate: (CallsCoverageCandidate) -> Unit,
-        solverType: SolverType = SolverType.Z3,
+        solverType: SolverType = SolverType.YICES,
     ) = CallsCoverageSearchRequest(
         sourceRoot = fixture.sourceRoot,
         project = fixture.project,

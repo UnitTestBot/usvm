@@ -8,6 +8,7 @@ import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsUnknownType
+import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
@@ -341,7 +342,7 @@ class TsUnknownCallModelCatalogTest {
         val error = assertFailsWith<IllegalArgumentException> {
             TsMachine(
                 scene = EtsScene(projectFiles = listOf(applicationFile)),
-                options = UMachineOptions(),
+                options = UMachineOptions(solverType = SolverType.YICES),
                 tsOptions = TsOptions(),
                 unknownCallModels = catalog,
             )
@@ -361,7 +362,7 @@ class TsUnknownCallModelCatalogTest {
         val error = assertFailsWith<IllegalArgumentException> {
             TsMachine(
                 scene = EtsScene(projectFiles = emptyList(), sdkFiles = listOf(sdkFile)),
-                options = UMachineOptions(),
+                options = UMachineOptions(solverType = SolverType.YICES),
                 tsOptions = TsOptions(),
                 unknownCallModels = catalog,
             ).close()

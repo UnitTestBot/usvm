@@ -7,6 +7,7 @@ import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
+import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
@@ -63,7 +64,11 @@ class ErrorModelBackingBoundaryTest : TsMethodTestRunner() {
     // It does not claim support for adding arbitrary own properties through the TypeScript interpreter.
     private fun checkStorageIsolation(key: ErrorStorageField, sourceName: String) {
         val method = getMethod(methodName = "allocatedError", className = "ErrorModelBackingBoundary")
-        TsMachine(scene = scene, options = UMachineOptions(), tsOptions = TsOptions()).use { machine ->
+        TsMachine(
+            scene = scene,
+            options = UMachineOptions(solverType = SolverType.YICES),
+            tsOptions = TsOptions()
+        ).use { machine ->
             val state = machine.analyze(listOf(method)).single()
             val result = assertIs<TsMethodResult.Success>(state.methodResult)
             val reference = result.value.asExpr(state.ctx.addressSort)

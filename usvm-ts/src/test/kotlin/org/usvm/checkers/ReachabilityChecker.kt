@@ -3,6 +3,7 @@ package org.usvm.checkers
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.PathSelectionStrategy
+import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
@@ -20,6 +21,7 @@ class ReachabilityChecker {
         EtsScene(listOf(file))
     }
     val options = UMachineOptions(
+        solverType = SolverType.YICES,
         stopOnTargetsReached = true,
         pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
         timeout = 15000000.seconds

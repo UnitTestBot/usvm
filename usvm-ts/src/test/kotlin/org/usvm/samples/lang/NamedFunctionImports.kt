@@ -3,6 +3,7 @@ package org.usvm.samples.lang
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.junit.jupiter.api.Test
+import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsAnalysisStopReason
@@ -46,7 +47,11 @@ class NamedFunctionImports : TsMethodTestRunner() {
     fun `namespace direct and optional calls explicitly report their unrepresented receiver`() {
         listOf("namespaceDirectCall", "namespaceOptionalCall").forEach { methodName ->
             val method = getMethod(methodName = methodName)
-            val outcome = TsMachine(scene = scene, options = UMachineOptions(), tsOptions = TsOptions()).use { machine ->
+            val outcome = TsMachine(
+                scene = scene,
+                options = UMachineOptions(solverType = SolverType.YICES),
+                tsOptions = TsOptions(),
+            ).use { machine ->
                 machine.analyzeWithOutcome(methods = listOf(method))
             }
 

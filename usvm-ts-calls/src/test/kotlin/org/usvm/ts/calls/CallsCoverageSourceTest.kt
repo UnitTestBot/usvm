@@ -2,6 +2,7 @@ package org.usvm.ts.calls
 
 import kotlinx.serialization.decodeFromString
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.SolverType
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.NumberDomain
 import org.usvm.ts.pbt.model.PropertyInput
@@ -33,13 +34,30 @@ class CallsCoverageSourceTest {
         assertEquals(emptySearch, result.search)
         assertEquals(fixture.source.identity, result.identity.sourceIdentity)
         assertEquals(3, result.identity.schemaVersion)
+        assertEquals("YICES", result.identity.solver)
+    }
+
+    @Test
+    fun `coverage cell forwards the explicit manifest solver to search`() {
+        val fixture = fixture(solver = "Z3")
+        val solvers = mutableListOf<SolverType>()
+
+        fixture.runCell(searchFunction = { request ->
+            solvers += request.solverType
+            emptySearch
+        })
+
+        val result = CallsExperimentJson.json.decodeFromString<CallsCoverageCellResult>(
+            Files.readString(fixture.output.resolve("result.json")),
+        )
+        assertEquals(listOf(SolverType.Z3), solvers)
         assertEquals("Z3", result.identity.solver)
     }
 
     @Test
     fun `resumed search rejects a persisted identity from a different solver`() {
         val fixture = fixture()
-        fixture.persistSearch(solver = "YICES")
+        fixture.persistSearch(solver = "Z3")
 
         val failure = assertFailsWith<IllegalArgumentException> { fixture.runCell() }
 
@@ -268,7 +286,7 @@ class CallsCoverageSourceTest {
         assertFalse(Files.exists(directory.resolve("universe-output/universe.json")))
     }
 
-    private fun fixture(): Fixture {
+    private fun fixture(solver: String = "YICES"): Fixture {
         val sourceRoot = Files.createDirectory(directory.resolve("source"))
         val sourceFile = sourceRoot.resolve("Fixture.ts")
         Files.writeString(sourceFile, "export function first(flag: boolean): boolean { return flag; }")
@@ -297,7 +315,7 @@ class CallsCoverageSourceTest {
             experimentId = "coverage-identity",
             toolRevision = TOOL_REVISION,
             nativeFrontendRevision = FRONTEND_REVISION,
-            solver = "Z3",
+            solver = solver,
             searchPolicy = CALLS_PATH_SELECTION_STRATEGY.name,
             modelSet = CallsModelSetIdentity(ids = emptySet(), toolRevision = TOOL_REVISION),
             seeds = listOf(17L),

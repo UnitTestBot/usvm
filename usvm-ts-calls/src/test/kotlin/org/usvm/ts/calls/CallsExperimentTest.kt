@@ -6,6 +6,7 @@ import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.SolverType
 import org.usvm.machine.call.TsResidualCallPolicy
 import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallEvent
@@ -23,6 +24,28 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CallsExperimentTest {
+    @Test
+    fun `runner forwards an explicitly configured solver`(@TempDir directory: Path) {
+        val solvers = mutableListOf<SolverType>()
+        val engine = CallsSymbolicEngine { request ->
+            solvers += request.solverType
+            result(status = CallsSymbolicStatus.UNREACHED)
+        }
+        val z3Manifest = manifest(sourceRoot = ".", seeds = listOf(17L)).copy(solver = "Z3")
+
+        CallsExperimentRunner(
+            symbolicEngine = engine,
+            targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("No witness to replay") },
+            runtimeToolRevision = FIXTURE_TOOL_REVISION,
+        ).run(
+            manifest = z3Manifest,
+            manifestDirectory = directory,
+            rawOutput = directory.resolve("results.jsonl"),
+        )
+
+        assertEquals(setOf(SolverType.Z3), solvers.toSet())
+    }
+
     @Test
     fun `runner persists call events before search returns without counting them as results`(@TempDir directory: Path) {
         val source = Path.of(checkNotNull(javaClass.getResource("/calls/SourceTargetReplayFixture.ts")).toURI())
@@ -513,7 +536,7 @@ class CallsExperimentTest {
         experimentId = "fixture",
         toolRevision = FIXTURE_TOOL_REVISION,
         nativeFrontendRevision = "frontend-revision",
-        solver = "Z3",
+        solver = "YICES",
         searchPolicy = CALLS_PATH_SELECTION_STRATEGY.name,
         modelSet = CallsModelSetIdentity(
             ids = setOf("ts.array.pop", "ts.array.shift"),
