@@ -727,11 +727,6 @@ private fun TsExprResolver.handleArrayFill(
             length = fillLength,
         )
 
-        val initialized = initializedArrayIndices[array].orEmpty()
-        initializedArrayIndices += array to initialized.map { index ->
-            mkBvSubExpr(mkBvSubExpr(length, mkBv(1)), index)
-        }.toSet()
-
         // Return the modified original array
         array
     }
@@ -1267,6 +1262,11 @@ private fun TsExprResolver.handleArrayReverse(
             fromDst = mkBv(0),
             length = length
         )
+
+        val initialized = initializedArrayIndices[array].orEmpty()
+        initializedArrayIndices += array to initialized.map { index ->
+            mkBvSubExpr(mkBvSubExpr(length, mkBv(1)), index)
+        }.toSet()
 
         // Return the modified original array
         array
