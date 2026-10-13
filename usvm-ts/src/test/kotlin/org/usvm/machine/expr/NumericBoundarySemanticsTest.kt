@@ -127,6 +127,11 @@ class NumericBoundarySemanticsTest : TsMethodTestRunner() {
             assertEquals(reason, observer.limitations.single().reason, methodName)
         }
         discoverNumber("negativeZeroArrayWrite", expected = 7.0)
+        discoverProperties<TsTestValue.TsUndefined>(
+            method = method("typedArrayCannotStoreMissingValue"),
+            { result -> result == TsTestValue.TsUndefined },
+            invariants = arrayOf({ result -> result == TsTestValue.TsUndefined }),
+        )
     }
 
     @Test

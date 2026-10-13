@@ -148,6 +148,11 @@ private fun TsContext.resolveDeclaredField(
     val deleted = scope.calcOnState { memory.read(deletedFieldLValue(instance, field)) }
     if (deleted.isTrue) return mkUndefinedValue()
 
+    val modeledValue = readModeledErrorField(scope, instance, field)
+    if (modeledValue != null) return applyFieldDeletion(scope, deleted, modeledValue)
+
+    val resolvedField = resolveEtsField(local, field.runtimeFieldSignature(), hierarchy)
+
     // A literal's own declarations, rather than scene-wide same-name fields, determine its initial storage.
     val objectClass = objectLiteralClass(scope, instance, hierarchy)
     val wasWritten = scope.calcOnState { (instance to field.name) in writtenConcreteFields }
@@ -157,10 +162,9 @@ private fun TsContext.resolveDeclaredField(
     }
 
     val declaredLiteralField = objectClass?.fields?.singleOrNull { it.name == field.name }
-    val resolvedField = resolveEtsField(local, field, hierarchy)
     val writtenSort = scope.calcOnState { writtenObjectLiteralFieldSorts[instance to field.name] }
     val declaredLiteralSort = declaredLiteralField?.let { typeToSort(it.type) }
-    val sort = writtenSort ?: declaredLiteralSort ?: resolvedFieldSort(
+    val storageSort = writtenSort ?: declaredLiteralSort ?: resolvedFieldSort(
         scope = scope,
         instance = instance,
         field = field,
@@ -173,15 +177,20 @@ private fun TsContext.resolveDeclaredField(
         (resolvedField as? TsResolutionResult.Unique)?.property?.type
     }
 
-    if (!wasWritten) {
+    val requiresDeclaredPresence = !wasWritten
+    if (requiresDeclaredPresence) {
         val fieldExists = scope.calcOnState {
             memory.types.evalIsSubtype(instance, EtsAuxiliaryType(properties = setOf(field.name)))
         }
         scope.assert(fieldExists) ?: return null
     }
 
-    val storedValue = readField(scope, instance, field, sort)
-    val value = materializeFieldValue(scope, storedValue, sort, declaredType) ?: return null
+    val storedValue = readField(scope, instance, field, storageSort)
+    val value = materializeFieldValue(scope, storedValue, storageSort, declaredType) ?: return null
+    return applyFieldDeletion(scope, deleted, value)
+}
+
+private fun TsContext.applyFieldDeletion(scope: TsStepScope, deleted: UBoolExpr, value: UExpr<*>): UExpr<*> {
     if (deleted.isFalse) return value
 
     // Conditional deletion yields undefined on the deleted branch, while preserving the stored runtime kind.
@@ -336,7 +345,7 @@ private fun TsContext.readField(
     sort: USort,
 ): UExpr<*> {
     if (sort !is TsUnresolvedSort) {
-        val lValue = mkFieldLValue(sort, instance, field)
+        val lValue = mkFieldLValue(sort, instance, field.name)
         return scope.calcOnState { memory.read(lValue) }
     }
 

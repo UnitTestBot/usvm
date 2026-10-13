@@ -56,6 +56,13 @@ export class NumericBoundarySemantics {
         return alias[0] === null ? 2 : -1;
     }
 
+    typedArrayCannotStoreMissingValue(): number {
+        const source = [11];
+        const destination = [22];
+        destination[0] = source[2];
+        return destination[0];
+    }
+
     bitwiseNaN(): number {
         return (0 / 0) >> 1;
     }

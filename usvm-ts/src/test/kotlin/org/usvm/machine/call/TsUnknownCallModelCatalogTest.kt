@@ -12,6 +12,7 @@ import org.usvm.UMachineOptions
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.call.intrinsic.TsArrayShiftIntrinsicModel
+import org.usvm.machine.call.intrinsic.TsErrorEtsIrModelFamily
 import org.usvm.machine.call.intrinsic.TsNumericIntrinsicModelFamily
 import org.usvm.machine.state.TsState
 import kotlin.test.Test
@@ -180,11 +181,13 @@ class TsUnknownCallModelCatalogTest {
         val expectedModelIds = listOf(
             "ts.array.concat",
             "ts.array.fill",
+            "ts.array.fromLength",
             "ts.array.includes",
             "ts.array.indexOf",
             "ts.array.isArray",
             "ts.array.lastIndexOf",
             "ts.array.pop",
+            "ts.array.primitive.allocate",
             "ts.array.primitive.allocateLike",
             "ts.array.primitive.grow",
             "ts.array.push",
@@ -192,6 +195,7 @@ class TsUnknownCallModelCatalogTest {
             TsArrayShiftIntrinsicModel.MODEL_ID,
             "ts.array.slice",
             "ts.array.unshift",
+            TsErrorEtsIrModelFamily.CONSTRUCTOR_ID,
             TsNumericIntrinsicModelFamily.MATH_ABS_ID,
             TsNumericIntrinsicModelFamily.MATH_CEIL_ID,
             TsNumericIntrinsicModelFamily.MATH_FLOOR_ID,
@@ -212,6 +216,7 @@ class TsUnknownCallModelCatalogTest {
             "ts.string.lastIndexOf",
             "ts.string.primitive.codeUnitAt",
             "ts.string.primitive.fromCodeUnit",
+            "ts.string.replaceAll",
             "ts.string.slice",
             "ts.string.startsWith",
             "ts.string.substring",

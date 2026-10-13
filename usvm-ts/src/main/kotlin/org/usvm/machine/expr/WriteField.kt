@@ -200,6 +200,14 @@ fun TsContext.assignToInstanceField(
         return Unit
     }
 
+    val wroteModeledErrorField = writeModeledErrorField(
+        scope = scope,
+        instance = unwrappedInstance,
+        field = field,
+        value = expr,
+    )
+    if (wroteModeledErrorField) return Unit
+
     val objectLiteralClass = objectLiteralClass(scope, unwrappedInstance, hierarchy)
     val declaredObjectLiteralField = objectLiteralClass?.fields?.singleOrNull { it.name == field.name }
     val newObjectLiteralField = objectLiteralClass != null && declaredObjectLiteralField == null

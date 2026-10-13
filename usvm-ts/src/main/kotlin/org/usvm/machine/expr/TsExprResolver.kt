@@ -168,6 +168,7 @@ private const val ECMASCRIPT_BITWISE_INTEGER_SIZE = 32
  * and `x << 37` is equivalent to `x << 5`.
  */
 private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
+private const val UNKNOWN_SIGNATURE_COMPONENT = "%unk"
 
 private enum class UpdateOperator {
     INCREMENT,
@@ -430,50 +431,11 @@ class TsExprResolver(
         )
     }
 
-    override fun visit(expr: EtsCastExpr): UExpr<*>? = with(ctx) {
-        val resolvedExpr = resolve(expr.arg) ?: return@with null
-        if (resolvedExpr is UConcreteHeapRef && classConstructorSignature(resolvedExpr) != null) {
-            // TypeScript assertions do not change the identity of a constructor at runtime.
-            return@with resolvedExpr
-        }
+    override fun visit(expr: EtsCastExpr): UExpr<*>? {
+        val value = resolve(expr.arg) ?: return null
+        if (options.eraseTypeAssertions) return value
 
-        return when (resolvedExpr.sort) {
-            fp64Sort -> {
-                logger.error("Unsupported cast from fp ${expr.arg} to ${expr.type}")
-                TODO("Not yet implemented https://github.com/UnitTestBot/usvm/issues/299")
-            }
-
-            boolSort -> {
-                logger.error("Unsupported cast from boolean ${expr.arg} to ${expr.type}")
-                TODO("Not yet implemented https://github.com/UnitTestBot/usvm/issues/299")
-            }
-
-            addressSort -> {
-                scope.calcOnState {
-                    val instance = resolvedExpr.asExpr(addressSort)
-
-                    if (instance.isFakeObject()) {
-                        val fakeType = instance.getFakeType(scope)
-                        pathConstraints += fakeType.refTypeExpr
-                        val refValue = instance.extractRef(scope)
-                        pathConstraints += memory.types.evalIsSubtype(refValue, expr.type)
-                        return@calcOnState instance
-                    }
-
-                    if (expr.type !is EtsRefType) {
-                        logger.error("Unsupported cast from non-ref ${expr.arg} to ${expr.type}")
-                        TODO("Not supported yet https://github.com/UnitTestBot/usvm/issues/299")
-                    }
-
-                    pathConstraints += memory.types.evalIsSubtype(instance, expr.type)
-                    instance
-                }
-            }
-
-            else -> {
-                error("Unsupported cast from ${expr.arg} to ${expr.type}")
-            }
-        }
+        return ctx.applyCastConstraints(scope = scope, value = value, type = expr.type)
     }
 
     override fun visit(expr: EtsTypeOfExpr): UExpr<out USort>? = with(ctx) {
@@ -1360,12 +1322,10 @@ class TsExprResolver(
 
                     val callee = scope.calcOnState { associatedFunction[ptr] }
                     if (callee == null) {
-                        unknownCallDispatcher.dispatch(
-                            scope = scope,
-                            call = expr,
-                            callSite = scope.calcOnState { lastStmt },
-                            failureReason = TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND,
-                            resolvedReceiver = ptr,
+                        dispatchUnresolvedPointer(
+                            expr = expr,
+                            pointer = ptr,
+                            fallbackReason = TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND,
                         )
                         return null
                     }
@@ -1380,30 +1340,85 @@ class TsExprResolver(
                         TsExprApproximationResult.NoApproximation -> {}
                     }
 
+                    val explicitReceiver = expr.receiver
+                    val boundInstance = callee.thisInstance
+                    val instance = if (boundInstance != null) {
+                        boundInstance
+                    } else if (explicitReceiver != null) {
+                        val resolvedReceiver = resolve(explicitReceiver) ?: return null
+                        resolvedReceiver.asExpr(addressSort)
+                    } else {
+                        ctx.mkUndefinedValue()
+                    }
+
                     val concreteCall = TsConcreteMethodCallStmt(
                         callee = callee.method,
                         call = expr,
                         resolvedReceiver = ptr,
-                        instance = callee.thisInstance
-                            ?: expr.receiver?.let { resolve(it)?.asExpr(addressSort) ?: return null }
-                            ?: ctx.mkUndefinedValue(),
+                        instance = instance,
                         args = resolvedArgs,
                         returnSite = scope.calcOnState { lastStmt },
                     )
                     scope.doWithState { newStmt(concreteCall) }
                 } else {
-                    unknownCallDispatcher.dispatch(
-                        scope = scope,
-                        call = expr,
-                        callSite = scope.calcOnState { lastStmt },
-                        failureReason = TsUnknownCallFailureReason.NON_REFERENCE_POINTER,
-                        resolvedReceiver = ptr,
+                    dispatchUnresolvedPointer(
+                        expr = expr,
+                        pointer = ptr,
+                        fallbackReason = TsUnknownCallFailureReason.NON_REFERENCE_POINTER,
                     )
                 }
 
                 null
             }
         }
+    }
+
+    private fun dispatchUnresolvedPointer(
+        expr: EtsPtrCallExpr,
+        pointer: UExpr<*>,
+        fallbackReason: TsUnknownCallFailureReason,
+    ) {
+        val builtinArrayConstructor = expr.isBuiltInArrayConstructor()
+        val failureReason = if (builtinArrayConstructor) {
+            TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND
+        } else {
+            fallbackReason
+        }
+        val resolvedArguments = if (builtinArrayConstructor) {
+            val argument = resolve(expr.args.single()) ?: return
+            listOf(argument)
+        } else {
+            List(expr.args.size) { null }
+        }
+
+        unknownCallDispatcher.dispatch(
+            scope = scope,
+            call = expr,
+            callSite = scope.calcOnState { lastStmt },
+            failureReason = failureReason,
+            resolvedReceiver = pointer,
+            resolvedArguments = resolvedArguments,
+        )
+    }
+
+    private fun EtsPtrCallExpr.isBuiltInArrayConstructor(): Boolean {
+        if (callee.name != "Array" || ptr.name != "Array" || args.size != 1) {
+            return false
+        }
+
+        val signature = (ptr.type as? EtsFunctionType)?.signature ?: return false
+        val parameter = signature.parameters.singleOrNull() ?: return false
+        val returnType = signature.returnType as? EtsArrayType ?: return false
+        val signatureFile = signature.enclosingClass.file
+
+        return signatureFile.projectName == UNKNOWN_SIGNATURE_COMPONENT &&
+            signatureFile.fileName == UNKNOWN_SIGNATURE_COMPONENT &&
+            signature.name.isEmpty() &&
+            parameter.type == EtsNumberType &&
+            parameter.isOptional &&
+            !parameter.isRest &&
+            returnType.elementType == EtsAnyType &&
+            returnType.dimensions == 1
     }
 
     private fun EtsPtrCallExpr.isBuiltInNumberConverter(): Boolean {

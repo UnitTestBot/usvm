@@ -30,6 +30,7 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private const val CLASS_NAME = "StringModels"
     private const val PRIMITIVES_CLASS_NAME = "StringModelPrimitives"
     private const val RESOURCE_NAME = "/org/usvm/machine/call/models/StringModels.ts"
+    private const val REPLACE_ALL_INPUT_COUNT = 3
 
     private val baseArtifact by lazy {
         loadBundledEtsIrUnknownCallModelArtifact(
@@ -151,6 +152,19 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         state.ctx.mkAnd(receiverGuard, searchGuard)
     }
 
+    private val replaceAllAdapter = TsEtsIrUnknownCallModelInputAdapter { _, call ->
+        if (call.arguments.size == 2) call.resolvedInstanceInputs(maxArgumentCount = 2) else null
+    }
+
+    private val replaceAllDomain = TsEtsIrUnknownCallModelDomainGuard { state, _, inputs ->
+        if (inputs.size != REPLACE_ALL_INPUT_COUNT) {
+            state.ctx.falseExpr
+        } else {
+            val guards = inputs.map { value -> stringDomain(state = state, input = value) }
+            state.ctx.mkAnd(guards)
+        }
+    }
+
     private val asciiReceiverDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
         with(state.ctx) {
             val receiverGuard = receiverDomain.evaluate(state, call, inputs)
@@ -243,6 +257,12 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 domainGuard = receiverDomain,
             ),
             sourceModel(
+                id = "ts.string.replaceAll",
+                methodName = "replaceAll",
+                inputAdapter = replaceAllAdapter,
+                domainGuard = replaceAllDomain,
+            ),
+            sourceModel(
                 id = "ts.string.trim",
                 methodName = "trim",
                 inputAdapter = receiverOnlyAdapter,
@@ -311,9 +331,10 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     add(PRIMITIVE_CODE_UNIT_AT_ID)
                 }
             }
-            if (methodName in setOf("trim", "trimStart", "trimEnd")) {
+            if (methodName in setOf("trim", "trimStart", "trimEnd", "replaceAll")) {
                 add(PRIMITIVE_CODE_UNIT_AT_ID)
             }
+            if (methodName == "replaceAll") add(PRIMITIVE_FROM_CODE_UNIT_ID)
         },
     )
 

@@ -6,7 +6,6 @@ import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
-import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsClosureFieldRef
@@ -21,7 +20,6 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
-import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsPropertyRef
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
@@ -71,7 +69,9 @@ import org.usvm.machine.expr.handleAssignToStaticField
 import org.usvm.machine.expr.handleDefineDataProperty
 import org.usvm.machine.expr.mkNotNullOrUndefined
 import org.usvm.machine.expr.mkTruthyExpr
+import org.usvm.machine.expr.normalizeThrownValue
 import org.usvm.machine.expr.readGlobal
+import org.usvm.machine.expr.thrownValueType
 import org.usvm.machine.expr.tryApproximateInstanceCall
 import org.usvm.machine.expr.writeGlobal
 import org.usvm.machine.state.TsMethodResult
@@ -727,13 +727,9 @@ class TsInterpreter(
 
         observer?.onThrowStatement(exprResolver.simpleValueResolver, stmt, scope)
 
-        val exception = exprResolver.resolve(stmt.exception) ?: return
-        val exceptionType: EtsType = when (exception.sort) {
-            ctx.addressSort -> EtsStringType // TODO: improve object type detection
-            ctx.fp64Sort -> EtsNumberType
-            ctx.boolSort -> EtsBooleanType
-            else -> EtsStringType
-        }
+        val resolvedException = exprResolver.resolve(stmt.exception) ?: return
+        val exception = ctx.normalizeThrownValue(scope, resolvedException) ?: return
+        val exceptionType = ctx.thrownValueType(scope, exception)
 
         scope.doWithState {
             methodResult = TsMethodResult.TsException(exception, exceptionType)
