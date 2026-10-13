@@ -277,8 +277,7 @@ class GoExprVisitor(
     }
 
     override fun visitGoAllocExpr(expr: GoAllocExpr): UExpr<out USort> {
-        val pointeeType = (expr.type.underlying() as PointerType).baseType
-        return scope.calcOnState { mkPointer(expr.type, sampleValue(pointeeType)) }
+        return mkPointer(expr.type)
     }
 
     override fun visitGoPhiExpr(expr: GoPhiExpr): UExpr<out USort> {
@@ -1158,6 +1157,10 @@ class GoExprVisitor(
 
     private fun isBoxed(ref: UHeapRef): UExpr<UBoolSort> {
         return scope.calcOnState { isBoxed(ref) }
+    }
+
+    private fun mkPointer(type: GoType): UConcreteHeapRef {
+        return scope.calcOnState { mkPointer(type) }
     }
 
     private fun mkPointer(type: GoType, lvalue: ULValue<*, *>): UExpr<out USort> {
