@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import org.jacodb.ets.model.EtsClassSignature
 import org.usvm.machine.call.TsResidualCallPolicy
 import org.usvm.machine.call.TsUnknownCallModelSelection
 
@@ -29,8 +30,13 @@ data class TsOptions(
     val dateNowMilliseconds: Double? = null,
     /** Erase TypeScript assertions; false retains the existing ETS cast constraints and unsupported casts. */
     val eraseTypeAssertions: Boolean = false,
+    /** CLASS coverage targets for wrapper entry points; null uses the entry points' declaring classes. */
+    val classCoverageTargets: Set<EtsClassSignature>? = null,
 ) {
     init {
+        val hasCoverageTargets = classCoverageTargets == null || classCoverageTargets.isNotEmpty()
+        require(hasCoverageTargets) { "Explicit class coverage targets must not be empty" }
+
         val isValidDateNow = dateNowMilliseconds == null ||
             dateNowMilliseconds.isFinite() &&
             dateNowMilliseconds % 1.0 == 0.0 &&

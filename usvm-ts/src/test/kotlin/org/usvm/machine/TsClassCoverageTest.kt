@@ -12,6 +12,7 @@ import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
 import org.usvm.util.getResourcePath
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -160,6 +161,73 @@ class TsClassCoverageTest : TsMethodTestRunner() {
         val counts = analyzePendingEntryPoints(removeCoveredEntryPoints = true)
 
         assertEquals(expected = mapOf("ForeignCaller" to 1, "HelperCoverage" to 1), actual = counts)
+    }
+
+    @Test
+    fun `explicit class targets collect private and constructor paths through wrappers`() {
+        val helper = getMethod(methodName = "helperCase", className = "CoverageHarness")
+        val constructor = getMethod(methodName = "constructorCase", className = "CoverageHarness")
+        val targets = scene.projectClasses.filter { owner ->
+            owner.name == "HelperCoverage" || owner.name == "ConstructorCoverage"
+        }.mapTo(hashSetOf()) { owner -> owner.signature }
+        val classOptions = options.copy(
+            pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
+            coverageZone = CoverageZone.CLASS,
+            stateCollectionStrategy = StateCollectionStrategy.COVERED_NEW,
+            stopOnCoverage = 0,
+            timeout = 10.seconds,
+            maxEntryPointTimeQuantum = 1.milliseconds,
+            removeCoveredEntryPoints = false,
+        )
+
+        val result = TsMachine(
+            scene = scene,
+            options = classOptions,
+            tsOptions = TsOptions(classCoverageTargets = targets),
+        ).use { machine ->
+            machine.analyzeWithOutcome(methods = listOf(helper, constructor))
+        }
+
+        val statesByEntryPoint = result.states.groupingBy { state -> state.entrypoint.name }.eachCount()
+        assertEquals(expected = mapOf("helperCase" to 2, "constructorCase" to 2), actual = statesByEntryPoint)
+    }
+
+    @Test
+    fun `an unknown class target is rejected instead of falling back to the wrapper`() {
+        val method = getMethod(methodName = "entry", className = "HelperCoverage")
+        val missingTarget = method.signature.enclosingClass.copy(name = "MissingCoverageClass")
+
+        assertFailsWith<IllegalArgumentException> {
+            TsMachine(
+                scene = scene,
+                options = options.copy(coverageZone = CoverageZone.CLASS),
+                tsOptions = TsOptions(classCoverageTargets = setOf(missingTarget)),
+            ).use { machine ->
+                machine.analyzeWithOutcome(methods = listOf(method))
+            }
+        }
+    }
+
+    @Test
+    fun `an explicit empty class target set is rejected`() {
+        assertFailsWith<IllegalArgumentException> {
+            TsOptions(classCoverageTargets = emptySet())
+        }
+    }
+
+    @Test
+    fun `explicit class targets cannot silently use method coverage`() {
+        val method = getMethod(methodName = "entry", className = "HelperCoverage")
+
+        assertFailsWith<IllegalArgumentException> {
+            TsMachine(
+                scene = scene,
+                options = options.copy(coverageZone = CoverageZone.METHOD),
+                tsOptions = TsOptions(classCoverageTargets = setOf(method.signature.enclosingClass)),
+            ).use { machine ->
+                machine.analyzeWithOutcome(methods = listOf(method))
+            }
+        }
     }
 
     private fun analyzePendingEntryPoints(removeCoveredEntryPoints: Boolean): Map<String, Int> {

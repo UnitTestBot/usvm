@@ -212,7 +212,12 @@ fun <Method, Statement, Target, State> createPathSelector(
     val pathSelector = when (options.pathSelectorFairnessStrategy) {
         PathSelectorFairnessStrategy.CONSTANT_TIME -> {
             val getMethodCoverage = coverageStatistics?.let {
-                { m: Method -> coverageStatistics.getMethodCoverage(m) }
+                val trackedMethods = coverageStatistics.coverageZone.toHashSet()
+                val entryPointCoverage: (Method) -> Float = { method ->
+                    if (method in trackedMethods) coverageStatistics.getMethodCoverage(method) else 0f
+                }
+
+                entryPointCoverage
             } ?: { 0f }
 
             ConstantTimeFairPathSelector(

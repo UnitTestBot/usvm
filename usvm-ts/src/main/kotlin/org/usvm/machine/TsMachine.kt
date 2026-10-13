@@ -79,6 +79,12 @@ class TsMachine(
     unknownCallDispatcher: TsUnknownCallDispatcher? = null,
     unknownCallModels: TsUnknownCallModelCatalog? = null,
 ) : UMachine<TsState>() {
+    init {
+        val hasCompatibleCoverageScope = tsOptions.classCoverageTargets == null ||
+            options.coverageZone == CoverageZone.CLASS
+        require(hasCompatibleCoverageScope) { "Explicit class coverage targets require CoverageZone.CLASS" }
+    }
+
     private val resolvedUnknownCallModels = when {
         unknownCallDispatcher != null -> null
         unknownCallModels != null -> unknownCallModels
@@ -169,15 +175,7 @@ class TsMachine(
         val methodsToTrackCoverage =
             when (options.coverageZone) {
                 CoverageZone.METHOD, CoverageZone.TRANSITIVE -> initialStates.keys.toHashSet()
-                CoverageZone.CLASS -> initialStates.keys.flatMapTo(hashSetOf()) { method ->
-                    val owner = requireNotNull(method.enclosingClass) {
-                        "Class coverage requires a declaring class for ${method.signature}"
-                    }
-
-                    owner.methods.filter { candidate ->
-                        candidate.signature.enclosingClass == owner.signature && candidate.cfg.stmts.isNotEmpty()
-                    }
-                } + initialStates.keys
+                CoverageZone.CLASS -> classCoverageMethods(entryMethods = initialStates.keys)
             }
 
         val coverageStatistics = CoverageStatistics<EtsMethod, EtsStmt, TsState>(
@@ -296,6 +294,32 @@ class TsMachine(
             engineFailed = interpreter.stepFailed,
             unsupportedPaths = unsupportedPaths.toList(),
         )
+    }
+
+    private fun classCoverageMethods(entryMethods: Set<EtsMethod>): Set<EtsMethod> {
+        val targets = tsOptions.classCoverageTargets
+        val classes = if (targets == null) {
+            entryMethods.map { method ->
+                requireNotNull(method.enclosingClass) {
+                    "Class coverage requires a declaring class for ${method.signature}"
+                }
+            }
+        } else {
+            val classesBySignature = runtimeScene.projectAndSdkClasses.groupBy { owner -> owner.signature }
+            val unresolvedTargets = targets.filter { target -> classesBySignature[target]?.size != 1 }
+            require(unresolvedTargets.isEmpty()) {
+                "Class coverage targets must identify one scene class each: $unresolvedTargets"
+            }
+
+            targets.map { target -> classesBySignature.getValue(target).single() }
+        }
+        val coveredMethods = classes.flatMapTo(hashSetOf()) { owner ->
+            owner.methods.filter { candidate ->
+                candidate.signature.enclosingClass == owner.signature && candidate.cfg.stmts.isNotEmpty()
+            }
+        }
+
+        return if (targets == null) coveredMethods + entryMethods else coveredMethods
     }
 
     private fun emptyAnalysisResult(unsupportedPaths: Set<String>) = TsMachineAnalysisResult(

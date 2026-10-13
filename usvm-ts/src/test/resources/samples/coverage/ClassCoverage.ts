@@ -52,3 +52,13 @@ class ForeignHelper {
         return 20;
     }
 }
+
+class CoverageHarness {
+    static helperCase(value: number): number {
+        return HelperCoverage.entry(value);
+    }
+
+    static constructorCase(value: number): number {
+        return ConstructorCoverage.entry(value);
+    }
+}
