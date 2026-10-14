@@ -55,6 +55,62 @@ internal class CallsObjectInputsTest : CurrentTsCallsSymbolicEngineTestSupport()
     }
 
     @Test
+    fun `plain object satisfies fields from separate intersection members`() {
+        val fixture = fixture(
+            source = """
+                export function accepts(input: { a: number } & { b: number }): boolean {
+                  if (input.a === 7 && input.b === 11) return true;
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "accepts",
+            inputs = listOf(
+                PropertyInput(
+                    name = "input",
+                    domain = ObjectDomain(
+                        mapOf(
+                            "a" to IntegerDomain(min = 6, max = 8),
+                            "b" to IntegerDomain(min = 10, max = 12),
+                        ),
+                    ),
+                ),
+            ),
+            targetStatement = "return true;",
+        )
+
+        val preflight = fixture.preflight()
+        val result = fixture.search(modelIds = emptySet())
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, preflight.status, preflight.toString())
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        val inputs = assertNotNull(result.inputs, result.toString())
+        val input = assertIs<JsConcreteValue.Object>(inputs.single())
+        assertEquals(JsConcreteValue.number(7.0), input.fields.getValue("a"))
+        assertEquals(JsConcreteValue.number(11.0), input.fields.getValue("b"))
+        fixture.assertReplayConfirmed(inputs)
+    }
+
+    @Test
+    fun `intersection field must satisfy every declaring member`() {
+        val fixture = fixture(
+            source = """
+                export function accepts(input: { value: number } & { value: boolean }): boolean {
+                  return true;
+                }
+            """.trimIndent(),
+            exportName = "accepts",
+            inputs = listOf(PropertyInput(name = "input", domain = ObjectDomain(mapOf("value" to NumberDomain()))),
+            targetStatement = "return true;",
+        )
+
+        val preflight = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, preflight.status, preflight.toString())
+        assertEquals(CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED, preflight.reasonCode)
+        assertTrue(preflight.diagnostic.orEmpty().contains("inputs.input.value"), preflight.toString())
+    }
+
+    @Test
     fun `plain object keeps data fields of a class annotation without becoming that class`() {
         val fixture = fixture(
             source = """

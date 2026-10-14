@@ -34,8 +34,10 @@ import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.util.EtsHierarchy
+import org.usvm.util.InputPropertyResolution
 import org.usvm.util.componentType
 import org.usvm.util.declaredInstanceProperty
+import org.usvm.util.resolveInstanceProperty
 
 /** Rejects bindings whose frozen domain would replace a source parameter with an incompatible runtime kind. */
 internal fun callsInputTypePreflight(
@@ -99,8 +101,11 @@ private fun PropertyDomain.inputTypeLimitation(
             }
         }
         is EtsStringLiteralType -> {
-            (this is StringDomain && minLength == 0 && maxLength == 0 && type.value.isEmpty()) ||
-                (constant is JsConcreteValue.String && constant.value == type.value)
+            val matchesEmptyStringDomain = this is StringDomain &&
+                minLength == 0 && maxLength == 0 && type.value.isEmpty()
+            val matchesConstant = constant is JsConcreteValue.String && constant.value == type.value
+
+            matchesEmptyStringDomain || matchesConstant
         }
         is EtsBooleanLiteralType -> {
             constant is JsConcreteValue.Boolean && constant.value == type.value
@@ -156,11 +161,13 @@ private fun PropertyDomain.inputTypeLimitation(
             }
         }
         is EtsIntersectionType -> {
-            for (member in type.types) {
-                val limitation = inputTypeLimitation(member, genericParameters, path, hierarchy, visitedGenerics)
-                if (limitation != null) return limitation
-            }
-            true
+            return intersectionTypeLimitation(
+                type = type,
+                genericParameters = genericParameters,
+                path = path,
+                hierarchy = hierarchy,
+                visitedGenerics = visitedGenerics,
+            )
         }
         else -> {
             false
@@ -168,6 +175,83 @@ private fun PropertyDomain.inputTypeLimitation(
     }
 
     return if (compatible) null else "$path: frozen domain $this is not supported for declared type $type"
+}
+
+private fun PropertyDomain.intersectionTypeLimitation(
+    type: EtsIntersectionType,
+    genericParameters: Map<String, EtsGenericType>,
+    path: String,
+    hierarchy: EtsHierarchy,
+    visitedGenerics: Set<String>,
+): String? {
+    val members = type.types.flatMap { member ->
+        member.intersectionMembers(genericParameters, visitedGenerics)
+    }
+    if (this !is ObjectDomain) {
+        for (member in members) {
+            val limitation = inputTypeLimitation(member, genericParameters, path, hierarchy, visitedGenerics)
+            if (limitation != null) return limitation
+        }
+
+        return null
+    }
+
+    val objectMembers = members.filter { member -> member is EtsClassType || member is EtsUnclearRefType }
+    val otherMembers = members - objectMembers.toSet()
+    for (member in otherMembers) {
+        val limitation = inputTypeLimitation(member, genericParameters, path, hierarchy, visitedGenerics)
+        if (limitation != null) return limitation
+    }
+
+    for ((name, domain) in fields) {
+        val fieldPath = "$path.$name"
+        val resolutions = objectMembers.map { member ->
+            resolveInstanceProperty(member, name, hierarchy)
+        }
+        val hasUnresolvedDeclaration = resolutions.any { resolution ->
+            resolution == InputPropertyResolution.Unresolved
+        }
+        if (hasUnresolvedDeclaration) {
+            return "$fieldPath: cannot resolve the declared field type in $type"
+        }
+
+        val declarations = resolutions.filterIsInstance<InputPropertyResolution.Declared>()
+        if (objectMembers.isNotEmpty() && declarations.isEmpty()) {
+            return "$fieldPath: cannot resolve the declared field type in $type"
+        }
+
+        for (declaration in declarations) {
+            val limitation = domain.inputTypeLimitation(
+                type = declaration.property.type,
+                genericParameters = genericParameters,
+                path = fieldPath,
+                hierarchy = hierarchy,
+                visitedGenerics = visitedGenerics,
+            )
+            if (limitation != null) return limitation
+        }
+    }
+
+    return null
+}
+
+private fun EtsType.intersectionMembers(
+    genericParameters: Map<String, EtsGenericType>,
+    visitedGenerics: Set<String>,
+): List<EtsType> = when (this) {
+    is EtsIntersectionType -> types.flatMap { member ->
+        member.intersectionMembers(genericParameters, visitedGenerics)
+    }
+    is EtsAliasType -> originalType.intersectionMembers(genericParameters, visitedGenerics)
+    is EtsGenericType -> {
+        if (typeName in visitedGenerics) {
+            listOf(this)
+        } else {
+            val upperBound = constraint ?: genericParameters[typeName]?.constraint ?: EtsUnknownType
+            upperBound.intersectionMembers(genericParameters, visitedGenerics + typeName)
+        }
+    }
+    else -> listOf(this)
 }
 
 private fun PropertyDomain.objectFieldTypeLimitation(
