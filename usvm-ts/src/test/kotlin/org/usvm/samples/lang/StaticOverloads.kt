@@ -48,6 +48,39 @@ class StaticOverloads : TsMethodTestRunner() {
     }
 
     @Test
+    fun `class static Number executes its own body`() {
+        val method = getMethod(methodName = "callStaticNamedNumber")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 42 },
+            invariants = arrayOf({ result -> result eq 42 }),
+        )
+    }
+
+    @Test
+    fun `class static Boolean executes its own body`() {
+        val method = getMethod(methodName = "callStaticNamedBoolean")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 53 },
+            invariants = arrayOf({ result -> result eq 53 }),
+        )
+    }
+
+    @Test
+    fun `class static resource name executes its own body`() {
+        val method = getMethod(methodName = "callStaticNamedResourceLookup")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 64 },
+            invariants = arrayOf({ result -> result eq 64 }),
+        )
+    }
+
+    @Test
     fun `test static overload group does not fork equivalent states`() {
         var forkedStates = 0
         val observer = object : UMachineObserver<TsState> {

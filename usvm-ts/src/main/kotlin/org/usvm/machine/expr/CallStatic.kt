@@ -95,9 +95,13 @@ private fun TsExprResolver.resolveStaticMethod(
         return TsResolutionResult.create(methods)
     }
 
-    // Unknown signature:
-    val methods = ctx.applicationAndSdkClasses
-        .flatMap { it.methods }
+    // Legacy unknown-owner calls may still name top-level functions in the source file.
+    // A fully unresolved bare call has no binding to an SDK file or namespace.
+    val currentFile = scope.calcOnState { lastEnteredMethod.enclosingClass?.declaringFile }
+    val sourceDefaultClass = currentFile?.classes?.firstOrNull {
+        it.name == DEFAULT_ARK_CLASS_NAME && it.signature.namespace == null
+    }
+    val methods = sourceDefaultClass?.methods.orEmpty()
         .filter { it.isStaticCallTarget(method.name) }
         .canonicalizeExecutableOverloads()
 
@@ -113,7 +117,12 @@ private fun TsExprResolver.processAmbiguousStaticMethod(
     resolved: TsResolutionResult.Ambiguous<EtsMethod>,
     expr: EtsStaticCallExpr,
 ) {
-    val args = expr.args.map { resolve(it) ?: return }
+    val args = mutableListOf<UExpr<*>>()
+    for (argument in expr.args) {
+        val resolvedArgument = resolve(argument) ?: return
+        args += resolvedArgument
+    }
+
     val staticProperties = resolved.properties.take(Constants.STATIC_METHODS_FORK_LIMIT)
     val staticInstances = scope.calcOnState {
         staticProperties.map { getStaticInstance(it.enclosingClass!!) }
@@ -142,7 +151,12 @@ private fun TsExprResolver.processUniqueStaticMethod(
     val instance = scope.calcOnState {
         getStaticInstance(resolved.property.enclosingClass!!)
     }
-    val args = expr.args.map { resolve(it) ?: return }
+    val args = mutableListOf<UExpr<*>>()
+    for (argument in expr.args) {
+        val resolvedArgument = resolve(argument) ?: return
+        args += resolvedArgument
+    }
+
     val concreteCall = TsConcreteMethodCallStmt(
         callee = resolved.property,
         call = expr,
