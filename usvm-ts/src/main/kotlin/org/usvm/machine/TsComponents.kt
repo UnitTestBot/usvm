@@ -18,6 +18,7 @@ import org.usvm.model.ULazyModelDecoder
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
+import org.usvm.solver.observeSolverQueries
 import org.usvm.types.UTypeSystem
 
 class TsComponents(
@@ -67,7 +68,7 @@ class TsComponents(
         val typeSolver = UTypeSolver(typeSystem)
 
         val observedSolver = solverQueryObserver?.let { observer ->
-            observeTsSolverQueries(smtSolver, observer)
+            observeSolverQueries(solver = smtSolver, observer = observer)
         } ?: smtSolver
 
         return USolverBase(ctx, observedSolver, typeSolver, translator, decoder, options.solverTimeout)
