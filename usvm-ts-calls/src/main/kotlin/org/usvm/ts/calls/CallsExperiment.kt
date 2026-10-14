@@ -89,22 +89,28 @@ internal data class CallsExperimentManifest(
             "Tool revision must identify a clean Git commit"
         }
         require(toolRevision == modelSet.toolRevision) { "Tool and model-set revisions must match" }
+
         val functions = projects.flatMap(CallsProjectCase::functions)
-        require(functions.map(CallsFunctionCase::functionId).distinct().size == functions.size) {
+        val uniqueFunctionIds = functions.map(CallsFunctionCase::functionId).distinct()
+        require(uniqueFunctionIds.size == functions.size) {
             "Function IDs must be unique"
         }
-        require(functions.all { function -> function.sourceFile == function.entryPoint.module }) {
+        val sourceFilesMatchEntryPoints = functions.all { function ->
+            function.sourceFile == function.entryPoint.module
+        }
+        require(sourceFilesMatchEntryPoints) {
             "Function source files must match their replay entry-point modules"
         }
+
         val targets = functions.flatMap(CallsFunctionCase::targets)
-        require(targets.map(CallsSourceTarget::targetId).distinct().size == targets.size) {
+        val uniqueTargetIds = targets.map(CallsSourceTarget::targetId).distinct()
+        require(uniqueTargetIds.size == targets.size) {
             "Target IDs must be unique"
         }
-        require(
-            functions.all { function ->
-                function.targets.all { target -> target.sourcePath == function.sourceFile }
-            },
-        ) {
+        val targetsBelongToFunctionSourceFiles = functions.all { function ->
+            function.targets.all { target -> target.sourcePath == function.sourceFile }
+        }
+        require(targetsBelongToFunctionSourceFiles) {
             "Every target must belong to its function source file"
         }
     }
@@ -267,12 +273,12 @@ internal object CallsBuildIdentity {
     }
 
     val toolRevision: String by lazy {
-        checkNotNull(properties.getProperty("tool.revision")).takeIf(String::isNotBlank)
+        properties.getProperty("tool.revision")?.takeIf(String::isNotBlank)
             ?: error("Missing tool revision in calls build identity")
     }
 
     val nativeFrontendRevision: String by lazy {
-        checkNotNull(properties.getProperty("native.frontend.revision")).takeIf(String::isNotBlank)
+        properties.getProperty("native.frontend.revision")?.takeIf(String::isNotBlank)
             ?: error("Missing native frontend revision in calls build identity")
     }
 }

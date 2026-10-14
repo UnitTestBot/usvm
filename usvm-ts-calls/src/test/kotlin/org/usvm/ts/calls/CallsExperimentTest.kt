@@ -335,6 +335,71 @@ class CallsExperimentTest {
     }
 
     @Test
+    fun `single witness replay selects function when projects share an ID`(@TempDir directory: Path) {
+        val baseManifest = manifest(sourceRoot = ".", seeds = listOf(19L))
+        val firstProject = baseManifest.projects.single()
+        val firstFunction = firstProject.functions.single()
+        val secondTarget = firstFunction.targets.single().copy(
+            targetId = "fixture.ts::other/1#return",
+            siteId = "fixture.ts:2:1-2:12::other/1",
+        )
+        val secondFunction = firstFunction.copy(
+            functionId = "fixture.ts::other/1",
+            targets = listOf(secondTarget),
+        )
+        val secondProject = firstProject.copy(
+            revision = "second-project-revision",
+            functions = listOf(secondFunction),
+        )
+        val frozenManifest = baseManifest.copy(projects = listOf(firstProject, secondProject))
+        val rawOutput = directory.resolve("results.jsonl")
+        val selectedWitness = CallsWitnessSelector(
+            projectId = secondProject.projectId,
+            functionId = secondFunction.functionId,
+            targetId = secondTarget.targetId,
+            profile = CallsExperimentProfile.FROZEN_STOP,
+            seed = 19L,
+        )
+
+        CallsExperimentRunner(
+            symbolicEngine = CallsSymbolicEngine {
+                result(
+                    status = CallsSymbolicStatus.REACHED,
+                    inputs = listOf(JsConcreteValue.Boolean(true)),
+                )
+            },
+            targetReplayer = CallsTargetReplayer { _, _, _, _, _ ->
+                CallsSourceReplayResult(status = CallsReplayStatus.CONFIRMED)
+            },
+            runtimeToolRevision = FIXTURE_TOOL_REVISION,
+        ).run(
+            manifest = frozenManifest,
+            manifestDirectory = directory,
+            rawOutput = rawOutput,
+        )
+
+        var verifiedRevision: String? = null
+        var replayedTarget: CallsSourceTarget? = null
+        val replay = CallsWitnessReplayer(
+            targetReplayer = CallsTargetReplayer { _, _, _, target, _ ->
+                replayedTarget = target
+                CallsSourceReplayResult(status = CallsReplayStatus.CONFIRMED)
+            },
+            runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            verifyProjectCheckout = { _, revision -> verifiedRevision = revision },
+        ).replay(
+            manifest = frozenManifest,
+            manifestDirectory = directory,
+            rawInput = rawOutput,
+            selector = selectedWitness,
+        )
+
+        assertEquals(CallsReplayStatus.CONFIRMED, replay.status)
+        assertEquals("second-project-revision", verifiedRevision)
+        assertEquals(secondTarget, replayedTarget)
+    }
+
+    @Test
     fun `historical extracted row without stored witness reports replay unavailable first`(@TempDir directory: Path) {
         val rawOutput = directory.resolve("results.jsonl")
         val frozenManifest = manifest(sourceRoot = ".", seeds = listOf(5L))
