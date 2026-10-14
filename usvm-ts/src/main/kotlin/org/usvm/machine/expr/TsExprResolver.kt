@@ -1272,6 +1272,10 @@ class TsExprResolver(
             return handleNumberConverter(expr.args)
         }
 
+        if (isBuiltInStringConverter(expr)) {
+            return handleStringConverter(expr.args)
+        }
+
         when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
