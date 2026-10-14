@@ -37,6 +37,7 @@ import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
+import org.usvm.ts.pbt.model.contains
 import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.componentType
@@ -307,21 +308,52 @@ internal class OriginalTypeScriptClassReplayer(
 
     fun replay(inputs: List<JsConcreteValue>, timeoutMillis: Long): CallsClassReplayObservation {
         require(inputs.size == function.inputs.size)
+        val emptyInputs = function.inputs.isEmpty()
+        val observation = execute(
+            seed = 0,
+            timeoutMillis = timeoutMillis,
+            examples = listOf(if (emptyInputs) listOf(JsConcreteValue.Boolean(true)) else inputs),
+        )
+        require(observation.inputs == inputs) { "Class replay input transport changed" }
+        return observation
+    }
+
+    /** Native-only sampling uses the declared domains; it does not consult any symbolic profile or candidate. */
+    fun sample(seed: Long, timeoutMillis: Long): CallsClassReplayObservation = execute(
+        seed = seed,
+        timeoutMillis = timeoutMillis,
+        examples = emptyList(),
+    )
+
+    private fun execute(
+        seed: Long,
+        timeoutMillis: Long,
+        examples: List<List<JsConcreteValue>>,
+    ): CallsClassReplayObservation {
         require(timeoutMillis > 0)
+        require(seed in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) {
+            "Native PBT seed must fit a signed 32-bit integer"
+        }
+        val nativeSeed = seed.toInt()
         Files.deleteIfExists(observationPath)
         val started = TimeSource.Monotonic.markNow()
         val emptyInputs = function.inputs.isEmpty()
+        val propertyInputs = if (emptyInputs) {
+            listOf(PropertyInput(name = "sentinel", domain = BooleanDomain))
+        } else {
+            function.inputs
+        }
         val result = backend.run(
             property = PropertyDefinition(
                 id = PropertyId("calls.class.exact-replay"),
-                inputs = if (emptyInputs) listOf(PropertyInput("sentinel", BooleanDomain)) else function.inputs,
+                inputs = propertyInputs,
                 predicate = TypeScriptEntryPoint(module = wrapperName, exportName = "replayClassScenario"),
             ),
             configuration = PropertyRunConfiguration(
-                seed = 0,
+                seed = nativeSeed,
                 numRuns = 1,
                 timeoutMillis = timeoutMillis,
-                examples = listOf(if (emptyInputs) listOf(JsConcreteValue.Boolean(true)) else inputs),
+                examples = examples,
             ),
         )
         require(result.status == PropertyRunStatus.SUCCESS && result.numRuns == 1) {
@@ -330,7 +362,9 @@ internal class OriginalTypeScriptClassReplayer(
         val observation = CallsExperimentJson.json.decodeFromString<CallsClassReplayObservation>(
             Files.readString(observationPath)
         )
-        require(observation.inputs == inputs) { "Class replay input transport changed" }
+        val inputsInsideDomains = observation.inputs.size == function.inputs.size &&
+            observation.inputs.zip(function.inputs).all { (value, input) -> value in input.domain }
+        require(inputsInsideDomains) { "Native sample is outside the frozen constructor input domains" }
         val expectedFields = observationFields.keys
         val hasExactFields = !observation.observation.representable ||
             observation.observation.values.keys == expectedFields

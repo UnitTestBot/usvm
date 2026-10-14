@@ -6,6 +6,16 @@ import org.usvm.ts.pbt.model.PropertyDomain
 import java.nio.file.Files
 import java.nio.file.Path
 
+/** Frozen external correctness evidence, independent of the outcome of a treatment's symbolic pilot. */
+@Serializable
+internal data class CallsClassCorrectnessFrontierFailure(val reason: String, val provenance: String) {
+    init {
+        require(reason.isNotBlank() && provenance.isNotBlank()) {
+            "Correctness limitations require evidence provenance"
+        }
+    }
+}
+
 @Serializable
 internal data class CallsClassCase(
     val classId: String,
@@ -14,6 +24,7 @@ internal data class CallsClassCase(
     val sourceRoot: String,
     val sourceSha256: Map<String, String>,
     val surface: CallsClassSurface,
+    val correctnessFrontierFailures: List<CallsClassCorrectnessFrontierFailure> = emptyList(),
 ) {
     init {
         require(classId.matches(Regex("[A-Za-z0-9_-]+"))) { "Class ID must be a safe directory name" }
@@ -134,6 +145,113 @@ internal data class CallsClassPreparationFailure(
 )
 
 @Serializable
+internal enum class CallsClassNativeSmokeStatus { VERIFIED, INVALID, INCONCLUSIVE }
+
+@Serializable
+internal data class CallsClassNativeSmokeResult(
+    val seed: Long,
+    val scenarioId: String,
+    val status: CallsClassNativeSmokeStatus,
+    val original: CallsClassReplayObservation? = null,
+    val instrumented: CallsClassReplayObservation? = null,
+    val diagnostic: String? = null,
+)
+
+/** Check the native observation mechanism independently of symbolic policies and their selected candidates. */
+internal fun callsClassNativeConstructorSmoke(
+    harness: CallsClassPreparedHarness,
+    instrumentation: CallsClassSourceInstrumentation,
+    seed: Long,
+    timeoutMillis: Long,
+): CallsClassNativeSmokeResult {
+    val index = harness.scenarios.indexOfFirst { it.memberIds.isEmpty() }
+    require(index >= 0) { "Class schedule omits the constructor observation scenario" }
+    val function = harness.functions[index]
+    val fields = harness.observations[index]
+    val scenarioId = harness.scenarios[index].id
+    val original = runCatching {
+        OriginalTypeScriptClassReplayer(harness.sourceRoot, function, fields).use {
+            it.sample(seed = seed, timeoutMillis = timeoutMillis)
+        }
+    }
+    val originalValue = original.getOrNull()
+    if (originalValue == null) {
+        val failure = requireNotNull(original.exceptionOrNull())
+        return CallsClassNativeSmokeResult(
+            seed = seed,
+            scenarioId = scenarioId,
+            status = CallsClassNativeSmokeStatus.INCONCLUSIVE,
+            diagnostic = "Native original sampling did not complete: ${failure.message ?: failure::class.java.name}",
+        )
+    }
+
+    val instrumented = runCatching {
+        OriginalTypeScriptClassReplayer(
+            sourceRoot = harness.sourceRoot,
+            function = function,
+            observationFields = fields,
+            sourceOverride = instrumentation.instrumentedSource,
+            overrideSourceFile = harness.surface.sourceFile,
+            counterGlobalName = instrumentation.hitGlobalName,
+        ).use { it.replay(inputs = originalValue.inputs, timeoutMillis = timeoutMillis) }
+    }
+    val instrumentedValue = instrumented.getOrNull()
+    if (instrumentedValue == null) {
+        val failure = requireNotNull(instrumented.exceptionOrNull())
+        return CallsClassNativeSmokeResult(
+            seed = seed,
+            scenarioId = scenarioId,
+            status = CallsClassNativeSmokeStatus.INCONCLUSIVE,
+            original = originalValue,
+            diagnostic = "Native instrumented replay did not complete: ${failure.message ?: failure::class.java.name}",
+        )
+    }
+
+    val invalid = callsClassNativeInfrastructureFailure(originalValue, instrumentedValue)
+    val checkedIds = runCatching { instrumentation.universe.checkedCoveredIds(instrumentedValue.coveredStatementKeys) }
+    val invalidDiagnostic = invalid ?: checkedIds.exceptionOrNull()?.let { it.message ?: it::class.java.name }
+    val representable = originalValue.observation.representable && instrumentedValue.observation.representable
+    val status = when {
+        invalidDiagnostic != null -> CallsClassNativeSmokeStatus.INVALID
+        representable -> CallsClassNativeSmokeStatus.VERIFIED
+        else -> CallsClassNativeSmokeStatus.INCONCLUSIVE
+    }
+
+    val diagnostic = invalidDiagnostic ?: if (representable) {
+        null
+    } else {
+        "Native observation is incomplete at the sampled input"
+    }
+    return CallsClassNativeSmokeResult(
+        seed = seed,
+        scenarioId = scenarioId,
+        status = status,
+        original = originalValue,
+        instrumented = instrumentedValue,
+        diagnostic = diagnostic,
+    )
+}
+
+/** An incomplete lawful observation is not evidence of an instrumentation defect. */
+internal fun callsClassNativeInfrastructureFailure(
+    original: CallsClassReplayObservation,
+    instrumented: CallsClassReplayObservation,
+): String? {
+    if (original.inputs != instrumented.inputs) return "Instrumentation changed the frozen native input transport"
+    if (original.observation.completion != instrumented.observation.completion) {
+        return "Instrumentation changed native completion"
+    }
+    if (original.observation.representable != instrumented.observation.representable) {
+        return "Instrumentation changed native observability or observation schema"
+    }
+    val completeObservations = original.observation.representable && instrumented.observation.representable
+    if (completeObservations && original.observation != instrumented.observation) {
+        return "Instrumentation changed native returned values or receiver state"
+    }
+    return null
+}
+
+@Serializable
 internal data class CallsClassPreflightResult(
     val eligible: Boolean,
     val classId: String,
@@ -143,7 +261,68 @@ internal data class CallsClassPreflightResult(
     val replays: List<CallsClassReplayEvent>,
     val missingRequiredScenarios: List<String>,
     val reasons: List<String>,
-)
+    val admissionVersion: Int = 0,
+    val sourceAdmissionFailures: List<String> = emptyList(),
+    val nativeInfrastructureFailures: List<String> = emptyList(),
+    val nativeSmoke: CallsClassNativeSmokeResult? = null,
+    val diagnosticReady: Boolean? = null,
+    val primaryInferenceEligible: Boolean? = null,
+    val correctnessFrontierFailures: List<CallsClassCorrectnessFrontierFailure> = emptyList(),
+) {
+    init {
+        require(admissionVersion in 0..1) { "Unsupported class admission version" }
+        if (admissionVersion == 1) {
+            require(diagnosticReady != null && primaryInferenceEligible != null) {
+                "Version-one admission must distinguish pilot readiness and primary inference"
+            }
+            require(sourceAdmissionFailures.isNotEmpty() || nativeSmoke != null) {
+                "Source-ready admission requires a native probe"
+            }
+        }
+    }
+}
+
+internal fun callsClassPreflightResult(
+    classCase: CallsClassCase,
+    preparedSha256: String,
+    toolRevision: String,
+    search: CallsClassSearchResult,
+    replays: List<CallsClassReplayEvent>,
+    missingScenarios: List<String>,
+    pilotDiagnostics: List<String>,
+    sourceAdmissionFailures: List<String>,
+    nativeSmoke: CallsClassNativeSmokeResult?,
+    nativeInfrastructureFailures: List<String>,
+): CallsClassPreflightResult {
+    require(sourceAdmissionFailures.isNotEmpty() || nativeSmoke != null) {
+        "Source-ready admission requires a native probe"
+    }
+    val invalidSmoke = nativeSmoke?.status == CallsClassNativeSmokeStatus.INVALID
+    val eligible = sourceAdmissionFailures.isEmpty() && !invalidSmoke
+    val primaryInferenceEligible = eligible && nativeSmoke?.status == CallsClassNativeSmokeStatus.VERIFIED &&
+        classCase.correctnessFrontierFailures.isEmpty()
+    val admissionDiagnostics = sourceAdmissionFailures + nativeInfrastructureFailures +
+        listOfNotNull(nativeSmoke?.diagnostic) +
+        classCase.correctnessFrontierFailures.map { "${it.reason} (${it.provenance})" }
+
+    return CallsClassPreflightResult(
+        eligible = eligible,
+        classId = classCase.classId,
+        preparedSha256 = preparedSha256,
+        toolRevision = toolRevision,
+        search = search,
+        replays = replays,
+        missingRequiredScenarios = missingScenarios,
+        reasons = admissionDiagnostics + pilotDiagnostics,
+        admissionVersion = 1,
+        sourceAdmissionFailures = sourceAdmissionFailures,
+        nativeInfrastructureFailures = nativeInfrastructureFailures,
+        nativeSmoke = nativeSmoke,
+        diagnosticReady = pilotDiagnostics.isEmpty() && nativeInfrastructureFailures.isEmpty(),
+        primaryInferenceEligible = primaryInferenceEligible,
+        correctnessFrontierFailures = classCase.correctnessFrontierFailures,
+    )
+}
 
 @Serializable
 internal data class CallsClassReplayEvent(
@@ -192,6 +371,9 @@ internal data class CallsClassCellResult(
     val oracleRejections: Int,
     val replayElapsedMillis: Long,
     val cellElapsedMillis: Long,
+    val primaryInferenceEligible: Boolean? = null,
+    val correctnessFrontierFailures: List<CallsClassCorrectnessFrontierFailure> = emptyList(),
+    val nativeInfrastructureFailures: List<String> = emptyList(),
 )
 
 internal fun callsClassCoverageCheckpoints(

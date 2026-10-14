@@ -94,7 +94,7 @@ internal fun runClassPrepare(args: List<String>) {
     }
 }
 
-/** A fixed technical run is completed and frozen before any comparison cell is allowed. */
+/** Source/native admission is independent of the diagnostic pilot and any treatment completion rate. */
 internal fun runClassPreflight(
     args: List<String>,
     searchFunction: (CallsClassSearchRequest) -> CallsClassSearchResult = CurrentTsCallsClassCoverageEngine()::search,
@@ -108,6 +108,21 @@ internal fun runClassPreflight(
     val output = source.directory.resolve("preflight")
     Files.createDirectories(output)
     require(Files.list(output).use { it.findAny().isEmpty }) { "Class preflight already started" }
+    val sourceAdmissionFailures = callsClassSourceAdmissionFailures(
+        harness = source.harness,
+        expectedNativeFrontendRevision = source.manifest.nativeFrontendRevision,
+    )
+    val nativeSmoke = if (sourceAdmissionFailures.isEmpty()) {
+        callsClassNativeConstructorSmoke(
+            harness = source.harness,
+            instrumentation = source.record.instrumentation,
+            seed = source.manifest.seeds.first(),
+            timeoutMillis = CLASS_REPLAY_TIMEOUT_MILLIS,
+        )
+    } else {
+        null
+    }
+    writeCallsArtifactAtomically(output.resolve("native-smoke.json"), encodeCallsArtifact(nativeSmoke))
     val candidatesPath = output.resolve("candidates.jsonl")
     val search = searchFunction(
         source.searchRequest(
@@ -126,37 +141,63 @@ internal fun runClassPreflight(
     val events = replayClassCandidates(source, search, output)
     val acceptedIds = events.filter { it.oracle.accepted && it.error == null }.mapTo(hashSetOf()) { it.scenarioId }
     val missing = source.record.scenarios.map { it.id }.filter { it !in acceptedIds }
-    val reasons = buildList {
-        if (missing.isNotEmpty()) add("No exact returned-value/state witness for scenarios: $missing")
-        if (search.search.engineFailed) add("Symbolic engine failed")
-        if (search.search.unsupportedCall) add("Technical preflight stopped an unsupported call")
-        if (search.search.runtimeLimited) addAll(search.search.runtimeLimitationReasons)
-        if (search.search.extractionFailures.isNotEmpty()) addAll(search.search.extractionFailures)
-        if (search.search.candidateCapReached) add("Technical preflight reached candidate cap")
-        if (events.any { it.error != null }) add("Concrete preflight replay failed")
-        if (events.any { !it.oracle.accepted }) add("Technical preflight observation oracle rejected a candidate")
-        val terminalFailure = search.search.status in setOf(
-            CallsCoverageSearchStatus.UNSUPPORTED,
-            CallsCoverageSearchStatus.UNMAPPED,
-            CallsCoverageSearchStatus.AMBIGUOUS,
-            CallsCoverageSearchStatus.UNKNOWN,
-            CallsCoverageSearchStatus.TOOL_ERROR,
-        )
-        if (terminalFailure) add(search.search.diagnostic ?: search.search.status.name)
-    }
-    val result = CallsClassPreflightResult(
-        eligible = reasons.isEmpty(),
-        classId = source.record.classCase.classId,
+    val pilotDiagnostics = callsClassPilotDiagnostics(search, events, missing)
+    val nativeInfrastructureFailures = callsClassPilotNativeFailures(events, source.record.instrumentation.universe)
+    val result = callsClassPreflightResult(
+        classCase = source.record.classCase,
         preparedSha256 = source.preparedSha256,
         toolRevision = source.manifest.toolRevision,
         search = search,
         replays = events,
-        missingRequiredScenarios = missing,
-        reasons = reasons,
+        missingScenarios = missing,
+        pilotDiagnostics = pilotDiagnostics,
+        sourceAdmissionFailures = sourceAdmissionFailures,
+        nativeSmoke = nativeSmoke,
+        nativeInfrastructureFailures = nativeInfrastructureFailures,
     )
     source.verify()
     writeCallsArtifactAtomically(source.directory.resolve("preflight.json"), encodeCallsArtifact(result))
     System.out.appendLine(encodeCallsArtifact(result))
+}
+
+private fun callsClassPilotDiagnostics(
+    search: CallsClassSearchResult,
+    events: List<CallsClassReplayEvent>,
+    missing: List<String>,
+): List<String> = buildList {
+    if (missing.isNotEmpty()) add("No exact returned-value/state witness for scenarios: $missing")
+    if (search.search.engineFailed) add("Symbolic engine failed")
+    if (search.search.unsupportedCall) add("Technical preflight stopped an unsupported call")
+    if (search.search.runtimeLimited) addAll(search.search.runtimeLimitationReasons)
+    if (search.search.extractionFailures.isNotEmpty()) addAll(search.search.extractionFailures)
+    if (search.search.candidateCapReached) add("Technical preflight reached candidate cap")
+    if (search.search.status == CallsCoverageSearchStatus.TIMEOUT) add("Symbolic pilot reached the time budget")
+    if (events.any { it.error != null }) add("Concrete preflight replay failed")
+    if (events.any { !it.oracle.accepted }) add("Technical preflight observation oracle rejected a candidate")
+    val terminalFailure = search.search.status in setOf(
+        CallsCoverageSearchStatus.UNSUPPORTED,
+        CallsCoverageSearchStatus.UNMAPPED,
+        CallsCoverageSearchStatus.AMBIGUOUS,
+        CallsCoverageSearchStatus.UNKNOWN,
+        CallsCoverageSearchStatus.TOOL_ERROR,
+    )
+    if (terminalFailure) add(search.search.diagnostic ?: search.search.status.name)
+}
+
+internal fun callsClassPilotNativeFailures(
+    events: List<CallsClassReplayEvent>,
+    universe: CallsClassSourceUniverse,
+): List<String> = buildList {
+    for (event in events) {
+        val original = event.original
+        val instrumented = event.instrumented
+        if (original != null && instrumented != null) {
+            val failure = callsClassNativeInfrastructureFailure(original, instrumented)
+            if (failure != null) add("${event.scenarioId}: $failure")
+            val checkedIds = runCatching { universe.checkedCoveredIds(instrumented.coveredStatementKeys) }
+            checkedIds.exceptionOrNull()?.let { add(it.message ?: it::class.java.name) }
+        }
+    }
 }
 
 internal fun runClassCell(
@@ -179,13 +220,7 @@ internal fun runClassCell(
     }
     val preflightPath = source.directory.resolve("preflight.json")
     val preflight = decodeClassArtifact<CallsClassPreflightResult>(preflightPath)
-    require(preflight.eligible) { "Class did not pass technical preflight: ${preflight.reasons}" }
-    require(preflight.classId == source.record.classCase.classId)
-    val preflightIdentityMatches = preflight.preparedSha256 == source.preparedSha256 &&
-        preflight.toolRevision == source.manifest.toolRevision
-    require(preflightIdentityMatches) {
-        "Class preflight identity differs"
-    }
+    source.validatePreflightAdmission(preflight)
     val output = Path.of(arguments.next()).toAbsolutePath().normalize()
     Files.createDirectories(output)
     val identity = CallsClassCellIdentity(
@@ -249,10 +284,61 @@ internal fun runClassCell(
         oracleRejections = events.count { !it.oracle.accepted },
         replayElapsedMillis = events.sumOf { it.replayElapsedMillis },
         cellElapsedMillis = cellStarted.elapsedNow().inWholeMilliseconds,
+        primaryInferenceEligible = preflight.primaryInferenceEligible,
+        correctnessFrontierFailures = preflight.correctnessFrontierFailures,
+        nativeInfrastructureFailures = callsClassPilotNativeFailures(events, source.record.instrumentation.universe),
     )
     writeCallsArtifactAtomically(output.resolve("result.json"), encodeCallsArtifact(result))
     System.out.appendLine(encodeCallsArtifact(result))
 }
+
+private fun PreparedClassSource.validatePreflightAdmission(preflight: CallsClassPreflightResult) {
+    require(preflight.admissionVersion == 1) { "Class requires a new profile-independent admission check" }
+    require(preflight.eligible) { "Class source/native admission failed: ${preflight.reasons}" }
+    require(preflight.correctnessFrontierFailures == record.classCase.correctnessFrontierFailures) {
+        "Frozen correctness-frontier evidence differs from the prepared class"
+    }
+    val expectedPrimaryEligibility = preflight.eligible &&
+        preflight.nativeSmoke?.status == CallsClassNativeSmokeStatus.VERIFIED &&
+        preflight.correctnessFrontierFailures.isEmpty()
+    require(preflight.primaryInferenceEligible == expectedPrimaryEligibility) { "Primary admission evidence differs" }
+    require(preflight.classId == record.classCase.classId)
+    val preflightIdentityMatches = preflight.preparedSha256 == preparedSha256 &&
+        preflight.toolRevision == manifest.toolRevision
+    require(preflightIdentityMatches) { "Class preflight identity differs" }
+}
+
+/** Parsing, domain binding and source coverage selection run without a symbolic treatment or machine. */
+internal fun callsClassSourceAdmissionFailures(
+    harness: CallsClassPreparedHarness,
+    expectedNativeFrontendRevision: String,
+): List<String> = runCatching {
+    val engine = CurrentTsCallsSymbolicEngine()
+    val preparations = harness.functions.map { function ->
+        engine.prepareFunction(
+            CallsFunctionPreflightRequest(
+                sourceRoot = harness.sourceRoot,
+                project = harness.project,
+                function = function,
+                expectedNativeFrontendRevision = expectedNativeFrontendRevision,
+                verifySourceCheckout = false,
+            ),
+        )
+    }
+    val failures = preparations.filterIsInstance<CallsFunctionPreparation.Rejected>().map {
+        "${it.reasonCode}: ${it.diagnostic}"
+    }
+    if (failures.isNotEmpty()) {
+        failures
+    } else {
+        val first = preparations.first() as CallsFunctionPreparation.Eligible
+        val scope = resolveCallsSymbolicCoverageScope(
+            preparation = first,
+            target = CallsSymbolicCoverageClass(harness.surface.sourceFile, harness.surface.exportName),
+        )
+        if (scope is CallsSymbolicCoverageScope.Rejected) listOf(scope.diagnostic) else emptyList()
+    }
+}.getOrElse { listOf("Source preparation failed: ${it.message ?: it::class.java.name}") }
 
 private class PreparedClassSource(
     val manifest: CallsClassExperimentManifest,
