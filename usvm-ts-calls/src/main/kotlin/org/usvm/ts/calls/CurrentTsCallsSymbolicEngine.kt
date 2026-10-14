@@ -48,6 +48,7 @@ internal data class CallsFunctionPreflightRequest(
     val project: CallsProjectCase,
     val function: CallsFunctionCase,
     val expectedNativeFrontendRevision: String,
+    val verifySourceCheckout: Boolean = true,
 )
 
 internal sealed interface CallsFunctionPreparation {
@@ -109,6 +110,7 @@ internal class CurrentTsCallsSymbolicEngine(
     private val bundledNativeFrontendRevision: String = CallsBuildIdentity.nativeFrontendRevision,
 ) : CallsSymbolicEngine {
     private val verifiedProjects = mutableMapOf<Path, String>()
+    private val preparedSources = mutableMapOf<Pair<Path, Path>, CallsSourceProject>()
     private var preparedTarget: Pair<CallsSymbolicPreflightRequest, CallsTargetPreparation>? = null
     private var verifiedNativeFrontendIdentity: String? = null
 
@@ -311,17 +313,25 @@ internal class CurrentTsCallsSymbolicEngine(
             )
         }
 
-        verifyGitCheckoutOnce(
-            checkout = request.sourceRoot,
-            expectedRevision = request.project.revision,
-            cache = verifiedProjects,
-        )
+        if (request.verifySourceCheckout) {
+            verifyGitCheckoutOnce(
+                checkout = request.sourceRoot,
+                expectedRevision = request.project.revision,
+                cache = verifiedProjects,
+            )
+        }
         verifyNativeFrontendOnce(expectedRevision = request.expectedNativeFrontendRevision)
 
         val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
         require(source.startsWith(request.sourceRoot)) { "Function source escapes its frozen source root" }
 
-        val project = loadCallsSourceProject(sourceRoot = request.sourceRoot, source = source)
+        val project = if (request.verifySourceCheckout) {
+            loadCallsSourceProject(sourceRoot = request.sourceRoot, source = source)
+        } else {
+            preparedSources.getOrPut(request.sourceRoot to source) {
+                loadCallsSourceProject(sourceRoot = request.sourceRoot, source = source)
+            }
+        }
         val loaded = when (project) {
             is CallsSourceProject.Loaded -> project
             is CallsSourceProject.Unsupported -> return CallsFunctionPreparation.Rejected(

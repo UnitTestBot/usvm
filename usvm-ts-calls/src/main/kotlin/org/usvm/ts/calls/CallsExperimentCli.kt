@@ -9,6 +9,10 @@ fun main(args: Array<String>) {
     require(args.isNotEmpty()) { usage() }
 
     when (args.first()) {
+        "class-catalog" -> runClassCatalog(args.drop(1))
+        "class-prepare" -> runClassPrepare(args.drop(1))
+        "class-preflight" -> runClassPreflight(args.drop(1))
+        "class-cell" -> runClassCell(args.drop(1))
         "run" -> runExperiment(args.drop(1))
         "coverage-universe" -> runCoverageUniverse(args.drop(1))
         "coverage-cell" -> runCoverageCell(args.drop(1))
@@ -89,6 +93,10 @@ private fun summarize(args: List<String>) {
 
 private fun usage(): String = """
     Usage:
+      calls class-catalog
+      calls class-prepare <class-manifest.json> <prepared-directory>
+      calls class-preflight <prepared-directory> <class-id> <preflight-ms>
+      calls class-cell <prepared-directory> <class-id> <profile> <seed> <budget-ms> <output-directory>
       calls run <frozen-manifest.json> <raw-directory>
       calls coverage-universe <source-manifest.json> <project-index> <function-index> <output-directory>
       calls coverage-cell <source-manifest.json> <project-index> <function-index> <profile> <seed> <output-directory> <budget-ms> <solver-limit-ms> <candidate-cap> <universe.json>

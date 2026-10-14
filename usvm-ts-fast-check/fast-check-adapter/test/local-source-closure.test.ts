@@ -158,7 +158,6 @@ test('binding inspection does not read ignored type imports outside the runtime 
   })
 })
 
-
 test('single-source captures retain their dedicated validation route', () => {
   workspace({
     'entry.ts': 'const source = { value: 7 }; const alias = source; '
@@ -167,3 +166,35 @@ test('single-source captures retain their dedicated validation route', () => {
     assert.deepEqual(inspectLocalSourceClosure(root, path.join(root, 'entry.ts')), { files: ['entry.ts'] })
   })
 })
+
+test('imported class implements an erased interface without a runtime initialization effect', () => {
+  workspace({
+    'wrapper.ts': "import { HashMap } from './subject'; export function scenario() { return new HashMap<string, number>().size; }",
+    'subject.ts': "import { MapContract } from './type-contract'; "
+      + 'export class HashMap<K, V> implements MapContract<K, V> { size = 0; set(_key: K, _value: V) { this.size++; } }',
+    'type-contract.ts': 'export interface MapContract<K, V> { size: number; set(key: K, value: V): void }',
+  }, root => {
+    assert.deepEqual(inspectLocalSourceClosure(root, path.join(root, 'wrapper.ts')), {
+      files: ['subject.ts', 'wrapper.ts'],
+    })
+  })
+})
+
+for (const [name, declaration] of [
+  ['effectful extends expression', 'function base() { throw new Error("must not execute"); } export class Subject extends base() {}'],
+  ['plain runtime extends', 'class Base {} export class Subject extends Base {}'],
+  ['decorated implements class', 'interface Contract {} function decorate(value: unknown) { return value; } @decorate export class Subject implements Contract {}'],
+  ['static initializer with implements', 'interface Contract {} export class Subject implements Contract { static value = Math.random(); }'],
+  ['static block with implements', 'interface Contract {} export class Subject implements Contract { static { throw new Error("must not execute"); } }'],
+] as const) {
+  test(`imported class retains module initialization rejection for ${name}`, () => {
+    workspace({
+      'wrapper.ts': "import { Subject } from './subject'; export function scenario() { return new Subject(); }",
+      'subject.ts': declaration,
+    }, root => {
+      const result = inspectLocalSourceClosure(root, path.join(root, 'wrapper.ts'))
+      assert.equal(result.reasonCode, 'TOP_LEVEL_INITIALIZATION_UNSUPPORTED')
+      assert.match(result.diagnostic!, /subject\.ts/)
+    })
+  })
+}
