@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@witness/logic": ["Logic.ts"]
+    }
+  }
+}

@@ -29,6 +29,7 @@ import java.nio.file.Path
 internal class FastCheckWitnessCoordinator(
     private val client: FastCheckProcessClient,
     private val sourceRoots: List<Path>,
+    private val tsconfig: String? = null,
 ) {
     fun confirm(
         property: PropertyDefinition,
@@ -347,6 +348,7 @@ internal class FastCheckWitnessCoordinator(
         return FastCheckExecutionRequest(
             manifest = property.toManifest(),
             sourceRoots = sourceRoots.map(Path::toString),
+            tsconfig = tsconfig,
             numRuns = 1,
             timeoutMillis = timeoutMillis,
             witness = operation,

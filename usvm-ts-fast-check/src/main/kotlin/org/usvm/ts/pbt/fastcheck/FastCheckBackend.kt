@@ -71,7 +71,11 @@ class FastCheckBackend(
         candidate: ExternalWitnessCandidate,
         configuration: WitnessReplayConfiguration,
         deadline: WitnessReplayDeadline,
-    ): WitnessEvidenceDelta = FastCheckWitnessCoordinator(client = client, sourceRoots = sourceRoots).confirm(
+    ): WitnessEvidenceDelta = FastCheckWitnessCoordinator(
+        client = client,
+        sourceRoots = sourceRoots,
+        tsconfig = tsconfig?.toRealPath()?.toString(),
+    ).confirm(
         property = property,
         candidate = candidate,
         configuration = configuration,

@@ -138,9 +138,13 @@ export async function executeWitness(value: unknown): Promise<WitnessExecutionSu
       admission: 'DOMAIN_REJECTED', outcome: 'SKIPPED', targetMatched: false, events: [], runtimeVersion: process.version,
     } };
   }
-  const predicate = await loadEntryPoint(request.manifest.predicate, request.sourceRoots, 'manifest.predicate');
+  const predicate = await loadEntryPoint(
+    request.manifest.predicate, request.sourceRoots, 'manifest.predicate', request.tsconfig,
+  );
   const precondition = request.manifest.precondition === undefined ? undefined
-    : await loadEntryPoint(request.manifest.precondition, request.sourceRoots, 'manifest.precondition');
+    : await loadEntryPoint(
+      request.manifest.precondition, request.sourceRoots, 'manifest.precondition', request.tsconfig,
+    );
   const replay = (input: JsConcreteValue[]) => replayOnce(input, operation.target, predicate, precondition);
 
   if (operation.mode === 'replay') {

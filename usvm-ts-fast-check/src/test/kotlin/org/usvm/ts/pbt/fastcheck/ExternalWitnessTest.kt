@@ -68,6 +68,47 @@ class ExternalWitnessTest {
     }
 
     @Test
+    fun `external replay preserves project aliases through admission and reduction`() {
+        val directory = "properties/witness/aliases"
+        val predicateModule = "$directory/Predicate.ts"
+        val preconditionModule = "$directory/Precondition.ts"
+        val property = property(predicate = "threshold").copy(
+            predicate = TypeScriptEntryPoint(module = predicateModule, exportName = "threshold"),
+            precondition = TypeScriptEntryPoint(module = preconditionModule, exportName = "admission"),
+        )
+        val candidate = property.captureWitness(
+            inputs = listOf(JsConcreteValue.number(80.0)),
+            target = WitnessTarget(id = "threshold"),
+            sources = listOf(
+                source(module = predicateModule),
+                source(module = preconditionModule),
+                source(module = "$directory/Logic.ts"),
+            ),
+            provenance = "symbolic-fixture",
+        )
+        val configuredBackend = FastCheckBackend(
+            sourceRoots = listOf(root),
+            tsconfig = root.resolve("$directory/witness.tsconfig.json"),
+        )
+        val withCoverage = configuration.copy(
+            coverageRequest = PropertyCoverageRequest(scopes = setOf(CoverageScope.PROPERTY_ENTRY_POINTS)),
+        )
+
+        val result = configuredBackend.confirmWitness(
+            property = property,
+            candidate = candidate,
+            configuration = withCoverage,
+        )
+
+        assertEquals(WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION, result.status, result.diagnostic)
+        assertEquals(WitnessReductionStatus.EXHAUSTED, result.reduction.status)
+        assertEquals(listOf(JsConcreteValue.number(15.0)), result.reduction.inputs)
+        assertEquals(WitnessOracleOutcome.FALSE, result.originalReplay?.outcome)
+        assertEquals(WitnessOracleOutcome.FALSE, result.reducedReplay?.outcome)
+        assertNotNull(result.originalReplay?.coverage)
+    }
+
+    @Test
     fun `a different named failed check cannot replace the original check`() {
         val property = property(predicate = "namedChecks").copy(
             assertions = listOf(PropertyAssertion(id = "threshold-check", source = sourcePoint)),
