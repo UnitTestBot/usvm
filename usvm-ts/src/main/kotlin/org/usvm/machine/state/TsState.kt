@@ -272,8 +272,6 @@ class TsState(
 
     fun getDfltObject(file: EtsFile): UConcreteHeapRef {
         val (updated, result) = dfltObject.getOrPut(file.signature, ownership) {
-            // val dfltClass = file.getDfltClass()
-            // memory.allocConcrete(dfltClass.type)
             ctx.allocateConcreteRef()
         }
         dfltObject = updated
@@ -296,23 +294,16 @@ class TsState(
     }
 
     /**
-     * Initializes and returns a fully constructed string constant in this state's memory.
-     * This function handles both heap reference allocation (via context) and memory initialization.
-     * Use this when you need a complete, usable string object in the current state.
+     * Initializes the reference interned by the context and its backing once in this state's memory.
      */
     fun mkInitializedStringConstant(
         value: String,
     ): UConcreteHeapRef = with(ctx) {
-        // Get the shared reference from context
         val ref = mkStringConstantRef(value)
 
-        // Check if we've already initialized this string constant in our state
         val (updated, result) = stringConstantAllocatedRefs.getOrPut(value, ownership) {
-            // Initialize the string constant only if not already done in this state
-            // Allocate type information for this ref in this state's memory
             memory.types.allocate(ref.address, EtsStringType)
 
-            // Initialize char array
             val charArray = memory.allocConcrete(EtsNumberType)
             memory.initializeArray(
                 arrayHeapRef = charArray,
@@ -357,7 +348,7 @@ class TsState(
             targets = targets.clone(),
             localToSortStack = localToSortStack.toMutableList(),
             staticStorage = staticStorage,
-            addedArtificialLocals = addedArtificialLocals,
+            addedArtificialLocals = addedArtificialLocals.toMutableSet(),
             lValuesToAllocatedFakeObjects = lValuesToAllocatedFakeObjects.toMutableList(),
             discoveredCallees = discoveredCallees,
             promiseState = promiseState,
@@ -397,7 +388,7 @@ class TsState(
 /** Snapshot of the regions that establish dense Calls input-array contents. */
 data class TsDenseInputArray(
     val type: EtsArrayType,
-    val length: UExpr<org.usvm.machine.TsSizeSort>,
+    val length: UExpr<TsSizeSort>,
     val lengthRegion: UReadOnlyMemoryRegion<*, *>,
     val elementRegion: UReadOnlyMemoryRegion<*, *>,
 )
