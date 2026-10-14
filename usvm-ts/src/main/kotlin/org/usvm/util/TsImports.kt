@@ -69,17 +69,12 @@ private fun EtsScene.resolveSystemLibrary(importPath: String): ImportResolutionR
 
 private fun EtsScene.resolveAbsolutePath(importPath: String): ImportResolutionResult {
     val normalizedPath = importPath.removePrefix("/")
+    val relativeCandidates = listOf(normalizedPath, "$normalizedPath.ts", "$normalizedPath.ets", "$normalizedPath.d.ts")
+    val absoluteCandidates = listOf(importPath, "$importPath.ts", "$importPath.ets", "$importPath.d.ts")
 
     val foundFile = (projectFiles + sdkFiles).find { file ->
         val fileName = file.signature.fileName
-        fileName == normalizedPath ||
-            fileName == "$normalizedPath.ts" ||
-            fileName == "$normalizedPath.ets" ||
-            fileName == "$normalizedPath.d.ts" ||
-            fileName.endsWith("/$normalizedPath") ||
-            fileName.endsWith("/$normalizedPath.ts") ||
-            fileName.endsWith("/$normalizedPath.ets") ||
-            fileName.endsWith("/$normalizedPath.d.ts")
+        fileName in relativeCandidates || fileName in absoluteCandidates
     }
 
     return if (foundFile != null) {
