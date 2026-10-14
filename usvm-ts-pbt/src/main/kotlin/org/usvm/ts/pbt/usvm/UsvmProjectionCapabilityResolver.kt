@@ -161,7 +161,12 @@ class UsvmProjectionCapabilityResolver(scene: EtsScene? = null) {
                     path = "precondition",
                 )
             } else {
-                domainCapabilityForProjector(input.domain, parameterType, "inputs[$index].domain", options)
+                domainCapabilityForProjector(
+                    domain = input.domain,
+                    etsType = parameterType,
+                    path = "inputs[$index].domain",
+                    options = options,
+                )
             }
         }
 
