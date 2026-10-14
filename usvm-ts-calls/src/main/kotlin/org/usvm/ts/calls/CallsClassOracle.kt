@@ -282,7 +282,13 @@ internal class OriginalTypeScriptClassReplayer(
             require(
                 (sourceOverride == null) == (overrideSourceFile == null)
             ) { "Source override needs a relative target file" }
-            createClassReplayOverlay(root, overlay, overrideSourceFile, sourceOverride)
+            val closure = checkedCallsSourceClosure(root = root, entry = root.resolve(function.sourceFile))
+            copyCallsSourceClosure(root = root, destination = overlay, closure = closure)
+            if (overrideSourceFile != null) {
+                require(overrideSourceFile in closure.files) { "Replay override is outside the frozen runtime closure" }
+                Files.writeString(overlay.resolve(overrideSourceFile), requireNotNull(sourceOverride))
+            }
+            val tsconfig = writeCallsFrozenTsconfig(root = overlay, resolution = closure.resolution)
             val replayEntry = overlay.resolve(function.sourceFile)
             Files.deleteIfExists(replayEntry)
             val harnessSource = Files.readString(root.resolve(function.sourceFile))
@@ -298,7 +304,7 @@ internal class OriginalTypeScriptClassReplayer(
                     fields = observationFields.keys,
                 )
             )
-            FastCheckBackend(sourceRoots = listOf(overlay, root))
+            FastCheckBackend(sourceRoots = listOf(overlay), tsconfig = tsconfig)
         }
         backend = setup.getOrElse { error ->
             close()
@@ -375,30 +381,6 @@ internal class OriginalTypeScriptClassReplayer(
     override fun close() {
         Files.walk(workspace).use { paths -> paths.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists) }
     }
-}
-
-private fun createClassReplayOverlay(root: Path, overlay: Path, relative: String?, source: String?) {
-    Files.createDirectories(overlay)
-    val target = relative?.let(Path::of)
-    val isSafeTarget = target == null || !target.isAbsolute && target.normalize() == target && !target.startsWith("..")
-    require(isSafeTarget) { "Replay source override must stay inside source root" }
-    fun mirror(directory: Path, destination: Path, remaining: Path?) {
-        Files.newDirectoryStream(directory).use { entries ->
-            for (entry in entries) {
-                val targetSuffix = remaining?.takeIf { entry.fileName == it.getName(0) }
-                val output = destination.resolve(entry.fileName)
-                if (targetSuffix == null) {
-                    Files.createSymbolicLink(output, entry.toAbsolutePath())
-                } else if (targetSuffix.nameCount == 1) {
-                    Files.writeString(output, requireNotNull(source))
-                } else {
-                    Files.createDirectories(output)
-                    mirror(entry, output, targetSuffix.subpath(1, targetSuffix.nameCount))
-                }
-            }
-        }
-    }
-    mirror(root, overlay, target)
 }
 
 private fun classReplayWrapper(

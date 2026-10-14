@@ -2,6 +2,7 @@ package org.usvm.ts.calls
 
 import kotlinx.serialization.Serializable
 import org.usvm.machine.call.TsBuiltInUnknownCallModels
+import org.usvm.ts.pbt.fastcheck.TypeScriptFrozenModuleResolution
 import org.usvm.ts.pbt.model.PropertyDomain
 import java.nio.file.Files
 import java.nio.file.Path
@@ -109,10 +110,17 @@ internal data class CallsClassPreparedRecord(
     val harnessSha256: String,
     val instrumentation: CallsClassSourceInstrumentation,
     val preparationElapsedMillis: Long = 0,
+    val resolution: TypeScriptFrozenModuleResolution? = null,
 ) {
     fun harness(classDirectory: Path): CallsClassPreparedHarness {
         val root = classDirectory.resolve("source").toRealPath()
         classCase.verifySources(root, verifyCheckout = false)
+        if (resolution != null) {
+            verifyCallsFrozenResolution(root = root, resolution = resolution)
+            require(Files.readString(root.resolve(CALLS_FROZEN_TSCONFIG)) == resolution.tsconfig) {
+                "Prepared module resolution configuration changed"
+            }
+        }
         require(callsClassSourceSha256(Files.readAllBytes(root.resolve(harnessFile))) == harnessSha256) {
             "Generated class wrapper changed"
         }
@@ -138,7 +146,15 @@ internal data class CallsClassPreparedRecord(
         )
     }
 
-    fun verifyOriginal() = classCase.verifySources(Path.of(originalSourceRoot), verifyCheckout = true)
+    fun verifyOriginal(checkResolution: Boolean = false) {
+        val root = Path.of(originalSourceRoot)
+        classCase.verifySources(root, verifyCheckout = true)
+        if (resolution != null) verifyCallsFrozenResolution(root = root, resolution = resolution)
+        if (checkResolution) {
+            val closure = checkedCallsSourceClosure(root = root, entry = root.resolve(classCase.surface.sourceFile))
+            require(closure.resolution == resolution) { "Frozen project module resolution changed" }
+        }
+    }
 }
 
 @Serializable

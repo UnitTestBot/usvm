@@ -33,6 +33,14 @@ internal fun runClassPrepare(args: List<String>) {
         val preparation = runCatching {
             val originalRoot = classCase.originalRoot(requireNotNull(manifestPath.parent))
             classCase.verifySources(originalRoot, verifyCheckout = true)
+            val closure = checkedCallsSourceClosure(
+                root = originalRoot,
+                entry = originalRoot.resolve(classCase.surface.sourceFile),
+            )
+            val requiredInputs = closure.resolution?.inputSha256.orEmpty()
+            require(requiredInputs.all { (relative, hash) -> classCase.sourceSha256[relative] == hash }) {
+                "Class manifest must freeze runtime sources, tsconfig chain, package metadata and lockfiles"
+            }
             val overlay = classDirectory.resolve("source")
             Files.createDirectories(overlay)
             classCase.sourceSha256.keys.forEach { relative ->
@@ -40,6 +48,8 @@ internal fun runClassPrepare(args: List<String>) {
                 Files.createDirectories(copied.parent)
                 Files.copy(originalRoot.resolve(relative), copied)
             }
+            val resolution = closure.resolution
+            if (resolution != null) writeCallsFrozenTsconfig(root = overlay, resolution = resolution)
             val instrumentation = CallsClassSourceInstrumentation.create(
                 sourceRoot = originalRoot,
                 sourceFile = classCase.surface.sourceFile,
@@ -71,6 +81,7 @@ internal fun runClassPrepare(args: List<String>) {
                 harnessSha256 = callsClassSourceSha256(Files.readAllBytes(overlay.resolve(harnessFile))),
                 instrumentation = instrumentation,
                 preparationElapsedMillis = preparationStarted.elapsedNow().inWholeMilliseconds,
+                resolution = resolution,
             )
         }
         val prepared = preparation.getOrNull()
@@ -392,7 +403,8 @@ private fun loadPreparedClass(preparedDirectory: Path, classId: String): Prepare
     val recordPath = directory.resolve("class.json")
     val record = decodeClassArtifact<CallsClassPreparedRecord>(recordPath)
     require(record.classCase == classCase) { "Prepared class differs from manifest" }
-    record.verifyOriginal()
+    // Re-discover resolution once at the persisted boundary; candidate verification hashes frozen inputs.
+    record.verifyOriginal(checkResolution = true)
 
     return PreparedClassSource(
         manifest = manifest,

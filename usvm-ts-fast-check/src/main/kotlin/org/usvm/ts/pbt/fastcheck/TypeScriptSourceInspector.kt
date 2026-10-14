@@ -155,6 +155,7 @@ data class TypeScriptSourceCapture(
 @Serializable
 data class TypeScriptLocalSourceClosure(
     val files: List<String>,
+    val resolution: TypeScriptFrozenModuleResolution? = null,
     val reasonCode: String? = null,
     val diagnostic: String? = null,
 )
@@ -213,4 +214,11 @@ data class TypeScriptClassSurfaceInventory(
 data class TypeScriptClassDataClassDescriptor(
     val exportName: String,
     val fields: List<String>,
+)
+
+/** Runtime closure plus configuration/package/lockfile bytes used to resolve its imports. */
+@Serializable
+data class TypeScriptFrozenModuleResolution(
+    val inputSha256: Map<String, String>,
+    val tsconfig: String,
 )
