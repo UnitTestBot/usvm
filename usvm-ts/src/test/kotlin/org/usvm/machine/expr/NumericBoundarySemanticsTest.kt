@@ -211,6 +211,35 @@ class NumericBoundarySemanticsTest : TsMethodTestRunner() {
         discoverNumber("assignNegativeZeroLength", expected = 0.0)
     }
 
+    @Test
+    fun `remainder truncates the quotient and preserves the dividend sign`() {
+        discoverNumber("positiveRemainder", expected = 1.0)
+        discoverNumber("negativeRemainder", expected = -1.0)
+        discoverNumber("negativeDivisorRemainder", expected = 1.0)
+        discoverNumber("fractionalRemainder", expected = 1.5)
+        discoverNumber("negativeZeroRemainder", expected = Double.NEGATIVE_INFINITY)
+        discoverNumber("infiniteDivisorRemainder", expected = 3.0)
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method("zeroDivisorRemainder"),
+            { result -> result.number.isNaN() },
+            invariants = arrayOf({ result -> result.number.isNaN() }),
+        )
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method("symbolicRemainder"),
+            { value, result -> value.number == 3.0 && result.number == 1.0 },
+            { value, result -> value.number == -3.0 && result.number == -1.0 },
+            { value, result -> value.number != 3.0 && value.number != -3.0 && result.number == 42.0 },
+            invariants = arrayOf({ value, result ->
+                val expected = when (value.number) {
+                    3.0 -> 1.0
+                    -3.0 -> -1.0
+                    else -> 42.0
+                }
+                result.number == expected
+            }),
+        )
+    }
+
     private fun discoverNumber(methodName: String, expected: Double) {
         discoverProperties<TsTestValue.TsNumber>(
             method = method(methodName),

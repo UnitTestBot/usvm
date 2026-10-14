@@ -18,6 +18,7 @@ export interface TypeScriptEntryPointReference {
   module: string;
   exportName: string;
   executionKind: ExecutionKind;
+  checkResultExportName?: string;
 }
 
 export interface LoadedEntryPoint {
@@ -30,6 +31,23 @@ export class EntryPointInvocationError extends Error {
   constructor(readonly thrownValue: unknown) {
     super('Property entry point threw');
   }
+}
+
+/** Failure data from a generated companion, never parsed from user exception messages. */
+export class NamedCheckFailure extends Error {
+  constructor(readonly checkId: string, readonly actual: unknown, readonly expected: unknown,
+    readonly exception?: { value: unknown }) {
+    super(`Check ${checkId} failed`);
+    this.name = 'NamedCheckFailure';
+    namedCheckFailures.add(this);
+  }
+}
+
+const namedCheckFailures = new WeakSet<object>();
+
+/** Membership avoids invoking Symbol.hasInstance or prototype traps on user-thrown proxies. */
+export function isNamedCheckFailure(value: unknown): value is NamedCheckFailure {
+  return value !== null && typeof value === 'object' && namedCheckFailures.has(value);
 }
 
 type EntryPointFunction = (...args: JsConcreteValue[]) => unknown;
@@ -60,6 +78,46 @@ export async function loadEntryPoint(
   }
 
   const entryPoint = exportedValue as EntryPointFunction;
+
+  if (reference.checkResultExportName !== undefined) {
+    const companion = moduleNamespace[reference.checkResultExportName];
+    if (reference.executionKind !== 'sync' || typeof companion !== 'function') {
+      throw protocolError(adapterDiagnostic.entryPointExportNotFunction,
+        'A generated check companion must be a synchronous function', `${referencePath}.checkResultExportName`);
+    }
+
+    return {
+      executionKind: 'sync',
+      invoke: (args) => {
+        const result = invokeEntryPoint(companion as EntryPointFunction, args);
+        if (result === null || typeof result !== 'object' || isThenable(result)) {
+          throw protocolError(adapterDiagnostic.entryPointResultInvalid,
+            'A generated companion must return a check outcome', `${referencePath}.result`);
+        }
+        const outcome = result as Record<string, unknown>;
+        if (typeof outcome.passed !== 'boolean' || typeof outcome.checkId !== 'string') {
+          throw protocolError(adapterDiagnostic.entryPointResultInvalid,
+            'Invalid generated check outcome', `${referencePath}.result`);
+        }
+        if (!outcome.passed) {
+          if (outcome.checkId.length === 0) {
+            throw protocolError(adapterDiagnostic.entryPointResultInvalid,
+              'A failed check must have an identity', `${referencePath}.result`);
+          }
+          const exception = outcome.exception;
+          if (exception !== undefined && (exception === null || typeof exception !== 'object'
+            || !Object.hasOwn(exception, 'value'))) {
+            throw protocolError(adapterDiagnostic.entryPointResultInvalid,
+              'Invalid generated check exception', `${referencePath}.result`);
+          }
+          throw new NamedCheckFailure(outcome.checkId, outcome.actual, outcome.expected,
+            exception as { value: unknown } | undefined);
+        }
+
+        return true;
+      },
+    };
+  }
 
   return {
     executionKind: reference.executionKind,

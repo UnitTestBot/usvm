@@ -65,7 +65,28 @@ data class TypeScriptEntryPoint(
     val module: String,
     val exportName: String,
     val executionKind: ExecutionKind = ExecutionKind.SYNC,
-)
+    /** Optional generated companion returning the same outcome with named-check diagnostics. */
+    val checkResultExportName: String? = null,
+) {
+    /** Retains constructors, including Kotlin's default-argument bridge, used by existing registry JARs. */
+    constructor(
+        module: String,
+        exportName: String,
+        executionKind: ExecutionKind = ExecutionKind.SYNC,
+    ) : this(module, exportName, executionKind, checkResultExportName = null)
+
+    /** Retains the three-field copy bridge while preserving newly added diagnostic metadata. */
+    fun copy(
+        module: String = this.module,
+        exportName: String = this.exportName,
+        executionKind: ExecutionKind = this.executionKind,
+    ): TypeScriptEntryPoint = TypeScriptEntryPoint(
+        module = module,
+        exportName = exportName,
+        executionKind = executionKind,
+        checkResultExportName = checkResultExportName,
+    )
+}
 
 /** Describes how a referenced TypeScript function completes. */
 @Serializable

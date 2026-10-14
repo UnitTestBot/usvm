@@ -52,6 +52,18 @@ An expected exception belongs inside the property: the predicate catches it, che
 Asynchronous predicates remain available to the concrete backend and unsupported by symbolic execution until the
 symbolic engine can preserve their meaning.
 
+Generated Kotlin DSL properties may reference a synchronous `checkResultExportName` companion on the predicate.
+Its `{ passed, checkId, actual, expected }` outcome must describe the same invocation as the boolean predicate,
+including call order and short-circuiting. Both are generated from one retained author expression tree. Concrete
+execution invokes the companion once and carries failed-check data structurally; it does not invoke the boolean
+predicate again to obtain diagnostics. Symbolic execution uses the boolean entry point, and each resolved
+candidate is validated through ordinary concrete execution. Shrinking a named failure retains the initially
+selected check identity. Legacy boolean entry points keep their existing behavior.
+An escaping exception inside a check carries its identity and original thrown value in an optional
+`exception: { value }` outcome. Concrete results retain the original error description. Observation outcomes keep
+ordinary false predicates distinct from escaping exceptions, even though the concrete runner uses a private
+failure object to transport named-check diagnostics.
+
 ## Mutation and external state
 
 Predicate-local mutation of supported input values is allowed. The invocation boundary isolates it from other

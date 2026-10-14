@@ -6,6 +6,7 @@ import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.ArrayIndexGenerator
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ConstantDomain
+import org.usvm.ts.pbt.model.ExecutionKind
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.JsNumber
@@ -428,6 +429,17 @@ private fun validateEntryPoint(
             code = PbtDiagnosticCode.ENTRY_POINT_EXPORT_INVALID,
             message = "Invalid TypeScript export name",
             path = "$path.exportName",
+        )
+    }
+    val resultExport = entryPoint.checkResultExportName
+    val invalidResultKind = entryPoint.executionKind != ExecutionKind.SYNC || path == "precondition"
+    val invalidResultExport = resultExport != null &&
+        (!isJavaScriptIdentifier(resultExport) || invalidResultKind)
+    if (invalidResultExport) {
+        diagnostics += diagnostic(
+            code = PbtDiagnosticCode.ENTRY_POINT_EXPORT_INVALID,
+            message = "A generated check result requires a synchronous valid export",
+            path = "$path.checkResultExportName",
         )
     }
 }

@@ -7,6 +7,66 @@ concrete backend lives in [`usvm-ts-fast-check`](../usvm-ts-fast-check/README.md
 See [`usvm-ts-fast-check/DESIGN.md`](../usvm-ts-fast-check/DESIGN.md) for the FastCheck process boundary and runtime
 packaging.
 
+## Native Kotlin property tests
+
+The `org.usvm.ts.pbt.dsl` API defines properties inside ordinary Kotlin tests. Add `usvm-ts-fast-check` to the test
+classpath for the runner; the expression model and compiler live in `usvm-ts-pbt`.
+
+```kotlin
+import org.junit.jupiter.api.Test
+import org.usvm.ts.pbt.dsl.*
+
+class CalculatorTest : TsPropertyTest(sourceRoot = "src") {
+    @Test
+    fun `addition properties`() = property {
+        val sum = function<(Double, Double) -> Double>(module = "calculator.ts", exportName = "add")
+        val a by int(min = -100, max = 100)
+        val b by int(min = -100, max = 100)
+
+        check(name = "addition") { sum(a, b) equalTo (a + b) }
+        check(name = "commutativity") { sum(a, b) equalTo sum(b, a) }
+    }
+}
+```
+
+The referenced export stays in the original TypeScript source. Function signatures use `Double` for JavaScript
+numbers, `Boolean`, and `String`, with zero to three parameters. `int` narrows the input domain to signed 32-bit
+integer values; its expressions remain JavaScript binary64, including fractional division and arithmetic results
+outside the input range. `number(min = ..., max = ..., allowNaN = ...)`, `boolean()`, and bounded `string()` inputs
+are also available. Numeric literals use `number(value)`.
+
+Use `equalTo`/`notEqualTo` for JavaScript strict equality, `lessThan`/`lessOrEqual`/`greaterThan`/`greaterOrEqual` for
+numeric comparisons, and `and`/`or`/`!` for boolean expressions. Arithmetic supports `+`, `-`, `*`, `/`, and `%`.
+Kotlin `==` is rejected because it cannot construct a boolean expression tree. Host Kotlin control flow is not
+translated: the declaration block builds expressions and does not run the TypeScript functions.
+
+`assume { b notEqualTo 0 }` admits inputs before execution. Conditions use only inputs, constants, and operators.
+`val result by value(sum(a, b))` binds a value evaluated once after admission and before the checks. Declare inputs,
+admission conditions, shared values, and checks in that order. Checks retain their declaration order and stop at
+the first violation; shrinking preserves the selected check identity.
+
+`TsPropertyTest` defaults to FastCheck. Select `engine = PropertyEngine.USVM` or `PropertyEngine.BOTH` in its
+constructor or on an individual `property` call. Set `configuration = PropertyRunConfiguration(...)` at either
+level for seed, run count, timeout, explicit examples, and replay path. Replay requires the same property and source
+code. An assertion failure includes the check name, Kotlin file and line, minimized inputs, operand values, seed,
+and replay path. Incomplete execution throws `DslPropertyExecutionError`, separately from a demonstrated violation.
+
+For reusable properties, `defineProperty(id = "calculator.add") { ... }` returns an immutable program and
+`DslPropertyRunner(sourceRoots = ...).run(program = ..., engine = ..., configuration = ...)` returns concrete and
+symbolic outcomes separately. Call `requireSuccess()` for ordinary test assertions. Symbolic candidates are
+validated and minimized through the same concrete backend; an unsuccessful bounded search is not a proof.
+
+The runner copies local `.ts`/`.ets` source trees into a private temporary project, excluding `node_modules`, `.git`,
+`.gradle`, and `build`, and generates its entry points there. It removes that project after execution and does not
+write into the original source tree. The initial DSL supports synchronous primitive signatures and local source
+imports; installed dependency trees and project-specific TypeScript build configurations are not copied. Existing
+`PropertyDefinition` APIs remain available for their wider supported domains and concrete execution modes.
+
+The returned compiled property retains the author expression tree, Kotlin call sites, check IDs, and every
+generated expression occurrence with UTF-16 coordinates. Kotlin call sites currently provide file and line;
+column information is unavailable without compiler metadata. Observations and inferred hypotheses do not replace
+author checks.
+
 ## Kotlin property model
 
 ```kotlin

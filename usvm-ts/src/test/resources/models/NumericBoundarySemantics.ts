@@ -245,4 +245,18 @@ export class NumericBoundarySemantics {
         values.length = -0;
         return values.length;
     }
+
+    positiveRemainder(): number { return 3 % 2; }
+    negativeRemainder(): number { return -3 % 2; }
+    negativeDivisorRemainder(): number { return 3 % -2; }
+    fractionalRemainder(): number { return 5.5 % 2; }
+    negativeZeroRemainder(): number { return 1 / (-4 % 2); }
+    infiniteDivisorRemainder(): number { return 3 % Infinity; }
+    zeroDivisorRemainder(): number { return 3 % 0; }
+
+    symbolicRemainder(value: number): number {
+        if (value === 3) return value % 2;
+        if (value === -3) return value % 2;
+        return 42;
+    }
 }
