@@ -14,6 +14,7 @@ import org.usvm.ts.pbt.coverage.decodeIstanbulCoverageReport
 import org.usvm.ts.pbt.coverage.inspectRawV8SourceMapDiagnostics
 import org.usvm.ts.pbt.coverage.mergeCoverageDiagnostics
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
+import org.usvm.ts.pbt.model.PropertyId
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -25,6 +26,7 @@ internal class FastCheckCoverageSession private constructor(
     private val request: FastCheckExecutionRequest,
     private val runtimeVersion: String,
     private val workspace: CoverageWorkspace,
+    private val remainingMillis: (() -> Long)?,
 ) : AutoCloseable {
     val adapterCommand: List<String>
         get() = buildList {
@@ -60,6 +62,10 @@ internal class FastCheckCoverageSession private constructor(
         }
 
     fun attachTo(result: PropertyRunResult): PropertyRunResult {
+        return result.copy(coverage = readArtifact())
+    }
+
+    fun readArtifact(): PropertyCoverageArtifact {
         val coverageRequest = requireNotNull(request.coverageRequest)
         val entryPointPaths = propertyEntryPointPaths()
 
@@ -67,7 +73,7 @@ internal class FastCheckCoverageSession private constructor(
             val context = IstanbulCoverageContext(
                 backendId = FastCheckBackend.FAST_CHECK_BACKEND_ID,
                 backendVersion = FastCheckRuntimeMetadata.fastCheckVersion,
-                propertyId = result.propertyId,
+                propertyId = PropertyId(request.manifest.propertyId),
                 sourceRoots = request.sourceRoots,
                 propertyEntryPointPaths = entryPointPaths,
                 adapterRoot = workspace.adapterRoot.toString(),
@@ -106,7 +112,7 @@ internal class FastCheckCoverageSession private constructor(
             )
         }
 
-        return result.copy(coverage = artifact)
+        return artifact
     }
 
     private fun propertyEntryPointPaths(): Set<String> {
@@ -138,7 +144,7 @@ internal class FastCheckCoverageSession private constructor(
                 command = listOf(nodeExecutable, converter.toString(), workspace.rawDirectory.toString()) +
                     request.sourceRoots,
                 request = "",
-                timeoutMillis = BRANCH_CONVERSION_TIMEOUT_MILLIS,
+                timeoutMillis = boundedTimeout(BRANCH_CONVERSION_TIMEOUT_MILLIS),
                 reportedTimeoutMillis = BRANCH_CONVERSION_TIMEOUT_MILLIS,
                 description = "TypeScript branch converter",
             )
@@ -193,6 +199,19 @@ internal class FastCheckCoverageSession private constructor(
         workspace.root.toFile().deleteRecursively()
     }
 
+    private fun boundedTimeout(limitMillis: Long): Long {
+        val remaining = remainingMillis?.invoke() ?: return limitMillis
+        if (remaining <= 0) {
+            throw PbtBackendException(
+                kind = BackendErrorKind.TIMEOUT,
+                code = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+                message = "External witness deadline expired during coverage collection",
+                propertyId = request.manifest.propertyId,
+            )
+        }
+        return minOf(limitMillis, remaining)
+    }
+
     private fun canonicalizeExistingEntryPoint(candidate: Path): String =
         if (Files.exists(candidate)) candidate.toRealPath().toString() else candidate.toString()
 
@@ -215,8 +234,9 @@ internal class FastCheckCoverageSession private constructor(
             nodeExecutable: String,
             adapterEntryPoint: Path,
             request: FastCheckExecutionRequest,
+            remainingMillis: (() -> Long)? = null,
         ): FastCheckCoverageSession {
-            val runtimeVersion = readSupportedNodeVersion(nodeExecutable, request)
+            val runtimeVersion = readSupportedNodeVersion(nodeExecutable, request, remainingMillis)
             val adapterRoot = adapterEntryPoint.parent?.parent?.parent
                 ?: throw IllegalArgumentException("Adapter entry point has no runtime root: $adapterEntryPoint")
             val c8EntryPoint = adapterRoot.resolve("node_modules/c8/bin/c8.js")
@@ -238,6 +258,7 @@ internal class FastCheckCoverageSession private constructor(
                 request = request,
                 runtimeVersion = runtimeVersion,
                 workspace = workspace,
+                remainingMillis = remainingMillis,
             )
         }
 
@@ -264,7 +285,17 @@ internal class FastCheckCoverageSession private constructor(
         private fun readSupportedNodeVersion(
             nodeExecutable: String,
             request: FastCheckExecutionRequest,
+            remainingMillis: (() -> Long)?,
         ): String {
+            val remaining = remainingMillis?.invoke() ?: NODE_VERSION_TIMEOUT_MILLIS
+            if (remaining <= 0) {
+                failPreparation(
+                    request = request,
+                    code = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+                    message = "External witness deadline expired before the runtime probe",
+                    kind = BackendErrorKind.TIMEOUT,
+                )
+            }
             val transport = FastCheckProcessTransport(
                 nodeExecutable = nodeExecutable,
                 maxRequestBytes = 1,
@@ -277,7 +308,7 @@ internal class FastCheckCoverageSession private constructor(
                 transport.invoke(
                     command = listOf(nodeExecutable, "--version"),
                     request = "",
-                    timeoutMillis = NODE_VERSION_TIMEOUT_MILLIS,
+                    timeoutMillis = minOf(NODE_VERSION_TIMEOUT_MILLIS, remaining),
                     reportedTimeoutMillis = NODE_VERSION_TIMEOUT_MILLIS,
                     description = "Node.js version probe",
                 )

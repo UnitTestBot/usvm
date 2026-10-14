@@ -51,15 +51,72 @@ internal class FastCheckProcessClient(
         }
     }
 
+    /** One external operation, using the same supervised transport and optional original-source collector. */
+    fun witness(
+        request: FastCheckExecutionRequest,
+        remainingMillis: () -> Long,
+    ): FastCheckExecutionWireResponse {
+        val encodedRequest = encodeRequest(request)
+        val coverageSession = request.coverageRequest?.let {
+            FastCheckCoverageSession.prepare(
+                nodeExecutable = nodeExecutable,
+                adapterEntryPoint = adapterEntryPoint,
+                request = request,
+                remainingMillis = remainingMillis,
+            )
+        }
+
+        try {
+            val remaining = remainingMillis()
+            if (remaining <= 0) {
+                throw backendError(
+                    kind = BackendErrorKind.TIMEOUT,
+                    code = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+                    message = "External witness deadline expired",
+                    request = request,
+                )
+            }
+
+            val output = invokeAdapter(
+                encodedRequest = encodedRequest,
+                request = request,
+                command = coverageSession?.adapterCommand ?: listOf(nodeExecutable, adapterEntryPoint.toString()),
+                timeoutMillis = remaining,
+            )
+            validateProcessOutput(output, request)
+            val response = decodeResponse(output.stdout, request)
+            if (response.status == "error") throwNodeDiagnostic(response, request)
+
+            val isReplayResponse = request.witness?.mode == "replay" && response.witnessReplay != null &&
+                response.witnessReduction == null
+            val isReductionResponse = request.witness?.mode == "reduce" && response.witnessReduction != null &&
+                response.witnessReplay == null
+            val validResponse = response.status == "ok" && response.result == null &&
+                response.witnessPropertyId == request.manifest.propertyId &&
+                response.witnessTarget == request.witness?.target && (isReplayResponse || isReductionResponse)
+            if (!validResponse) throw invalidResponse(message = "Invalid witness response", request = request)
+
+            val replay = response.witnessReplay
+            return if (replay != null && coverageSession != null) {
+                response.copy(witnessReplay = replay.copy(coverage = coverageSession.readArtifact()))
+            } else {
+                response
+            }
+        } finally {
+            coverageSession?.close()
+        }
+    }
+
     private fun invokeAdapter(
         encodedRequest: String,
         request: FastCheckExecutionRequest,
         command: List<String>,
+        timeoutMillis: Long = saturatedAdd(request.timeoutMillis, transportGraceMillis),
     ): FastCheckProcessOutput = try {
         transport.invoke(
             command = command,
             request = encodedRequest,
-            timeoutMillis = saturatedAdd(request.timeoutMillis, transportGraceMillis),
+            timeoutMillis = timeoutMillis,
             reportedTimeoutMillis = request.timeoutMillis,
             description = "fast-check adapter",
         )

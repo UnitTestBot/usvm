@@ -10,6 +10,10 @@ import org.usvm.ts.pbt.backend.ProjectionLevel
 import org.usvm.ts.pbt.backend.PropertyFailureKind
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
+import org.usvm.ts.pbt.backend.WitnessOracleOutcome
+import org.usvm.ts.pbt.backend.WitnessReplayConfiguration
+import org.usvm.ts.pbt.backend.WitnessReplayStatus
+import org.usvm.ts.pbt.backend.captureWitness
 import org.usvm.ts.pbt.fastcheck.BackendErrorKind
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
 import org.usvm.ts.pbt.fastcheck.PbtBackendException
@@ -24,13 +28,46 @@ import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.model.contains
+import org.usvm.ts.pbt.observation.PropertyObservationSource
 import org.usvm.ts.pbt.testResourcePath
 import org.usvm.ts.pbt.testResourcesRoot
+import java.nio.file.Files
+import java.security.MessageDigest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class PropertyExecutionConformanceTest {
+    @Test
+    fun `resolved USVM candidate requires original oracle replay before becoming a fault`() {
+        val property = property(predicateExport = "falsePredicate")
+        val manifest = property.toManifest()
+        val symbolic = searcher.search(
+            manifest = manifest,
+            mapping = mapper.map(manifest),
+            concreteCapability = exactCapability,
+        )
+        val bytes = Files.readAllBytes(fixtureDirectory.resolve(MODULE))
+        val hash = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString(separator = "") { byte ->
+            "%02x".format(byte.toInt() and 0xff)
+        }
+        val candidate = symbolic.captureWitness(
+            property = property,
+            sources = listOf(PropertyObservationSource(module = MODULE, sha256 = hash)),
+        )
+
+        val confirmed = backend.confirmWitness(
+            property = property,
+            candidate = candidate,
+            configuration = WitnessReplayConfiguration(timeoutMillis = 10_000),
+        )
+
+        assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, symbolic.status)
+        assertEquals(symbolic.inputs, confirmed.candidate.inputs)
+        assertEquals(WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION, confirmed.status)
+        assertEquals(WitnessOracleOutcome.FALSE, confirmed.reducedReplay?.outcome)
+    }
+
     @Test
     fun `shared preconditions have the same concrete and search classification`() {
         val cases = listOf(

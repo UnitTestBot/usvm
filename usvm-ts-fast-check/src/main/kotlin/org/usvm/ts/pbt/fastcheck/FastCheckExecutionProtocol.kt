@@ -5,9 +5,13 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyRunResult
+import org.usvm.ts.pbt.backend.WitnessNativeReplay
+import org.usvm.ts.pbt.backend.WitnessReduction
+import org.usvm.ts.pbt.backend.WitnessTarget
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.observation.PropertyObservationRequest
+import org.usvm.ts.pbt.observation.PropertyObservationSource
 
 @Serializable
 internal data class FastCheckExecutionRequest(
@@ -20,6 +24,7 @@ internal data class FastCheckExecutionRequest(
     val timeoutMillis: Long,
     val examples: List<List<JsConcreteValue>> = emptyList(),
     val observationRequest: PropertyObservationRequest? = null,
+    val witness: FastCheckWitnessOperation? = null,
     @Transient
     val coverageRequest: PropertyCoverageRequest? = null,
 )
@@ -28,7 +33,20 @@ internal data class FastCheckExecutionRequest(
 internal data class FastCheckExecutionWireResponse(
     val status: String,
     val result: PropertyRunResult? = null,
+    val witnessReplay: WitnessNativeReplay? = null,
+    val witnessReduction: WitnessReduction? = null,
+    val witnessPropertyId: String? = null,
+    val witnessTarget: WitnessTarget? = null,
     val diagnostics: List<FastCheckProtocolDiagnostic> = emptyList(),
+)
+
+@Serializable
+internal data class FastCheckWitnessOperation(
+    val mode: String,
+    val inputs: List<JsConcreteValue>,
+    val target: WitnessTarget,
+    val sources: List<PropertyObservationSource>,
+    val expected: WitnessNativeReplay? = null,
 )
 
 /** Infrastructure categories that remain distinct from a falsified property result. */

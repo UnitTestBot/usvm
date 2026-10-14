@@ -2,6 +2,7 @@ import { adapterDiagnostic } from './diagnostics.js';
 import { startExecutionCoverage } from './execution-coverage.js';
 import { stringifyProtocolJson } from './protocol-json.js';
 import { executeProperty, type FastCheckExecutionSuccess } from './execute-property.js';
+import { executeWitness, type WitnessExecutionSuccess } from './external-witness.js';
 import { ProtocolError, protocolError } from './js-value.js';
 import type { ProtocolDiagnostic } from './js-value.js';
 
@@ -15,11 +16,12 @@ process.stdout.write = process.stderr.write.bind(process.stderr) as typeof proce
 
 const coverage = await startExecutionCoverage();
 try {
-  let response: FastCheckExecutionSuccess | FastCheckExecutionFailure;
+  let response: FastCheckExecutionSuccess | WitnessExecutionSuccess | FastCheckExecutionFailure;
   try {
     const request = parseRequest(await readStdin());
 
-    response = await executeProperty(request);
+    const isWitness = request !== null && typeof request === 'object' && 'witness' in request;
+    response = isWitness ? await executeWitness(request) : await executeProperty(request);
   } catch (error: unknown) {
     if (!(error instanceof ProtocolError)) throw error;
 
@@ -67,7 +69,7 @@ function protocolErrorResponse(error: ProtocolError): FastCheckExecutionFailure 
   };
 }
 
-async function writeResponse(response: FastCheckExecutionSuccess | FastCheckExecutionFailure): Promise<void> {
+async function writeResponse(response: FastCheckExecutionSuccess | WitnessExecutionSuccess | FastCheckExecutionFailure): Promise<void> {
   const document = `${stringifyProtocolJson(response)}\n`;
 
   await new Promise<void>((resolve, reject) => {
