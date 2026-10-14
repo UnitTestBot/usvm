@@ -71,7 +71,7 @@ def project_frontend_options(original, environment):
                        'unprojectedUnsupportedOptions': sorted(set(projected) - supported)}
 
 
-def inspect_case(case, receipt_path, inspector, output, timeout, environment=None):
+def inspect_case(case, receipt_path, inspector, output, timeout, environment=None, tool_proof=None):
     installation = json.loads(receipt_path.read_bytes())
     installed = installation.get('phase') == 'FROZEN' and installation.get('dependenciesInstalled') is True
     root = Path(installation['sourceRoot'] if installed else installation['originalSourceRoot']).resolve()
@@ -134,7 +134,7 @@ def inspect_case(case, receipt_path, inspector, output, timeout, environment=Non
                 'installationComplete': installed, 'inputProof': 'installation-snapshot' if frozen_match else 'original-revision' if original_match else 'incomplete', 'installationDiagnostic': installation.get('diagnostic'), 'graphCommand': command, 'acquisitionComplete': complete, 'diagnostic': diagnostic,
                 'originalCompilerOptions': original_compiler, 'frontendCompilerProjection': projection,
                 'originalInputSha256': inputs, 'sourceMappings': {name: materialized_name(name) for name in graph['files']},
-                'installationReceipt': str(receipt_path), 'installationSha256': digest(receipt_path.read_bytes())}
+                'toolProof': tool_proof, 'installationReceipt': str(receipt_path), 'installationSha256': digest(receipt_path.read_bytes())}
     write_json(output / 'graphs' / f'{class_id}.json', evidence)
     return {'case': case, 'classId': class_id, 'revision': revision, 'root': root, 'inputs': inputs,
             'installation': installation, 'receiptPath': receipt_path, 'complete': complete, 'evidence': evidence,
@@ -179,6 +179,7 @@ def freeze_case(result, output):
                'diagnostic': result['evidence']['diagnostic'],
                'originalCompilerOptions': result['evidence']['originalCompilerOptions'],
                'frontendCompilerProjection': result['evidence']['frontendCompilerProjection'],
+               'toolProof': result['evidence']['toolProof'],
                'scope': 'Acquired graph evidence; symbolic support and actual class startup remain separate'}
     receipt_path = output / receipt_name
     write_json(receipt_path, receipt)
@@ -224,10 +225,18 @@ def main():
             if json.loads(candidate.read_bytes()).get('phase') == 'FROZEN'), available[0])
     environment = frontend_environment(args.frontend_typescript.resolve())
     write_json(output / 'frontend-environment.json', environment)
+    module_names = ['source-inspector-cli.js', 'local-source-closure.js', 'module-initialization.js',
+                    'frozen-module-resolution.js', 'startup-runtime-resolution.js']
+    tool_proof = {'sourcePipelineRevision': args.tool_revision, 'nativeFrontendRevision': args.native_frontend_revision,
+                  'nodeVersion': subprocess.check_output(['node', '--version'], text=True).strip(),
+                  'generatorSha256': digest(Path(__file__).read_bytes()),
+                  'inspectorInputSha256': {name: digest((args.inspector.parent / name).read_bytes()) for name in module_names},
+                  'inspectorTypeScript': frontend_environment(args.inspector.parent.parent.parent / 'node_modules' / 'typescript')}
+    write_json(output / 'tool-proof.json', tool_proof)
     results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
         futures = [pool.submit(inspect_case, case, receipts[case['projectId']], args.inspector.resolve(),
-                               output, args.graph_timeout_seconds, environment) for case in cases]
+                               output, args.graph_timeout_seconds, environment, tool_proof) for case in cases]
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
             results.append(result)
