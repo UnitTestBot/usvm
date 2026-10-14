@@ -12,6 +12,20 @@ class Exceptions {
         return 42;
     }
 
+    throwSymbolicString(value: string): number {
+        throw value;
+    }
+
+    throwThis(): number {
+        throw this;
+    }
+
+    throwEngineInvalidArrayLength(): number {
+        const values = [11, 22];
+        values.length = 1 / 0;
+        return values.length;
+    }
+
     throwNumber(): number {
         throw 123;
         return 42;

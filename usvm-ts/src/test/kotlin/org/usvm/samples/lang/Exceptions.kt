@@ -36,6 +36,55 @@ class Exceptions : TsMethodTestRunner() {
     }
 
     @Test
+    fun `throw symbolic string preserves its message`() {
+        val method = getMethod("throwSymbolicString")
+
+        discoverProperties<TsTestValue.TsString, TsTestValue>(
+            method = method,
+            { value, result ->
+                result is TsTestValue.TsException.StringException && result.message == value.value
+            },
+            invariants = arrayOf(
+                { value, result ->
+                    result is TsTestValue.TsException.StringException && result.message == value.value
+                },
+            ),
+        )
+    }
+
+    @Test
+    fun `throw non-string reference remains unknown`() {
+        val method = getMethod("throwThis")
+
+        discoverProperties<TsTestValue>(
+            method = method,
+            { result -> result == TsTestValue.TsException.UnknownException },
+            invariants = arrayOf(
+                { result -> result == TsTestValue.TsException.UnknownException },
+            ),
+        )
+    }
+
+    @Test
+    fun `engine-generated string reason preserves its message`() {
+        val method = getMethod("throwEngineInvalidArrayLength")
+
+        discoverProperties<TsTestValue>(
+            method = method,
+            { result ->
+                result is TsTestValue.TsException.StringException &&
+                    result.message.startsWith("RangeError: Invalid array length:")
+            },
+            invariants = arrayOf(
+                { result ->
+                    result is TsTestValue.TsException.StringException &&
+                        result.message.startsWith("RangeError: Invalid array length:")
+                },
+            ),
+        )
+    }
+
+    @Test
     fun `throw number`() {
         val method = getMethod("throwNumber")
         discoverProperties<TsTestValue>(
