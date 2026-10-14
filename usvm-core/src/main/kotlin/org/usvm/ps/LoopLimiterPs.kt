@@ -60,6 +60,14 @@ class LoopLimiterPs<Stmt, Method, Loop : Any, State : UState<*, Method, Stmt, *,
         addSingleState(state)
     }
 
+    override fun drain(): Sequence<State> = sequence {
+        yieldAll(underlyingPs.drain())
+
+        stateStats.clear()
+        lastPeekedState = null
+        lastPeekedStateStats = StateLoopStatistic.rootStats()
+    }
+
     override fun remove(state: State) {
         check(state === lastPeekedState) { "Try to remove not peeked state" }
 
