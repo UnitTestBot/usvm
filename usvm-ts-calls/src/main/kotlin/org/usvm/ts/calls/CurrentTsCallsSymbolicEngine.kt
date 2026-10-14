@@ -534,8 +534,8 @@ internal class CurrentTsCallsSymbolicEngine(
 
     private fun exactTargetCandidates(method: EtsMethod, target: CallsSourceTarget): List<EtsStmt> =
         method.cfg.stmts.filter { statement ->
-            val origin = statement.location.origin ?: return@filter false
-            origin.startOffset == target.startOffset &&
+            val origin = statement.location.origin
+            origin != null && origin.startOffset == target.startOffset &&
                 origin.endOffset == target.endOffset &&
                 origin.startLine == target.start.line &&
                 origin.startColumn == target.start.column &&
@@ -562,8 +562,8 @@ internal class CurrentTsCallsSymbolicEngine(
         }
 
         val containingReturns = method.cfg.stmts.filterIsInstance<EtsReturnStmt>().filter { statement ->
-            val origin = statement.location.origin ?: return@filter false
-            origin.startOffset <= expressionStart && origin.endOffset >= expressionEnd
+            val origin = statement.location.origin
+            origin != null && origin.startOffset <= expressionStart && origin.endOffset >= expressionEnd
         }
         val smallestContainingRange = containingReturns.minOfOrNull { statement ->
             val origin = requireNotNull(statement.location.origin)
@@ -580,8 +580,8 @@ internal class CurrentTsCallsSymbolicEngine(
         }
 
         val containingStatements = method.cfg.stmts.filter { statement ->
-            val origin = statement.location.origin ?: return@filter false
-            origin.startOffset <= expressionStart && origin.endOffset >= expressionEnd
+            val origin = statement.location.origin
+            origin != null && origin.startOffset <= expressionStart && origin.endOffset >= expressionEnd
         }
         val smallestStatementRange = containingStatements.minOfOrNull { statement ->
             val origin = requireNotNull(statement.location.origin)
@@ -789,8 +789,8 @@ internal data class SourceStatementEntry(
 
 internal fun sourceStatementEntry(method: EtsMethod, target: CallsSourceTarget): SourceStatementEntry? {
     val loweringRegion = method.cfg.stmts.filter { statement ->
-        val origin = statement.location.origin ?: return@filter false
-        origin.startOffset >= target.startOffset && origin.endOffset <= target.endOffset
+        val origin = statement.location.origin
+        origin != null && origin.startOffset >= target.startOffset && origin.endOffset <= target.endOffset
     }
     val loweringRegionSet = loweringRegion.toSet()
     if (loweringRegionSet.isEmpty()) {
@@ -806,8 +806,8 @@ internal fun sourceStatementEntry(method: EtsMethod, target: CallsSourceTarget):
         predecessor !in loweringRegionSet
     }
     val outsideOriginsAreBeforeTarget = outsidePredecessors.all { predecessor ->
-        val origin = predecessor.location.origin ?: return@all false
-        origin.endOffset <= target.startOffset
+        val origin = predecessor.location.origin
+        origin != null && origin.endOffset <= target.startOffset
     }
     if (!outsideOriginsAreBeforeTarget) {
         return null
