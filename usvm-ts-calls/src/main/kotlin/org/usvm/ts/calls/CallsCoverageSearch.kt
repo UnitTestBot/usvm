@@ -29,10 +29,27 @@ internal data class CallsCoverageCandidate(
     val emittedAtStep: Long,
     val inputs: List<JsConcreteValue>,
     val newSymbolicStatements: Int,
-    val completion: CallsCoverageCompletion,
+    val completion: CallsCoverageCompletion?,
     val entryPointId: String? = null,
     val observation: CallsClassObservation? = null,
-)
+    val origin: CallsCoverageCandidateOrigin = CallsCoverageCandidateOrigin.TERMINATED,
+    val suspendedAtMachineStop: Boolean = false,
+    val suspensionReason: String? = null,
+) {
+    init {
+        when (origin) {
+            CallsCoverageCandidateOrigin.TERMINATED -> require(
+                completion != null && !suspendedAtMachineStop && suspensionReason == null,
+            )
+            CallsCoverageCandidateOrigin.SUSPENDED -> require(completion == null && observation == null) {
+                "Suspended candidates carry inputs only, without a symbolic completion or observation"
+            }
+        }
+    }
+}
+
+@Serializable
+internal enum class CallsCoverageCandidateOrigin { TERMINATED, SUSPENDED }
 
 @Serializable
 internal enum class CallsCoverageCompletion {
@@ -70,6 +87,10 @@ internal data class CallsCoverageSearchResult(
     val runtimeLimited: Boolean = false,
     val runtimeLimitationReasons: List<String> = emptyList(),
     val diagnostic: String? = null,
+    val suspendedStates: Int = 0,
+    val suspendedExtractionElapsedMillis: Long = 0,
+    val frontierFlushElapsedMillis: Long = 0,
+    val machineStopReason: String? = null,
 )
 
 internal data class CallsCoverageSearchRequest(
@@ -272,6 +293,10 @@ internal data class CallsCoverageCandidateContext(
     val observationFields: Map<String, org.usvm.ts.pbt.model.PropertyDomain>? = null,
 )
 
+/**
+ * Shared snapshot cap and input deduplication per origin and entry point.
+ * Suspended snapshots require neither results nor novelty.
+ */
 internal class CompletedCoverageCandidateObserver(
     contexts: List<CallsCoverageCandidateContext>,
     private val coverageStatements: Set<EtsStmt>,
@@ -281,6 +306,7 @@ internal class CompletedCoverageCandidateObserver(
     private val onCandidate: (CallsCoverageCandidate) -> Unit,
     private val onExtractionFailure: (String) -> Unit,
     private val requireEntryPointWitness: Boolean = false,
+    private val emitSuspendedCandidates: Boolean = false,
 ) : UMachineObserver<TsState> {
     private val contextsByMethod = contexts.associateBy(CallsCoverageCandidateContext::method)
     private val coveredStatements = hashSetOf<EtsStmt>()
@@ -306,6 +332,18 @@ internal class CompletedCoverageCandidateObserver(
 
     var searchElapsedMillis: Long = 0
         private set
+
+    var suspendedStates: Int = 0
+        private set
+
+    private var suspendedExtractionElapsedNanos: Long = 0
+    private var frontierFlushElapsedNanos: Long = 0
+
+    val suspendedExtractionElapsedMillis: Long
+        get() = suspendedExtractionElapsedNanos / NANOS_PER_MILLISECOND
+
+    val frontierFlushElapsedMillis: Long
+        get() = frontierFlushElapsedNanos / NANOS_PER_MILLISECOND
 
     override fun onMachineStarted() {
         machineSetupElapsedMillis = machineCallStarted.elapsedNow().inWholeMilliseconds
@@ -338,8 +376,6 @@ internal class CompletedCoverageCandidateObserver(
 
         val context = contextsByMethod[state.entrypoint] ?: return
         val method = context.method
-        val inputDomains = context.inputDomains
-        val symbolicInputs = context.symbolicInputs
         val completion = when (val result = state.methodResult) {
             is TsMethodResult.Success.RegularCall -> {
                 if (result.method != method) return
@@ -359,14 +395,58 @@ internal class CompletedCoverageCandidateObserver(
         val needsWitness = requireEntryPointWitness && method !in witnessedMethods
         if (newStatements == 0 && !needsWitness) return
 
+        emitCandidate(
+            state = state,
+            context = context,
+            pathStatements = pathStatements,
+            newStatements = newStatements,
+            completion = completion,
+            origin = CallsCoverageCandidateOrigin.TERMINATED,
+        )
+    }
+
+    override fun onStateSuspended(state: TsState) {
+        if (!emitSuspendedCandidates) return
+
+        val started = TimeSource.Monotonic.markNow()
+        suspendedStates++
+        try {
+            val context = contextsByMethod[state.entrypoint] ?: return
+            emitCandidate(
+                state = state,
+                context = context,
+                pathStatements = emptySet(),
+                newStatements = 0,
+                completion = null,
+                origin = CallsCoverageCandidateOrigin.SUSPENDED,
+            )
+        } finally {
+            val elapsedNanos = started.elapsedNow().inWholeNanoseconds
+            suspendedExtractionElapsedNanos += elapsedNanos
+            if (machineStopped) frontierFlushElapsedNanos += elapsedNanos
+        }
+    }
+
+    private fun emitCandidate(
+        state: TsState,
+        context: CallsCoverageCandidateContext,
+        pathStatements: Set<EtsStmt>,
+        newStatements: Int,
+        completion: CallsCoverageCompletion?,
+        origin: CallsCoverageCandidateOrigin,
+    ) {
         if (selectedStates >= candidateCap) {
             capReached = true
             return
         }
         selectedStates++
         val candidate = runCatching {
+            val inputDomains = context.inputDomains
+            val symbolicInputs = context.symbolicInputs
             val extractedInputs = symbolicInputs.resolve(state)
-            val eligibleInputs = if (context.observationFields == null) {
+            val canResolveAnyModel = context.observationFields == null ||
+                origin == CallsCoverageCandidateOrigin.SUSPENDED
+            val eligibleInputs = if (canResolveAnyModel) {
                 extractedInputs
             } else {
                 // Output/state extraction uses the first model too; do not pair it with another model's inputs.
@@ -377,7 +457,8 @@ internal class CompletedCoverageCandidateObserver(
                     candidate.zip(inputDomains).all { (value, input) -> value in input.domain }
             }
             requireNotNull(inputs) { "No extracted input is inside every frozen domain" }
-            val key = context.entryPointId.orEmpty() + CallsExperimentJson.json.encodeToUtf8SafeString(inputs)
+            val key = origin.name + ":" + context.entryPointId.orEmpty() +
+                CallsExperimentJson.json.encodeToUtf8SafeString(inputs)
             if (inputKeys.add(key)) {
                 CallsCoverageCandidate(
                     emittedAtMillis = elapsedSinceMachineStart(),
@@ -386,8 +467,15 @@ internal class CompletedCoverageCandidateObserver(
                     newSymbolicStatements = newStatements,
                     completion = completion,
                     entryPointId = context.entryPointId,
-                    observation = context.observationFields?.let { fields ->
-                        extractCallsClassObservation(state = state, method = method, fields = fields)
+                    observation = context.observationFields?.takeIf {
+                        origin == CallsCoverageCandidateOrigin.TERMINATED
+                    }?.let { fields ->
+                        extractCallsClassObservation(state = state, method = context.method, fields = fields)
+                    },
+                    origin = origin,
+                    suspendedAtMachineStop = origin == CallsCoverageCandidateOrigin.SUSPENDED && machineStopped,
+                    suspensionReason = state.unsupportedReason.takeIf {
+                        origin == CallsCoverageCandidateOrigin.SUSPENDED
                     },
                 )
             } else {
@@ -400,8 +488,10 @@ internal class CompletedCoverageCandidateObserver(
 
         if (candidate != null) {
             onCandidate(candidate)
-            coveredStatements += pathStatements
-            witnessedMethods += method
+            if (origin == CallsCoverageCandidateOrigin.TERMINATED) {
+                coveredStatements += pathStatements
+                witnessedMethods += context.method
+            }
         }
     }
 
@@ -416,3 +506,5 @@ private fun CallsSymbolicStatus.toCoverageStatus(): CallsCoverageSearchStatus = 
     CallsSymbolicStatus.AMBIGUOUS -> CallsCoverageSearchStatus.AMBIGUOUS
     else -> CallsCoverageSearchStatus.TOOL_ERROR
 }
+
+private const val NANOS_PER_MILLISECOND = 1_000_000L

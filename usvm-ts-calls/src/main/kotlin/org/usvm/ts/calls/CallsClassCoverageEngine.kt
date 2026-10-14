@@ -54,6 +54,7 @@ internal data class CallsClassScenarioMetrics(
     val executedSteps: Long,
     val stepWallTimeMillis: Long,
     val completedCandidates: Int,
+    val suspendedCandidates: Int = 0,
 )
 
 @Serializable
@@ -232,6 +233,7 @@ internal class CurrentTsCallsClassCoverageEngine {
             },
             onExtractionFailure = extractionFailures::add,
             requireEntryPointWitness = request.requireEntryPointWitness,
+            emitSuspendedCandidates = true,
         )
         val schedulingObserver = ClassSchedulingObserver(
             scenarioIds = contexts.associate { it.method to requireNotNull(it.entryPointId) },
@@ -276,6 +278,7 @@ internal class CurrentTsCallsClassCoverageEngine {
                     stopOnCoverage = CALLS_STOP_ON_COVERAGE,
                     stopOnTargetsReached = false,
                     throwExceptionOnStepFailure = true,
+                    emitRemainingStatesOnStop = true,
                 ),
                 tsOptions = TsOptions(
                     maxArraySize = maxOf(TsOptions().maxArraySize, inputCapacity),
@@ -325,6 +328,10 @@ internal class CurrentTsCallsClassCoverageEngine {
             runtimeLimited = outcome?.runtimeLimited == true || limitations.isNotEmpty(),
             runtimeLimitationReasons = (limitations + outcome?.unsupportedPaths.orEmpty()).toList(),
             diagnostic = machineResult.exceptionOrNull()?.let { it.message ?: it::class.java.name },
+            suspendedStates = candidateObserver.suspendedStates,
+            suspendedExtractionElapsedMillis = candidateObserver.suspendedExtractionElapsedMillis,
+            frontierFlushElapsedMillis = candidateObserver.frontierFlushElapsedMillis,
+            machineStopReason = outcome?.stopReason?.name,
         )
 
         return CallsClassSearchResult(
@@ -438,7 +445,12 @@ private class ClassSchedulingObserver(
                 scenarioId = id,
                 executedSteps = steps[method] ?: 0,
                 stepWallTimeMillis = (timesNanos[method] ?: 0) / 1_000_000,
-                completedCandidates = candidates.count { it.entryPointId == id },
+                completedCandidates = candidates.count {
+                    it.entryPointId == id && it.origin == CallsCoverageCandidateOrigin.TERMINATED
+                },
+                suspendedCandidates = candidates.count {
+                    it.entryPointId == id && it.origin == CallsCoverageCandidateOrigin.SUSPENDED
+                },
             )
         }
 

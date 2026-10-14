@@ -5,10 +5,18 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.CoverageZone
 import org.usvm.SolverType
+import org.usvm.UMachineOptions
+import org.usvm.machine.TsMachine
+import org.usvm.machine.TsOptions
+import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
+import org.usvm.statistics.UMachineObserver
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.NumberDomain
 import org.usvm.ts.pbt.model.PropertyInput
+import org.usvm.ts.pbt.model.contains
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -19,6 +27,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 class CallsClassUnknownCallJournalTest {
     @TempDir
@@ -82,6 +91,91 @@ class CallsClassUnknownCallJournalTest {
     }
 
     @Test
+    fun `stop path harvests reached prefix inputs without pretending that constructor returned`() {
+        val domain = IntegerDomain(min = 0, max = 3)
+        val harness = prepareFixture(
+            source = """
+                export class Telemetry {
+                  value: number = 0;
+                  constructor(input: number) {
+                    this.value = Math.floor(input);
+                  }
+                }
+            """.trimIndent(),
+            inputs = listOf(PropertyInput(name = "input", domain = domain)),
+            stateFields = mapOf("value" to NumberDomain()),
+        )
+
+        val result = search(harness, profile = CallsExperimentProfile.EMPTY_STOP, models = emptySet())
+
+        val candidate = result.search.candidates.single()
+        assertEquals(CallsCoverageCandidateOrigin.SUSPENDED, candidate.origin)
+        assertNull(candidate.completion)
+        assertNull(candidate.observation)
+        assertFalse(candidate.suspendedAtMachineStop)
+        assertNotNull(candidate.suspensionReason)
+        assertTrue(candidate.inputs.single() in domain)
+        assertTrue(result.search.extractionFailures.isEmpty(), result.toString())
+        assertEquals(expected = "PATH_STOPPED", actual = result.unknownCalls.single().outcome)
+
+        val instrumentation = CallsClassSourceInstrumentation.create(
+            sourceRoot = directory,
+            sourceFile = "Telemetry.ts",
+            className = "Telemetry",
+        )
+        val original = OriginalTypeScriptClassReplayer(
+            sourceRoot = directory,
+            function = harness.functions.single(),
+            observationFields = harness.observations.single(),
+        ).use { it.replay(inputs = candidate.inputs, timeoutMillis = 20_000) }
+        val instrumented = OriginalTypeScriptClassReplayer(
+            sourceRoot = directory,
+            function = harness.functions.single(),
+            observationFields = harness.observations.single(),
+            sourceOverride = instrumentation.instrumentedSource,
+            overrideSourceFile = "Telemetry.ts",
+            counterGlobalName = instrumentation.hitGlobalName,
+        ).use { it.replay(inputs = candidate.inputs, timeoutMillis = 20_000) }
+
+        assertTrue(callsClassNativeCoverageAcceptance(original, instrumented, instrumentation.universe).accepted)
+        assertTrue(instrumented.coveredStatementKeys.isNotEmpty())
+        val strictOracle = compareCallsClassObservations(
+            symbolic = candidate.observation,
+            original = original.observation,
+            instrumented = instrumented.observation,
+        )
+        assertFalse(strictOracle.accepted)
+    }
+
+    @Test
+    fun `prefix snapshot does not hide completed novelty or strict observation for the same inputs`() {
+        val harness = prepareFixture(
+            source = """
+                export class Telemetry {
+                  value: number = 0;
+                  constructor() { this.value = 1; }
+                }
+            """.trimIndent(),
+            inputs = emptyList(),
+            stateFields = mapOf("value" to NumberDomain()),
+        )
+
+        val candidates = terminalAfterPrefix(harness)
+
+        assertEquals(
+            listOf(CallsCoverageCandidateOrigin.SUSPENDED, CallsCoverageCandidateOrigin.TERMINATED),
+            candidates.map { it.origin },
+        )
+        assertEquals(candidates[0].inputs, candidates[1].inputs)
+        assertEquals(expected = 0, actual = candidates[0].newSymbolicStatements)
+        assertNull(candidates[0].completion)
+        assertNull(candidates[0].observation)
+        assertTrue(candidates[1].newSymbolicStatements > 0)
+        assertEquals(CallsCoverageCompletion.RETURNED, candidates[1].completion)
+        assertTrue(assertNotNull(candidates[1].observation).representable)
+    }
+
+    @Test
     fun `symbolic thrown diagnostic retains actual exception type and expression`() {
         val harness = prepareFixture(
             source = """
@@ -127,6 +221,84 @@ class CallsClassUnknownCallJournalTest {
         )
 
         return prepareCallsClassHarness(directory, project, surface, maxSequenceLength = 1)
+    }
+
+    private fun terminalAfterPrefix(harness: CallsClassPreparedHarness): List<CallsCoverageCandidate> {
+        val function = harness.functions.single()
+        val preparation = CurrentTsCallsSymbolicEngine().prepareFunction(
+            CallsFunctionPreflightRequest(
+                sourceRoot = directory,
+                project = harness.project,
+                function = function,
+                expectedNativeFrontendRevision = CallsBuildIdentity.nativeFrontendRevision,
+                verifySourceCheckout = false,
+            ),
+        ) as CallsFunctionPreparation.Eligible
+        val scope = resolveCallsSymbolicCoverageScope(
+            preparation,
+            target = CallsSymbolicCoverageClass(sourceFile = "Telemetry.ts", className = "Telemetry"),
+        ) as CallsSymbolicCoverageScope.Selected
+        val inputs = CallsSymbolicInputs(
+            inputs = function.inputs,
+            bindings = preparation.inputBindings,
+            lexicalEnvironment = preparation.lexicalEnvironment,
+            captures = preparation.captures,
+            sourceScene = preparation.scene,
+        )
+        val candidates = mutableListOf<CallsCoverageCandidate>()
+        val observer = CompletedCoverageCandidateObserver(
+            contexts = listOf(
+                CallsCoverageCandidateContext(
+                    method = preparation.method,
+                    inputDomains = function.inputs,
+                    symbolicInputs = inputs,
+                    entryPointId = harness.scenarios.single().id,
+                    observationFields = harness.observations.single(),
+                ),
+            ),
+            coverageStatements = scope.statements,
+            candidateCap = 2,
+            budgetMillis = 2_000,
+            machineCallStarted = TimeSource.Monotonic.markNow(),
+            onCandidate = { candidates += it },
+            onExtractionFailure = { error(it) },
+            emitSuspendedCandidates = true,
+        )
+        val prefixThenTerminal = object : UMachineObserver<TsState> by observer {
+            override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
+                if (stateReachable) {
+                    val prefix = state.clone()
+                    prefix.methodResult = TsMethodResult.NoCall
+                    prefix.unsupportedReason = "Synthetic reached-prefix observer contract"
+                    observer.onStateSuspended(prefix)
+                }
+                observer.onStateTerminated(state = state, stateReachable = stateReachable)
+            }
+        }
+
+        TsMachine(
+            scene = inputs.scene,
+            options = UMachineOptions(
+                timeout = 2.seconds,
+                solverTimeout = 1.seconds,
+                coverageZone = CoverageZone.CLASS,
+                stopOnCoverage = 0,
+                removeCoveredEntryPoints = false,
+                throwExceptionOnStepFailure = true,
+            ),
+            tsOptions = TsOptions(
+                classCoverageTargets = setOf(requireNotNull(scope.classSignature)),
+                eraseTypeAssertions = true,
+            ),
+            machineObserver = prefixThenTerminal,
+        ).use { machine ->
+            machine.analyzeWithMetadata(
+                methods = listOf(preparation.method),
+                configureInitialState = { _, state -> inputs.initialize(state) },
+            )
+        }
+
+        return candidates
     }
 
     private fun search(

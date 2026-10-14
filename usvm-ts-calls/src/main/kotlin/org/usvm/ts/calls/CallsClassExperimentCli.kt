@@ -173,7 +173,9 @@ private fun callsClassPilotDiagnostics(
     if (search.search.candidateCapReached) add("Technical preflight reached candidate cap")
     if (search.search.status == CallsCoverageSearchStatus.TIMEOUT) add("Symbolic pilot reached the time budget")
     if (events.any { it.error != null }) add("Concrete preflight replay failed")
-    if (events.any { !it.oracle.accepted }) add("Technical preflight observation oracle rejected a candidate")
+    if (events.any { it.strictOracleApplicable && !it.oracle.accepted }) {
+        add("Technical preflight observation oracle rejected a candidate")
+    }
     val terminalFailure = search.search.status in setOf(
         CallsCoverageSearchStatus.UNSUPPORTED,
         CallsCoverageSearchStatus.UNMAPPED,
@@ -194,6 +196,8 @@ internal fun callsClassPilotNativeFailures(
         if (original != null && instrumented != null) {
             val failure = callsClassNativeInfrastructureFailure(original, instrumented)
             if (failure != null) add("${event.scenarioId}: $failure")
+        }
+        if (instrumented != null) {
             val checkedIds = runCatching { universe.checkedCoveredIds(instrumented.coveredStatementKeys) }
             checkedIds.exceptionOrNull()?.let { add(it.message ?: it::class.java.name) }
         }
@@ -281,12 +285,14 @@ internal fun runClassCell(
             budgetMillis = budgetMillis,
         ),
         replayErrors = events.count { it.error != null },
-        oracleRejections = events.count { !it.oracle.accepted },
+        oracleRejections = events.count { it.strictOracleApplicable && !it.oracle.accepted },
         replayElapsedMillis = events.sumOf { it.replayElapsedMillis },
         cellElapsedMillis = cellStarted.elapsedNow().inWholeMilliseconds,
         primaryInferenceEligible = preflight.primaryInferenceEligible,
         correctnessFrontierFailures = preflight.correctnessFrontierFailures,
         nativeInfrastructureFailures = callsClassPilotNativeFailures(events, source.record.instrumentation.universe),
+        nativeCoverageRejections = events.count { !it.nativeCoverage.accepted },
+        strictOracleNotApplicable = events.count { !it.strictOracleApplicable },
     )
     writeCallsArtifactAtomically(output.resolve("result.json"), encodeCallsArtifact(result))
     System.out.appendLine(encodeCallsArtifact(result))
@@ -409,24 +415,12 @@ private fun replayClassCandidates(
         "Class replay journal has missing, duplicate, or excess indices"
     }
     events.forEachIndexed { index, event ->
-        val candidate = search.search.candidates[index]
-        require(event.scenarioId == candidate.entryPointId) { "Persisted replay scenario differs from candidate" }
-        if (event.error == null) {
-            val original = requireNotNull(event.original)
-            val instrumented = requireNotNull(event.instrumented)
-            require(original.inputs == candidate.inputs && instrumented.inputs == candidate.inputs) {
-                "Persisted replay input snapshot differs"
-            }
-            source.record.instrumentation.universe.checkedCoveredIds(instrumented.coveredStatementKeys)
-            val expectedOracle = compareCallsClassObservations(
-                symbolic = candidate.observation,
-                original = original.observation,
-                instrumented = instrumented.observation,
-            )
-            require(event.oracle == expectedOracle) { "Persisted replay oracle decision differs" }
-        } else {
-            require(!event.oracle.accepted) { "Failed persisted replay is marked accepted" }
-        }
+        validateCallsClassReplayEvent(
+            candidate = search.search.candidates[index],
+            index = index,
+            event = event,
+            universe = source.record.instrumentation.universe,
+        )
     }
     val scenarios = source.record.scenarios.withIndex().associate { it.value.id to it.index }
     for (index in search.search.candidates.indices.drop(events.size)) {
@@ -464,17 +458,14 @@ private fun replayClassCandidates(
                 "Class replay input snapshot differs from candidate"
             }
             instrumentation.universe.checkedCoveredIds(instrumentedValue.coveredStatementKeys)
-            compareCallsClassObservations(
-                symbolic = candidate.observation,
-                original = originalValue.observation,
-                instrumented = instrumentedValue.observation,
-            )
+            classCandidateStrictOracle(candidate, originalValue, instrumentedValue)
         }
         val failures = listOfNotNull(
             original.exceptionOrNull()?.let { "original: ${it.message ?: it::class.java.name}" },
             instrumented.exceptionOrNull()?.let { "instrumented: ${it.message ?: it::class.java.name}" },
             validation.exceptionOrNull()?.let { "validation: ${it.message ?: it::class.java.name}" },
         )
+        val replayError = failures.takeIf { it.isNotEmpty() }?.joinToString(separator = "; ")
         val event = CallsClassReplayEvent(
             index = index,
             scenarioId = scenarioId,
@@ -484,14 +475,73 @@ private fun replayClassCandidates(
                 accepted = false,
                 diagnostic = "Concrete replay failed",
             ),
-            error = failures.takeIf { it.isNotEmpty() }?.joinToString(separator = "; "),
+            error = replayError,
             replayElapsedMillis = replayStarted.elapsedNow().inWholeMilliseconds,
+            nativeCoverage = callsClassNativeCoverageAcceptance(
+                original = originalValue,
+                instrumented = instrumentedValue,
+                universe = instrumentation.universe,
+                error = replayError,
+            ),
+            origin = candidate.origin,
+            strictOracleApplicable = candidate.origin == CallsCoverageCandidateOrigin.TERMINATED,
         )
         appendCallsJournalDurably(path, encodeCallsArtifact(event))
         events += event
     }
 
     return events
+}
+
+internal fun validateCallsClassReplayEvent(
+    candidate: CallsCoverageCandidate,
+    index: Int,
+    event: CallsClassReplayEvent,
+    universe: CallsClassSourceUniverse,
+) {
+    require(event.index == index && event.scenarioId == candidate.entryPointId) {
+        "Persisted replay index or scenario differs from candidate"
+    }
+    require(event.origin == candidate.origin) { "Persisted replay candidate origin differs" }
+    require(event.strictOracleApplicable == (candidate.origin == CallsCoverageCandidateOrigin.TERMINATED)) {
+        "Persisted symbolic oracle applicability differs from candidate origin"
+    }
+    if (event.error == null) {
+        val original = requireNotNull(event.original)
+        val instrumented = requireNotNull(event.instrumented)
+        require(original.inputs == candidate.inputs && instrumented.inputs == candidate.inputs) {
+            "Persisted replay input snapshot differs"
+        }
+        universe.checkedCoveredIds(instrumented.coveredStatementKeys)
+        val expectedOracle = classCandidateStrictOracle(candidate, original, instrumented)
+        require(event.oracle == expectedOracle) { "Persisted replay oracle decision differs" }
+    } else {
+        require(!event.oracle.accepted) { "Failed persisted replay is marked accepted" }
+    }
+
+    val expectedNative = callsClassNativeCoverageAcceptance(
+        original = event.original,
+        instrumented = event.instrumented,
+        universe = universe,
+        error = event.error,
+    )
+    require(event.nativeCoverage == expectedNative) { "Persisted native coverage decision differs" }
+}
+
+private fun classCandidateStrictOracle(
+    candidate: CallsCoverageCandidate,
+    original: CallsClassReplayObservation,
+    instrumented: CallsClassReplayObservation,
+): CallsClassOracleResult = when (candidate.origin) {
+    CallsCoverageCandidateOrigin.TERMINATED -> compareCallsClassObservations(
+        symbolic = candidate.observation,
+        original = original.observation,
+        instrumented = instrumented.observation,
+    )
+    CallsCoverageCandidateOrigin.SUSPENDED -> CallsClassOracleResult(
+        accepted = false,
+        diagnostic = "Not applicable: suspended input has no symbolic completion or observation",
+    )
 }
 
 private inline fun <reified T> decodeClassArtifact(path: Path): T =

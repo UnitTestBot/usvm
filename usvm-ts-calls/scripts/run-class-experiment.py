@@ -9,6 +9,14 @@ from pathlib import Path
 
 PROFILES = ('EMPTY_STOP', 'EMPTY_FRESH', 'FROZEN_STOP', 'FROZEN_FRESH')
 BUDGETS = (30_000, 120_000)
+COVERAGE_POLICY = 'native-original-instrumented-complete-v2'
+SUSPENDED_COVERAGE_POLICY = 'reached-prefix-and-final-frontier-inputs-v1'
+
+
+def validate_measurement_protocol(identity):
+    if (identity.get('schemaVersion') != 2 or identity.get('coveragePolicy') != COVERAGE_POLICY
+            or identity.get('suspendedCoveragePolicy') != SUSPENDED_COVERAGE_POLICY):
+        raise ValueError('A new schema-2 native coverage and reached-prefix acquisition is required')
 
 
 def read(path):
@@ -185,6 +193,7 @@ def validate_result(result, expected, prepared, universe):
         raise ValueError('Native instrumentation corruption invalidates the acquisition attempt')
 
     identity = result['identity']
+    validate_measurement_protocol(identity)
     for key, value in expected.items():
         if identity.get(key) != value:
             raise ValueError(f'Paired cell identity differs for {key}')
@@ -198,6 +207,18 @@ def validate_result(result, expected, prepared, universe):
 
     ids = {statement['id'] for statement in universe['statements']}
     previous = set()
+    previous_strict = set()
+    candidates = result['search']['search']['candidates']
+    for candidate in candidates:
+        origin = candidate['origin']
+        if origin not in ('TERMINATED', 'SUSPENDED') or candidate['emittedAtMillis'] < 0:
+            raise ValueError('Invalid candidate origin or emission time')
+        if origin == 'SUSPENDED' and (candidate.get('completion') is not None
+                                      or candidate.get('observation') is not None):
+            raise ValueError('Suspended input contains an invented terminal observation')
+        if origin == 'TERMINATED' and (candidate.get('completion') not in ('RETURNED', 'THREW')
+                                       or candidate.get('suspendedAtMachineStop', False)):
+            raise ValueError('Invalid terminal candidate provenance')
     for point in result['checkpoints']:
         covered = set(point['coveredStatementIds'])
         uncovered = set(point['uncoveredStatementIds'])
@@ -207,7 +228,31 @@ def validate_result(result, expected, prepared, universe):
             raise ValueError('Coverage history is not monotone')
         if point['searchBudgetMillis'] > identity['budgetMillis']:
             raise ValueError('Coverage checkpoint exceeds cell budget')
+        strict = set(point['strictCoveredStatementIds'])
+        strict_uncovered = set(point['strictUncoveredStatementIds'])
+        if strict & strict_uncovered or strict | strict_uncovered != ids or not strict <= covered:
+            raise ValueError('Invalid strict secondary statement coverage')
+        if not previous_strict <= strict:
+            raise ValueError('Strict coverage history is not monotone')
+        final = point['searchBudgetMillis'] == identity['budgetMillis']
+        selected = [candidate for candidate in candidates
+                    if (candidate['origin'] == 'SUSPENDED' and candidate.get('suspendedAtMachineStop', False) and final)
+                    or (not candidate.get('suspendedAtMachineStop', False)
+                        and candidate['emittedAtMillis'] <= point['searchBudgetMillis'])]
+        post_stop = sum(candidate.get('suspendedAtMachineStop', False) for candidate in selected)
+        suspended = sum(candidate['origin'] == 'SUSPENDED' for candidate in selected)
+        if (point['emittedCandidates'] != len(selected) or point['suspendedCandidates'] != suspended
+                or point['postStopSuspendedCandidates'] != post_stop
+                or point['includesSuspendedExtraction'] != final):
+            raise ValueError('Suspended extraction checkpoint attribution differs')
+        if point['acceptedCandidates'] + point['rejectedCandidates'] != len(selected):
+            raise ValueError('Native candidate accounting differs')
+        if (point['strictAcceptedCandidates'] + point['strictRejectedCandidates']
+                + point['strictOracleNotApplicable'] != len(selected)
+                or point['strictOracleNotApplicable'] != suspended):
+            raise ValueError('Strict secondary candidate accounting differs')
         previous = covered
+        previous_strict = strict
 
     if not result['checkpoints'] or result['checkpoints'][-1]['searchBudgetMillis'] != identity['budgetMillis']:
         raise ValueError('Final requested-budget coverage checkpoint is absent')
@@ -216,6 +261,7 @@ def validate_result(result, expected, prepared, universe):
 def summarize(output, prepared, plan, scheduled_budgets=BUDGETS):
     require_saved_acquisition_health(output)
     manifest = read(prepared / 'manifest.json')
+    validate_measurement_protocol(manifest)
     rows = []
     failures = []
     pending = []
@@ -254,7 +300,16 @@ def summarize(output, prepared, plan, scheduled_budgets=BUDGETS):
                            'covered': len(final['coveredStatementIds']), 'total': final['totalStatements'],
                            'fraction': len(final['coveredStatementIds']) / final['totalStatements'],
                            'status': search['status'], 'acceptedCandidates': final['acceptedCandidates'],
+                           'machineStopReason': search.get('machineStopReason'),
                            'rejectedCandidates': final['rejectedCandidates'],
+                           'strictCovered': len(final['strictCoveredStatementIds']),
+                           'strictAcceptedCandidates': final['strictAcceptedCandidates'],
+                           'strictRejectedCandidates': final['strictRejectedCandidates'],
+                           'strictOracleNotApplicable': final['strictOracleNotApplicable'],
+                           'suspendedCandidates': final['suspendedCandidates'],
+                           'postStopSuspendedCandidates': final['postStopSuspendedCandidates'],
+                           'suspendedExtractionElapsedMillis': search['suspendedExtractionElapsedMillis'],
+                           'frontierFlushElapsedMillis': search['frontierFlushElapsedMillis'],
                            'searchElapsedMillis': search['searchElapsedMillis'],
                            'setupElapsedMillis': search['preparationElapsedMillis'] + search['machineSetupElapsedMillis'],
                            'replayElapsedMillis': result['replayElapsedMillis'],
@@ -262,19 +317,23 @@ def summarize(output, prepared, plan, scheduled_budgets=BUDGETS):
                            'solverElapsedMillis': result['search'].get('solverElapsedMillis'),
                            'runtimeLimited': search['runtimeLimited'], 'engineFailed': search['engineFailed'],
                            'candidateCapReached': search['candidateCapReached'],
-                           'replayErrors': result['replayErrors'], 'oracleRejections': result['oracleRejections']}
+                           'replayErrors': result['replayErrors'], 'oracleRejections': result['oracleRejections'],
+                           'nativeCoverageRejections': result['nativeCoverageRejections']}
                     rows.append(row)
                     pair.append(row)
 
                 if len(pair) == len(PROFILES):
                     pairs.append({'classId': class_id, 'seed': seed, 'budgetMillis': budget,
                                   'coveredByProfile': {row['profile']: row['covered'] for row in pair},
+                                  'strictCoveredByProfile': {row['profile']: row['strictCovered'] for row in pair},
                                   'total': pair[0]['total'],
                                   'measurementFailures': any(row['engineFailed'] or row['runtimeLimited']
                                                             or row['candidateCapReached'] or row['replayErrors']
-                                                            or row['oracleRejections'] for row in pair)})
+                                                            or row['nativeCoverageRejections'] for row in pair),
+                                  'symbolicOracleDisagreement': any(row['oracleRejections'] for row in pair)})
 
-    summary = {'schemaVersion': 1, 'experimentId': manifest['experimentId'],
+    summary = {'schemaVersion': 2, 'coveragePolicy': COVERAGE_POLICY,
+               'suspendedCoveragePolicy': SUSPENDED_COVERAGE_POLICY, 'experimentId': manifest['experimentId'],
                'classCount': len(plan['classIds']), 'completePairedGroups': len(pairs),
                'incompleteOrInvalidCells': failures, 'missingStrata': plan['missingStrata'],
                'scheduledBudgetsMillis': list(scheduled_budgets), 'pendingOtherPhaseCells': pending,
@@ -288,12 +347,19 @@ def summarize(output, prepared, plan, scheduled_budgets=BUDGETS):
             writer.writerows(rows)
 
     lines = [f"Experiment: {manifest['experimentId']}", '',
+             'Primary coverage requires complete agreeing native original/instrumented replay. Strict symbolic agreement is reported separately.',
+             'In-search reached-prefix inputs use their actual emission time; post-stop frontier inputs appear only in the final budget checkpoint.',
              f"Classes: {len(plan['classIds'])}; complete paired groups: {len(pairs)}; missing strata: {len(plan['missingStrata'])}.",
              f"Complete acquisition: {summary['complete']}; pending cells in the other phase: {len(pending)}; invalid or missing scheduled cells: {len(failures)}.",
              '', '| Class | Seed | Budget (s) | EMPTY_STOP | EMPTY_FRESH | FROZEN_STOP | FROZEN_FRESH |',
              '|---|---:|---:|---:|---:|---:|---:|']
     for pair in pairs:
         values = [f"{pair['coveredByProfile'][profile]}/{pair['total']}" for profile in PROFILES]
+        lines.append(f"| {pair['classId']} | {pair['seed']} | {pair['budgetMillis'] // 1000} | " + ' | '.join(values) + ' |')
+    lines.extend(['', '| Strict secondary class | Seed | Budget (s) | EMPTY_STOP | EMPTY_FRESH | FROZEN_STOP | FROZEN_FRESH |',
+                  '|---|---:|---:|---:|---:|---:|---:|'])
+    for pair in pairs:
+        values = [f"{pair['strictCoveredByProfile'][profile]}/{pair['total']}" for profile in PROFILES]
         lines.append(f"| {pair['classId']} | {pair['seed']} | {pair['budgetMillis'] // 1000} | " + ' | '.join(values) + ' |')
     lines.extend(['', 'These are paired observations under the frozen domains. Unsupported candidates and missing strata remain in the eligibility ledger.',
                   'Engine-suited datasets must be reported separately from the random/stratified corpus. No statistical superiority is inferred from one seed.'])
@@ -321,6 +387,7 @@ def main():
     calls = args.calls.resolve()
     ledger = read(args.selection_ledger) if args.selection_ledger else None
     input_manifest = read(args.manifest)
+    validate_measurement_protocol(input_manifest)
     if input_manifest['budgetsMillis'] != list(BUDGETS):
         raise ValueError('Class budgets must be exactly 30 and 120 seconds')
     freeze(output / 'campaign-input.json', {'manifest': input_manifest, 'selectionLedger': ledger,
@@ -380,7 +447,8 @@ def main():
     chosen, missing = select_classes(ledger, eligible)
     freeze(output / 'eligibility.json', eligibility)
     require_native_acquisition_health(output, 'preflight', eligibility)
-    plan = {'schemaVersion': 1, 'admission': 'profile-independent-source-native-v1',
+    plan = {'schemaVersion': 2, 'coveragePolicy': COVERAGE_POLICY,
+            'suspendedCoveragePolicy': SUSPENDED_COVERAGE_POLICY, 'admission': 'profile-independent-source-native-v1',
             'manifestSha256': sha(prepared / 'manifest.json'), 'classIds': chosen,
             'missingStrata': missing, 'profiles': list(PROFILES), 'budgetsMillis': list(BUDGETS),
             'seeds': manifest['seeds'], 'order': 'all 30s cells then all 120s; seeded rotation of profiles; sequential processes'}

@@ -102,6 +102,7 @@ class CallsClassAdmissionTest {
                 original.observation,
                 instrumented.observation,
             ),
+            nativeCoverage = callsClassNativeCoverageAcceptance(original, instrumented, changed.universe),
         )
         val failures = callsClassPilotNativeFailures(listOf(replay), changed.universe)
         val baseline = admission(harness, sourceFailures = emptyList(), smoke = smoke)
@@ -223,6 +224,7 @@ class CallsClassAdmissionTest {
             original = original,
             instrumented = instrumented,
             oracle = oracle,
+            nativeCoverage = callsClassNativeCoverageAcceptance(original, instrumented, instrumentation().universe),
         )
         val candidate = CallsCoverageCandidate(
             emittedAtMillis = 1,
@@ -254,6 +256,7 @@ class CallsClassAdmissionTest {
         )
 
         assertFalse(oracle.accepted)
+        assertTrue(replay.nativeCoverage.accepted)
         assertTrue(result.eligible)
         assertEquals(true, result.primaryInferenceEligible)
         assertEquals(false, result.diagnosticReady)

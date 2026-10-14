@@ -56,7 +56,7 @@ internal data class CallsClassCase(
 
 @Serializable
 internal data class CallsClassExperimentManifest(
-    val schemaVersion: Int = 1,
+    val schemaVersion: Int = 2,
     val experimentId: String,
     val toolRevision: String,
     val nativeFrontendRevision: String,
@@ -69,9 +69,13 @@ internal data class CallsClassExperimentManifest(
     val solverLimitMillis: Long = 1_000,
     val candidateCap: Int = 10_000,
     val classes: List<CallsClassCase>,
+    val coveragePolicy: String = CLASS_NATIVE_COVERAGE_POLICY,
+    val suspendedCoveragePolicy: String = CLASS_SUSPENDED_COVERAGE_POLICY,
 ) {
     init {
-        require(schemaVersion == 1)
+        require(schemaVersion == 2) { "Class measurement requires the native coverage and suspended-input protocol" }
+        require(coveragePolicy == CLASS_NATIVE_COVERAGE_POLICY)
+        require(suspendedCoveragePolicy == CLASS_SUSPENDED_COVERAGE_POLICY)
         require(experimentId.isNotBlank())
         require(toolRevision.matches(Regex("[0-9a-f]{40}"))) { "Tool revision must be clean" }
         require(modelSet.toolRevision == toolRevision) { "Frozen model revision differs" }
@@ -333,11 +337,38 @@ internal data class CallsClassReplayEvent(
     val oracle: CallsClassOracleResult,
     val error: String? = null,
     val replayElapsedMillis: Long = 0,
+    val nativeCoverage: CallsClassOracleResult,
+    val origin: CallsCoverageCandidateOrigin = CallsCoverageCandidateOrigin.TERMINATED,
+    val strictOracleApplicable: Boolean = true,
 )
+
+/** Primary coverage checks the native measurement, independently of symbolic execution predictions. */
+internal fun callsClassNativeCoverageAcceptance(
+    original: CallsClassReplayObservation?,
+    instrumented: CallsClassReplayObservation?,
+    universe: CallsClassSourceUniverse,
+    error: String? = null,
+): CallsClassOracleResult {
+    if (error != null || original == null || instrumented == null) {
+        return CallsClassOracleResult(accepted = false, diagnostic = error ?: "Concrete replay missing")
+    }
+
+    val foreignIds = runCatching { universe.checkedCoveredIds(instrumented.coveredStatementKeys) }.exceptionOrNull()
+    val failure = callsClassNativeInfrastructureFailure(original, instrumented)
+        ?: foreignIds?.let { it.message ?: it::class.java.name }
+    if (failure != null) return CallsClassOracleResult(accepted = false, diagnostic = failure)
+
+    val complete = original.observation.representable && instrumented.observation.representable
+    if (!complete) {
+        return CallsClassOracleResult(accepted = false, diagnostic = "Native observation is incomplete")
+    }
+
+    return CallsClassOracleResult(accepted = true)
+}
 
 @Serializable
 internal data class CallsClassCellIdentity(
-    val schemaVersion: Int = 1,
+    val schemaVersion: Int = 2,
     val experimentId: String,
     val toolRevision: String,
     val nativeFrontendRevision: String,
@@ -349,6 +380,8 @@ internal data class CallsClassCellIdentity(
     val profile: CallsExperimentProfile,
     val seed: Long,
     val budgetMillis: Long,
+    val coveragePolicy: String = CLASS_NATIVE_COVERAGE_POLICY,
+    val suspendedCoveragePolicy: String = CLASS_SUSPENDED_COVERAGE_POLICY,
 )
 
 @Serializable
@@ -360,6 +393,14 @@ internal data class CallsClassCoverageCheckpoint(
     val coveredStatementIds: Set<String>,
     val uncoveredStatementIds: Set<String>,
     val totalStatements: Int,
+    val strictAcceptedCandidates: Int,
+    val strictRejectedCandidates: Int,
+    val strictOracleNotApplicable: Int,
+    val strictCoveredStatementIds: Set<String>,
+    val strictUncoveredStatementIds: Set<String>,
+    val suspendedCandidates: Int,
+    val includesSuspendedExtraction: Boolean,
+    val postStopSuspendedCandidates: Int,
 )
 
 @Serializable
@@ -374,6 +415,8 @@ internal data class CallsClassCellResult(
     val primaryInferenceEligible: Boolean? = null,
     val correctnessFrontierFailures: List<CallsClassCorrectnessFrontierFailure> = emptyList(),
     val nativeInfrastructureFailures: List<String> = emptyList(),
+    val nativeCoverageRejections: Int = 0,
+    val strictOracleNotApplicable: Int = 0,
 )
 
 internal fun callsClassCoverageCheckpoints(
@@ -388,12 +431,48 @@ internal fun callsClassCoverageCheckpoints(
 
     return checkpoints.map { checkpoint ->
         val indices = search.search.candidates.indices.filter { index ->
-            search.search.candidates[index].emittedAtMillis <= checkpoint
+            val candidate = search.search.candidates[index]
+            when (candidate.origin) {
+                CallsCoverageCandidateOrigin.TERMINATED ->
+                    candidate.emittedAtMillis <= checkpoint
+                CallsCoverageCandidateOrigin.SUSPENDED -> if (candidate.suspendedAtMachineStop) {
+                    checkpoint == budgetMillis
+                } else {
+                    candidate.emittedAtMillis <= checkpoint
+                }
+            }
         }
-        val accepted = indices.map { events[it] }.filter { it.oracle.accepted && it.error == null }
+        val selectedEvents = indices.map { events[it] }
+        indices.forEach { index ->
+            val event = events[index]
+            val candidate = search.search.candidates[index]
+            val matchesCandidate = event.index == index &&
+                event.scenarioId == candidate.entryPointId && event.origin == candidate.origin
+            require(matchesCandidate) {
+                "Class replay event differs from its candidate"
+            }
+            require(event.strictOracleApplicable == (candidate.origin == CallsCoverageCandidateOrigin.TERMINATED)) {
+                "Class replay symbolic oracle applicability differs from its candidate"
+            }
+            val expectedNative = callsClassNativeCoverageAcceptance(
+                original = event.original,
+                instrumented = event.instrumented,
+                universe = universe,
+                error = event.error,
+            )
+            require(event.nativeCoverage == expectedNative) { "Class replay native coverage decision differs" }
+        }
+        val accepted = selectedEvents.filter { it.nativeCoverage.accepted && it.error == null }
         val covered = universe.checkedCoveredIds(
             accepted.flatMap { event -> requireNotNull(event.instrumented).coveredStatementKeys },
         )
+        val strictAccepted = selectedEvents.filter {
+            it.strictOracleApplicable && it.oracle.accepted && it.error == null
+        }
+        val strictCovered = universe.checkedCoveredIds(
+            strictAccepted.flatMap { event -> requireNotNull(event.instrumented).coveredStatementKeys },
+        )
+        val strictNotApplicable = selectedEvents.count { !it.strictOracleApplicable }
         CallsClassCoverageCheckpoint(
             searchBudgetMillis = checkpoint,
             emittedCandidates = indices.size,
@@ -402,9 +481,22 @@ internal fun callsClassCoverageCheckpoints(
             coveredStatementIds = covered,
             uncoveredStatementIds = universe.statementIds - covered,
             totalStatements = universe.statementIds.size,
+            strictAcceptedCandidates = strictAccepted.size,
+            strictRejectedCandidates = indices.size - strictAccepted.size - strictNotApplicable,
+            strictOracleNotApplicable = strictNotApplicable,
+            strictCoveredStatementIds = strictCovered,
+            strictUncoveredStatementIds = universe.statementIds - strictCovered,
+            suspendedCandidates = indices.count {
+                search.search.candidates[it].origin == CallsCoverageCandidateOrigin.SUSPENDED
+            },
+            includesSuspendedExtraction = checkpoint == budgetMillis,
+            postStopSuspendedCandidates = indices.count { search.search.candidates[it].suspendedAtMachineStop },
         )
     }
 }
+
+internal const val CLASS_NATIVE_COVERAGE_POLICY = "native-original-instrumented-complete-v2"
+internal const val CLASS_SUSPENDED_COVERAGE_POLICY = "reached-prefix-and-final-frontier-inputs-v1"
 
 private const val SHORT_CLASS_BUDGET_MILLIS = 30_000L
 private const val LONG_CLASS_BUDGET_MILLIS = 120_000L

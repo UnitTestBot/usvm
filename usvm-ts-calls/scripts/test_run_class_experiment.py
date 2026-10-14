@@ -16,6 +16,8 @@ class CampaignIntegrityTest(unittest.TestCase):
         directory = prepared / 'class'
         directory.mkdir(parents=True)
         manifest = {'experimentId': 'phase-test', 'toolRevision': 'revision',
+                    'schemaVersion': 2, 'coveragePolicy': campaign.COVERAGE_POLICY,
+                    'suspendedCoveragePolicy': campaign.SUSPENDED_COVERAGE_POLICY,
                     'nativeFrontendRevision': 'frontend', 'budgetsMillis': list(campaign.BUDGETS),
                     'seeds': [17], 'classes': [{'classId': 'class'}]}
         universe = {'universeSha256': 'universe', 'statements': [{'id': 'original'}]}
@@ -36,6 +38,8 @@ class CampaignIntegrityTest(unittest.TestCase):
     def write_phase_result(self, output, prepared, manifest, budget, profile):
         directory = campaign.cell_directory(output, 'class', 17, budget, profile)
         identity = {'experimentId': manifest['experimentId'], 'toolRevision': manifest['toolRevision'],
+                    'schemaVersion': 2, 'coveragePolicy': campaign.COVERAGE_POLICY,
+                    'suspendedCoveragePolicy': campaign.SUSPENDED_COVERAGE_POLICY,
                     'nativeFrontendRevision': manifest['nativeFrontendRevision'],
                     'manifestSha256': campaign.sha(prepared / 'manifest.json'),
                     'preparedSha256': campaign.sha(prepared / 'class' / 'class.json'),
@@ -44,12 +48,18 @@ class CampaignIntegrityTest(unittest.TestCase):
                     'budgetMillis': budget, 'profile': profile}
         result = {'identity': identity, 'nativeInfrastructureFailures': [],
                   'search': {'search': {'status': 'TIMEOUT', 'searchElapsedMillis': budget,
+                             'candidates': [], 'suspendedExtractionElapsedMillis': 0, 'frontierFlushElapsedMillis': 0,
                              'preparationElapsedMillis': 0, 'machineSetupElapsedMillis': 0,
                              'runtimeLimited': False, 'engineFailed': False, 'candidateCapReached': False}},
                   'checkpoints': [{'searchBudgetMillis': budget, 'totalStatements': 1,
                                    'coveredStatementIds': [], 'uncoveredStatementIds': ['original'],
+                                   'strictCoveredStatementIds': [], 'strictUncoveredStatementIds': ['original'],
+                                   'strictAcceptedCandidates': 0, 'strictRejectedCandidates': 0,
+                                   'strictOracleNotApplicable': 0, 'emittedCandidates': 0,
+                                   'suspendedCandidates': 0, 'postStopSuspendedCandidates': 0,
+                                   'includesSuspendedExtraction': True,
                                    'acceptedCandidates': 0, 'rejectedCandidates': 0}],
-                  'replayElapsedMillis': 0, 'replayErrors': 0, 'oracleRejections': 0}
+                  'replayElapsedMillis': 0, 'replayErrors': 0, 'oracleRejections': 0, 'nativeCoverageRejections': 0}
 
         campaign.freeze(directory / 'result.json', result)
 
@@ -366,14 +376,71 @@ class CampaignIntegrityTest(unittest.TestCase):
             (directory / 'class.json').write_text('{}')
             (directory / 'preflight.json').write_text('{}')
             identity = {'classId': 'class', 'budgetMillis': 30_000, 'universeSha256': 'universe',
+                        'schemaVersion': 2, 'coveragePolicy': campaign.COVERAGE_POLICY,
+                        'suspendedCoveragePolicy': campaign.SUSPENDED_COVERAGE_POLICY,
                         'preparedSha256': campaign.sha(directory / 'class.json'),
                         'preflightSha256': campaign.sha(directory / 'preflight.json')}
-            result = {'identity': identity, 'checkpoints': [{'searchBudgetMillis': 30_000,
+            result = {'identity': identity, 'search': {'search': {'candidates': []}},
+                      'checkpoints': [{'searchBudgetMillis': 30_000,
                       'totalStatements': 1, 'coveredStatementIds': ['foreign'], 'uncoveredStatementIds': []}]}
             universe = {'universeSha256': 'universe', 'statements': [{'id': 'original'}]}
 
             with self.assertRaisesRegex(ValueError, 'numerator/denominator'):
                 campaign.validate_result(result, {'classId': 'class'}, prepared, universe)
+
+    def test_new_measurement_cannot_reinterpret_sealed_legacy_results(self):
+        with self.assertRaisesRegex(ValueError, 'schema-2'):
+            campaign.validate_measurement_protocol({'schemaVersion': 1})
+
+    def test_native_primary_and_strict_secondary_are_reported_separately(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            prepared, manifest, plan = self.make_phase_fixture(output)
+            for profile in campaign.PROFILES:
+                self.write_phase_result(output, prepared, manifest, budget=30_000, profile=profile)
+                path = campaign.cell_directory(output, 'class', 17, 30_000, profile) / 'result.json'
+                result = campaign.read(path)
+                result['search']['search']['candidates'] = [
+                    {'origin': 'TERMINATED', 'completion': 'RETURNED', 'emittedAtMillis': 5},
+                    {'origin': 'SUSPENDED', 'suspendedAtMachineStop': True, 'emittedAtMillis': 30_050},
+                    {'origin': 'SUSPENDED', 'suspendedAtMachineStop': False, 'emittedAtMillis': 30_051},
+                ]
+                final = result['checkpoints'][-1]
+                final.update(coveredStatementIds=['original'], uncoveredStatementIds=[],
+                             acceptedCandidates=2, emittedCandidates=2, strictRejectedCandidates=1,
+                             strictOracleNotApplicable=1, suspendedCandidates=1, postStopSuspendedCandidates=1)
+                result['oracleRejections'] = 1
+                path.write_text(json.dumps(result) + '\n')
+
+            summary = campaign.summarize(output, prepared, plan, scheduled_budgets=(30_000,))
+
+            self.assertEqual([], summary['incompleteOrInvalidCells'])
+            self.assertEqual({1}, {row['covered'] for row in summary['rows']})
+            self.assertEqual({0}, {row['strictCovered'] for row in summary['rows']})
+            self.assertFalse(summary['pairs'][0]['measurementFailures'])
+            self.assertTrue(summary['pairs'][0]['symbolicOracleDisagreement'])
+            self.assertEqual({1}, {row['postStopSuspendedCandidates'] for row in summary['rows']})
+
+    def test_post_stop_extraction_cannot_be_backdated_into_intermediate_checkpoint(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            prepared, manifest, _ = self.make_phase_fixture(output)
+            profile = campaign.PROFILES[0]
+            self.write_phase_result(output, prepared, manifest, budget=30_000, profile=profile)
+            path = campaign.cell_directory(output, 'class', 17, 30_000, profile) / 'result.json'
+            result = campaign.read(path)
+            result['search']['search']['candidates'] = [
+                {'origin': 'SUSPENDED', 'suspendedAtMachineStop': True, 'emittedAtMillis': 10},
+            ]
+            intermediate = dict(result['checkpoints'][0], searchBudgetMillis=1_000,
+                                includesSuspendedExtraction=False, emittedCandidates=1,
+                                acceptedCandidates=1, suspendedCandidates=1, postStopSuspendedCandidates=1,
+                                strictOracleNotApplicable=1)
+            result['checkpoints'].insert(0, intermediate)
+            universe = campaign.read(prepared / 'class' / 'class.json')['instrumentation']['universe']
+
+            with self.assertRaisesRegex(ValueError, 'checkpoint attribution'):
+                campaign.validate_result(result, {}, prepared, universe)
 
 
 if __name__ == '__main__':
