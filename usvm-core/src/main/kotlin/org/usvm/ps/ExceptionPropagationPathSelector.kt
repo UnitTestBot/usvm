@@ -2,6 +2,7 @@ package org.usvm.ps
 
 import org.usvm.UPathSelector
 import org.usvm.UState
+import java.util.Collections
 import java.util.IdentityHashMap
 
 /**
@@ -90,6 +91,26 @@ class ExceptionPropagationPathSelector<State : UState<*, *, *, *, *, State>>(
         }
 
         selector.add(statesToAdd)
+    }
+
+    override fun drain(): Sequence<State> = sequence {
+        val emittedStates = Collections.newSetFromMap(IdentityHashMap<State, Boolean>())
+        for (state in selector.drain()) {
+            statesInSelector.remove(state)
+            exceptionalStates.remove(state)
+            if (emittedStates.add(state)) {
+                yield(state)
+            }
+        }
+
+        while (exceptionalStates.isNotEmpty()) {
+            val state = exceptionalStates.keys.first()
+            exceptionalStates.remove(state)
+            statesInSelector.remove(state)
+            if (emittedStates.add(state)) {
+                yield(state)
+            }
+        }
     }
 
     override fun remove(state: State) {

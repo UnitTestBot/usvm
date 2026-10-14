@@ -1,6 +1,8 @@
 package org.usvm.ps
 
 import org.usvm.UPathSelector
+import java.util.Collections
+import java.util.IdentityHashMap
 
 /**
  * An interleaved path selector.
@@ -38,6 +40,17 @@ class InterleavedPathSelector<State>(
     override fun add(states: Collection<State>) {
         selectors.forEach { it.add(states) }
         ptr = (ptr + 1) % selectors.size
+    }
+
+    override fun drain(): Sequence<State> = sequence {
+        val emittedStates = Collections.newSetFromMap(IdentityHashMap<State, Boolean>())
+        for (selector in selectors) {
+            for (state in selector.drain()) {
+                if (emittedStates.add(state)) {
+                    yield(state)
+                }
+            }
+        }
     }
 
     override fun remove(state: State) {

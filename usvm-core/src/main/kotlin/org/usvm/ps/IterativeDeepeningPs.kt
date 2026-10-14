@@ -80,6 +80,24 @@ class IterativeDeepeningPs<Stmt, Method, Loop : Any, State : UState<*, Method, S
         underlyingPs.remove(state)
     }
 
+    override fun drain(): Sequence<State> = sequence {
+        yieldAll(underlyingPs.drain())
+
+        for (level in pendingStates.keys.sorted()) {
+            val states = pendingStates.getValue(level)
+            while (states.isNotEmpty()) {
+                yield(states.removeAt(states.lastIndex))
+            }
+            pendingStates.remove(level)
+        }
+
+        stateStats.clear()
+        lastPeekedState = null
+        lastPeekedStateStats = StateLoopStatistic.rootStats()
+        currentLevel = 0
+        maxLevel = 0
+    }
+
     private fun pushStates() {
         while (underlyingPs.isEmpty() && currentLevel <= maxLevel) {
             currentLevel++
