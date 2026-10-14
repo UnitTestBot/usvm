@@ -11,6 +11,10 @@ export function throwsAtTarget(): never {
   throw new Error('expected');
 }
 
+export function returnsAwaitable(): Promise<number> {
+  return Promise.resolve(1);
+}
+
 export function checksArgumentCount(): number {
   if (arguments.length !== 0) {
     return 1;

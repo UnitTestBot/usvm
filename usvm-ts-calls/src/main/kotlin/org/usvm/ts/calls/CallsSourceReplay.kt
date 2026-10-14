@@ -353,16 +353,19 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
           });
           let invocation: 'returned' | 'threw' = 'returned';
           let caught: unknown;
+          let result: unknown = undefined;
           try {
-            const result = callable(...args.slice(0, $sourceArgumentCount));
-            if (result !== null && (typeof result === 'object' || typeof result === 'function')
-              && typeof (result as { then?: unknown }).then === 'function') {
-              void Promise.resolve(result).catch(() => undefined);
-              throw new Error('Synchronous replay export returned an awaitable value');
-            }
+            result = callable(...args.slice(0, $sourceArgumentCount));
           } catch (error: unknown) {
             invocation = 'threw';
             caught = error;
+          }
+          const returnedAwaitable = invocation === 'returned' && result !== null
+            && (typeof result === 'object' || typeof result === 'function')
+            && typeof (result as { then?: unknown }).then === 'function';
+          if (returnedAwaitable) {
+            void Promise.resolve(result).catch(() => undefined);
+            throw new Error('Synchronous replay export returned an awaitable value');
           }
           const targetObserved = (globalThis as Record<string, unknown>)[${jsString(marker)}] === true;
           const targetHit = targetObserved &&
