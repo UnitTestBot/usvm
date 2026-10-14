@@ -68,6 +68,7 @@ export interface PropertyManifestWire {
 export interface FastCheckExecutionRequest {
   manifest: PropertyManifestWire;
   sourceRoots: string[];
+  tsconfig?: string;
   seed?: number;
   /** Replay follows the same invocation contract as generation and shrinking. */
   replayPath?: string;
@@ -119,10 +120,10 @@ export async function executeProperty(requestValue: unknown): Promise<FastCheckE
     installObservationHook();
   }
 
-  const predicate = await loadEntryPoint(request.manifest.predicate, request.sourceRoots, 'manifest.predicate');
+  const predicate = await loadEntryPoint(request.manifest.predicate, request.sourceRoots, 'manifest.predicate', request.tsconfig);
   const precondition = request.manifest.precondition === undefined
     ? undefined
-    : await loadEntryPoint(request.manifest.precondition, request.sourceRoots, 'manifest.precondition');
+    : await loadEntryPoint(request.manifest.precondition, request.sourceRoots, 'manifest.precondition', request.tsconfig);
 
   const contractErrors: ContractErrorState = { first: undefined };
   const baseArbitrary = buildPropertyArbitrary(request.manifest);
@@ -534,6 +535,10 @@ function validateRequest(value: unknown): FastCheckExecutionRequest {
     );
   }
 
+  if (request.tsconfig !== undefined && typeof request.tsconfig !== 'string') {
+    throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'TypeScript config must be a path', 'tsconfig');
+  }
+
   if (request.seed !== undefined && !isSignedInt(request.seed)) {
     throw protocolError(
       adapterDiagnostic.protocolSeedInvalid,
@@ -574,6 +579,7 @@ function validateRequest(value: unknown): FastCheckExecutionRequest {
     examples,
   };
 
+  if (request.tsconfig !== undefined) validated.tsconfig = request.tsconfig as string;
   if (request.seed !== undefined) validated.seed = request.seed as number;
   if (request.replayPath !== undefined) validated.replayPath = request.replayPath as string;
   if (request.observationRequest !== undefined) {

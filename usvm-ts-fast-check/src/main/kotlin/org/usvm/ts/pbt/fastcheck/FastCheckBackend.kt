@@ -22,6 +22,7 @@ class FastCheckBackend(
     sourceRoots: List<Path>,
     nodeExecutable: String = "node",
     adapterEntryPoint: Path = FastCheckRuntime.executionEntryPoint(),
+    private val tsconfig: Path? = null,
 ) : PropertyBasedTestingBackend {
     override val coverageCapability: PropertyCoverageCapability = PropertyCoverageCapability.supported(
         backendId = FAST_CHECK_BACKEND_ID,
@@ -47,6 +48,7 @@ class FastCheckBackend(
         val request = FastCheckExecutionRequest(
             manifest = manifest,
             sourceRoots = sourceRootPaths,
+            tsconfig = tsconfig?.toRealPath()?.toString(),
             seed = configuration.seed,
             replayPath = configuration.replayPath,
             numRuns = configuration.numRuns,

@@ -37,7 +37,7 @@ internal fun loadCallsSourceProject(sourceRoot: Path, source: Path): CallsSource
 
     val entryModule = sourceRoot.relativize(source).toString()
     require(entryModule in closure.files) { "Dependency closure does not contain its entry source" }
-    if (closure.files.size == 1) {
+    if (closure.files.size == 1 && closure.resolution == null) {
         val entry = loadSingleCallsSource(source)
         return CallsSourceProject.Loaded(
             scene = EtsScene(projectFiles = listOf(entry)),
@@ -56,10 +56,10 @@ internal fun loadCallsSourceProject(sourceRoot: Path, source: Path): CallsSource
     }
     val temporaryProject = Files.createTempDirectory("usvm-calls-source-closure-").toRealPath()
     try {
-        for (relative in closure.files) {
-            val copy = temporaryProject.resolve(relative)
-            Files.createDirectories(copy.parent)
-            Files.copy(sourceRoot.resolve(relative), copy)
+        copyCallsSourceClosure(root = sourceRoot, destination = temporaryProject, closure = closure)
+        val resolution = closure.resolution
+        if (resolution != null) {
+            Files.writeString(temporaryProject.resolve("tsconfig.json"), resolution.tsconfig)
         }
         val generatedIr = generateEtsIR(
             keepPartialOutputOnFailure = false,

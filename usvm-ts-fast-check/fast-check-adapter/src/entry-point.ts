@@ -8,9 +8,19 @@ import { adapterDiagnostic } from './diagnostics.js';
 import type { JsConcreteValue } from './js-value.js';
 import { ProtocolError, protocolError } from './js-value.js';
 
-// Adapter requests have process-local module state. Register once so nested TypeScript imports use the same loader.
-registerCommonJs();
-register();
+// Each adapter process uses one explicit resolver configuration for all nested imports.
+let registeredConfig: string | undefined;
+function registerTypeScriptLoader(tsconfig: string | undefined): void {
+  const config = tsconfig ?? '<ambient>';
+  if (registeredConfig !== undefined) {
+    if (registeredConfig !== config) throw new Error('Cannot change TypeScript resolution inside an adapter process');
+    return;
+  }
+  if (tsconfig !== undefined) process.env.TSX_TSCONFIG_PATH = tsconfig;
+  registerCommonJs();
+  register(tsconfig === undefined ? undefined : { tsconfig });
+  registeredConfig = config;
+}
 
 export type ExecutionKind = 'sync' | 'async';
 
@@ -56,7 +66,9 @@ export async function loadEntryPoint(
   reference: TypeScriptEntryPointReference,
   sourceRoots: string[],
   referencePath: string,
+  tsconfig?: string,
 ): Promise<LoadedEntryPoint> {
+  registerTypeScriptLoader(tsconfig);
   const modulePath = await resolveModule(reference.module, sourceRoots, referencePath);
   const moduleNamespace = await importTypeScriptModule(modulePath, referencePath);
 

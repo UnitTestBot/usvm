@@ -13,6 +13,7 @@ import org.usvm.ts.pbt.observation.PropertyObservationRequest
 internal data class FastCheckExecutionRequest(
     val manifest: PropertyManifest,
     val sourceRoots: List<String>,
+    val tsconfig: String? = null,
     val seed: Int? = null,
     val replayPath: String? = null,
     val numRuns: Int,

@@ -198,3 +198,155 @@ for (const [name, declaration] of [
     })
   })
 }
+
+
+test('frozen aliases preserve inherited paths and compiler settings without importing unrelated files', () => {
+  workspace({
+    'configs/base.json': '{"compilerOptions":{"strict":true,"target":"ES2020","baseUrl":"..","paths":{"@local/*":["src/*"]}}}',
+    'tsconfig.json': '{"extends":"./configs/base.json","include":["unrelated.ts"],"compilerOptions":{"module":"ESNext","moduleResolution":"Bundler"}}',
+    'package.json': '{"name":"example","version":"1.0.0","type":"module"}',
+    'pnpm-lock.yaml': 'lockfileVersion: 9.0\n',
+    'src/entry.ts': "import { helper } from '@local/helper'; import type { Missing } from 'uninstalled'; export function entry() { return helper(); }",
+    'src/helper.ts': 'export function helper() { return 7; }',
+    'unrelated.ts': 'throw new Error("must not load");',
+  }, root => {
+    const closure = inspectLocalSourceClosure(root, path.join(root, 'src/entry.ts'))
+
+    assert.equal(closure.reasonCode, undefined, closure.diagnostic)
+    assert.deepEqual(closure.files, ['src/entry.ts', 'src/helper.ts'])
+    assert.deepEqual(Object.keys(closure.resolution!.inputSha256).sort(),
+      ['configs/base.json', 'package.json', 'pnpm-lock.yaml', 'src/entry.ts', 'src/helper.ts', 'tsconfig.json'])
+    const frozenConfig = JSON.parse(closure.resolution!.tsconfig)
+    assert.equal(frozenConfig.compilerOptions.strict, true)
+    assert.equal(frozenConfig.compilerOptions.target, 'ES2020')
+    assert.deepEqual(frozenConfig.compilerOptions.paths, { '@local/helper': ['src/helper.ts'] })
+    assert.deepEqual(frozenConfig.files, closure.files)
+  })
+})
+
+test('frozen package self reference selects executable export rather than its declaration', () => {
+  workspace({
+    'tsconfig.json': '{"compilerOptions":{"module":"ESNext","moduleResolution":"Bundler"}}',
+    'package.json': '{"name":"source-package","version":"1.2.3","type":"module","exports":{"./helper":{"types":"./helper.d.ts","default":"./helper.ts"}}}',
+    'package-lock.json': '{"lockfileVersion":3,"packages":{"":{"name":"source-package","version":"1.2.3"}}}',
+    'entry.ts': "import { helper } from 'source-package/helper'; export function entry() { return helper(); }",
+    'helper.d.ts': 'export declare function helper(): number;',
+    'helper.ts': 'export function helper() { return 11; }',
+  }, root => {
+    const closure = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+
+    assert.equal(closure.reasonCode, undefined, closure.diagnostic)
+    assert.deepEqual(closure.files, ['entry.ts', 'helper.ts'])
+    assert.equal('helper.d.ts' in closure.resolution!.inputSha256, false)
+    assert.deepEqual(JSON.parse(closure.resolution!.tsconfig).compilerOptions.paths,
+      { 'source-package/helper': ['helper.ts'] })
+    const previous = closure.resolution!.inputSha256
+    writeFileSync(path.join(root, 'helper.ts'), 'export function helper() { return 12; }')
+    writeFileSync(path.join(root, 'package.json'), '{"name":"source-package","version":"1.2.3","exports":{"./helper":"./helper.ts"}}')
+    writeFileSync(path.join(root, 'tsconfig.json'), '{"compilerOptions":{"strict":true,"module":"ESNext","moduleResolution":"Bundler"}}')
+    const changed = inspectLocalSourceClosure(root, path.join(root, 'entry.ts')).resolution!.inputSha256
+    for (const file of ['helper.ts', 'package.json', 'tsconfig.json']) assert.notEqual(previous[file], changed[file])
+  })
+})
+
+test('frozen in-root workspace package symlink resolves to canonical project source', () => {
+  workspace({
+    'tsconfig.json': '{"compilerOptions":{"module":"ESNext","moduleResolution":"Bundler"}}',
+    'package.json': '{"workspaces":["packages/*"]}',
+    'pnpm-lock.yaml': 'lockfileVersion: 9.0\n',
+    'entry.ts': "import { helper } from '@sample/helpers'; export function entry() { return helper(); }",
+    'packages/helpers/package.json': '{"name":"@sample/helpers","version":"1.0.0","exports":"./index.ts"}',
+    'packages/helpers/index.ts': 'export function helper() { return 13; }',
+  }, root => {
+    mkdirSync(path.join(root, 'node_modules/@sample'), { recursive: true })
+    symlinkSync(path.join(root, 'packages/helpers'), path.join(root, 'node_modules/@sample/helpers'))
+    const closure = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+
+    assert.equal(closure.reasonCode, undefined, closure.diagnostic)
+    assert.deepEqual(closure.files, ['entry.ts', 'packages/helpers/index.ts'])
+    assert.equal('packages/helpers/package.json' in closure.resolution!.inputSha256, true)
+  })
+})
+
+for (const [name, exports, helper] of [
+  ['declaration-only package', '"./helper.d.ts"', 'export declare function helper(): number;'],
+  ['JavaScript package', '"./helper.js"', 'export function helper() { return 1; }'],
+  ['split import/require package', '{"import":"./helper.ts","require":"./other.ts"}', 'export function helper() { return 1; }'],
+  ['import-only package', '{"import":"./helper.ts"}', 'export function helper() { return 1; }'],
+] as const) {
+  test(`frozen resolution rejects ${name}`, () => {
+    workspace({
+      'tsconfig.json': '{"compilerOptions":{"module":"NodeNext","moduleResolution":"NodeNext"}}',
+      'package.json': `{"name":"example","exports":${exports}}`,
+      'entry.ts': "import { helper } from 'example'; export function entry() { return helper(); }",
+      'helper.ts': helper, 'helper.d.ts': helper, 'helper.js': helper,
+      'other.ts': 'export function helper() { return 2; }',
+    }, root => {
+      const closure = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+
+      assert.equal(closure.reasonCode, 'IMPORTED_CALLEES_UNSUPPORTED')
+    })
+  })
+}
+
+
+test('package imports cannot bypass the runtime export subset through TypeScript resolution', () => {
+  workspace({
+    'tsconfig.json': '{"compilerOptions":{"module":"NodeNext","moduleResolution":"NodeNext"}}',
+    'package.json': '{"name":"example","type":"module","imports":{"#helper":{"import":"./helper.ts","require":"./other.ts"}}}',
+    'entry.ts': "import { helper } from '#helper'; export function entry() { return helper(); }",
+    'helper.ts': 'export function helper() { return 1; }',
+    'other.ts': 'export function helper() { return 2; }',
+  }, root => {
+    const closure = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+
+    assert.equal(closure.reasonCode, 'IMPORTED_CALLEES_UNSUPPORTED')
+  })
+})
+
+
+test('paths preserve baseUrl fallback for bare imports that do not match an alias', () => {
+  workspace({
+    'tsconfig.json': '{"compilerOptions":{"baseUrl":"src","paths":{"@foo/*":["foo/*"]}}}',
+    'src/entry.ts': "import { helper } from 'utils'; export function entry() { return helper(); }",
+    'src/utils.ts': 'export function helper() { return 17; }',
+  }, root => {
+    const closure = inspectLocalSourceClosure(root, path.join(root, 'src/entry.ts'))
+
+    assert.equal(closure.reasonCode, undefined, closure.diagnostic)
+    assert.deepEqual(closure.files, ['src/entry.ts', 'src/utils.ts'])
+    assert.deepEqual(JSON.parse(closure.resolution!.tsconfig).compilerOptions.paths,
+      { utils: ['src/utils.ts'] })
+  })
+})
+
+test('child baseUrl override also rebases inherited textual paths as TypeScript does', () => {
+  workspace({
+    'configs/base.json': '{"compilerOptions":{"baseUrl":"../old","paths":{"@foo/*":["foo/*"]}}}',
+    'tsconfig.json': '{"extends":"./configs/base.json","compilerOptions":{"baseUrl":"new"}}',
+    'entry.ts': "import { helper } from '@foo/helper'; export function entry() { return helper(); }",
+    'old/foo/helper.ts': 'export function wrong() { return 1; }',
+    'new/foo/helper.ts': 'export function helper() { return 19; }',
+  }, root => {
+    const config = ts.readConfigFile(path.join(root, 'tsconfig.json'), ts.sys.readFile)
+    const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, root)
+    const expected = ts.resolveModuleName('@foo/helper', path.join(root, 'entry.ts'), parsed.options, ts.sys).resolvedModule
+    const closure = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+
+    assert.equal(expected?.resolvedFileName, path.join(root, 'new/foo/helper.ts'))
+    assert.equal(closure.reasonCode, undefined, closure.diagnostic)
+    assert.deepEqual(closure.files, ['entry.ts', 'new/foo/helper.ts'])
+  })
+})
+
+test('paths without baseUrl do not invent fallback resolution for unrelated bare imports', () => {
+  workspace({
+    'tsconfig.json': '{"compilerOptions":{"paths":{"@foo/*":["src/*"]}}}',
+    'entry.ts': "import { helper } from 'utils'; export function entry() { return helper(); }",
+    'utils.ts': 'export function helper() { return 23; }',
+  }, root => {
+    const closure = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+
+    assert.equal(closure.reasonCode, 'IMPORTED_CALLEES_UNSUPPORTED')
+  })
+})

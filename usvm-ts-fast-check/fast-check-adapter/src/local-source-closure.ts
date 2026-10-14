@@ -1,9 +1,11 @@
-import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { readFileSync, realpathSync } from 'node:fs'
 import path from 'node:path'
 import ts from 'typescript'
+import { FrozenModuleResolver, type FrozenModuleResolution } from './frozen-module-resolution.js'
 
 interface LocalSourceClosure {
   files: string[]
+  resolution?: FrozenModuleResolution
   reasonCode?: string
   diagnostic?: string
 }
@@ -12,6 +14,12 @@ interface LocalSourceClosure {
 export function inspectLocalSourceClosure(rootPath: string, entryPath: string): LocalSourceClosure {
   const root = realpathSync(rootPath)
   const entry = path.resolve(root, path.relative(path.resolve(rootPath), path.resolve(entryPath)))
+  let resolver: FrozenModuleResolver
+  try {
+    resolver = new FrozenModuleResolver(root, entry)
+  } catch (error) {
+    return { files: [], reasonCode: 'IMPORTED_CALLEES_UNSUPPORTED', diagnostic: String(error) }
+  }
   const pending = [entry]
   let entryInitializationIssue: { reasonCode: string, diagnostic: string } | undefined
   const files = new Set<string>()
@@ -35,7 +43,7 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
 
     const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true)
     sources.set(file, source)
-    const emittedModules = runtimeModuleSpecifiers(source)
+    const emittedModules = runtimeModuleSpecifiers(source, resolver.options)
     const edges: string[] = []
     dependencies.set(file, edges)
     const imports: string[] = []
@@ -97,27 +105,13 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
     if (dynamicImport) return reject('IMPORTED_CALLEES_UNSUPPORTED', `Dynamic import or require in ${relative}`)
 
     for (const specifier of imports) {
-      if (!specifier.startsWith('./') && !specifier.startsWith('../')) {
-        return reject('IMPORTED_CALLEES_UNSUPPORTED', `External or aliased module ${specifier} in ${relative}`)
+      try {
+        const target = resolver.resolve(specifier, file)
+        pending.push(target)
+        edges.push(target)
+      } catch (error) {
+        return reject('IMPORTED_CALLEES_UNSUPPORTED', String(error))
       }
-      const target = path.resolve(path.dirname(file), specifier)
-      if (existsSync(path.join(target, 'package.json'))) {
-        return reject('IMPORTED_CALLEES_UNSUPPORTED', `Directory package resolution is unsupported: ${specifier} in ${relative}`)
-      }
-      if (target.endsWith('.js') && existsSync(target)) {
-        return reject('IMPORTED_CALLEES_UNSUPPORTED', `JavaScript runtime source is unsupported: ${specifier} in ${relative}`)
-      }
-      const candidates = (target.endsWith('.js')
-        ? [target.slice(0, -3) + '.ts']
-        : [target, `${target}.ts`, path.join(target, 'index.ts')])
-        .filter(candidate => candidate.endsWith('.ts') && !candidate.endsWith('.d.ts'))
-        .filter(candidate => existsSync(candidate) && statSync(candidate).isFile())
-      if (candidates.length !== 1) {
-        return reject('IMPORTED_CALLEES_UNSUPPORTED',
-          `Expected one local TypeScript module for ${specifier} in ${relative}, found ${candidates.length}`)
-      }
-      pending.push(candidates[0]!)
-      edges.push(candidates[0]!)
     }
   }
 
@@ -137,11 +131,7 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
   // Ask TypeScript to validate the imported bindings as well as the files. Diagnostics
   // in unrelated function bodies do not determine closure admission.
   if ([...runtimeImportRanges.values()].some(ranges => ranges.length > 0)) {
-    const options: ts.CompilerOptions = {
-      target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext,
-      moduleResolution: ts.ModuleResolutionKind.Node10, noLib: true, noEmit: true,
-      allowImportingTsExtensions: true, types: [],
-    }
+    const options: ts.CompilerOptions = { ...resolver.options, noLib: true, noEmit: true, types: [] }
     const host = ts.createCompilerHost(options)
     const directories = new Set<string>()
     for (const file of sources.keys()) {
@@ -158,6 +148,7 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
     host.directoryExists = directory => directories.has(path.resolve(directory))
     host.getDirectories = () => []
     host.realpath = file => path.resolve(file)
+    host.resolveModuleNames = (names, containingFile) => names.map(name => resolver.resolvedModule(name, containingFile))
     const program = ts.createProgram([...sources.keys()], options, host)
     for (const [file, ranges] of runtimeImportRanges) {
       if (ranges.length === 0) continue
@@ -172,13 +163,16 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
     }
   }
 
-  return { files: [...files].sort() }
+  const sortedFiles = [...files].sort()
+  const resolution = resolver.freeze(sortedFiles)
+  return resolution ? { files: sortedFiles, resolution } : { files: sortedFiles }
 }
 
-function runtimeModuleSpecifiers(source: ts.SourceFile): Set<string> {
+function runtimeModuleSpecifiers(source: ts.SourceFile, options: ts.CompilerOptions): Set<string> {
   const emitted = ts.transpileModule(source.text, {
     fileName: source.fileName,
-    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+    compilerOptions: { ...options, target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext,
+      noEmit: false, emitDeclarationOnly: false, declaration: false },
   }).outputText
   const javascript = ts.createSourceFile(`${source.fileName}.js`, emitted, ts.ScriptTarget.ES2022, true, ts.ScriptKind.JS)
   const specifiers = new Set<string>()
