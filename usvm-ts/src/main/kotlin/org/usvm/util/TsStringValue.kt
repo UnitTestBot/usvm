@@ -41,14 +41,7 @@ fun TsState.mkStringFromCodeUnits(
     val withinCapacity = mkBvSignedLessOrEqualExpr(length, mkBv(codeUnits.size))
 
     memory.initializeArrayLength(characters, stringBackingArrayDescriptor, sizeSort, length)
-    codeUnits.forEachIndexed { index, codeUnit ->
-        val position = mkBv(index)
-        memory.write(
-            mkStringBackingElementLValue(characters, position),
-            codeUnit,
-            guard = mkBvSignedLessExpr(position, length),
-        )
-    }
+    writeStringCodeUnits(characters = characters, length = length, codeUnits = codeUnits)
     memory.write(mkStringBackingLValue(string), characters, guard = trueExpr)
     pathConstraints += mkAnd(nonnegativeLength, withinCapacity)
     boundedStringBackingRefs += string to codeUnits.size
@@ -57,10 +50,7 @@ fun TsState.mkStringFromCodeUnits(
 }
 
 /** Reads the same private length region used by ordinary TypeScript string operations. */
-fun TsState.readStringLength(string: UHeapRef): UExpr<TsSizeSort> {
-    val characters = memory.read(mkStringBackingLValue(string))
-    return memory.read(mkStringBackingLengthLValue(characters))
-}
+fun TsState.readStringLength(string: UHeapRef): UExpr<TsSizeSort> = stringLength(receiver = string)
 
 /** Resolves a solver-selected witness from this state's memory without changing its input snapshot. */
 fun TsState.resolveStringValue(string: UHeapRef, model: UModelBase<EtsType>, maxLength: Int): String = with(ctx) {
