@@ -5,9 +5,12 @@ import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UBoolExpr
@@ -19,6 +22,7 @@ import org.usvm.api.initializeArray
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.memcpy
 import org.usvm.api.readArrayIndex
+import org.usvm.api.typeStreamOf
 import org.usvm.getIntValue
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
@@ -39,6 +43,7 @@ import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.TsUnresolvedArrayKind
 import org.usvm.sizeSort
+import org.usvm.types.TypesResult
 import org.usvm.util.arrayStorageType
 import org.usvm.util.componentType
 import org.usvm.util.copyArrayElements
@@ -142,9 +147,11 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     val iterator = tryApproximateBuiltinIteratorCall(stmt)
     if (iterator !is TsExprApproximationResult.NoApproximation) return iterator
 
-    // Mock `.toString()` method calls
+    // The model catalog has no toString target; project methods still need normal dispatch.
     if (expr.callee.name == "toString") {
         if (unknownCallDispatcher is TsUnknownCallModelDispatcher) {
+            if (hasProjectToStringTarget(stmt)) return TsExprApproximationResult.NoApproximation
+
             dispatchLegacyInstanceCall(stmt)
             return TsExprApproximationResult.ResolveFailure
         }
@@ -264,6 +271,40 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     }
 
     return TsExprApproximationResult.NoApproximation
+}
+
+private fun TsExprResolver.hasProjectToStringTarget(stmt: TsVirtualMethodCallStmt): Boolean = with(ctx) {
+    if (stmt.instance.sort != addressSort) return false
+
+    val receiver = stmt.instance.asExpr(addressSort)
+    val concreteReceiver = isAllocatedConcreteHeapRef(receiver)
+    val candidateOwners = resolveEtsMethods(stmt.call.callee)
+        .filterNot { it.isStatic }
+        .mapNotNull { it.enclosingClass }
+        .filterTo(mutableSetOf()) { it in scene.projectClasses }
+    if (!concreteReceiver && !stmt.call.isSuperCall && candidateOwners.isEmpty()) return false
+
+    val possibleTypes = scope.calcOnState {
+        memory.typeStreamOf(receiver).take(scene.projectAndSdkClasses.size + 1)
+    }
+    if (possibleTypes !is TypesResult.SuccessfulTypesResult) return false
+
+    val referenceTypes = possibleTypes.types.filterIsInstance<EtsRefType>()
+        .filter { it is EtsClassType || it is EtsUnclearRefType }
+    referenceTypes.any { type ->
+        hierarchy.classesForType(type).any { receiverClass ->
+            val selectedMethod = if (stmt.call.isSuperCall) {
+                hierarchy.explicitSuperMethod(receiverClass, stmt.call.callee)
+            } else {
+                hierarchy.nearestInstanceMethod(receiverClass, stmt.call.callee.name)
+            }
+            val declaringClass = selectedMethod?.enclosingClass
+            val projectMethod = declaringClass?.let { it in scene.projectClasses } == true
+            val eligibleOwner = stmt.call.isSuperCall || concreteReceiver ||
+                declaringClass?.let(candidateOwners::contains) == true
+            projectMethod && eligibleOwner
+        }
+    }
 }
 
 private fun TsExprResolver.handleArrayIndexSearchCall(

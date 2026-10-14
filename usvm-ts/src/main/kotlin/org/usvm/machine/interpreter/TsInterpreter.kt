@@ -7,6 +7,7 @@ import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsCopyDataPropertiesStmt
@@ -199,6 +200,12 @@ class TsInterpreter(
         val instance = stmt.instance
         val callee = stmt.call.callee
 
+        fun selectedMethod(receiverClass: EtsClass): EtsMethod? = if (stmt.call.isSuperCall) {
+            graph.hierarchy.explicitSuperMethod(receiverClass, callee)
+        } else {
+            graph.hierarchy.nearestInstanceMethod(receiverClass, callee.name)
+        }
+
         if (instance.sort == addressSort) {
             checkUndefinedOrNullPropertyRead(scope, instance.asExpr(addressSort), callee.name) ?: return
         }
@@ -227,7 +234,11 @@ class TsInterpreter(
 
         if (isAllocatedConcreteHeapRef(receiver)) {
             val field = mkFieldLValue(addressSort, receiver, callee.name)
-            val functionRef = if (stmt.targetCaptured) null else scope.calcOnState { memory.read(field) }
+            val functionRef = if (stmt.targetCaptured || stmt.call.isSuperCall) {
+                null
+            } else {
+                scope.calcOnState { memory.read(field) }
+            }
             val function = if (functionRef != null && isAllocatedConcreteHeapRef(functionRef)) {
                 scope.calcOnState { associatedFunction[functionRef] }
             } else {
@@ -270,15 +281,8 @@ class TsInterpreter(
                     logger.warn { "Multiple (${classes.size}) classes with name '${type.typeName}'" }
                     // scope.assert(falseExpr)
                     // return
-                    for (cls in classes) {
-                        val suitableMethods = cls.methods.filter { !it.isStatic && it.name == callee.name }
-                        concreteMethods += suitableMethods
-                    }
-                } else {
-                    val cls = classes.single()
-                    val suitableMethods = cls.methods.filter { !it.isStatic && it.name == callee.name }
-                    concreteMethods += suitableMethods
                 }
+                concreteMethods += classes.mapNotNull(::selectedMethod)
             } else {
                 logger.warn {
                     "Could not resolve method: $callee on type: $type"
@@ -287,7 +291,12 @@ class TsInterpreter(
                 return
             }
         } else {
-            val methods = resolveEtsMethods(callee).filterNot { it.isStatic }
+            val methods = if (stmt.call.isSuperCall) {
+                graph.hierarchy.classesForType(EtsClassType(callee.enclosingClass))
+                    .mapNotNull { graph.hierarchy.nearestInstanceMethod(it, callee.name) }
+            } else {
+                resolveEtsMethods(callee).filterNot { it.isStatic }
+            }
             if (methods.isEmpty()) {
                 if (callee.name !in listOf("then")) {
                     logger.warn { "Could not resolve method: $callee" }
@@ -327,17 +336,10 @@ class TsInterpreter(
 
         //
         val chosenMethods = intersectedTypes.flatMap { clazz ->
-            graph.hierarchy.classesForType(clazz as EtsRefType)
-                .asSequence()
-                // TODO wrong order, ancestors are unordered
-                .map { candidate -> graph.hierarchy.getAncestors(candidate) }
-                .mapNotNull { ancestors ->
-                    ancestors.firstOrNull { ancestor ->
-                        ancestor.methods.any { method -> !method.isStatic && method.name == callee.name }
-                    }
-                }
-                .map { ancestor -> clazz to ancestor.methods.first { method -> !method.isStatic && method.name == callee.name } }
-        }.toList().take(10) // TODO check it
+            graph.hierarchy.classesForType(clazz as EtsRefType).mapNotNull { candidate ->
+                selectedMethod(candidate)?.let { clazz to it }
+            }
+        }.take(10) // TODO check it
 
         // logger.info {
         // "Preparing to fork on ${limitedConcreteMethods.size} methods out of ${concreteMethods.size}: ${
@@ -345,17 +347,15 @@ class TsInterpreter(
         // }"
         // }
 
-        val conditionsWithBlocks = chosenMethods.mapIndexed { i, (clazz, method) ->
+        val conditionsWithBlocks = chosenMethods.map { (clazz, method) ->
             val concreteCall = stmt.toConcrete(method)
             val block = { state: TsState -> state.newStmt(concreteCall) }
-            val type = requireNotNull(method.enclosingClass).type
 
             val constraint = scope.calcOnState {
-                // TODO mistake, should be separated into several hierarchies
-                //      or evalTypeEqual with several concrete types
+                // Select one runtime class even when the chosen method is declared by an ancestor.
                 mkAnd(
                     memory.types.evalIsSubtype(receiver, clazz),
-                    memory.types.evalIsSupertype(receiver, type)
+                    memory.types.evalIsSupertype(receiver, clazz),
                 )
             }
             constraint to block
