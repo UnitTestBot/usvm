@@ -21,6 +21,12 @@ interface UMachineObserver<State> {
     fun onStateTerminated(state: State, stateReachable: Boolean) { }
 
     /**
+     * Called for a nonterminal input retained at a frontend execution boundary or after normal machine stop.
+     * Queued-state emission performs no additional execution or satisfiability checks.
+     */
+    fun onStateSuspended(state: State) { }
+
+    /**
      * Called on each symbolic execution step. If the state has forked, [forks] are not empty.
      */
     fun onState(parent: State, forks: Sequence<State>) { }
@@ -46,6 +52,10 @@ class CompositeUMachineObserver<State>(
 
     override fun onStateTerminated(state: State, stateReachable: Boolean) {
         observers.forEach { it.onStateTerminated(state, stateReachable) }
+    }
+
+    override fun onStateSuspended(state: State) {
+        observers.forEach { it.onStateSuspended(state) }
     }
 
     override fun onState(parent: State, forks: Sequence<State>) {
