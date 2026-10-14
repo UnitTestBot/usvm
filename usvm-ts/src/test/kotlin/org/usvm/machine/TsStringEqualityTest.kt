@@ -145,6 +145,53 @@ class TsStringEqualityTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `loose object string equality records unsupported coercion and keeps supported alternatives`() {
+        val unsupportedNames = listOf(
+            "looseArrayEqualsEmptyString",
+            "looseEmptyStringEqualsArray",
+            "looseArrayNotEqualsEmptyString",
+        )
+
+        unsupportedNames.forEach { name ->
+            val method = getMethod(methodName = name, className = "StringEquality")
+            val analysis = TsMachine(
+                scene,
+                options = analysisOptions.copy(stateCollectionStrategy = StateCollectionStrategy.ALL),
+            ).use { machine ->
+                machine.analyzeWithOutcome(listOf(method))
+            }
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason, name)
+            assertTrue(analysis.states.isEmpty(), name)
+            assertTrue(analysis.unsupportedPaths.any { "ToPrimitive conversion for object/string pairs" in it }, name)
+        }
+
+        val controls = getMethod(methodName = "looseReferenceControls", className = "StringEquality")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = controls,
+            { result -> result.number == 1.0 },
+            invariants = arrayOf({ result -> result.number == 1.0 }),
+        )
+
+        val conditional = getMethod(methodName = "looseStringOrArray", className = "StringEquality")
+        val conditionalAnalysis = TsMachine(
+            scene,
+            options = analysisOptions.copy(stateCollectionStrategy = StateCollectionStrategy.ALL),
+        ).use { machine ->
+            machine.analyzeWithOutcome(listOf(conditional))
+        }
+        val surviving = conditionalAnalysis.states.map { state -> TsTestResolver().resolve(conditional, state) }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, conditionalAnalysis.stopReason)
+        assertTrue(conditionalAnalysis.unsupportedPaths.any { "ToPrimitive conversion for object/string pairs" in it })
+        assertTrue(surviving.isNotEmpty())
+        surviving.forEach { test ->
+            assertTrue(assertIs<TsTestValue.TsBoolean>(test.before.parameters.single()).value)
+            assertEquals(1, resultNumber(test))
+        }
+    }
+
+    @Test
     fun `default string bound can compare two symbolic inputs`() {
         discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsNumber>(
             method = getMethod(methodName = "equalsOther", className = "StringEquality"),

@@ -586,6 +586,45 @@ sealed interface TsBinaryOperator {
 
     data object Eq : TsBinaryOperator {
 
+        private fun TsContext.ensureReferencePairCoercionSupported(
+            lhs: UHeapRef,
+            rhs: UHeapRef,
+            scope: TsStepScope,
+            activeGuard: UBoolExpr,
+        ): Unit? {
+            if (lhs is UIteExpr<*>) {
+                val trueGuard = mkAnd(activeGuard, lhs.condition)
+                val falseGuard = mkAnd(activeGuard, mkNot(lhs.condition))
+                ensureReferencePairCoercionSupported(lhs.trueBranch.asExpr(addressSort), rhs, scope, trueGuard)
+                    ?: return null
+                return ensureReferencePairCoercionSupported(lhs.falseBranch.asExpr(addressSort), rhs, scope, falseGuard)
+            }
+
+            if (rhs is UIteExpr<*>) {
+                return ensureReferencePairCoercionSupported(rhs, lhs, scope, activeGuard)
+            }
+
+            val sameReference = mkHeapRefEq(lhs, rhs)
+            val lhsNullish = mkIsNullOrUndefined(lhs)
+            val rhsNullish = mkIsNullOrUndefined(rhs)
+            val (lhsString, rhsString) = scope.calcOnState {
+                memory.types.evalTypeEquals(lhs, EtsStringType) to memory.types.evalTypeEquals(rhs, EtsStringType)
+            }
+            val samePrimitiveStringKind = mkEq(lhsString, rhsString)
+            val supported = mkOr(
+                mkNot(activeGuard),
+                sameReference,
+                lhsNullish,
+                rhsNullish,
+                samePrimitiveStringKind,
+            )
+            scope.fork(supported, blockOnFalseState = {
+                terminateAsUnsupported(reason = "Loose equality needs a modeled ToPrimitive conversion for object/string pairs")
+            }) ?: return null
+
+            return Unit
+        }
+
         private fun TsContext.primitiveReferenceEquals(
             primitive: UExpr<KFp64Sort>,
             reference: UHeapRef,
@@ -639,6 +678,8 @@ sealed interface TsBinaryOperator {
             val rhsIsNull = mkEq(rhs, mkTsNullValue())
             val lhsIsUndefined = mkEq(lhs, mkUndefinedValue())
             val rhsIsUndefined = mkEq(rhs, mkUndefinedValue())
+            ensureReferencePairCoercionSupported(lhs, rhs, scope, activeGuard) ?: return null
+
             val referenceEquality = referenceOrStringValueEquals(lhs, rhs, scope, activeGuard) ?: return null
             return mkOr(
                 mkAnd(lhsIsUndefined, rhsIsNull),

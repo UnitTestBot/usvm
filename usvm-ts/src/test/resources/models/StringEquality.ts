@@ -126,4 +126,38 @@ class StringEquality {
         if (true != nil && nil != true && 1 != missing && missing != 1) return 1;
         return 2;
     }
+
+    looseArrayEqualsEmptyString(): number {
+        const array: any = [];
+
+        return array == "" ? 1 : 2;
+    }
+
+    looseEmptyStringEqualsArray(): number {
+        const array: any = [];
+
+        return "" == array ? 1 : 2;
+    }
+
+    looseArrayNotEqualsEmptyString(): number {
+        const array: any = [];
+
+        return array != "" ? 2 : 1;
+    }
+
+    looseStringOrArray(flag: boolean): number {
+        const value: any = flag ? "" : [];
+
+        return value == "" ? 1 : 2;
+    }
+
+    looseReferenceControls(): number {
+        const left: any = [];
+        const right: any = [];
+        const text: any = "";
+        const nil: any = null;
+
+        if (left != right && left == left && text == "" && nil == undefined) return 1;
+        return 2;
+    }
 }
