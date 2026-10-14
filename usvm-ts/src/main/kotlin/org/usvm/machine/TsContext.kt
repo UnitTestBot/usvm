@@ -46,7 +46,6 @@ import org.usvm.api.allocateStaticRef
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
-import org.usvm.machine.Constants.Companion.MAGIC_OFFSET
 import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.TsVoidSort
@@ -56,6 +55,7 @@ import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.types.single
+import org.usvm.uctx
 import org.usvm.util.componentType
 import org.usvm.util.mkFieldLValue
 import kotlin.contracts.ExperimentalContracts
@@ -237,7 +237,10 @@ class TsContext(
             returns(true) implies (this@isFakeObject is UConcreteHeapRef)
         }
 
-        return sort == addressSort && this is UConcreteHeapRef && address > MAGIC_OFFSET
+        return sort == addressSort &&
+            this is UConcreteHeapRef &&
+            uctx === this@TsContext &&
+            address in fakeObjectAddresses
     }
 
     /**
@@ -334,23 +337,27 @@ class TsContext(
         return this
     }
 
+    private val fakeObjectAddresses = mutableSetOf<Int>()
+
     fun createFakeObjectRef(): UConcreteHeapRef {
-        val address = addressCounter.freshAllocatedAddress() + MAGIC_OFFSET
-        return mkConcreteHeapRef(address)
+        val address = addressCounter.freshAllocatedAddress()
+        val ref = mkConcreteHeapRef(address)
+        fakeObjectAddresses += address
+        return ref
     }
 
     fun getIntermediateBoolLValue(addr: Int): UFieldLValue<IntermediateLValueField, UBoolSort> {
-        require(addr > MAGIC_OFFSET)
+        require(addr in fakeObjectAddresses) { "Address $addr is not a fake-value wrapper" }
         return mkFieldLValue(boolSort, mkConcreteHeapRef(addr), IntermediateLValueField.BOOL)
     }
 
     fun getIntermediateFpLValue(addr: Int): UFieldLValue<IntermediateLValueField, KFp64Sort> {
-        require(addr > MAGIC_OFFSET)
+        require(addr in fakeObjectAddresses) { "Address $addr is not a fake-value wrapper" }
         return mkFieldLValue(fp64Sort, mkConcreteHeapRef(addr), IntermediateLValueField.FP)
     }
 
     fun getIntermediateRefLValue(addr: Int): UFieldLValue<IntermediateLValueField, UAddressSort> {
-        require(addr > MAGIC_OFFSET)
+        require(addr in fakeObjectAddresses) { "Address $addr is not a fake-value wrapper" }
         return mkFieldLValue(addressSort, mkConcreteHeapRef(addr), IntermediateLValueField.REF)
     }
 
@@ -403,6 +410,9 @@ class TsContext(
 class Constants {
     companion object {
         const val STATIC_METHODS_FORK_LIMIT = 5
+
+        /** Obsolete fake-address offset retained for source and binary compatibility. */
+        @Deprecated("Fake values now use context-owned address provenance")
         const val MAGIC_OFFSET = 1000000
     }
 }

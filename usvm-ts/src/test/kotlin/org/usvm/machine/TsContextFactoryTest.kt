@@ -31,9 +31,12 @@ import org.usvm.util.copyArrayElements
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 /** Prepared factory/storage contracts; source reachability and replay are separate concerns. */
@@ -54,6 +57,28 @@ class TsContextFactoryTest {
     fun closeContext() {
         components.close()
         ctx.close()
+    }
+
+    @Test
+    fun `fake provenance is separate from concrete address magnitude`() = with(ctx) {
+        val firstAddressAboveFormerThreshold = 1_000_001
+        val highOrdinaryRef = mkConcreteHeapRef(firstAddressAboveFormerThreshold)
+        state.memory.types.allocate(highOrdinaryRef.address, EtsNumberType)
+
+        val payload = mkFp64(7.0)
+        val fakeRef = state.mkFakeValue(scope = null, fpValue = payload)
+        val nextOrdinaryRef = state.memory.allocConcrete(EtsNumberType)
+
+        assertFalse(highOrdinaryRef.isFakeObject())
+        assertFalse(nextOrdinaryRef.isFakeObject())
+        assertTrue(fakeRef.isFakeObject())
+        assertNotEquals(fakeRef, nextOrdinaryRef)
+        assertEquals(payload, fakeRef.extractFp(state.memory))
+        assertEquals(trueExpr, fakeRef.getFakeType(state.memory).fpTypeExpr)
+
+        assertFailsWith<IllegalArgumentException> { getIntermediateBoolLValue(highOrdinaryRef.address) }
+        assertFailsWith<IllegalArgumentException> { getIntermediateFpLValue(highOrdinaryRef.address) }
+        assertFailsWith<IllegalArgumentException> { getIntermediateRefLValue(highOrdinaryRef.address) }
     }
 
     @Test
