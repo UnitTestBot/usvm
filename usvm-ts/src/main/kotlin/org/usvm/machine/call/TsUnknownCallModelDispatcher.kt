@@ -52,11 +52,13 @@ class TsModelUnknownCallDispatcher(
 
         when (fallback) {
             TsResidualCallPolicy.STOP_PATH -> {
-                val falseExpr = scope.calcOnState { ctx.falseExpr }
+                val stoppedState = scope.calcOnState { this }
+                val falseExpr = stoppedState.ctx.falseExpr
                 logger.warn {
                     "Stopping path for unknown call ${call.callee} at ${call.callSite.location}: " +
                         "reason=${call.failureReason}"
                 }
+                observer?.onPathStoppedSafely(state = stoppedState, reason = stoppedPathReason(call))
                 scope.assert(falseExpr)
             }
 
@@ -85,9 +87,12 @@ class TsModelUnknownCallDispatcher(
         } else {
             null
         }
-        val stoppedResidualIsSatisfiable = residualGuard != null &&
-            fallback == TsResidualCallPolicy.STOP_PATH &&
-            scope.checkSat(residualGuard) != null
+        val stoppedResidualState = if (residualGuard != null && fallback == TsResidualCallPolicy.STOP_PATH) {
+            scope.checkSat(residualGuard)
+        } else {
+            null
+        }
+        val stoppedResidualIsSatisfiable = stoppedResidualState != null
 
         var modelApplied = false
         var freshResidualApplied = false
@@ -119,11 +124,12 @@ class TsModelUnknownCallDispatcher(
             }
         }
 
-        if (stoppedResidualIsSatisfiable) {
+        if (stoppedResidualState != null) {
             logger.warn {
                 "Stopping residual path for unknown call ${call.callee} at ${call.callSite.location}: " +
                     "reason=${call.failureReason}"
             }
+            observer?.onPathStoppedSafely(state = stoppedResidualState, reason = stoppedPathReason(call))
         }
         scope.forkMulti(guardedStateChanges)
 
@@ -141,6 +147,9 @@ class TsModelUnknownCallDispatcher(
             else -> error("Semantic model ${application.modelId} produced no satisfiable successor or residual state")
         }
     }
+
+    private fun stoppedPathReason(call: TsUnknownCall): String =
+        "Unknown call ${call.callee} at ${call.callSite.location}: reason=${call.failureReason}"
 
     private fun reportFallback(call: TsUnknownCall) {
         if (fallback == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN) {
@@ -203,4 +212,9 @@ class TsModelUnknownCallDispatcher(
         failureReason = call.failureReason,
         decision = decision,
     )
+}
+
+private fun TsInterpreterObserver.onPathStoppedSafely(state: TsState, reason: String) {
+    runCatching { onPathStopped(state = state, reason = reason) }
+        .onFailure { error -> logger.warn(error) { "Unknown-call observer failed while recording a stopped path" } }
 }

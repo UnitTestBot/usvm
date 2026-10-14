@@ -28,6 +28,7 @@ abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
      * won't be analyzed further. It is called on an original state and every forked state as well.
      * @param stopStrategy is called on every step, before peeking a next state from the path selector.
      * Returning `true` aborts analysis.
+     * @return whether execution exhausted its queued states before any optional suspended-state emission.
      */
     protected fun run(
         interpreter: UInterpreter<State>,
@@ -35,8 +36,8 @@ abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
         observer: UMachineObserver<State>,
         isStateTerminated: (State) -> Boolean,
         stopStrategy: StopStrategy = StopStrategy { false }
-    ) {
-        logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
+    ): Boolean {
+        return logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
             observer.onMachineStarted()
             try {
                 while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
@@ -90,10 +91,17 @@ abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
                 observer.onMachineStopped()
             }
 
-            if (!pathSelector.isEmpty()) {
+            val exhaustedBeforeFlush = pathSelector.isEmpty()
+            if (!exhaustedBeforeFlush) {
                 val stopReason = stopStrategy.stopReason()
                 logger.debug { stopReason }
+
+                if (options.emitRemainingStatesOnStop) {
+                    pathSelector.drain().forEach(observer::onStateSuspended)
+                }
             }
+
+            exhaustedBeforeFlush
         }
     }
 
