@@ -1,5 +1,6 @@
 package org.usvm.ts.pbt.coverage
 
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.backend.CoverageCollectorIdentity
@@ -33,6 +34,7 @@ class IstanbulCoverageReportTest {
         val firstArm = branch.arms.first()
 
         assertEquals("/workspace/src/math.ts", file.path)
+        assertEquals(listOf(0, 1), file.statements.map { statement -> statement.statementId })
         assertEquals(listOf(2L, 2L), file.statements.map { statement -> statement.hits })
         assertEquals("classify", file.functions.single().name)
         assertEquals(2L, file.functions.single().hits)
@@ -165,6 +167,45 @@ class IstanbulCoverageReportTest {
         } finally {
             report.deleteIfExists()
         }
+    }
+
+    @Test
+    fun `alternate coverage key retains its location and hits in numeric order`() {
+        val decoder = sourceFileDecoder(
+            statementMap = "\"02\": $TEST_STATEMENT_LOCATION, \"1\": $TEST_STATEMENT_LOCATION",
+            hits = "\"02\": 7, \"1\": 3",
+        )
+
+        val statements = decoder.decode().statements
+
+        assertEquals(listOf(1, 2), statements.map { statement -> statement.statementId })
+        assertEquals(listOf(3L, 7L), statements.map { statement -> statement.hits })
+    }
+
+    @Test
+    fun `numeric aliases in a coverage map are rejected at the second key`() {
+        val decoder = sourceFileDecoder(
+            statementMap = "\"1\": $TEST_STATEMENT_LOCATION, \"01\": $TEST_STATEMENT_LOCATION",
+            hits = "\"1\": 3, \"01\": 7",
+        )
+
+        val error = assertFailsWith<CoverageArtifactException> { decoder.decode() }
+
+        assertEquals("coverage.report.invalid", error.diagnostic.code)
+        assertEquals("coverage[/workspace/src/math.ts].statementMap[01]", error.diagnostic.path)
+    }
+
+    @Test
+    fun `invalid coverage ID reports its full map path`() {
+        val decoder = sourceFileDecoder(
+            statementMap = "\"abc\": $TEST_STATEMENT_LOCATION",
+            hits = "\"abc\": 1",
+        )
+
+        val error = assertFailsWith<CoverageArtifactException> { decoder.decode() }
+
+        assertEquals("coverage.report.invalid", error.diagnostic.code)
+        assertEquals("coverage[/workspace/src/math.ts].statementMap[abc]", error.diagnostic.path)
     }
 
     @Test
@@ -334,12 +375,35 @@ class IstanbulCoverageReportTest {
         "usvm-ts-pbt/src/test/resources/coverage/istanbul/statement-branch.json",
     )
 
+    private fun sourceFileDecoder(statementMap: String, hits: String): IstanbulSourceFileDecoder {
+        val file = Json.parseToJsonElement(
+            """
+            {
+              "statementMap": {$statementMap},
+              "fnMap": {},
+              "branchMap": {},
+              "s": {$hits},
+              "f": {},
+              "b": {}
+            }
+            """.trimIndent(),
+        ).jsonObject
+
+        return IstanbulSourceFileDecoder(
+            file = file,
+            path = "/workspace/src/math.ts",
+            reportKey = "/workspace/src/math.ts",
+        )
+    }
+
     private fun locateFile(vararg candidates: String): Path = candidates
         .map { candidate -> Path.of(candidate).absolute() }
         .singleOrNull(Files::isRegularFile)
         ?: error("Cannot locate file; checked ${candidates.toList()}")
 
     private companion object {
+        const val TEST_STATEMENT_LOCATION =
+            """{"start":{"line":1,"column":0},"end":{"line":1,"column":1}}"""
         const val TEST_COVERAGE_REPORT_LIMIT_BYTES = 64L * 1024 * 1024
         const val STRICT_REPORT_LIMIT_BYTES = 4L * 1024 * 1024
     }
