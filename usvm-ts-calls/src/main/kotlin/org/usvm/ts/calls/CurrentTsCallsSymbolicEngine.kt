@@ -305,11 +305,12 @@ internal class CurrentTsCallsSymbolicEngine(
 
     @Suppress("LongMethod")
     private fun prepareFunctionSupported(request: CallsFunctionPreflightRequest): CallsFunctionPreparation {
-        callsSymbolicInputPreflight(request.function.inputs)?.let { diagnostic ->
+        val inputDomainDiagnostic = callsSymbolicInputPreflight(request.function.inputs)
+        if (inputDomainDiagnostic != null) {
             return CallsFunctionPreparation.Rejected(
                 status = CallsSymbolicStatus.UNSUPPORTED,
                 reasonCode = CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED,
-                diagnostic = diagnostic,
+                diagnostic = inputDomainDiagnostic,
             )
         }
 
@@ -441,11 +442,12 @@ internal class CurrentTsCallsSymbolicEngine(
         val method = function.method
         val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
         val sourceText = java.nio.file.Files.readString(source)
-        callsTargetCoordinateDiagnostic(source = sourceText, target = request.target)?.let { diagnostic ->
+        val targetCoordinateDiagnostic = callsTargetCoordinateDiagnostic(source = sourceText, target = request.target)
+        if (targetCoordinateDiagnostic != null) {
             return CallsTargetPreparation.Rejected(
                 status = CallsSymbolicStatus.UNMAPPED,
                 reasonCode = CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNMAPPED,
-                diagnostic = diagnostic,
+                diagnostic = targetCoordinateDiagnostic,
             )
         }
 

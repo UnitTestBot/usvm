@@ -288,6 +288,7 @@ internal class CallsExperimentRunner(
     private val targetReplayer: CallsTargetReplayer,
     private val runtimeToolRevision: String = CallsBuildIdentity.toolRevision,
     private val eventRecordWriter: ((Path, CallsRawRecord) -> Unit)? = null,
+    private val sourceCheckoutVerifier: (Path, String) -> Unit = ::verifyCallsGitCheckout,
 ) {
     fun run(
         manifest: CallsExperimentManifest,
@@ -354,6 +355,12 @@ internal class CallsExperimentRunner(
                 resultRows = resultRows,
             ),
         )
+
+        manifest.projects.forEach { project ->
+            val sourceRoot = manifestDirectory.resolve(project.sourceRoot).normalize().toRealPath()
+            sourceCheckoutVerifier(sourceRoot, project.revision)
+        }
+
         Files.move(
             partialOutput,
             rawOutput,
@@ -421,6 +428,8 @@ internal class CallsExperimentRunner(
         profile: CallsExperimentProfile,
         appendUnknownCall: (CallsRawRecord) -> Unit,
     ): CallsTargetResult {
+        sourceCheckoutVerifier(sourceRoot, project.revision)
+
         val request = CallsSymbolicSearchRequest(
             sourceRoot = sourceRoot,
             project = project,
@@ -449,14 +458,19 @@ internal class CallsExperimentRunner(
             ),
         )
         eventWrites.requireComplete()
+        sourceCheckoutVerifier(sourceRoot, project.revision)
+
         val replay = symbolic.inputs?.let { inputs ->
-            targetReplayer.replay(
+            val replayResult = targetReplayer.replay(
                 sourceRoots = listOf(sourceRoot),
                 entryPoint = function.entryPoint,
                 inputs = inputs,
                 target = target,
                 timeoutMillis = manifest.perTargetBudgetMillis,
             )
+            sourceCheckoutVerifier(sourceRoot, project.revision)
+
+            replayResult
         }
 
         return CallsTargetResult(

@@ -25,6 +25,64 @@ import kotlin.test.assertTrue
 
 class CallsExperimentTest {
     @Test
+    fun `runner rejects a source edit during symbolic search before replay or publication`(@TempDir directory: Path) {
+        val frozenManifest = frozenGitManifest(directory)
+        val sourceFile = directory.resolve("source/fixture.ts")
+        val rawOutput = directory.resolve("results.jsonl")
+        val engine = CallsSymbolicEngine {
+            Files.writeString(sourceFile, "export function predicate(value: boolean): boolean { return !value; }")
+            result(status = CallsSymbolicStatus.UNREACHED)
+        }
+
+        val failure = assertFailsWith<IllegalArgumentException> {
+            CallsExperimentRunner(
+                symbolicEngine = engine,
+                targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("Replay must not run") },
+                runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            ).run(
+                manifest = frozenManifest,
+                manifestDirectory = directory,
+                rawOutput = rawOutput,
+            )
+        }
+
+        assertTrue(failure.message.orEmpty().contains("Git diff --quiet failed"))
+        assertFalse(Files.exists(rawOutput))
+    }
+
+    @Test
+    fun `runner rejects a source edit during replay before publication`(@TempDir directory: Path) {
+        val frozenManifest = frozenGitManifest(directory)
+        val sourceFile = directory.resolve("source/fixture.ts")
+        val rawOutput = directory.resolve("results.jsonl")
+        val engine = CallsSymbolicEngine {
+            result(
+                status = CallsSymbolicStatus.REACHED,
+                inputs = listOf(JsConcreteValue.Boolean(value = true)),
+            )
+        }
+        val replayer = CallsTargetReplayer { _, _, _, _, _ ->
+            Files.writeString(sourceFile, "export function predicate(value: boolean): boolean { return !value; }")
+            CallsSourceReplayResult(status = CallsReplayStatus.CONFIRMED)
+        }
+
+        val failure = assertFailsWith<IllegalArgumentException> {
+            CallsExperimentRunner(
+                symbolicEngine = engine,
+                targetReplayer = replayer,
+                runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            ).run(
+                manifest = frozenManifest,
+                manifestDirectory = directory,
+                rawOutput = rawOutput,
+            )
+        }
+
+        assertTrue(failure.message.orEmpty().contains("Git diff --quiet failed"))
+        assertFalse(Files.exists(rawOutput))
+    }
+
+    @Test
     fun `runner forwards an explicitly configured solver`(@TempDir directory: Path) {
         val solvers = mutableListOf<SolverType>()
         val engine = CallsSymbolicEngine { request ->
@@ -37,6 +95,7 @@ class CallsExperimentTest {
             symbolicEngine = engine,
             targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("No witness to replay") },
             runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            sourceCheckoutVerifier = { _, _ -> },
         ).run(
             manifest = z3Manifest,
             manifestDirectory = directory,
@@ -74,6 +133,7 @@ class CallsExperimentTest {
             symbolicEngine = engine,
             targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("No witness to replay") },
             runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            sourceCheckoutVerifier = { _, _ -> },
         ).run(
             manifest = manifest(sourceRoot = ".", seeds = listOf(17L)),
             manifestDirectory = directory,
@@ -110,6 +170,7 @@ class CallsExperimentTest {
                 targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("No witness to replay") },
                 runtimeToolRevision = FIXTURE_TOOL_REVISION,
                 eventRecordWriter = { _, _ -> error("Event write failed") },
+                sourceCheckoutVerifier = { _, _ -> },
             ).run(
                 manifest = manifest(sourceRoot = ".", seeds = listOf(17L)),
                 manifestDirectory = directory,
@@ -207,6 +268,7 @@ class CallsExperimentTest {
             symbolicEngine = engine,
             targetReplayer = replayer,
             runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            sourceCheckoutVerifier = { _, _ -> },
         ).run(
             manifest = manifest(sourceRoot = ".", seeds = listOf(1L)),
             manifestDirectory = directory,
@@ -290,6 +352,7 @@ class CallsExperimentTest {
                 CallsSourceReplayResult(status = CallsReplayStatus.CONFIRMED)
             },
             runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            sourceCheckoutVerifier = { _, _ -> },
         ).run(
             manifest = frozenManifest,
             manifestDirectory = directory,
@@ -372,6 +435,7 @@ class CallsExperimentTest {
                 CallsSourceReplayResult(status = CallsReplayStatus.CONFIRMED)
             },
             runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            sourceCheckoutVerifier = { _, _ -> },
         ).run(
             manifest = frozenManifest,
             manifestDirectory = directory,
@@ -414,6 +478,7 @@ class CallsExperimentTest {
                 CallsSourceReplayResult(status = CallsReplayStatus.CONFIRMED)
             },
             runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            sourceCheckoutVerifier = { _, _ -> },
         ).run(
             manifest = frozenManifest,
             manifestDirectory = directory,
@@ -479,6 +544,7 @@ class CallsExperimentTest {
             symbolicEngine = engine,
             targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("Replay must not run") },
             runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            sourceCheckoutVerifier = { _, _ -> },
         ).run(
             manifest = manifest(sourceRoot = ".", seeds = listOf(0L)),
             manifestDirectory = directory,
@@ -523,6 +589,7 @@ class CallsExperimentTest {
             symbolicEngine = engine,
             targetReplayer = replayer,
             runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            sourceCheckoutVerifier = { _, _ -> },
         ).run(
             manifest = manifest(sourceRoot = ".", seeds = listOf(0L, 3L)),
             manifestDirectory = directory,
@@ -572,6 +639,7 @@ class CallsExperimentTest {
             symbolicEngine = engine,
             targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("No witness to replay") },
             runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            sourceCheckoutVerifier = { _, _ -> },
         ).run(
             manifest = manifest(sourceRoot = ".", seeds = listOf(0L)),
             manifestDirectory = directory,
@@ -594,6 +662,20 @@ class CallsExperimentTest {
             assertEquals(0, profile.timeouts)
             assertEquals(0, profile.toolErrors)
         }
+    }
+
+    private fun frozenGitManifest(directory: Path): CallsExperimentManifest {
+        val sourceRoot = Files.createDirectory(directory.resolve("source"))
+        Files.writeString(sourceRoot.resolve("fixture.ts"), "export function predicate(value: boolean): boolean { return value; }")
+        runCallsGit(sourceRoot, "init")
+        runCallsGit(sourceRoot, "config", "user.name", "USVM Tests")
+        runCallsGit(sourceRoot, "config", "user.email", "usvm@example.test")
+        runCallsGit(sourceRoot, "add", ".")
+        runCallsGit(sourceRoot, "commit", "-m", "Create fixture")
+        val revision = runCallsGit(sourceRoot, "rev-parse", "HEAD").trim()
+        val base = manifest(sourceRoot = "source", seeds = listOf(0L))
+
+        return base.copy(projects = listOf(base.projects.single().copy(revision = revision)))
     }
 
     private fun manifest(sourceRoot: String, seeds: List<Long>) = CallsExperimentManifest(
