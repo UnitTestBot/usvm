@@ -42,6 +42,42 @@ class ArrayMethods {
         }
     }
 
+    arrayFillIgnoresExtraArgumentsAndClampsBounds() {
+        const values = [1, 2, 3];
+        values.fill(9, -1, 10, 100);
+        return values[0] * 100 + values[1] * 10 + values[2];
+    }
+
+    arrayFillClearsBoxedOverride() {
+        const values: number[] = [1, 2];
+        const alias: any[] = values;
+        alias[0] = undefined;
+        alias.fill(7);
+        return values[0] * 10 + values[1];
+    }
+
+    arrayFillWithoutValueOnEmptyArray() {
+        const values: any[] = [];
+        values.fill();
+        return values.length;
+    }
+
+    arrayFillWithoutValueOnTypedArray() {
+        const values: number[] = [1, 2];
+        const alias: any[] = values;
+        alias.fill();
+        return alias[0] === undefined && alias[1] === undefined ? 1 : -1;
+    }
+
+    arrayFillPreservesBoxedOverridesOutsideRange() {
+        const values: number[] = [1, 2, 3];
+        const alias: any[] = values;
+        alias[0] = undefined;
+        alias[2] = undefined;
+        alias.fill(7, 1, 2);
+        return alias[0] === undefined && alias[1] === 7 && alias[2] === undefined ? 1 : -1;
+    }
+
     arrayShift(x: boolean) {
         const arr = [10, 20, 30];
         const firstElement = arr.shift();
@@ -117,5 +153,11 @@ class ArrayMethods {
         } else {
             return arr;  // [3, 2, 1] - modified in place
         }
+    }
+
+    arrayReverseIgnoresArguments() {
+        const values = [1, 2, 3];
+        values.reverse(99);
+        return values[0] * 100 + values[1] * 10 + values[2];
     }
 }

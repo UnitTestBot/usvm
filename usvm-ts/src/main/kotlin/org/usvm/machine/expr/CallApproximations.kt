@@ -44,7 +44,9 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.TsUnresolvedArrayKind
 import org.usvm.sizeSort
 import org.usvm.types.TypesResult
+import org.usvm.util.TsTypedArrayStorage
 import org.usvm.util.arrayStorageType
+import org.usvm.util.boxArrayValue
 import org.usvm.util.componentType
 import org.usvm.util.copyArrayElements
 import org.usvm.util.copyKnownArrayIndexPresence
@@ -247,7 +249,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.reverse() method calls
         if (expr.callee.name == "reverse") {
-            return from(handleArrayReverse(expr, instanceType, array))
+            return from(handleArrayReverse(instanceType, array))
         }
     }
 
@@ -701,23 +703,38 @@ private fun TsExprResolver.handleArrayFill(
     elementSort: USort,
     array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    check(expr.args.size >= 1 && expr.args.size <= 3) {
-        "Array.fill() should have 1 to 3 arguments, but got ${expr.args.size}"
-    }
-    val resolvedValue = resolve(expr.args[0]) ?: return null
-    val value = if (typeToSort(arrayType.componentType) is TsUnresolvedSort) {
-        resolvedValue.toFakeObject(scope)
+    val resolvedValue = if (expr.args.isEmpty()) {
+        mkUndefinedValue()
     } else {
-        resolvedValue
+        resolve(expr.args[0]) ?: return null
+    }
+    val hasResolvedElementSort = typeToSort(arrayType.componentType) !is TsUnresolvedSort
+    val valueMatchesElementSort = resolvedValue.sort == elementSort
+    val containsFakeValue = resolvedValue.sort == addressSort &&
+        resolvedValue.asExpr(addressSort).hasFakeValueBranch()
+    val usesBoxedValue = hasResolvedElementSort && (!valueMatchesElementSort || containsFakeValue)
+    val boxedValue = if (usesBoxedValue) boxArrayValue(scope, resolvedValue) else null
+
+    val nativeValue = when {
+        !hasResolvedElementSort -> resolvedValue.toFakeObject(scope)
+        !usesBoxedValue -> resolvedValue
+        elementSort == boolSort -> falseExpr
+        elementSort == fp64Sort -> mkFp64(0.0)
+        elementSort == addressSort -> mkUndefinedValue()
+        else -> {
+            logger.warn { "Unsupported element sort in Array.fill(): $elementSort" }
+            return null
+        }
     }
 
-    // TODO: Support negative `start` and `end` indices.
     val start = if (expr.args.size > 1) {
         resolve(expr.args[1]) ?: return null
     } else {
         mkBv(0)
     }
-    val startBv: UExpr<TsSizeSort> = when (start.sort) {
+    val startBv: UExpr<TsSizeSort> = if (start == mkUndefinedValue()) {
+        mkBv(0)
+    } else when (start.sort) {
         sizeSort -> start.asExpr(sizeSort)
 
         fp64Sort -> mkFpToBvExpr(
@@ -739,7 +756,10 @@ private fun TsExprResolver.handleArrayFill(
         val lengthLValue = mkArrayLengthLValue(array, arrayType)
         scope.calcOnState { memory.read(lengthLValue) }
     }
-    val endBv: UExpr<TsSizeSort> = when (end.sort) {
+    val endBv: UExpr<TsSizeSort> = if (end == mkUndefinedValue()) {
+        val lengthLValue = mkArrayLengthLValue(array, arrayType)
+        scope.calcOnState { memory.read(lengthLValue) }
+    } else when (end.sort) {
         sizeSort -> end.asExpr(sizeSort)
 
         fp64Sort -> mkFpToBvExpr(
@@ -757,13 +777,35 @@ private fun TsExprResolver.handleArrayFill(
 
     scope.calcOnState {
         val descriptor = arrayDescriptorOf(arrayType)
+        val length = memory.read(mkArrayLengthLValue(array, arrayType))
+        val zero = mkBv(0)
 
-        // Calculate the length of the range to fill
-        val fillLength = mkBvSubExpr(endBv, startBv)
+        fun normalizeIndex(index: UExpr<TsSizeSort>): UExpr<TsSizeSort> {
+            val relative = mkIte(mkBvSignedLessExpr(index, zero), mkBvAddExpr(length, index), index)
+            val capped = mkIte(mkBvSignedGreaterExpr(relative, length), length, relative)
+            return mkIte(mkBvSignedLessExpr(relative, zero), zero, capped)
+        }
 
-        // Concrete ranges need no unused entries in the temporary array.
-        val tempSize = getIntValue(fillLength)?.coerceIn(0, ARRAY_FILL_MAX_SIZE) ?: ARRAY_FILL_MAX_SIZE
-        // TODO: check that symbolic `fillLength` is less than `ARRAY_FILL_MAX_SIZE`.
+        val from = normalizeIndex(startBv)
+        val to = normalizeIndex(endBv)
+        val fillLength = mkIte(mkBvSignedLessExpr(from, to), mkBvSubExpr(to, from), zero)
+        val withinCapacity = mkBvSignedLessOrEqualExpr(fillLength, mkBv(ARRAY_FILL_MAX_SIZE))
+        if (scope.checkSat(mkNot(withinCapacity)) != null) {
+            reportRuntimeFeatureLimitation(
+                reason = TsRuntimeFeatureLimitationReason.ARRAY_LENGTH_CAPACITY,
+                detail = "Array.fill exceeds the supported range of $ARRAY_FILL_MAX_SIZE elements",
+            )
+        }
+        scope.assert(withinCapacity) ?: return@calcOnState null
+
+        val tempSize = getIntValue(fillLength)?.coerceAtLeast(0) ?: ARRAY_FILL_MAX_SIZE
+        val hasKnownOwnSlots = array in knownArrayPropertyPresence
+        val concreteStart = getIntValue(from)
+        val concreteFillLength = getIntValue(fillLength)
+        if (hasKnownOwnSlots && (concreteStart == null || concreteFillLength == null)) {
+            logger.warn { "Array.fill() cannot preserve symbolic own-slot presence in the legacy path" }
+            return@calcOnState null
+        }
 
         // Allocate a temporary array to hold the filled values
         val tempArray = memory.allocConcrete(descriptor)
@@ -774,8 +816,30 @@ private fun TsExprResolver.handleArrayFill(
             descriptor,
             elementSort,
             sizeSort,
-            (0 until tempSize).asSequence().map { value.asExpr(elementSort) }
+            (0 until tempSize).asSequence().map { nativeValue.asExpr(elementSort) },
         )
+
+        if (hasResolvedElementSort) {
+            initializeTypedArrayOverrides(array)
+            memory.initializeArray(
+                tempArray,
+                TsTypedArrayStorage.HAS_BOXED_VALUE,
+                boolSort,
+                sizeSort,
+                (0 until tempSize).asSequence().map { if (usesBoxedValue) trueExpr else falseExpr },
+            )
+
+            if (usesBoxedValue) {
+                val boxedFillValue = checkNotNull(boxedValue)
+                memory.initializeArray(
+                    tempArray,
+                    TsTypedArrayStorage.BOXED_VALUE,
+                    addressSort,
+                    sizeSort,
+                    (0 until tempSize).asSequence().map { boxedFillValue },
+                )
+            }
+        }
 
         // Copy the filled values to the specified range in the original array
         memory.memcpy(
@@ -783,14 +847,44 @@ private fun TsExprResolver.handleArrayFill(
             dstRef = array,
             type = descriptor,
             elementSort = elementSort,
-            fromSrc = mkBv(0),
-            fromDst = startBv,
+            fromSrc = zero,
+            fromDst = from,
             length = fillLength,
         )
 
-        // This legacy fill path does not preserve boxed overrides or sparse-slot metadata.
-        knownArrayPropertyPresence -= array
-        initializedArrayIndices -= array
+        if (hasResolvedElementSort) {
+            memory.memcpy(
+                srcRef = tempArray,
+                dstRef = array,
+                type = TsTypedArrayStorage.HAS_BOXED_VALUE,
+                elementSort = boolSort,
+                fromSrc = zero,
+                fromDst = from,
+                length = fillLength,
+            )
+
+            if (usesBoxedValue) {
+                memory.memcpy(
+                    srcRef = tempArray,
+                    dstRef = array,
+                    type = TsTypedArrayStorage.BOXED_VALUE,
+                    elementSort = addressSort,
+                    fromSrc = zero,
+                    fromDst = from,
+                    length = fillLength,
+                )
+            }
+        }
+
+        if (hasKnownOwnSlots) {
+            val fillCount = checkNotNull(concreteFillLength)
+            val filledIndices = (0 until fillCount).associate { offset ->
+                mkBvAddExpr(from, mkBv(offset)) to trueExpr
+            }
+            initializedArrayIndices += array to (initializedArrayIndices[array].orEmpty() + filledIndices)
+        }
+
+        // Unknown own-slot metadata cannot be inferred from this bulk copy.
         unsupportedIteratorArrays += array
 
         // Return the modified original array
@@ -1309,14 +1403,9 @@ private fun TsExprResolver.handleArrayIncludes(
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.reverse
  */
 private fun TsExprResolver.handleArrayReverse(
-    expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
     array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    check(expr.args.isEmpty()) {
-        "Array.reverse() should have no arguments, but got ${expr.args.size}"
-    }
-
     scope.calcOnState {
         val descriptor = arrayDescriptorOf(arrayType)
 

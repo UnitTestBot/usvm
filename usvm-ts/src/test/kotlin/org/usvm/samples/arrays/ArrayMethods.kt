@@ -74,6 +74,56 @@ class ArrayMethods : TsMethodTestRunner() {
     }
 
     @Test
+    fun testArrayFillCompatibilityBoundsAndExtraArguments() {
+        val method = getMethod("arrayFillIgnoresExtraArgumentsAndClampsBounds")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result.number == 129.0 },
+        )
+    }
+
+    @Test
+    fun testArrayFillClearsBoxedOverride() {
+        val method = getMethod("arrayFillClearsBoxedOverride")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result.number == 77.0 },
+        )
+    }
+
+    @Test
+    fun testArrayFillWithoutValueOnEmptyArray() {
+        val method = getMethod("arrayFillWithoutValueOnEmptyArray")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result.number == 0.0 },
+        )
+    }
+
+    @Test
+    fun testArrayFillWithoutValueOnTypedArray() {
+        val method = getMethod("arrayFillWithoutValueOnTypedArray")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result.number == 1.0 },
+        )
+    }
+
+    @Test
+    fun testArrayFillPreservesBoxedOverridesOutsideRange() {
+        val method = getMethod("arrayFillPreservesBoxedOverridesOutsideRange")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result.number == 1.0 },
+        )
+    }
+
+    @Test
     fun testArrayShift() {
         val method = getMethod("arrayShift")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
@@ -200,6 +250,16 @@ class ArrayMethods : TsMethodTestRunner() {
                 !x.value && r is TsTestValue.TsArray<*> &&
                     r.values.map { (it as TsTestValue.TsNumber).number } == listOf(3.0, 2.0, 1.0)
             },
+        )
+    }
+
+    @Test
+    fun testArrayReverseIgnoresArguments() {
+        val method = getMethod("arrayReverseIgnoresArguments")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result.number == 321.0 },
         )
     }
 }
