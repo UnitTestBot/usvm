@@ -5,6 +5,7 @@ import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsStaticCallExpr
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.UExpr
 import org.usvm.machine.Constants
@@ -80,7 +81,7 @@ private fun TsExprResolver.resolveStaticMethod(
         val classes = hierarchy.classesForType(EtsClassType(method.enclosingClass))
         if (classes.size > 1) {
             val methods = classes
-                .flatMap { clazz -> clazz.methods.filter { it.name == method.name } }
+                .flatMap { clazz -> clazz.methods.filter { it.isStaticCallTarget(method.name) } }
                 .canonicalizeExecutableOverloads()
             return TsResolutionResult.create(methods)
         }
@@ -89,7 +90,7 @@ private fun TsExprResolver.resolveStaticMethod(
 
         val clazz = classes.single()
         val methods = clazz.methods
-            .filter { it.name == method.name }
+            .filter { it.isStaticCallTarget(method.name) }
             .canonicalizeExecutableOverloads()
         return TsResolutionResult.create(methods)
     }
@@ -97,10 +98,15 @@ private fun TsExprResolver.resolveStaticMethod(
     // Unknown signature:
     val methods = ctx.applicationAndSdkClasses
         .flatMap { it.methods }
-        .filter { it.name == method.name }
+        .filter { it.isStaticCallTarget(method.name) }
         .canonicalizeExecutableOverloads()
 
     return TsResolutionResult.create(methods)
+}
+
+private fun EtsMethod.isStaticCallTarget(methodName: String): Boolean {
+    val isTopLevelFunction = enclosingClass?.name == DEFAULT_ARK_CLASS_NAME
+    return name == methodName && (isStatic || isTopLevelFunction)
 }
 
 private fun TsExprResolver.processAmbiguousStaticMethod(

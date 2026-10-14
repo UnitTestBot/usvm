@@ -271,12 +271,12 @@ class TsInterpreter(
                     // scope.assert(falseExpr)
                     // return
                     for (cls in classes) {
-                        val suitableMethods = cls.methods.filter { it.name == callee.name }
+                        val suitableMethods = cls.methods.filter { !it.isStatic && it.name == callee.name }
                         concreteMethods += suitableMethods
                     }
                 } else {
                     val cls = classes.single()
-                    val suitableMethods = cls.methods.filter { it.name == callee.name }
+                    val suitableMethods = cls.methods.filter { !it.isStatic && it.name == callee.name }
                     concreteMethods += suitableMethods
                 }
             } else {
@@ -287,7 +287,7 @@ class TsInterpreter(
                 return
             }
         } else {
-            val methods = resolveEtsMethods(callee)
+            val methods = resolveEtsMethods(callee).filterNot { it.isStatic }
             if (methods.isEmpty()) {
                 if (callee.name !in listOf("then")) {
                     logger.warn { "Could not resolve method: $callee" }
@@ -333,10 +333,10 @@ class TsInterpreter(
                 .map { candidate -> graph.hierarchy.getAncestors(candidate) }
                 .mapNotNull { ancestors ->
                     ancestors.firstOrNull { ancestor ->
-                        ancestor.methods.any { method -> method.name == callee.name }
+                        ancestor.methods.any { method -> !method.isStatic && method.name == callee.name }
                     }
                 }
-                .map { ancestor -> clazz to ancestor.methods.first { method -> method.name == callee.name } }
+                .map { ancestor -> clazz to ancestor.methods.first { method -> !method.isStatic && method.name == callee.name } }
         }.toList().take(10) // TODO check it
 
         // logger.info {

@@ -32,6 +32,7 @@ class EtsHierarchy(private val scene: EtsScene) {
 
         val time = measureTimeMillis {
             result = scene.projectAndSdkClasses.associateWith { start ->
+                val visited = mutableSetOf(start)
                 generateSequence(listOf(start)) { classes ->
                     if (classes.isEmpty()) return@generateSequence null
 
@@ -44,7 +45,8 @@ class EtsHierarchy(private val scene: EtsScene) {
                         superClasses.toMutableSet() + resolvedInterfaces // TODO optimize
                     }
 
-                    result.takeIf { it.isNotEmpty() }
+                    val newAncestors = result.filter { visited.add(it) }
+                    newAncestors.takeIf { it.isNotEmpty() }
                 }.flatten().toMutableSet() + scene.sdkClasses.filter { it.name == "Object" }
             }
         }

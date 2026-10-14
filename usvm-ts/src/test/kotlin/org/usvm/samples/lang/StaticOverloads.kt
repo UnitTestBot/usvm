@@ -26,6 +26,28 @@ class StaticOverloads : TsMethodTestRunner() {
     }
 
     @Test
+    fun `static call selects static body when instance body shares its name`() {
+        val method = getMethod("callStaticWithSameNameInstance")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 42 },
+            invariants = arrayOf({ result -> result eq 42 }),
+        )
+    }
+
+    @Test
+    fun `super call selects instance body when static body shares its name`() {
+        val method = getMethod("callSuperWithSameNameStatic")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 11 },
+            invariants = arrayOf({ result -> result eq 11 }),
+        )
+    }
+
+    @Test
     fun `test static overload group does not fork equivalent states`() {
         var forkedStates = 0
         val observer = object : UMachineObserver<TsState> {
