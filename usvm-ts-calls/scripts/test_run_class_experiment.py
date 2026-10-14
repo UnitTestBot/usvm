@@ -143,6 +143,31 @@ class CampaignIntegrityTest(unittest.TestCase):
             self.assertEqual(list(campaign.BUDGETS), campaign.read(output / 'run-plan.json')['budgetsMillis'])
             self.assertTrue(campaign.read(output / 'summary.json')['complete'])
 
+    def test_source_rejected_preflight_may_omit_null_native_smoke(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            prepared, manifest, _ = self.make_phase_fixture(output)
+            manifest_path = output / 'input-manifest.json'
+            campaign.freeze(manifest_path, manifest)
+            preflight_path = prepared / 'class' / 'preflight.json'
+            preflight = campaign.read(preflight_path)
+            preflight.pop('nativeSmoke')
+            preflight.update(eligible=False, primaryInferenceEligible=False,
+                             sourceAdmissionFailures=['TOP_LEVEL_INITIALIZATION_UNSUPPORTED: offset 0'])
+            preflight_path.write_text(json.dumps(preflight) + '\n')
+            args = ['campaign', '--calls', str(output / 'calls'), '--manifest', str(manifest_path),
+                    '--output', str(output), '--preflight-only']
+
+            with patch('sys.argv', args), patch.object(campaign, 'invoke') as invoke, patch('builtins.print'):
+                campaign.main()
+
+            invoke.assert_not_called()
+            eligibility = campaign.read(output / 'eligibility.json')
+            self.assertIsNone(eligibility[0]['nativeSmoke'])
+            self.assertFalse(eligibility[0]['primaryInferenceEligible'])
+            self.assertEqual([], campaign.read(output / 'run-plan.json')['classIds'])
+            self.assertFalse((output / 'summary.json').exists())
+
     def test_saved_corruption_in_later_unselected_class_blocks_any_resume_launch(self):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)

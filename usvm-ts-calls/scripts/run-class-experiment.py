@@ -366,7 +366,7 @@ def main():
             eligibility.append({'classId': class_id, 'eligible': outcome['eligible'],
                                 'primaryInferenceEligible': primary_admitted,
                                 'diagnosticReady': outcome['diagnosticReady'],
-                                'nativeSmoke': outcome['nativeSmoke'],
+                                'nativeSmoke': outcome.get('nativeSmoke'),
                                 'sourceAdmissionFailures': outcome['sourceAdmissionFailures'],
                                 'nativeInfrastructureFailures': outcome['nativeInfrastructureFailures'],
                                 'correctnessFrontierFailures': case.get('correctnessFrontierFailures', []),
