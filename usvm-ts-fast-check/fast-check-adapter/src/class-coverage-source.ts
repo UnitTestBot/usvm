@@ -44,7 +44,7 @@ export interface ClassCoverageInstrumentation {
 
 interface MemberBody { name: string; node: ts.ClassElement; body: ts.Node; publicSurface: boolean; isStatic: boolean }
 interface Insertion { offset: number; text: string; order: number }
-const VERSION = 'class-statements-v1'
+const VERSION = 'class-statements-v2'
 
 /** Exact original AST IDs. Native counters avoid c8's ambiguous same-line statement records. */
 export function instrumentClassCoverage(file: ts.SourceFile, className: string): ClassCoverageInstrumentation {
@@ -231,7 +231,7 @@ export function instrumentClassCoverage(file: ts.SourceFile, className: string):
 
   const statements: ClassStatementDescriptor[] = []
   const insertions: Insertion[] = []
-  const marker = (id: string): string => `(globalThis as unknown as Record<string, string[]>)[${JSON.stringify(counterGlobalName)}]?.push(${JSON.stringify(id)});`
+  const marker = (id: string): string => `(globalThis as unknown as Record<string, Set<string>>)[${JSON.stringify(counterGlobalName)}]?.add(${JSON.stringify(id)});`
   const describe = (node: ts.Node, name: string, kind: string): ClassStatementDescriptor => {
     const startOffset = node.getStart(file)
     const endOffset = node.getEnd()

@@ -89,7 +89,7 @@ class CallsClassHarnessOracleTest {
         val source = Files.readString(directory.resolve("Counter.ts"))
         val instrumented = source.replace(
             "return this.count * x;",
-            "(globalThis as any).classHits?.push('arrow-body'); return this.count * x;"
+            "(globalThis as any).classHits?.add('arrow-body'); return this.count * x;"
         )
         val original = OriginalTypeScriptClassReplayer(
             directory,

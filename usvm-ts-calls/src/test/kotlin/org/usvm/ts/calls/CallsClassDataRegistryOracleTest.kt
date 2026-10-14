@@ -191,7 +191,7 @@ class CallsClassDataRegistryOracleTest {
                 observationFields = harness.observations[index],
                 sourceOverride = dataClassSource.replace(
                     "return this.items;",
-                    "; (globalThis as any).entryHits?.push('read'); return this.items;",
+                    "; (globalThis as any).entryHits?.add('read'); return this.items;",
                 ),
                 overrideSourceFile = "Entries.ts",
                 counterGlobalName = "entryHits",
@@ -253,7 +253,7 @@ class CallsClassDataRegistryOracleTest {
                 observationFields = harness.observations[index],
                 sourceOverride = conditionalSource.replace(
                     "return this.items;",
-                    "; (globalThis as any).entryHits?.push('read'); return this.items;",
+                    "; (globalThis as any).entryHits?.add('read'); return this.items;",
                 ),
                 overrideSourceFile = "Entries.ts",
                 counterGlobalName = "entryHits",

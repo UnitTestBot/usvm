@@ -12,7 +12,7 @@ function instrument(source: string, className = 'Target') {
 function load(source: string, counter: string | null) {
   const exports: Record<string, unknown> = {}
   const sandbox: Record<string, unknown> = { exports, module: { exports } }
-  if (counter !== null) sandbox[counter] = []
+  if (counter !== null) sandbox[counter] = new Set<string>()
   const js = ts.transpileModule(source, { compilerOptions: {
     target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS,
   } }).outputText
@@ -31,7 +31,7 @@ test('freezes distinct original AST statements on one line and only native hits'
   const runtime = load(result.source!, result.counterGlobalName)
   const receiver = new runtime.Target()
   assert.equal(receiver['run']!(true), 1)
-  const covered = runtime.sandbox[result.counterGlobalName] as string[]
+  const covered = Array.from(runtime.sandbox[result.counterGlobalName] as Set<string>)
   assert.deepEqual(covered, result.statements.slice(0, 2).map((statement) => statement.id))
   assert.equal(covered.includes(result.statements[2]!.id), false)
   assert.deepEqual(instrument(source), result)
@@ -59,7 +59,7 @@ test('counts initialization and reachable private bodies while excluding foreign
   const original = load(source, null)
   const instrumented = load(result.source!, result.counterGlobalName)
   assert.equal(new original.Target(-2)['run']!(), new instrumented.Target(-2)['run']!())
-  const covered = instrumented.sandbox[result.counterGlobalName] as string[]
+  const covered = Array.from(instrumented.sandbox[result.counterGlobalName] as Set<string>)
   assert.equal(covered.length, 5)
   assert.equal(covered.every((id) => result.statements.some((statement) => statement.id === id)), true)
 })
@@ -96,7 +96,7 @@ test('supports private accessors and expression callable properties', () => {
     ['PropertyInitializer', 'ReturnStatement', 'CallableExpressionBody'])
   const runtime = load(result.source!, result.counterGlobalName)
   assert.equal(new runtime.Target()['run']!(), 4)
-  assert.equal((runtime.sandbox[result.counterGlobalName] as string[]).length, 3)
+  assert.equal((Array.from(runtime.sandbox[result.counterGlobalName] as Set<string>)).length, 3)
 })
 
 test('retains explicit unsupported dynamic reachability and closure outcomes', () => {
@@ -125,7 +125,7 @@ test('includes static private helpers reachable through the class or static rece
   const runtime = load(result.source!, result.counterGlobalName)
   const target = runtime.Target as unknown as Record<string, (...args: unknown[]) => unknown>
   assert.equal(target['run']!(-2), 4)
-  const covered = runtime.sandbox[result.counterGlobalName] as string[]
+  const covered = Array.from(runtime.sandbox[result.counterGlobalName] as Set<string>)
   assert.equal(new Set(covered).size, 3)
 })
 
@@ -153,7 +153,7 @@ test('includes exact bodies of direct-called local functions without adding unus
   const originalClass = original.Target as unknown as Record<string, (...args: unknown[]) => unknown>
   const instrumentedClass = instrumented.Target as unknown as Record<string, (...args: unknown[]) => unknown>
   assert.equal(instrumentedClass['run']!(1), originalClass['run']!(1))
-  assert.equal(new Set(instrumented.sandbox[result.counterGlobalName] as string[]).size, 5)
+  assert.equal(new Set(Array.from(instrumented.sandbox[result.counterGlobalName] as Set<string>)).size, 5)
   assert.match(instrument('export class Target { run() { function local() { return 1; } return [1].map(local); } }').reason!, /escaped/)
 })
 
@@ -243,7 +243,7 @@ test('preserves automatic semicolon insertion between assignments and statement 
 
   assert.equal(instrumentedReceiver['run']!(), originalReceiver['run']!())
   assert.equal(instrumentedReceiver['run']!(), 3)
-  const nativeHits = instrumented.sandbox[result.counterGlobalName] as string[]
+  const nativeHits = Array.from(instrumented.sandbox[result.counterGlobalName] as Set<string>)
   const coveredMemberNames = result.statements.filter((statement) => nativeHits.includes(statement.id))
     .map((statement) => statement.memberName)
   assert.equal(coveredMemberNames.includes('loadFactor'), true)
@@ -359,4 +359,38 @@ test('excludes reassigned companion constructors including destructuring writes'
     assert.equal(result.reason, null, mutation)
     assert.deepEqual(result.inventory!.dataClasses, [], mutation)
   }
+})
+
+
+test('stores only distinct statement hits across long loops and repeated calls', () => {
+  const source = `export class Target {
+    run(amount: number) {
+      let total = 0;
+      try {
+        for (let index = 0; index < amount; index++) {
+          total += index;
+        }
+      } catch {
+        return -1;
+      }
+      return total;
+    }
+  }`
+  const result = instrument(source)
+  assert.equal(result.reason, null)
+  const original = load(source, null)
+  const runtime = load(result.source!, result.counterGlobalName)
+  const receiver = new runtime.Target()
+
+  assert.equal(receiver['run']!(10_000), new original.Target()['run']!(10_000))
+  const firstHits = Array.from(runtime.sandbox[result.counterGlobalName] as Iterable<string>)
+  assert.equal(firstHits.length, new Set(firstHits).size)
+  assert.equal(firstHits.length <= result.statements.length, true)
+  assert.equal(firstHits.every((id) => result.statements.some((statement) => statement.id === id)), true)
+  const caughtReturn = result.statements.find((statement) => source.slice(statement.startOffset, statement.endOffset) === 'return -1;')!
+  assert.equal(firstHits.includes(caughtReturn.id), false)
+
+  for (let iteration = 0; iteration < 20; iteration++) receiver['run']!(10_000)
+  const repeatedHits = Array.from(runtime.sandbox[result.counterGlobalName] as Iterable<string>)
+  assert.deepEqual(repeatedHits, firstHits)
 })

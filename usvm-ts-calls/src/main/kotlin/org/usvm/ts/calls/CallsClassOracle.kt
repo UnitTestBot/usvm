@@ -419,7 +419,7 @@ private fun classReplayWrapper(
     val counterSetup = counterGlobalName?.let { name ->
         "(globalThis as any)[${json.encodeToUtf8SafeString(
             name
-        )}] = [];"
+        )}] = new Set<string>();"
     }.orEmpty()
     val counterRead = counterGlobalName?.let { name ->
         "(globalThis as any)[${json.encodeToUtf8SafeString(name)}]"
@@ -470,6 +470,8 @@ private fun classReplayWrapper(
           return encoded;
         }
 
+${classReplayThrownValueDiagnosticSource().prependIndent(indent = "        ")}
+
         export function replayClassScenario(...args: unknown[]): boolean {
           const actualArgs = $actualArgs;
           const inputs = actualArgs.map(value => encode(value));
@@ -483,7 +485,7 @@ private fun classReplayWrapper(
             completion = 'THREW';
             const isShapeFailure = error instanceof Error && error.message.startsWith('USVM class observation shape:');
             const diagnostic = isShapeFailure ? error.message :
-              'Thrown class scenarios have no complete return/state snapshot';
+              'Thrown class scenarios have no complete return/state snapshot; ' + describeThrownValue(error);
             observation = { completion, representable: false, diagnostic };
           }
           if (completion === 'RETURNED') {
@@ -500,12 +502,29 @@ private fun classReplayWrapper(
               observation = { completion, representable: false, diagnostic };
             }
           }
-          const coveredStatementKeys = Array.from(new Set($counterRead));
+          const coveredStatementKeys = Array.from($counterRead);
           writeFileSync($outputPath, stringifyProtocolJson({ inputs, observation, coveredStatementKeys }), 'utf8');
           return true;
         }
     """.trimIndent() + "\n"
 }
+
+private fun classReplayThrownValueDiagnosticSource(): String = """
+    function describeThrownValue(error: unknown): string {
+      if (error instanceof Error) {
+        return 'exception name=' + stringifyProtocolJson(error.name) +
+          ', message=' + stringifyProtocolJson(error.message);
+      }
+      const valueType = typeof error;
+      if (valueType === 'bigint' || valueType === 'symbol') {
+        return 'thrown value type=' + valueType + ', value=' + stringifyProtocolJson(String(error));
+      }
+      if ((valueType === 'object' && error !== null) || valueType === 'function') {
+        return 'thrown value type=' + valueType;
+      }
+      return 'thrown value=' + stringifyProtocolJson(encode(error));
+    }
+""".trimIndent()
 
 
 /** Check raw values before projection, so snapshots cannot silently hide an unlisted concrete property. */
