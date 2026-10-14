@@ -78,3 +78,16 @@ export function requiresInitial(value: number): boolean {
 
     return !initialSeen || value < 10;
 }
+
+export function nondeterministicShrink(value: number): boolean {
+    if (value === 80) return false;
+
+    flipped = !flipped;
+    return flipped;
+}
+
+export function eventError(): boolean {
+    const hook = (globalThis as Record<symbol, unknown>)[Symbol.for('org.usvm.ts.pbt.witness')] as WitnessHook | undefined;
+    hook?.('', 'original', 'v1', true, false);
+    return observed('oracle-completed', true);
+}

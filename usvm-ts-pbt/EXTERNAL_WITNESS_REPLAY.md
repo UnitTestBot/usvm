@@ -108,6 +108,9 @@ steps; byte sizes measure serialization size, not numeric magnitude.
 
 Replay, runtime probes, coverage conversion, and reduction consume the supplied monotonic deadline. Reduction
 reserves final-validation time; synchronous/asynchronous hangs are stopped by the existing process supervisor.
+Budget exhaustion and supervised timeouts return explicit results through the witness pipeline. Shrinking
+nondeterminism, oracle contract errors, and invalid/bounded witness events are recorded as outcomes without
+throwing exceptions to select the next step. Input wire eligibility is validated directly before serialization.
 Process teardown can take the supervisor's bounded shutdown grace after the execution budget expires. No fresh
 full timeout is granted to the final replay.
 

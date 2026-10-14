@@ -55,34 +55,42 @@ internal class FastCheckProcessClient(
     fun witness(
         request: FastCheckExecutionRequest,
         remainingMillis: () -> Long,
-    ): FastCheckExecutionWireResponse {
+    ): FastCheckOperationResult<FastCheckExecutionWireResponse> {
+        val initialBudget = remainingMillis()
+        if (initialBudget <= 0) {
+            return FastCheckOperationResult.TimedOut(message = "External witness deadline expired")
+        }
+
         val encodedRequest = encodeRequest(request)
         val coverageSession = request.coverageRequest?.let {
-            FastCheckCoverageSession.prepare(
+            val preparation = FastCheckCoverageSession.prepareWithinBudget(
                 nodeExecutable = nodeExecutable,
                 adapterEntryPoint = adapterEntryPoint,
                 request = request,
                 remainingMillis = remainingMillis,
             )
+            when (preparation) {
+                is FastCheckOperationResult.Completed -> preparation.value
+                is FastCheckOperationResult.TimedOut -> return preparation
+            }
         }
 
         try {
             val remaining = remainingMillis()
             if (remaining <= 0) {
-                throw backendError(
-                    kind = BackendErrorKind.TIMEOUT,
-                    code = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
-                    message = "External witness deadline expired",
-                    request = request,
-                )
+                return FastCheckOperationResult.TimedOut(message = "External witness deadline expired")
             }
 
-            val output = invokeAdapter(
+            val outputResult = invokeWitnessAdapter(
                 encodedRequest = encodedRequest,
                 request = request,
                 command = coverageSession?.adapterCommand ?: listOf(nodeExecutable, adapterEntryPoint.toString()),
                 timeoutMillis = remaining,
             )
+            val output = when (outputResult) {
+                is FastCheckOperationResult.Completed -> outputResult.value
+                is FastCheckOperationResult.TimedOut -> return outputResult
+            }
             validateProcessOutput(output, request)
             val response = decodeResponse(output.stdout, request)
             if (response.status == "error") throwNodeDiagnostic(response, request)
@@ -97,14 +105,43 @@ internal class FastCheckProcessClient(
             if (!validResponse) throw invalidResponse(message = "Invalid witness response", request = request)
 
             val replay = response.witnessReplay
-            return if (replay != null && coverageSession != null) {
-                response.copy(witnessReplay = replay.copy(coverage = coverageSession.readArtifact()))
-            } else {
-                response
+            if (replay != null && coverageSession != null) {
+                val artifactResult = coverageSession.readArtifact()
+                return when (artifactResult) {
+                    is FastCheckOperationResult.Completed -> FastCheckOperationResult.Completed(
+                        value = response.copy(witnessReplay = replay.copy(coverage = artifactResult.value)),
+                    )
+                    is FastCheckOperationResult.TimedOut -> artifactResult
+                }
             }
+
+            return FastCheckOperationResult.Completed(value = response)
         } finally {
             coverageSession?.close()
         }
+    }
+
+    private fun invokeWitnessAdapter(
+        encodedRequest: String,
+        request: FastCheckExecutionRequest,
+        command: List<String>,
+        timeoutMillis: Long,
+    ): FastCheckOperationResult<FastCheckProcessOutput> = try {
+        transport.invokeWithResult(
+            command = command,
+            request = encodedRequest,
+            timeoutMillis = timeoutMillis,
+            reportedTimeoutMillis = timeoutMillis,
+            description = "fast-check adapter",
+        )
+    } catch (error: FastCheckTransportException) {
+        throw backendError(
+            kind = error.backendErrorKind(),
+            code = error.code,
+            message = error.message.orEmpty(),
+            request = request,
+            cause = error,
+        )
     }
 
     private fun invokeAdapter(

@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { performance } from 'node:perf_hooks';
 import fc from 'fast-check';
 import { adapterDiagnostic } from './diagnostics.js';
-import { EntryPointInvocationError, loadEntryPoint, verifySourceHash, type LoadedEntryPoint } from './entry-point.js';
+import { EntryPointInvocationError, loadEntryPoint, sourceHashMatches, type LoadedEntryPoint } from './entry-point.js';
 import { describePropertyFailure, invokePropertyOnce, validateRequest, type FastCheckFailureDetails } from './execute-property.js';
 import { decodeJsValue, encodeJsValue, ProtocolError, protocolError, type JsConcreteValue, type TaggedJsValue } from './js-value.js';
 import { buildPropertyArbitrary } from './property-arbitrary.js';
@@ -30,8 +30,8 @@ export interface WitnessEvent {
 }
 
 export interface WitnessNativeReplay {
-  admission: 'ADMITTED' | 'DOMAIN_REJECTED' | 'PRECONDITION_REJECTED' | 'ERROR';
-  outcome: 'HOLDS' | 'FALSE' | 'THREW' | 'SKIPPED' | 'ERROR';
+  admission: 'ADMITTED' | 'DOMAIN_REJECTED' | 'PRECONDITION_REJECTED' | 'ERROR' | 'UNKNOWN';
+  outcome: 'HOLDS' | 'FALSE' | 'THREW' | 'SKIPPED' | 'ERROR' | 'UNKNOWN';
   targetMatched: boolean;
   events: WitnessEvent[];
   failure?: FastCheckFailureDetails;
@@ -63,7 +63,7 @@ export interface WitnessExecutionSuccess {
   witnessReduction?: WitnessReduction;
 }
 
-interface WitnessContext { events: WitnessEvent[]; active: boolean; contractError?: ProtocolError }
+interface WitnessContext { events: WitnessEvent[]; active: boolean; contractError?: string }
 const contexts = new AsyncLocalStorage<WitnessContext>();
 
 /** A passive hook: evaluate the original guard/relation first; return its boolean without substituting an oracle. */
@@ -76,8 +76,9 @@ export function installWitnessHook(): void {
         const valid = [pointId, contextId, revision].every((value) => typeof value === 'string' && value.length > 0)
           && typeof guard === 'boolean' && typeof holds === 'boolean';
         if (!valid || context.events.length >= 256) {
-          context.contractError = protocolError(adapterDiagnostic.protocolRequestInvalid, 'Invalid or unbounded witness events', 'witness.events');
-          throw context.contractError;
+          context.contractError = adapterDiagnostic.witnessEventsInvalid.code;
+
+          return holds;
         }
 
         const occurrence = context.events.filter((event) => event.binding.pointId === pointId
@@ -103,7 +104,20 @@ export async function executeWitness(value: unknown): Promise<WitnessExecutionSu
     throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Original named check requires its executable binding', 'witness.target');
   }
   for (const source of operation.sources) {
-    await verifySourceHash(source.module, source.sha256, request.sourceRoots);
+    const matches = await sourceHashMatches(source.module, source.sha256, request.sourceRoots);
+    if (!matches) {
+      const diagnostic = adapterDiagnostic.entryPointSourceHashMismatch.code;
+      if (operation.mode === 'reduce') {
+        return { status: 'ok', ...identity, witnessReduction: {
+          status: 'FAILED', attempts: 0, acceptedShrinks: 0, diagnostic,
+        } };
+      }
+
+      return { status: 'ok', ...identity, witnessReplay: {
+        admission: 'UNKNOWN', outcome: 'UNKNOWN', targetMatched: false, events: [],
+        diagnostic, runtimeVersion: process.version,
+      } };
+    }
   }
   const requiredModules = [request.manifest.predicate.module, request.manifest.precondition?.module]
     .filter((module): module is string => module !== undefined);
@@ -150,19 +164,28 @@ export async function executeWitness(value: unknown): Promise<WitnessExecutionSu
   }
   const startedAt = performance.now();
   let attempts = 0;
-  let reductionError: unknown;
+  let reductionDiagnostic: string | undefined;
   const property = fc.asyncProperty(new ExternalValueArbitrary(arbitrary, values), async (input) => {
     attempts += 1;
     try {
       if (!inWitnessSupport(request.manifest, input)) return true;
       const first = await replay(input);
       const second = await replay(input);
-      if (signature(first) !== signature(second)) throw new Error('Nondeterministic shrinking invocation');
-      if (first.outcome === 'ERROR') throw new Error(first.diagnostic ?? 'Original oracle error during reduction');
+      const nondeterministic = signature(first) !== signature(second);
+      if (nondeterministic) {
+        reductionDiagnostic ??= 'Nondeterministic shrinking invocation';
+
+        return true;
+      }
+      if (first.outcome === 'ERROR') {
+        reductionDiagnostic ??= first.diagnostic ?? 'Original oracle error during reduction';
+
+        return true;
+      }
 
       return !sameTarget(first, expected);
     } catch (error: unknown) {
-      reductionError ??= error;
+      reductionDiagnostic ??= describePropertyFailure(error).message;
 
       return true;
     }
@@ -175,10 +198,10 @@ export async function executeWitness(value: unknown): Promise<WitnessExecutionSu
       markInterruptAsFailure: true,
     });
     const timedOut = details.interrupted || performance.now() - startedAt >= request.timeoutMillis;
-    if (timedOut || reductionError !== undefined || details.counterexample === null) {
+    if (timedOut || reductionDiagnostic !== undefined || details.counterexample === null) {
       return { status: 'ok', ...identity, witnessReduction: {
         status: timedOut ? 'TIMEOUT' : 'FAILED', attempts, acceptedShrinks: details.numShrinks,
-        diagnostic: reductionError === undefined ? 'Reduction did not retain the target' : describePropertyFailure(reductionError).message,
+        diagnostic: reductionDiagnostic ?? 'Reduction did not retain the target',
       } };
     }
 
@@ -224,16 +247,21 @@ async function replayOnce(
       result.outcome = holds ? 'HOLDS' : 'FALSE';
     }
   } catch (error: unknown) {
-    if (error instanceof EntryPointInvocationError && context.contractError === undefined) {
+    if (error instanceof EntryPointInvocationError) {
       result.outcome = 'THREW';
       result.failure = { kind: 'property', ...describePropertyFailure(error.thrownValue) };
     } else {
       result.admission = 'ERROR';
       result.outcome = 'ERROR';
-      result.diagnostic = context.contractError?.code
-        ?? (error instanceof ProtocolError ? error.code : describePropertyFailure(error).message);
+      result.diagnostic = error instanceof ProtocolError ? error.code : describePropertyFailure(error).message;
     }
   }
+  if (context.contractError !== undefined) {
+    result.admission = 'ERROR';
+    result.outcome = 'ERROR';
+    result.diagnostic = context.contractError;
+  }
+
   const event = target.binding === undefined ? undefined
     : context.events.find((entry) => sameBinding(entry.binding, target.binding as WitnessBinding));
   const propertyFailed = result.outcome === 'FALSE' || result.outcome === 'THREW';

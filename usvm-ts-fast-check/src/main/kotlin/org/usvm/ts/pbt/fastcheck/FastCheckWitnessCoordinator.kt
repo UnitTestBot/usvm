@@ -1,6 +1,6 @@
 package org.usvm.ts.pbt.fastcheck
 
-import kotlinx.serialization.decodeFromString
+import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.ExternalWitnessCandidate
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.WitnessAdmission
@@ -48,47 +48,40 @@ internal class FastCheckWitnessCoordinator(
         if (earlyStatus != null) return delta(candidate = candidate, status = earlyStatus)
 
         val inputs = requireNotNull(candidate.inputs)
-        var firstReplay: WitnessNativeReplay? = null
-        try {
-            val original = replay(property, candidate, inputs, deadline)
-            firstReplay = original
-            val confirmation = replay(property, candidate, inputs, deadline)
-            if (!repeatable(original, confirmation)) {
-                return delta(
-                    candidate = candidate,
-                    status = WitnessReplayStatus.NONDETERMINISTIC,
-                    original = original,
-                )
-            }
-        } catch (error: PbtBackendException) {
-            return delta(
-                candidate = candidate,
-                status = error.replayStatus(),
-                original = firstReplay,
-                diagnostic = error.code,
-            )
+        val initial = verifyOriginal(property, candidate, inputs, deadline)
+        val replayConfirmed = when (initial.status) {
+            WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION,
+            WitnessReplayStatus.CONFIRMED_HYPOTHESIS_REFUTATION,
+            WitnessReplayStatus.CONFIRMED_COVERAGE,
+            -> true
+            else -> false
         }
+        if (!replayConfirmed) return initial
 
-        val original = requireNotNull(firstReplay)
-        val status = classify(original, candidate)
-        if (!original.targetMatched || original.admission != WitnessAdmission.ADMITTED) {
-            return delta(candidate = candidate, status = status, original = original)
-        }
+        val original = requireNotNull(initial.originalReplay)
+        val status = initial.status
 
         var confirmedOriginal = original
         var coverageDiagnostic: String? = null
         val coverageRequest = configuration.coverageRequest
         if (coverageRequest != null) {
             try {
-                val covered = replay(property, candidate, inputs, deadline, coverageRequest)
-                if (!repeatable(original, covered)) {
+                val coverageResult = replay(property, candidate, inputs, deadline, coverageRequest)
+                val covered = when (coverageResult) {
+                    is FastCheckOperationResult.Completed -> coverageResult.value
+                    is FastCheckOperationResult.TimedOut -> null
+                }
+                if (covered == null) {
+                    coverageDiagnostic = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT
+                } else if (!repeatable(original, covered)) {
                     return delta(
                         candidate = candidate,
                         status = WitnessReplayStatus.NONDETERMINISTIC,
                         original = original,
                     )
+                } else {
+                    confirmedOriginal = covered
                 }
-                confirmedOriginal = covered
             } catch (error: PbtBackendException) {
                 coverageDiagnostic = error.code
             }
@@ -117,6 +110,52 @@ internal class FastCheckWitnessCoordinator(
         ).copy(contextualRefutations = refutations)
     }
 
+    private fun verifyOriginal(
+        property: PropertyDefinition,
+        candidate: ExternalWitnessCandidate,
+        inputs: List<JsConcreteValue>,
+        deadline: WitnessReplayDeadline,
+    ): WitnessEvidenceDelta {
+        var firstReplay: WitnessNativeReplay? = null
+        try {
+            val first = replay(property, candidate, inputs, deadline)
+            val original = when (first) {
+                is FastCheckOperationResult.Completed -> first.value
+                is FastCheckOperationResult.TimedOut -> return delta(
+                    candidate = candidate,
+                    status = WitnessReplayStatus.TIMEOUT,
+                    diagnostic = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+                )
+            }
+            firstReplay = original
+
+            val second = replay(property, candidate, inputs, deadline)
+            val confirmation = when (second) {
+                is FastCheckOperationResult.Completed -> second.value
+                is FastCheckOperationResult.TimedOut -> return delta(
+                    candidate = candidate,
+                    status = WitnessReplayStatus.TIMEOUT,
+                    original = original,
+                    diagnostic = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+                )
+            }
+            val status = if (repeatable(original, confirmation)) {
+                classify(original, candidate)
+            } else {
+                WitnessReplayStatus.NONDETERMINISTIC
+            }
+
+            return delta(candidate = candidate, status = status, original = original)
+        } catch (error: PbtBackendException) {
+            return delta(
+                candidate = candidate,
+                status = error.replayStatus(),
+                original = firstReplay,
+                diagnostic = error.code,
+            )
+        }
+    }
+
     private fun validateReduction(
         property: PropertyDefinition,
         candidate: ExternalWitnessCandidate,
@@ -140,8 +179,16 @@ internal class FastCheckWitnessCoordinator(
         }
 
         return try {
-            val finalReplay = replay(property, candidate, inputs, deadline)
-            val finalConfirmation = replay(property, candidate, inputs, deadline)
+            val first = replay(property, candidate, inputs, deadline)
+            val finalReplay = when (first) {
+                is FastCheckOperationResult.Completed -> first.value
+                is FastCheckOperationResult.TimedOut -> return reducedTimeout(reduction)
+            }
+            val second = replay(property, candidate, inputs, deadline)
+            val finalConfirmation = when (second) {
+                is FastCheckOperationResult.Completed -> second.value
+                is FastCheckOperationResult.TimedOut -> return reducedTimeout(reduction)
+            }
             val validFinal = repeatable(finalReplay, finalConfirmation) && sameTarget(finalReplay, original)
             if (validFinal) {
                 ValidatedReduction(
@@ -160,17 +207,21 @@ internal class FastCheckWitnessCoordinator(
         } catch (error: PbtBackendException) {
             ValidatedReduction(
                 reduction = reduction.copy(
-                    status = if (error.kind == BackendErrorKind.TIMEOUT) {
-                        WitnessReductionStatus.TIMEOUT
-                    } else {
-                        WitnessReductionStatus.FAILED
-                    },
+                    status = WitnessReductionStatus.FAILED,
                     inputs = null,
                     diagnostic = error.code,
                 ),
             )
         }
     }
+
+    private fun reducedTimeout(reduction: WitnessReduction): ValidatedReduction = ValidatedReduction(
+        reduction = reduction.copy(
+            status = WitnessReductionStatus.TIMEOUT,
+            inputs = null,
+            diagnostic = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+        ),
+    )
 
     private fun validateCandidate(
         property: PropertyDefinition,
@@ -181,11 +232,7 @@ internal class FastCheckWitnessCoordinator(
         if (!sameRegistration) return WitnessReplayStatus.SOURCE_MISMATCH
 
         val inputs = candidate.inputs ?: return WitnessReplayStatus.UNREPRESENTABLE_INPUT
-        val encodable = runCatching {
-            val encoded = PropertyManifestJson.json.encodeToUtf8SafeString(inputs)
-            PropertyManifestJson.json.decodeFromString<List<JsConcreteValue>>(encoded)
-        }.isSuccess
-        if (!encodable) return WitnessReplayStatus.UNREPRESENTABLE_INPUT
+        if (!inputs.hasWitnessEncoding()) return WitnessReplayStatus.UNREPRESENTABLE_INPUT
         if (!inDeclaredSupport(property, inputs)) return WitnessReplayStatus.DOMAIN_REJECTED
 
         val sourceModules = candidate.sources.mapTo(hashSetOf()) { source -> source.module }
@@ -212,8 +259,8 @@ internal class FastCheckWitnessCoordinator(
         inputs: List<JsConcreteValue>,
         deadline: WitnessReplayDeadline,
         coverageRequest: PropertyCoverageRequest? = null,
-    ): WitnessNativeReplay {
-        val response = client.witness(
+    ): FastCheckOperationResult<WitnessNativeReplay> {
+        val result = client.witness(
             request = request(
                 property = property,
                 candidate = candidate,
@@ -229,7 +276,12 @@ internal class FastCheckWitnessCoordinator(
             remainingMillis = deadline::remainingMillis,
         )
 
-        return requireNotNull(response.witnessReplay)
+        return when (result) {
+            is FastCheckOperationResult.Completed -> FastCheckOperationResult.Completed(
+                value = requireNotNull(result.value.witnessReplay),
+            )
+            is FastCheckOperationResult.TimedOut -> result
+        }
     }
 
     private fun reduce(
@@ -251,7 +303,7 @@ internal class FastCheckWitnessCoordinator(
 
         val shrinkDeadline = WitnessReplayDeadline(timeoutMillis = budget)
         return try {
-            val response = client.witness(
+            val result = client.witness(
                 request = request(
                     property = property,
                     candidate = candidate,
@@ -266,14 +318,18 @@ internal class FastCheckWitnessCoordinator(
                 ),
                 remainingMillis = { minOf(deadline.remainingMillis(), shrinkDeadline.remainingMillis()) },
             )
-            requireNotNull(response.witnessReduction).copy(originalEncodedBytes = originalBytes)
+            when (result) {
+                is FastCheckOperationResult.Completed -> requireNotNull(result.value.witnessReduction)
+                    .copy(originalEncodedBytes = originalBytes)
+                is FastCheckOperationResult.TimedOut -> WitnessReduction(
+                    status = WitnessReductionStatus.TIMEOUT,
+                    originalEncodedBytes = originalBytes,
+                    diagnostic = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+                )
+            }
         } catch (error: PbtBackendException) {
             WitnessReduction(
-                status = if (error.kind == BackendErrorKind.TIMEOUT) {
-                    WitnessReductionStatus.TIMEOUT
-                } else {
-                    WitnessReductionStatus.FAILED
-                },
+                status = WitnessReductionStatus.FAILED,
                 originalEncodedBytes = originalBytes,
                 diagnostic = error.code,
             )
@@ -368,6 +424,8 @@ internal class FastCheckWitnessCoordinator(
                 actual.outcome == expected.outcome && actual.failure?.errorName == expected.failure?.errorName
 
         fun classify(replay: WitnessNativeReplay, candidate: ExternalWitnessCandidate): WitnessReplayStatus = when {
+            replay.diagnostic == FastCheckDiagnosticCode.ENTRY_POINT_SOURCE_HASH_MISMATCH ->
+                WitnessReplayStatus.SOURCE_MISMATCH
             replay.outcome == WitnessOracleOutcome.ERROR -> WitnessReplayStatus.PROPERTY_ERROR
             replay.admission == WitnessAdmission.DOMAIN_REJECTED -> WitnessReplayStatus.DOMAIN_REJECTED
             replay.admission == WitnessAdmission.PRECONDITION_REJECTED -> WitnessReplayStatus.PRECONDITION_REJECTED
@@ -382,8 +440,6 @@ internal class FastCheckWitnessCoordinator(
         }
 
         fun PbtBackendException.replayStatus(): WitnessReplayStatus = when {
-            kind == BackendErrorKind.TIMEOUT -> WitnessReplayStatus.TIMEOUT
-            code == "entrypoint.source-hash.mismatch" -> WitnessReplayStatus.SOURCE_MISMATCH
             code.startsWith("js-value.") || code.startsWith("js-number.") -> WitnessReplayStatus.UNREPRESENTABLE_INPUT
             else -> WitnessReplayStatus.REPLAY_ERROR
         }

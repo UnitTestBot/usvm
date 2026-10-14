@@ -11,7 +11,6 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
 /** Completed output of one supervised request-response process. */
 internal data class FastCheckProcessOutput(
@@ -57,6 +56,31 @@ internal class FastCheckProcessTransport(
         reportedTimeoutMillis: Long,
         description: String,
     ): FastCheckProcessOutput {
+        val result = invokeWithResult(
+            command = command,
+            request = request,
+            timeoutMillis = timeoutMillis,
+            reportedTimeoutMillis = reportedTimeoutMillis,
+            description = description,
+        )
+
+        return when (result) {
+            is FastCheckOperationResult.Completed -> result.value
+            is FastCheckOperationResult.TimedOut -> fail(
+                code = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+                message = result.message,
+            )
+        }
+    }
+
+    /** Uses the same supervisor and cleanup as [invoke], exposing timeout without exceptional unwinding. */
+    fun invokeWithResult(
+        command: List<String>,
+        request: String,
+        timeoutMillis: Long,
+        reportedTimeoutMillis: Long,
+        description: String,
+    ): FastCheckOperationResult<FastCheckProcessOutput> {
         require(timeoutMillis > 0) { "Process timeout must be positive" }
         require(command.isNotEmpty()) { "Supervised command must not be empty" }
         requireRequestWithinLimit(request, description)
@@ -67,26 +91,30 @@ internal class FastCheckProcessTransport(
         val tasks = startIoTasks(managedProcess.process, request, description, executor)
 
         try {
-            awaitProcess(
+            val processCompleted = awaitProcess(
                 process = managedProcess.process,
                 tasks = tasks.all,
                 deadlineNanos = deadlineNanos,
-                reportedTimeoutMillis = reportedTimeoutMillis,
                 description = description,
             )
-            awaitIo(
+            if (!processCompleted) return timedOut(description, reportedTimeoutMillis)
+
+            val ioCompleted = awaitIo(
                 tasks = tasks,
                 deadlineNanos = deadlineNanos,
-                reportedTimeoutMillis = reportedTimeoutMillis,
                 description = description,
             )
+            if (!ioCompleted) return timedOut(description, reportedTimeoutMillis)
+
             val stdout = tasks.stdout.completedValue(description)
             val stderr = tasks.stderr.completedValue(description)
 
-            return FastCheckProcessOutput(
-                exitCode = managedProcess.process.exitValue(),
-                stdout = stdout,
-                stderr = stderr,
+            return FastCheckOperationResult.Completed(
+                value = FastCheckProcessOutput(
+                    exitCode = managedProcess.process.exitValue(),
+                    stdout = stdout,
+                    stderr = stderr,
+                ),
             )
         } finally {
             tasks.all.forEach { task -> task.cancel() }
@@ -143,15 +171,14 @@ internal class FastCheckProcessTransport(
         process: Process,
         tasks: List<ProcessIoTask<*>>,
         deadlineNanos: Long,
-        reportedTimeoutMillis: Long,
         description: String,
-    ) {
+    ): Boolean {
         while (true) {
             tasks.forEach { task -> task.throwIfFailed(description) }
 
             val remainingMillis = remainingMillis(deadlineNanos)
             if (remainingMillis <= FORCED_TERMINATION_RESERVE_MILLIS) {
-                timeout(description, reportedTimeoutMillis)
+                return false
             }
 
             val completed = try {
@@ -164,30 +191,41 @@ internal class FastCheckProcessTransport(
                     cause = error,
                 )
             }
-            if (completed) return
+            if (completed) return true
         }
     }
 
     private fun awaitIo(
         tasks: ProcessIoTasks,
         deadlineNanos: Long,
-        reportedTimeoutMillis: Long,
         description: String,
-    ) {
+    ): Boolean {
         while (true) {
             tasks.all.forEach { task -> task.throwIfFailed(description) }
 
-            val pendingTask = tasks.all.firstOrNull { task -> !task.isDone } ?: break
+            val ioCompleted = tasks.all.all { task -> task.isDone }
+            if (ioCompleted) break
 
             val remainingMillis = remainingMillis(deadlineNanos)
             if (remainingMillis <= FORCED_TERMINATION_RESERVE_MILLIS) {
-                timeout(description, reportedTimeoutMillis)
+                return false
             }
 
-            pendingTask.await(minOf(remainingMillis, IO_POLL_MILLIS), description)
+            try {
+                Thread.sleep(minOf(remainingMillis, IO_POLL_MILLIS))
+            } catch (error: InterruptedException) {
+                Thread.currentThread().interrupt()
+                fail(
+                    code = FastCheckDiagnosticCode.BACKEND_PROCESS_INTERRUPTED,
+                    message = "Interrupted while waiting for $description I/O",
+                    cause = error,
+                )
+            }
         }
 
         tasks.all.forEach { task -> task.completedValue(description) }
+
+        return true
     }
 
     private fun startProcess(
@@ -322,8 +360,7 @@ internal class FastCheckProcessTransport(
         runCatching { process.errorStream.close() }
     }
 
-    private fun timeout(description: String, reportedTimeoutMillis: Long): Nothing = fail(
-        code = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+    private fun timedOut(description: String, reportedTimeoutMillis: Long) = FastCheckOperationResult.TimedOut(
         message = "$description exceeded the $reportedTimeoutMillis ms timeout",
     )
 
@@ -372,12 +409,14 @@ private data class ProcessIoTask<T>(
         if (isDone) completedValue(description)
     }
 
-    fun completedValue(description: String): T = requireNotNull(await(waitMillis = 0, description))
+    fun completedValue(description: String): T {
+        check(future.isDone) { "Cannot read the result of pending $operation" }
 
-    fun await(waitMillis: Long, description: String): T? = try {
-        future.get(waitMillis, TimeUnit.MILLISECONDS)
-    } catch (_: TimeoutException) {
-        null
+        return readCompletedValue(description)
+    }
+
+    private fun readCompletedValue(description: String): T = try {
+        future.get()
     } catch (error: InterruptedException) {
         Thread.currentThread().interrupt()
         throw FastCheckTransportException(

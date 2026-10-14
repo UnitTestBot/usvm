@@ -20,6 +20,8 @@ import org.usvm.ts.pbt.model.ArrayIndexGenerator
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
+import org.usvm.ts.pbt.model.JsNumber
+import org.usvm.ts.pbt.model.JsNumberKind
 import org.usvm.ts.pbt.model.PropertyAssertion
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyDomain
@@ -35,6 +37,7 @@ import java.security.MessageDigest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class ExternalWitnessTest {
@@ -350,6 +353,34 @@ class ExternalWitnessTest {
             assertEquals(WitnessReductionStatus.FAILED, result.reduction.status)
             assertNull(result.reduction.inputs)
             assertNull(result.reducedReplay)
+        }
+    }
+
+    @Test
+    fun `invalid number encodings aliases and cycles are rejected before serialization`() {
+        val property = property(predicate = "threshold")
+        val shared = JsConcreteValue.Array(elements = listOf(JsConcreteValue.number(1.0)))
+        val cycleElements = mutableListOf<JsConcreteValue>()
+        val cycle = JsConcreteValue.Array(elements = cycleElements)
+        cycleElements.add(cycle)
+        val inputs = listOf(
+            listOf(JsConcreteValue.Number(number = JsNumber(value = JsNumberKind.FINITE, bits = "not-bits"))),
+            listOf(JsConcreteValue.Array(elements = listOf(shared, shared))),
+            listOf(cycle),
+        )
+
+        for (values in inputs) {
+            val candidate = candidate(property = property, inputs = values)
+            val result = backend.confirmWitness(
+                property = property,
+                candidate = candidate,
+                configuration = configuration
+            )
+
+            assertEquals(WitnessReplayStatus.UNREPRESENTABLE_INPUT, result.status)
+            assertSame(candidate, result.candidate)
+            assertNull(result.originalReplay)
+            assertNull(result.reduction.inputs)
         }
     }
 

@@ -101,8 +101,12 @@ test('source drift and repeated outcome drift are retained explicitly', async ()
   const changed = request('threshold');
   changed.witness.sources[0]!.sha256 = '0'.repeat(64);
 
-  await assert.rejects(executeWitness(changed), (error) => error instanceof ProtocolError
-    && error.code === 'entrypoint.source-hash.mismatch');
+  const stale = (await executeWitness(changed)).witnessReplay;
+
+  assert.equal(stale?.admission, 'UNKNOWN');
+  assert.equal(stale?.outcome, 'UNKNOWN');
+  assert.equal(stale?.diagnostic, 'entrypoint.source-hash.mismatch');
+  assert.equal(stale?.targetMatched, false);
 
   const replay = (await executeWitness(request('nondeterministic'))).witnessReplay;
 
@@ -146,6 +150,33 @@ test('declared domain rejects values independently of shrinking capability', asy
     assert.equal(replay?.outcome, 'SKIPPED');
     assert.equal(replay?.targetMatched, false);
   }
+});
+
+test('shrinking nondeterminism and oracle contract errors return explicit failed reductions', async () => {
+  const cases = [
+    ['nondeterministicShrink', 'Nondeterministic shrinking invocation'],
+    ['shrinkError', 'entrypoint.result.invalid'],
+  ] as const;
+
+  for (const [predicate, diagnostic] of cases) {
+    const base = request(predicate);
+    const original = (await executeWitness(base)).witnessReplay;
+    const result = (await executeWitness({ ...base, witness: { ...base.witness, mode: 'reduce', expected: original } })).witnessReduction;
+
+    assert.equal(original?.outcome, 'FALSE');
+    assert.equal(result?.status, 'FAILED');
+    assert.equal(result?.diagnostic, diagnostic);
+    assert.equal(result?.inputs, undefined);
+  }
+});
+
+test('invalid witness events record an error without interrupting the complete original oracle', async () => {
+  const result = (await executeWitness(request('eventError'))).witnessReplay;
+
+  assert.equal(result?.outcome, 'ERROR');
+  assert.equal(result?.diagnostic, 'witness.events.invalid');
+  assert.equal(result?.targetMatched, false);
+  assert.equal(result?.events.at(-1)?.binding.pointId, 'oracle-completed');
 });
 
 test('malformed witness operation and wrong symbolic failure kind cannot confirm a target', async () => {
