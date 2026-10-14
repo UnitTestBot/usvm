@@ -30,7 +30,10 @@ import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.contains
+import java.nio.ByteBuffer
+import java.nio.file.Files
 import java.nio.file.Path
+import java.security.MessageDigest
 import kotlin.time.TimeSource
 
 private val logger = KotlinLogging.logger {}
@@ -112,7 +115,6 @@ internal class CurrentTsCallsSymbolicEngine(
     private val verifiedProjects = mutableMapOf<Path, String>()
     private val preparedSources = mutableMapOf<Pair<Path, Path>, CallsSourceProject>()
     private var preparedTarget: Pair<CallsSymbolicPreflightRequest, CallsTargetPreparation>? = null
-    private var verifiedNativeFrontendIdentity: String? = null
 
     override fun search(request: CallsSymbolicSearchRequest): CallsSymbolicSearchResult {
         val startedAt = TimeSource.Monotonic.markNow()
@@ -278,9 +280,14 @@ internal class CurrentTsCallsSymbolicEngine(
     private fun prepareSafely(request: CallsSymbolicPreflightRequest): CallsTargetPreparation {
         val cached = preparedTarget
         val cachedRevisionMatches = verifiedProjects[request.sourceRoot] == request.project.revision
-        if (cached?.first == request && cachedRevisionMatches) return cached.second
-
-        val preparation = runCatching { prepare(request) }.getOrElse { error ->
+        val preparation = runCatching {
+            if (cached?.first == request && cachedRevisionMatches) {
+                verifyNativeFrontend(expectedRevision = request.expectedNativeFrontendRevision)
+                cached.second
+            } else {
+                prepare(request)
+            }
+        }.getOrElse { error ->
             CallsTargetPreparation.Rejected(
                 status = CallsSymbolicStatus.TOOL_ERROR,
                 reasonCode = CallsSymbolicPreflightReasonCode.FRONTEND_OR_PREFLIGHT_ERROR,
@@ -321,7 +328,7 @@ internal class CurrentTsCallsSymbolicEngine(
                 cache = verifiedProjects,
             )
         }
-        verifyNativeFrontendOnce(expectedRevision = request.expectedNativeFrontendRevision)
+        verifyNativeFrontend(expectedRevision = request.expectedNativeFrontendRevision)
 
         val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
         require(source.startsWith(request.sourceRoot)) { "Function source escapes its frozen source root" }
@@ -623,7 +630,7 @@ internal class CurrentTsCallsSymbolicEngine(
         diagnostic = diagnostic,
     )
 
-    internal fun verifyNativeFrontendOnce(expectedRevision: String) {
+    internal fun verifyNativeFrontend(expectedRevision: String) {
         val configuredScript = environment("ETS_FRONTEND_SCRIPT")
         require(configuredScript == null) {
             "ETS_FRONTEND_SCRIPT must be unset so the frozen native frontend runtime is used"
@@ -632,11 +639,13 @@ internal class CurrentTsCallsSymbolicEngine(
             require(environment("ETS_FRONTEND_DIR") == null) {
                 "ETS_FRONTEND_DIR must be unset when the bundled native frontend is selected"
             }
+            require(System.getProperty(ETS_FRONTEND_DIR_PROPERTY) == null) {
+                "$ETS_FRONTEND_DIR_PROPERTY must be unset when the bundled native frontend is selected"
+            }
             require(expectedRevision == bundledNativeFrontendRevision) {
                 "Bundled native frontend revision $expectedRevision does not match running build " +
                     bundledNativeFrontendRevision
             }
-            verifiedNativeFrontendIdentity = expectedRevision
             return
         }
 
@@ -644,13 +653,7 @@ internal class CurrentTsCallsSymbolicEngine(
             "ETS_FRONTEND_DIR is required to verify the frozen native frontend revision"
         }
         val frontendDirectory = Path.of(configuredFrontend).toRealPath()
-        val expectedIdentity = "$frontendDirectory@$expectedRevision"
-        if (verifiedNativeFrontendIdentity == expectedIdentity) {
-            return
-        }
-
-        verifyCallsGitCheckout(frontendDirectory, expectedRevision)
-        verifiedNativeFrontendIdentity = expectedIdentity
+        verifyCallsExternalFrontendRuntime(frontendDirectory, expectedRevision)
     }
 
     private fun verifyGitCheckoutOnce(
@@ -759,6 +762,7 @@ internal class CurrentTsCallsSymbolicEngine(
 
     private companion object {
         const val BUNDLED_FRONTEND_PREFIX: String = "bundled:"
+        const val ETS_FRONTEND_DIR_PROPERTY: String = "ets.frontend.dir"
     }
 }
 
@@ -838,6 +842,78 @@ internal fun verifyCallsGitCheckout(checkout: Path, expectedRevision: String) {
     }
     runCallsGit(checkout, "diff", "--quiet", "HEAD", "--")
 }
+
+internal fun verifyCallsExternalFrontendRuntime(expectedIdentity: String) {
+    val configuredFrontend = requireNotNull(System.getenv("ETS_FRONTEND_DIR")) {
+        "ETS_FRONTEND_DIR is required to verify the frozen native frontend runtime"
+    }
+    val frontendDirectory = Path.of(configuredFrontend).toRealPath()
+    verifyCallsExternalFrontendRuntime(frontendDirectory, expectedIdentity)
+}
+
+internal fun verifyCallsExternalFrontendRuntime(frontendDirectory: Path, expectedIdentity: String) {
+    val match = requireNotNull(EXTERNAL_FRONTEND_IDENTITY.matchEntire(expectedIdentity)) {
+        "External native frontend identity must be <40-character Git SHA>@sha256:<64-character runtime digest>"
+    }
+    val expectedRevision = match.groupValues[1]
+    val expectedDigest = match.groupValues[2]
+
+    verifyCallsGitCheckout(frontendDirectory, expectedRevision)
+    val actualDigest = callsExternalFrontendRuntimeDigest(frontendDirectory)
+    require(actualDigest == expectedDigest) {
+        "External native frontend runtime digest differs from frozen identity for $frontendDirectory"
+    }
+}
+
+internal fun callsExternalFrontendIdentity(frontendDirectory: Path): String {
+    val realDirectory = frontendDirectory.toRealPath()
+    val revision = runCallsGit(realDirectory, "rev-parse", "HEAD").trim()
+    verifyCallsGitCheckout(realDirectory, revision)
+    return "$revision@sha256:${callsExternalFrontendRuntimeDigest(realDirectory)}"
+}
+
+private fun callsExternalFrontendRuntimeDigest(frontendDirectory: Path): String {
+    val dist = frontendDirectory.resolve("dist")
+    require(Files.isDirectory(dist)) { "External native frontend dist directory is missing: $dist" }
+
+    val files = Files.walk(dist).use { paths ->
+        paths.iterator().asSequence().filter { path ->
+            require(!Files.isSymbolicLink(path)) { "External native frontend dist contains a symlink: $path" }
+            val isDirectory = Files.isDirectory(path)
+            if (!isDirectory) {
+                require(Files.isRegularFile(path)) { "External native frontend dist contains a non-file: $path" }
+            }
+            !isDirectory
+        }.sortedBy { path -> dist.relativize(path).toString().replace('\\', '/') }.toList()
+    }
+    require(dist.resolve("index.js") in files) { "External native frontend dist is missing index.js: $dist" }
+
+    val digest = MessageDigest.getInstance("SHA-256")
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    for (file in files) {
+        val relativePath = dist.relativize(file).toString().replace('\\', '/')
+        val nameBytes = relativePath.toByteArray(Charsets.UTF_8)
+        val fileSize = Files.size(file)
+        digest.update(ByteBuffer.allocate(Int.SIZE_BYTES).putInt(nameBytes.size).array())
+        digest.update(nameBytes)
+        digest.update(ByteBuffer.allocate(Long.SIZE_BYTES).putLong(fileSize).array())
+
+        var bytesRead = 0L
+        Files.newInputStream(file).use { input ->
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+                bytesRead += count
+            }
+        }
+        require(bytesRead == fileSize) { "External native frontend dist changed while hashing: $file" }
+    }
+
+    return digest.digest().joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and 0xff) }
+}
+
+private val EXTERNAL_FRONTEND_IDENTITY = Regex("([0-9a-f]{40})@sha256:([0-9a-f]{64})")
 
 internal fun runCallsGit(checkout: Path, vararg arguments: String): String {
     val process = ProcessBuilder(listOf("git", "-C", checkout.toString()) + arguments)

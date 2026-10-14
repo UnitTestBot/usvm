@@ -25,6 +25,45 @@ import kotlin.test.assertTrue
 
 class CallsExperimentTest {
     @Test
+    fun `runner rejects changed external frontend bytes before raw publication`(@TempDir directory: Path) {
+        val sourceManifest = frozenGitManifest(directory)
+        val frontend = Files.createDirectory(directory.resolve("frontend"))
+        Files.writeString(frontend.resolve(".gitignore"), "dist/\n")
+        runCallsGit(frontend, "init")
+        runCallsGit(frontend, "config", "user.name", "USVM Tests")
+        runCallsGit(frontend, "config", "user.email", "usvm@example.test")
+        runCallsGit(frontend, "add", ".")
+        runCallsGit(frontend, "commit", "-m", "Create frontend fixture")
+        val dist = Files.createDirectory(frontend.resolve("dist"))
+        val script = dist.resolve("index.js")
+        Files.writeString(script, "original script")
+        Files.writeString(dist.resolve("lib.d.ts"), "original library")
+        val frontendIdentity = callsExternalFrontendIdentity(frontend)
+        val manifest = sourceManifest.copy(nativeFrontendRevision = frontendIdentity)
+        val rawOutput = directory.resolve("results.jsonl")
+        val engine = CallsSymbolicEngine {
+            Files.writeString(script, "changed script")
+            result(status = CallsSymbolicStatus.UNREACHED)
+        }
+
+        val failure = assertFailsWith<IllegalArgumentException> {
+            CallsExperimentRunner(
+                symbolicEngine = engine,
+                targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("Replay must not run") },
+                runtimeToolRevision = FIXTURE_TOOL_REVISION,
+                frontendRuntimeVerifier = { identity -> verifyCallsExternalFrontendRuntime(frontend, identity) },
+            ).run(
+                manifest = manifest,
+                manifestDirectory = directory,
+                rawOutput = rawOutput,
+            )
+        }
+
+        assertTrue(failure.message.orEmpty().contains("runtime digest differs"))
+        assertFalse(Files.exists(rawOutput))
+    }
+
+    @Test
     fun `runner rejects a source edit during symbolic search before replay or publication`(@TempDir directory: Path) {
         val frozenManifest = frozenGitManifest(directory)
         val sourceFile = directory.resolve("source/fixture.ts")
@@ -682,7 +721,7 @@ class CallsExperimentTest {
         schemaVersion = CallsExperimentManifest.SCHEMA_VERSION,
         experimentId = "fixture",
         toolRevision = FIXTURE_TOOL_REVISION,
-        nativeFrontendRevision = "frontend-revision",
+        nativeFrontendRevision = "bundled:test",
         solver = "YICES",
         searchPolicy = CALLS_PATH_SELECTION_STRATEGY.name,
         modelSet = CallsModelSetIdentity(

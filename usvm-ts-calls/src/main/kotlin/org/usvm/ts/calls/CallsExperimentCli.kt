@@ -18,6 +18,7 @@ fun main(args: Array<String>) {
         "coverage-cell" -> runCoverageCell(args.drop(1))
         "replay-witness" -> replayWitness(args.drop(1))
         "summarize" -> summarize(args.drop(1))
+        "frontend-identity" -> System.out.appendLine(frontendIdentity(args.drop(1)))
         else -> error(usage())
     }
 }
@@ -91,6 +92,12 @@ private fun summarize(args: List<String>) {
     Files.writeString(output, json.encodeToUtf8SafeString(summary) + "\n")
 }
 
+internal fun frontendIdentity(args: List<String>): String {
+    require(args.size == 1) { usage() }
+    val frontendDirectory = Path.of(args.single()).toRealPath()
+    return callsExternalFrontendIdentity(frontendDirectory)
+}
+
 private fun usage(): String = """
     Usage:
       calls class-catalog
@@ -102,6 +109,7 @@ private fun usage(): String = """
       calls coverage-cell <source-manifest.json> <project-index> <function-index> <profile> <seed> <output-directory> <budget-ms> <solver-limit-ms> <candidate-cap> <universe.json>
       calls replay-witness <frozen-manifest.json> <results.jsonl> <project-id> <function-id> <target-id> <profile> <seed>
       calls summarize <results.jsonl> <summary.json>
+      calls frontend-identity <external-frontend-directory>
 """.trimIndent()
 
 private const val REPLAY_WITNESS_ARGUMENT_COUNT = 7

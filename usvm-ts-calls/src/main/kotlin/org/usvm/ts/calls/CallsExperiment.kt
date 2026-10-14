@@ -289,6 +289,7 @@ internal class CallsExperimentRunner(
     private val runtimeToolRevision: String = CallsBuildIdentity.toolRevision,
     private val eventRecordWriter: ((Path, CallsRawRecord) -> Unit)? = null,
     private val sourceCheckoutVerifier: (Path, String) -> Unit = ::verifyCallsGitCheckout,
+    private val frontendRuntimeVerifier: (String) -> Unit = ::verifyCallsExternalFrontendRuntime,
 ) {
     fun run(
         manifest: CallsExperimentManifest,
@@ -359,6 +360,9 @@ internal class CallsExperimentRunner(
         manifest.projects.forEach { project ->
             val sourceRoot = manifestDirectory.resolve(project.sourceRoot).normalize().toRealPath()
             sourceCheckoutVerifier(sourceRoot, project.revision)
+        }
+        if (!manifest.nativeFrontendRevision.startsWith("bundled:")) {
+            frontendRuntimeVerifier(manifest.nativeFrontendRevision)
         }
 
         Files.move(
