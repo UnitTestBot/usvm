@@ -7,10 +7,12 @@ import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.backend.SourceFileCoverage
+import org.usvm.ts.pbt.backend.SourceRange
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
 import org.usvm.ts.pbt.fastcheck.FastCheckRuntime
 import org.usvm.ts.pbt.fastcheck.TypeScriptSourceInspector
 import org.usvm.ts.pbt.model.BooleanDomain
+import org.usvm.ts.pbt.model.ExecutionKind
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
@@ -71,7 +73,7 @@ internal class OriginalTypeScriptCoverageReplayer(
     }
 
     private fun prepareReplay(): CoverageReplaySetup {
-        require(function.entryPoint.executionKind == org.usvm.ts.pbt.model.ExecutionKind.SYNC) {
+        require(function.entryPoint.executionKind == ExecutionKind.SYNC) {
             "Coverage replay requires a synchronous entry point"
         }
         val source = sourceRoot.resolve(function.sourceFile).normalize()
@@ -262,7 +264,7 @@ private fun collectHits(
     }
 }
 
-private fun org.usvm.ts.pbt.backend.SourceRange.stableKey(): String =
+private fun SourceRange.stableKey(): String =
     "${start.line}:${start.column}-${end.line}:${end.column}"
 
 private fun coverageWrapper(
@@ -302,8 +304,9 @@ private fun coverageWrapper(
             return { kind: 'number', value: 'finite', bits };
           }
           if (Array.isArray(value)) return { kind: 'array', elements: value.map(encodeValue) };
-          if (value !== null && typeof value === 'object' &&
-              (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)) {
+          const isPlainObject = value !== null && typeof value === 'object' &&
+            (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+          if (isPlainObject) {
             const fields = Object.fromEntries(Object.entries(value).map(([name, field]) => {
               if (['__proto__', 'constructor', 'prototype'].includes(name)) {
                 throw new Error('Unsupported replay object property name');
