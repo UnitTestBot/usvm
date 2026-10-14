@@ -187,6 +187,7 @@ export class StringModels {
         }
         return result + StringModels.slice(receiver, endOfLastMatch, length);
     }
+
     private static substitution(receiver: string, search: string, replacement: string, position: number): string {
         const replacementLength = replacement.length;
         let result = "";
