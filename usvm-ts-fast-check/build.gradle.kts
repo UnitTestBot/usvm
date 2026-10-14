@@ -7,13 +7,13 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":usvm-ts-pbt"))
+    api(project(":usvm-ts-pbt"))
+    implementation(project(":usvm-core"))
+    implementation(project(":usvm-ts"))
+    implementation(Libs.jacodb_ets)
     implementation(Libs.clikt)
     implementation(Libs.kotlinx_serialization_json)
 
-    testImplementation(project(":usvm-core"))
-    testImplementation(project(":usvm-ts"))
-    testImplementation(Libs.jacodb_ets)
     testImplementation(Libs.logback)
 }
 

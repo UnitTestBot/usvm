@@ -75,14 +75,31 @@ enum class PropertyFailureKind {
 
 /** Stable failure details that exclude runtime-dependent Node stack traces. */
 @Serializable
-data class PropertyFailureDetails(
+data class PropertyFailureDetails @JvmOverloads constructor(
     val kind: PropertyFailureKind,
     val errorName: String,
     val message: String,
+    val checkId: String? = null,
+    val actual: JsConcreteValue? = null,
+    val expected: JsConcreteValue? = null,
 ) {
     init {
         require(errorName.isNotBlank()) { "Failure error name must not be blank" }
     }
+
+    /** Retains the original copy/default-argument JVM signatures for existing consumers. */
+    fun copy(
+        kind: PropertyFailureKind = this.kind,
+        errorName: String = this.errorName,
+        message: String = this.message,
+    ): PropertyFailureDetails = PropertyFailureDetails(
+        kind = kind,
+        errorName = errorName,
+        message = message,
+        checkId = checkId,
+        actual = actual,
+        expected = expected,
+    )
 }
 
 /** Structured outcome of one concrete property run. */

@@ -14,6 +14,30 @@ import {
   type FastCheckRunResult,
 } from '../src/execute-property.js';
 
+test('shrinking a named check does not switch to another violated check', async () => {
+  await withPropertyModule(async (sourceRoot) => {
+    await writeFile(path.join(sourceRoot, 'properties.ts'), `
+      export function predicate(value: number) { return value < 0; }
+      export function outcome(value: number) {
+        if (value === 0) return { passed: false, checkId: 'zero', actual: value, expected: -1 };
+        if (value > 0) return { passed: false, checkId: 'positive', actual: value, expected: -1 };
+        return { passed: true, checkId: '', actual: true, expected: true };
+      }
+    `);
+    const request = executionRequest(sourceRoot, 'predicate');
+    request.manifest.predicate.checkResultExportName = 'outcome';
+    request.examples = [[encodeJsValue(10)]];
+
+    const result = (await executeProperty(request)).result;
+    const replay = (await executeProperty({ ...request, seed: result.seed, replayPath: result.replayPath })).result;
+
+    assert.equal(result.failure?.checkId, 'positive');
+    assert.deepEqual(result.counterexample, [encodeJsValue(1)]);
+    assert.deepEqual(replay.failure, result.failure);
+    assert.deepEqual(replay.counterexample, result.counterexample);
+  });
+});
+
 test('pinned fast-check callback shim preserves length assertion outcomes on bounded arrays', async () => {
   const fixture = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),

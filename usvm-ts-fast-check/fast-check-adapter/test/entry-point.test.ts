@@ -4,7 +4,52 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { ProtocolError } from '../src/js-value.js';
-import { loadEntryPoint } from '../src/entry-point.js';
+import { loadEntryPoint, NamedCheckFailure } from '../src/entry-point.js';
+
+test('generated companions return named diagnostics from one invocation', async () => {
+  await withWorkspace(async (workspace) => {
+    await writeFile(path.join(workspace, 'generated.ts'), `
+      export function predicate() { throw new Error('The boolean entry point must not run again'); }
+      export function outcome(value: number) {
+        return { passed: value === 0, checkId: 'identity', actual: value, expected: 0 };
+      }
+    `);
+    const loaded = await loadEntryPoint(
+      { module: 'generated.ts', exportName: 'predicate', executionKind: 'sync', checkResultExportName: 'outcome' },
+      [workspace],
+      'predicate',
+    );
+
+    assert.equal(loaded.invoke([0]), true);
+    assert.throws(() => loaded.invoke([3]), (error: unknown) => {
+      assert.ok(error instanceof NamedCheckFailure);
+      assert.equal(error.checkId, 'identity');
+      assert.equal(error.actual, 3);
+      assert.equal(error.expected, 0);
+      return true;
+    });
+  });
+});
+
+test('malformed generated companion results are contract errors', async () => {
+  await withWorkspace(async (workspace) => {
+    await writeFile(path.join(workspace, 'generated.ts'), `
+      export function predicate() { return true; }
+      export function outcome() { return { passed: 1, checkId: 'broken' }; }
+    `);
+    const loaded = await loadEntryPoint(
+      { module: 'generated.ts', exportName: 'predicate', executionKind: 'sync', checkResultExportName: 'outcome' },
+      [workspace],
+      'predicate',
+    );
+
+    assert.throws(() => loaded.invoke([]), (error: unknown) => {
+      assert.ok(error instanceof ProtocolError);
+      assert.equal(error.code, 'entrypoint.result.invalid');
+      return true;
+    });
+  });
+});
 
 test('loads and invokes a TypeScript function directly from a source root', async () => {
   await withWorkspace(async (workspace) => {

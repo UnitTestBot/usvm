@@ -7,6 +7,7 @@ import {
 } from './diagnostics.js';
 import {
   EntryPointInvocationError,
+  isNamedCheckFailure,
   type ExecutionKind,
   loadEntryPoint,
   verifySourceHash,
@@ -80,6 +81,9 @@ export interface FastCheckFailureDetails {
   kind: 'property' | 'precondition-exhausted' | 'timeout';
   errorName: string;
   message: string;
+  checkId?: string;
+  actual?: TaggedJsValue;
+  expected?: TaggedJsValue;
 }
 
 export interface FastCheckRunResult {
@@ -155,6 +159,7 @@ function buildProperty(
   phaseOf: (values: JsConcreteValue[]) => 'generation' | 'explicit' | 'shrink' | 'replay' | 'unknown',
 ): fc.IProperty<[JsConcreteValue[]]> | fc.IAsyncProperty<[JsConcreteValue[]]> {
   const asynchronous = predicate.executionKind === 'async' || precondition?.executionKind === 'async';
+  let selectedCheckId: string | undefined;
 
   if (asynchronous) {
     return fc.asyncProperty(arbitrary, (values: JsConcreteValue[]): Promise<boolean> => preserveAsyncContractError(
@@ -171,7 +176,17 @@ function buildProperty(
   return fc.property(arbitrary, (values: JsConcreteValue[]): boolean => preserveContractError(
     contractErrors,
     () => {
-      const result = invokePropertyOnce(values, predicate, precondition, recorder, phaseOf(values)) as boolean | null;
+      let result: boolean | null;
+      try {
+        result = invokePropertyOnce(values, predicate, precondition, recorder, phaseOf(values)) as boolean | null;
+      } catch (error: unknown) {
+        if (isNamedCheckFailure(error)) {
+          selectedCheckId ??= error.checkId;
+          // Shrinking must preserve the check selected by the initial counterexample.
+          if (error.checkId !== selectedCheckId) return true;
+        }
+        throw error;
+      }
       if (result === null) fc.pre(false);
 
       return result;
@@ -208,7 +223,7 @@ function invokePropertyOnce(
 
           return result;
         } catch (error: unknown) {
-          recorder?.finish('admitted', 'threw');
+          recorder?.finish('admitted', predicateExceptionOutcome(error));
           throw error;
         }
       })();
@@ -231,12 +246,16 @@ function invokePropertyOnce(
 
       return result;
     } catch (error: unknown) {
-      recorder?.finish('admitted', 'threw');
+      recorder?.finish('admitted', predicateExceptionOutcome(error));
       throw error;
     }
   };
 
   return recorder === undefined ? invoke() : recorder.run(values, phase, invoke);
+}
+
+function predicateExceptionOutcome(error: unknown): 'false' | 'threw' {
+  return isNamedCheckFailure(error) && error.exception === undefined ? 'false' : 'threw';
 }
 
 interface ContractErrorState {
@@ -436,6 +455,21 @@ function failureDetails(details: RunDetails<[JsConcreteValue[]]>): FastCheckFail
   const error = details.errorInstance instanceof EntryPointInvocationError
     ? details.errorInstance.thrownValue
     : details.errorInstance;
+
+  if (isNamedCheckFailure(error)) {
+    const description = error.exception === undefined
+      ? describePropertyFailure(error)
+      : describePropertyFailure(error.exception.value);
+    return {
+      kind: 'property',
+      ...description,
+      checkId: error.checkId,
+      ...(error.exception === undefined ? {
+        actual: encodeJsValue(error.actual),
+        expected: encodeJsValue(error.expected),
+      } : {}),
+    };
+  }
 
   return {
     kind: 'property',
@@ -783,11 +817,15 @@ function validateEntryPoint(value: unknown, entryPath: string): TypeScriptEntryP
   );
 
   const executionKind = entryPoint.executionKind;
+  const checkResultExportName = entryPoint.checkResultExportName;
   const valid = typeof entryPoint.module === 'string'
     && entryPoint.module.length > 0
     && typeof entryPoint.exportName === 'string'
     && entryPoint.exportName.length > 0
-    && (executionKind === 'sync' || executionKind === 'async');
+    && (executionKind === 'sync' || executionKind === 'async')
+    && (checkResultExportName === undefined
+      || typeof checkResultExportName === 'string' && checkResultExportName.length > 0
+      && executionKind === 'sync' && entryPath !== 'manifest.precondition');
   if (!valid) {
     throw protocolError(
       adapterDiagnostic.protocolEntryPointInvalid,
@@ -800,6 +838,7 @@ function validateEntryPoint(value: unknown, entryPath: string): TypeScriptEntryP
     module: entryPoint.module as string,
     exportName: entryPoint.exportName as string,
     executionKind: executionKind as ExecutionKind,
+    ...(checkResultExportName === undefined ? {} : { checkResultExportName: checkResultExportName as string }),
   };
 }
 
