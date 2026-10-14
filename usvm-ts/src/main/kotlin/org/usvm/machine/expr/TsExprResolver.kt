@@ -1597,6 +1597,23 @@ class TsSimpleValueResolver(
     private val scope: TsStepScope,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
+    private fun hasSourceBinding(local: EtsLocal): Boolean {
+        val currentMethod = scope.calcOnState { lastEnteredMethod }
+        val isCurrentLocal = ctx.getLocalIdx(local, currentMethod) != null
+        val isParameter = currentMethod.parameters.any { it.name == local.name }
+        if (isCurrentLocal || isParameter) return true
+
+        val currentFile = currentMethod.enclosingClass?.declaringFile
+        val defaultClass = currentFile?.classes?.firstOrNull { it.name == DEFAULT_ARK_CLASS_NAME }
+        val defaultMethod = defaultClass?.methods?.firstOrNull { it.name == DEFAULT_ARK_METHOD_NAME }
+        val isGlobal = defaultMethod?.cfg?.stmts
+            ?.filterIsInstance<EtsAssignStmt>()
+            ?.any { (it.lhv as? EtsLocal)?.name == local.name } == true
+        val isImported = currentFile?.importInfos?.any { it.name == local.name } == true
+
+        return isGlobal || isImported
+    }
+
     private fun resolveLocal(local: EtsValue): UExpr<*>? = with(ctx) {
         check(local is EtsLocal || local is EtsThis || local is EtsParameterRef) {
             "Expected EtsLocal, EtsThis, or EtsParameterRef, but got ${local::class.java}: $local"
@@ -1669,7 +1686,8 @@ class TsSimpleValueResolver(
         }
 
         // If local is a global variable:
-        if (globals.any { it.name == local.name }) {
+        val isGlobal = globals.any { it.name == local.name }
+        if (isGlobal) {
             logger.info { "Reading global variable: $local in $file" }
             return readGlobal(scope, file, local.name)
         }
@@ -1705,11 +1723,16 @@ class TsSimpleValueResolver(
     }
 
     override fun visit(local: EtsLocal): UExpr<out USort>? {
+        val isNonFiniteNumericName = local.name == "NaN" || local.name == "Infinity"
+        if (isNonFiniteNumericName && hasSourceBinding(local)) {
+            return resolveLocal(local)
+        }
+
         if (local.name == "NaN") {
             return ctx.mkFp64NaN()
         }
         if (local.name == "Infinity") {
-            return ctx.mkFpInf(false, ctx.fp64Sort)
+            return ctx.mkFpInf(signBit = false, ctx.fp64Sort)
         }
 
         if (local.name.startsWith(NAMED_FUNCTION_REFERENCE_PREFIX)) {
