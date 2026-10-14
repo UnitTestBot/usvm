@@ -396,9 +396,11 @@ class TsExprResolver(
 
         // The native frontend saves ToNumeric's result and writes the source target
         // in a separate assignment. Mutating that snapshot would corrupt postfix results.
-        val numericSnapshot = target is EtsLocal && target.name.startsWith("%") && scope.calcOnState {
+        val frontendTemp = target as? EtsLocal
+        val isFrontendTemp = frontendTemp?.name?.startsWith("%") == true
+        val numericSnapshot = isFrontendTemp && scope.calcOnState {
             lastEnteredMethod.cfg.stmts.any { stmt ->
-                stmt is EtsAssignStmt && stmt.lhv == target && stmt.rhv is EtsToNumericExpr
+                stmt is EtsAssignStmt && stmt.lhv == frontendTemp && stmt.rhv is EtsToNumericExpr
             }
         }
         if (numericSnapshot) return updatedValue
