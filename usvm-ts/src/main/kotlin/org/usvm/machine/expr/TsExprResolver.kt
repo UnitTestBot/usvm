@@ -1066,17 +1066,11 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsLtEqExpr): UExpr<out USort>? {
-        val eq = resolve(EtsEqExpr(expr.left, expr.right)) ?: return null
-        val lt = resolve(EtsLtExpr(expr.left, expr.right)) ?: return null
-
-        return ctx.mkOr(eq.asExpr(ctx.boolSort), lt.asExpr(ctx.boolSort))
+        return resolveBinaryOperator(TsBinaryOperator.LtEq, expr)
     }
 
     override fun visit(expr: EtsGtEqExpr): UExpr<out USort>? {
-        val eq = resolve(EtsEqExpr(expr.left, expr.right)) ?: return null
-        val gt = resolve(EtsGtExpr(expr.left, expr.right)) ?: return null
-
-        return ctx.mkOr(eq.asExpr(ctx.boolSort), gt.asExpr(ctx.boolSort))
+        return resolveBinaryOperator(TsBinaryOperator.GtEq, expr)
     }
 
     override fun visit(expr: EtsInExpr): UExpr<out USort>? = with(ctx) {

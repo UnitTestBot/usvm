@@ -174,13 +174,13 @@ private fun TsContext.relationalComparison(
     rhs: UExpr<*>,
     scope: TsStepScope,
     activeGuard: UBoolExpr,
-    reversed: Boolean,
+    comparison: TsBinaryOperator.Relational.Comparison,
 ): UBoolExpr {
     if (lhs is UIteExpr<*>) {
         val trueGuard = mkAnd(activeGuard, lhs.condition)
         val falseGuard = mkAnd(activeGuard, mkNot(lhs.condition))
-        val trueResult = relationalComparison(lhs.trueBranch, rhs, scope, trueGuard, reversed)
-        val falseResult = relationalComparison(lhs.falseBranch, rhs, scope, falseGuard, reversed)
+        val trueResult = relationalComparison(lhs.trueBranch, rhs, scope, trueGuard, comparison)
+        val falseResult = relationalComparison(lhs.falseBranch, rhs, scope, falseGuard, comparison)
 
         return mkIte(lhs.condition, trueResult, falseResult)
     }
@@ -188,8 +188,8 @@ private fun TsContext.relationalComparison(
     if (rhs is UIteExpr<*>) {
         val trueGuard = mkAnd(activeGuard, rhs.condition)
         val falseGuard = mkAnd(activeGuard, mkNot(rhs.condition))
-        val trueResult = relationalComparison(lhs, rhs.trueBranch, scope, trueGuard, reversed)
-        val falseResult = relationalComparison(lhs, rhs.falseBranch, scope, falseGuard, reversed)
+        val trueResult = relationalComparison(lhs, rhs.trueBranch, scope, trueGuard, comparison)
+        val falseResult = relationalComparison(lhs, rhs.falseBranch, scope, falseGuard, comparison)
 
         return mkIte(rhs.condition, trueResult, falseResult)
     }
@@ -202,13 +202,23 @@ private fun TsContext.relationalComparison(
 
     val leftNumber = mkNumericExprWithGuard(expr = lhs, scope = scope, activeGuard = numericGuard)
     val rightNumber = mkNumericExprWithGuard(expr = rhs, scope = scope, activeGuard = numericGuard)
-    val numericResult = if (reversed) mkFpGreaterExpr(leftNumber, rightNumber) else mkFpLessExpr(leftNumber, rightNumber)
+    val numericResult = when (comparison) {
+        TsBinaryOperator.Relational.Comparison.LT -> mkFpLessExpr(leftNumber, rightNumber)
+        TsBinaryOperator.Relational.Comparison.GT -> mkFpGreaterExpr(leftNumber, rightNumber)
+        TsBinaryOperator.Relational.Comparison.LTE -> mkFpLessOrEqualExpr(leftNumber, rightNumber)
+        TsBinaryOperator.Relational.Comparison.GTE -> mkFpGreaterOrEqualExpr(leftNumber, rightNumber)
+    }
     if (lhsReference == null || rhsReference == null) return numericResult
 
-    val stringResult = if (reversed) {
-        stringValueLessThan(rhsReference, lhsReference, scope, stringGuard)
-    } else {
-        stringValueLessThan(lhsReference, rhsReference, scope, stringGuard)
+    val stringResult = when (comparison) {
+        TsBinaryOperator.Relational.Comparison.LT ->
+            stringValueLessThan(lhsReference, rhsReference, scope, stringGuard)
+        TsBinaryOperator.Relational.Comparison.GT ->
+            stringValueLessThan(rhsReference, lhsReference, scope, stringGuard)
+        TsBinaryOperator.Relational.Comparison.LTE ->
+            mkNot(stringValueLessThan(rhsReference, lhsReference, scope, stringGuard))
+        TsBinaryOperator.Relational.Comparison.GTE ->
+            mkNot(stringValueLessThan(lhsReference, rhsReference, scope, stringGuard))
     }
 
     return mkIte(bothStrings, stringResult, numericResult)
@@ -1487,14 +1497,18 @@ sealed interface TsBinaryOperator {
         }
     }
 
-    data object Lt : TsBinaryOperator {
+    sealed interface Relational : TsBinaryOperator {
+        enum class Comparison { LT, GT, LTE, GTE }
+
+        val comparison: Comparison
+
         override fun TsContext.resolve(
             lhs: UExpr<*>,
             rhs: UExpr<*>,
             scope: TsStepScope,
             activeGuard: UBoolExpr,
         ): UBoolExpr {
-            return relationalComparison(lhs, rhs, scope, activeGuard, reversed = false)
+            return relationalComparison(lhs, rhs, scope, activeGuard, comparison)
         }
 
         override fun TsContext.onRefWithGuard(
@@ -1516,7 +1530,7 @@ sealed interface TsBinaryOperator {
             rhs: UBoolExpr,
             scope: TsStepScope,
         ): UBoolExpr {
-            return mkAnd(lhs.not(), rhs)
+            return onFp(boolToFp(lhs), boolToFp(rhs), scope)
         }
 
         override fun TsContext.onFp(
@@ -1524,7 +1538,12 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<KFp64Sort>,
             scope: TsStepScope,
         ): UBoolExpr {
-            return mkFpLessExpr(lhs, rhs)
+            return when (comparison) {
+                Comparison.LT -> mkFpLessExpr(lhs, rhs)
+                Comparison.GT -> mkFpGreaterExpr(lhs, rhs)
+                Comparison.LTE -> mkFpLessOrEqualExpr(lhs, rhs)
+                Comparison.GTE -> mkFpGreaterOrEqualExpr(lhs, rhs)
+            }
         }
 
         override fun TsContext.onRef(
@@ -1552,69 +1571,20 @@ sealed interface TsBinaryOperator {
         }
     }
 
-    data object Gt : TsBinaryOperator {
-        override fun TsContext.resolve(
-            lhs: UExpr<*>,
-            rhs: UExpr<*>,
-            scope: TsStepScope,
-            activeGuard: UBoolExpr,
-        ): UBoolExpr {
-            return relationalComparison(lhs, rhs, scope, activeGuard, reversed = true)
-        }
+    data object Lt : Relational {
+        override val comparison = Relational.Comparison.LT
+    }
 
-        override fun TsContext.onRefWithGuard(
-            lhs: UHeapRef,
-            rhs: UHeapRef,
-            scope: TsStepScope,
-            activeGuard: UBoolExpr,
-        ): UBoolExpr = resolve(lhs, rhs, scope, activeGuard)
+    data object Gt : Relational {
+        override val comparison = Relational.Comparison.GT
+    }
 
-        override fun TsContext.resolveFakeObjectWithGuard(
-            lhs: UExpr<*>,
-            rhs: UExpr<*>,
-            scope: TsStepScope,
-            activeGuard: UBoolExpr,
-        ): UBoolExpr = resolve(lhs, rhs, scope, activeGuard)
+    data object LtEq : Relational {
+        override val comparison = Relational.Comparison.LTE
+    }
 
-        override fun TsContext.onBool(
-            lhs: UBoolExpr,
-            rhs: UBoolExpr,
-            scope: TsStepScope,
-        ): UBoolExpr {
-            return mkAnd(lhs, rhs.not())
-        }
-
-        override fun TsContext.onFp(
-            lhs: UExpr<KFp64Sort>,
-            rhs: UExpr<KFp64Sort>,
-            scope: TsStepScope,
-        ): UBoolExpr {
-            return mkFpGreaterExpr(lhs, rhs)
-        }
-
-        override fun TsContext.onRef(
-            lhs: UHeapRef,
-            rhs: UHeapRef,
-            scope: TsStepScope,
-        ): UBoolExpr {
-            return resolve(lhs, rhs, scope, activeGuard = trueExpr)
-        }
-
-        override fun TsContext.resolveFakeObject(
-            lhs: UExpr<*>,
-            rhs: UExpr<*>,
-            scope: TsStepScope,
-        ): UBoolExpr {
-            return resolve(lhs, rhs, scope, activeGuard = trueExpr)
-        }
-
-        override fun TsContext.internalResolve(
-            lhs: UExpr<*>,
-            rhs: UExpr<*>,
-            scope: TsStepScope,
-        ): UBoolExpr {
-            return resolve(lhs, rhs, scope, activeGuard = trueExpr)
-        }
+    data object GtEq : Relational {
+        override val comparison = Relational.Comparison.GTE
     }
 
     sealed interface TsArithmeticOperator : TsBinaryOperator {

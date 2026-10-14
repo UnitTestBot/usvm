@@ -44,6 +44,51 @@ class TsStringRelationalTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `inclusive comparisons coerce null and primitive strings while rejecting unordered numbers`() {
+        val methodNames = listOf(
+            "inclusiveNullAndNumber",
+            "inclusiveMixedStringAndNumber",
+            "inclusiveUnordered",
+        )
+
+        for (name in methodNames) {
+            val method = getMethod(methodName = name, className = "StringRelational")
+
+            discoverProperties<TsTestValue.TsNumber>(
+                method = method,
+                { result -> result.number == 1.0 },
+                invariants = arrayOf({ result -> result.number == 1.0 }),
+            )
+        }
+    }
+
+    @Test
+    fun `inclusive symbolic string comparisons include equal values`() {
+        val comparisons = mapOf<String, (String, String) -> Boolean>(
+            "symbolicLessOrEqual" to { left, right -> left <= right },
+            "symbolicGreaterOrEqual" to { left, right -> left >= right },
+        )
+
+        comparisons.forEach { (name, expected) ->
+            val method = getMethod(methodName = name, className = "StringRelational")
+
+            discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsNumber>(
+                method = method,
+                { left, right, result -> left.value == right.value && result.number == 1.0 },
+                { left, right, result ->
+                    left.value != right.value && expected(left.value, right.value) && result.number == 1.0
+                },
+                { left, right, result -> !expected(left.value, right.value) && result.number == 2.0 },
+                invariants = arrayOf({ left, right, result ->
+                    val expectedResult = if (expected(left.value, right.value)) 1.0 else 2.0
+
+                    result.number == expectedResult
+                }),
+            )
+        }
+    }
+
+    @Test
     fun `symbolic string pairs compare their source values`() {
         val method = getMethod(methodName = "symbolicLess", className = "StringRelational")
 

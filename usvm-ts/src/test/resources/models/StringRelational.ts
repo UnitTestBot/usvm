@@ -16,6 +16,31 @@ class StringRelational {
         return "2" < 10 && 10 > "2" && !("2" < 1) ? 1 : 0;
     }
 
+    inclusiveNullAndNumber(): number {
+        return null <= 0 && null >= 0 && 0 <= null && 0 >= null &&
+            !(null <= -1) && !(null >= 1) ? 1 : 0;
+    }
+
+    inclusiveMixedStringAndNumber(): number {
+        const two: any = "2";
+        return two <= 2 && two >= 2 && 2 <= two && 2 >= two ? 1 : 0;
+    }
+
+    inclusiveUnordered(): number {
+        const missing: any = undefined;
+        const nan = 0 / 0;
+        return !(missing <= 0) && !(missing >= 0) &&
+            !(nan <= 0) && !(nan >= 0) ? 1 : 0;
+    }
+
+    symbolicLessOrEqual(left: string, right: string): number {
+        return left <= right ? 1 : 2;
+    }
+
+    symbolicGreaterOrEqual(left: string, right: string): number {
+        return left >= right ? 1 : 2;
+    }
+
     symbolicLess(left: string, right: string): number {
         return left < right ? 1 : 2;
     }
