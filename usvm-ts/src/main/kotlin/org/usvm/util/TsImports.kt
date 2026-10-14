@@ -130,7 +130,11 @@ private fun resolveSymbolInFile(
 
     return when (importType) {
         EtsImportType.DEFAULT -> {
-            val defaultExport = exports.find { it.isDefaultExport }
+            val defaultExport = exports.find { export ->
+                val hasPublicDefaultName = export.name == "default"
+                val isDirectDefaultDeclaration = !export.isReExport && export.isDefault
+                hasPublicDefaultName || isDirectDefaultDeclaration
+            }
             if (defaultExport != null) {
                 SymbolResolutionResult.Success(targetFile, defaultExport)
             } else {

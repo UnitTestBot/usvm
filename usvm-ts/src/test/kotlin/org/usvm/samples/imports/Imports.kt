@@ -5,9 +5,13 @@ import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
+import org.usvm.util.SymbolResolutionResult
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
 import org.usvm.util.getResourcePath
+import org.usvm.util.resolveImportInfo
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
 
 class Imports : TsMethodTestRunner() {
     private val tsPath = "/samples/imports"
@@ -123,6 +127,31 @@ class Imports : TsMethodTestRunner() {
                 { _ -> true }
             )
         )
+    }
+
+    @Test
+    fun `default import selects public default after renamed source default`() {
+        val method = getMethod("getDefaultAfterRenamedReExport")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 42 },
+            invariants = arrayOf(
+                { result -> result eq 42 }
+            )
+        )
+    }
+
+    @Test
+    fun `default import retains named default declaration resolution`() {
+        val method = getMethod("getDefaultValue")
+        val sourceFile = method.enclosingClass!!.declaringFile!!
+        val importInfo = sourceFile.importInfos.single { it.name == "namedDefaultFunction" }
+
+        val result = scene.resolveImportInfo(sourceFile, importInfo)
+
+        assertIs<SymbolResolutionResult.Success>(result)
+        assertEquals("namedDefaultFunction", result.exportInfo.name)
     }
 
     @Test
