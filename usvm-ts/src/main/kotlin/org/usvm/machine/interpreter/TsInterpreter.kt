@@ -137,6 +137,7 @@ class TsInterpreter(
                 null
             }
             scope.doWithState {
+                failStaticsInitialization(throwingMethod, result)
                 leaveUnknownCallModelIfReturning()
                 val returnSite = callStack.pop()
                 if (callStack.isNotEmpty()) {

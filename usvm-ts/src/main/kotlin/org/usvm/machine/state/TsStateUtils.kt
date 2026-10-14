@@ -5,6 +5,7 @@ import org.jacodb.ets.model.EtsStmt
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.TsEntryPointGuardResultStmt
+import org.usvm.machine.interpreter.completeStaticsInitialization
 import org.usvm.util.type
 
 val TsState.lastStmt: EtsStmt
@@ -16,6 +17,7 @@ fun TsState.newStmt(stmt: EtsStmt) {
 
 fun TsState.returnValue(valueToReturn: UExpr<out USort>) {
     val returnFromMethod = callStack.lastMethod()
+    completeStaticsInitialization(returnFromMethod)
     leaveUnknownCallModelIfReturning()
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) {
