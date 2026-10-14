@@ -3,6 +3,7 @@ package org.usvm.util
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFileSignature
@@ -23,10 +24,22 @@ class EtsHierarchy(private val scene: EtsScene) {
             .mapValues { (_, classes) ->
                 classes
                     .groupBy { it.signature }
-                    .mapValues { it.value.single() }
+                    .mapValues { (_, declarations) -> resolveDeclaration(declarations) }
                     .let { HashMap(it) }
             }
             .let { HashMap(it) }
+    }
+
+    /** Class/interface declaration merging augments a type without adding another runtime class. */
+    private fun resolveDeclaration(declarations: List<EtsClass>): EtsClass {
+        val runtimeClass = declarations.singleOrNull { it.category == EtsClassCategory.CLASS }
+        val hasOnlyInterfaceAugmentations = declarations.all {
+            it === runtimeClass || it.category == EtsClassCategory.INTERFACE
+        }
+        val isClassInterfaceMerge = runtimeClass != null && hasOnlyInterfaceAugmentations
+        if (isClassInterfaceMerge) return requireNotNull(runtimeClass)
+
+        return declarations.single()
     }
 
     private val ancestors: Map<EtsClass, Set<EtsClass>> by lazy {
