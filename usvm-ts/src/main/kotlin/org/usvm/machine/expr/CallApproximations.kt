@@ -239,7 +239,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle Array search and indexed access method calls.
         if (expr.callee.name in setOf("indexOf", "lastIndexOf")) {
-            return handleArrayIndexSearchCall(stmt, instanceType, elementSort, array)
+            return handleArrayIndexSearchCall(stmt, instanceType, array)
         }
 
         // Handle `Array.includes() method calls
@@ -313,7 +313,6 @@ private fun TsExprResolver.hasProjectToStringTarget(stmt: TsVirtualMethodCallStm
 private fun TsExprResolver.handleArrayIndexSearchCall(
     stmt: TsVirtualMethodCallStmt,
     instanceType: EtsArrayType,
-    elementSort: USort,
     array: UHeapRef,
 ): TsExprApproximationResult {
     val dispatcher = unknownCallDispatcher
@@ -322,7 +321,7 @@ private fun TsExprResolver.handleArrayIndexSearchCall(
             return TsExprApproximationResult.NoApproximation
         }
 
-        return from(handleArrayIndexOf(stmt.call, instanceType, elementSort, array))
+        return from(handleArrayIndexOf(stmt.call, instanceType, array))
     }
 
     dispatchArrayModel(stmt)
@@ -987,26 +986,7 @@ private fun TsExprResolver.handleArrayUnshift(
     )
 }
 
-/**
- * Handles the `Array.join(separator)` method call.
- * Joins all elements of the array into a string, separated by the specified `separator`.
- * If `separator` is not provided, it defaults to `","`.
- * This method returns the resulting string.
- *
- * ### Examples:
- * ```
- * let a = [1, 2, 3];
- *
- * a.join() -> "1,2,3" (default comma separator)
- * a.join("-") -> "1-2-3" (custom separator)
- * a.join("") -> "123" (no separator)
- *
- * let b = ["hello", "world"];
- * b.join(" ") -> "hello world"
- * ```
- *
- * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.join
- */
+/** Compatibility approximation used when the source model dispatcher is unavailable. */
 private fun TsExprResolver.handleArrayJoin(
     expr: EtsInstanceCallExpr,
 ): UExpr<*>? = with(ctx) {
@@ -1276,29 +1256,10 @@ private fun TsExprResolver.handleArrayConcat(
     )
 }
 
-/**
- * Handles the `Array.indexOf(searchElement)` method call.
- * Returns the index of the first occurrence of `searchElement` in the array, or `-1` if not found.
- *
- * ### Examples:
- * ```
- * let a = [1, 2, 3, 2, 4];
- *
- * a.indexOf(2) -> 1 (first occurrence at index 1)
- * a.indexOf(5) -> -1 (not found)
- * a.indexOf(3) -> 2 (found at index 2)
- *
- * let b = ["hello", "world", "hello"];
- * b.indexOf("hello") -> 0 (first occurrence)
- * b.indexOf("foo") -> -1 (not found)
- * ```
- *
- * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.indexof
- */
+/** Compatibility approximation constrained to -1 or an in-range index. */
 private fun TsExprResolver.handleArrayIndexOf(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
-    elementSort: USort,
     array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
     check(expr.args.size == 1) {
@@ -1337,25 +1298,7 @@ private fun TsExprResolver.handleArrayIndexOf(
     }
 }
 
-/**
- * Handles the `Array.includes(searchElement)` method call.
- * Returns `true` if the array contains the `searchElement`, and `false` otherwise.
- *
- * ### Examples:
- * ```
- * let a = [1, 2, 3, 4, 5];
- *
- * a.includes(3) -> true (element found)
- * a.includes(6) -> false (element not found)
- * a.includes(1) -> true (first element)
- *
- * let b = ["hello", "world"];
- * b.includes("hello") -> true (string found)
- * b.includes("foo") -> false (string not found)
- * ```
- *
- * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.includes
- */
+/** Compatibility approximation with an unconstrained boolean result. */
 private fun TsExprResolver.handleArrayIncludes(
     expr: EtsInstanceCallExpr,
 ): UExpr<*>? = with(ctx) {
