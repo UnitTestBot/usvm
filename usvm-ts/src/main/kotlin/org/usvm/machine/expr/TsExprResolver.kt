@@ -1336,9 +1336,11 @@ class TsExprResolver(
                         )
                         return null
                     }
-                    val resolvedArgs = buildList {
-                        callee.closure?.let(::add)
-                        expr.args.mapTo(this) { resolve(it) ?: return null }
+                    val resolvedArgs = mutableListOf<UExpr<*>>()
+                    callee.closure?.let(resolvedArgs::add)
+                    for (argument in expr.args) {
+                        val resolved = resolve(argument) ?: return null
+                        resolvedArgs += resolved
                     }
 
                     when (val approximation = tryApproximateResolvedFunctionCall(callee.method)) {

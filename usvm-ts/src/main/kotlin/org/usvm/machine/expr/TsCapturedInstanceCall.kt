@@ -121,7 +121,11 @@ internal fun TsExprResolver.handleCapturedInstanceCall(
         TsExprApproximationResult.NoApproximation -> {}
     }
 
-    val args = call.args.map { resolve(it) ?: return null }
+    val args = mutableListOf<UExpr<*>>()
+    for (argument in call.args) {
+        val resolved = resolve(argument) ?: return null
+        args += resolved
+    }
     callInstanceMethod(
         scope = scope,
         call = instanceCall,

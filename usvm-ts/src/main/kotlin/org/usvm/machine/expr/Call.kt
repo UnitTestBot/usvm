@@ -48,7 +48,11 @@ internal fun TsExprResolver.handleInstanceCall(
     val instance = resolve(expr.instance) ?: return null
 
     // Resolve arguments.
-    val args = expr.args.map { resolve(it) ?: return null }
+    val args = mutableListOf<UExpr<*>>()
+    for (argument in expr.args) {
+        val resolved = resolve(argument) ?: return null
+        args += resolved
+    }
 
     // Call.
     callInstanceMethod(scope, expr, instance, args)
