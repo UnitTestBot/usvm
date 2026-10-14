@@ -385,6 +385,39 @@ class RuntimeNewTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `returned object materializes added boxed fields alongside declared fields`() {
+        val methodName = "returnAddedFieldFromBoxedValue"
+        val method = getMethod(methodName = methodName, className = "RuntimeNew")
+        val hasExpectedFields: (TsTestValue.TsBoolean, TsTestValue.TsClass) -> Boolean = { input, result ->
+            val marker = result.properties["marker"] as? TsTestValue.TsNumber
+            val value = result.properties["value"]
+            val expectedValue = if (input.value) {
+                (value as? TsTestValue.TsNumber)?.number == 7.0
+            } else {
+                value == TsTestValue.TsBoolean(false)
+            }
+
+            result.properties.keys == setOf("marker", "value") && marker?.number == 1.0 && expectedValue
+        }
+
+        withOptions(options = options.copy(stateCollectionStrategy = StateCollectionStrategy.ALL, stopOnCoverage = 0)) {
+            discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsClass>(
+                method = method,
+                { input, result -> input.value && hasExpectedFields(input, result) },
+                { input, result -> !input.value && hasExpectedFields(input, result) },
+                invariants = arrayOf(hasExpectedFields),
+            )
+        }
+
+        replay(listOf(
+            "const boxedNumber = new RuntimeNew().$methodName(true); " +
+                "if (boxedNumber.marker !== 1 || boxedNumber.value !== 7) throw Error('boxed number witness');",
+            "const boxedBoolean = new RuntimeNew().$methodName(false); " +
+                "if (boxedBoolean.marker !== 1 || boxedBoolean.value !== false) throw Error('boxed boolean witness');",
+        ))
+    }
+
+    @Test
     fun `incompatible boxed field writes stop the step and remain explicit`() {
         val methods = listOf("writeIncompatibleBoxedValue", "writeIncompatibleBoxedValueByKey")
 

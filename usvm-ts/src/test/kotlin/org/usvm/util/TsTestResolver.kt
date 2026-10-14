@@ -621,7 +621,7 @@ open class TsTestStateResolver(
                 properties.remove(name)
             } else if (name !in properties) {
                 val sort = propertyState?.writtenObjectLiteralFieldSorts?.get(ref to name) ?: addressSort
-                properties[name] = resolveLValue(mkFieldLValue(sort, heapRef, name))
+                properties[name] = resolveObjectFieldValue(ref, heapRef, name, sort)
             }
         }
     }
@@ -632,8 +632,15 @@ open class TsTestStateResolver(
         name: String,
         type: EtsType,
         initial: Boolean = false,
+    ): TsTestValue = resolveObjectFieldValue(ref, heapRef, name, ctx.typeToSort(type), initial)
+
+    private fun resolveObjectFieldValue(
+        ref: UConcreteHeapRef,
+        heapRef: UHeapRef,
+        name: String,
+        sort: USort,
+        initial: Boolean = false,
     ): TsTestValue = with(ctx) {
-        val sort = typeToSort(type)
         val valueMemory = if (initial) model else memory
         val valueRef = if (initial || resolveMode == ResolveMode.MODEL) ref else heapRef
         if (sort !is TsUnresolvedSort) {
