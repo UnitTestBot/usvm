@@ -411,6 +411,48 @@ private fun classReplayWrapper(
         import { stringifyProtocolJson } from $protocolModule;
         import * as scenarioModule from $sourceModule;
 
+${classReplayValueEncoderSource().prependIndent(indent = "        ")}
+
+${classReplayThrownValueDiagnosticSource().prependIndent(indent = "        ")}
+
+        export function replayClassScenario(...args: unknown[]): boolean {
+          const actualArgs = $actualArgs;
+          const inputs = actualArgs.map(value => encode(value));
+          $counterSetup
+          let observation: any;
+          let returned: any;
+          let completion = 'RETURNED';
+          try {
+            returned = (scenarioModule as any)[$exportKey](...actualArgs);
+          } catch (error) {
+            completion = 'THREW';
+            const isShapeFailure = error instanceof Error && error.message.startsWith('USVM class observation shape:');
+            const diagnostic = isShapeFailure ? error.message :
+              'Thrown class scenarios have no complete return/state snapshot; ' + describeThrownValue(error);
+            observation = { completion, representable: false, diagnostic };
+          }
+          if (completion === 'RETURNED') {
+            try {
+              const encoded = encode(returned) as any;
+              const exactFields = encoded.kind === 'object' &&
+                JSON.stringify(Object.keys(encoded.fields).sort()) === JSON.stringify($expectedFields);
+              if (!exactFields) {
+                throw new Error('Class scenario observation fields differ from frozen surface');
+              }
+              observation = { completion, values: encoded.fields };
+            } catch (error) {
+              const diagnostic = error instanceof Error ? error.message : String(error);
+              observation = { completion, representable: false, diagnostic };
+            }
+          }
+          const coveredStatementKeys = Array.from($counterRead);
+          writeFileSync($outputPath, stringifyProtocolJson({ inputs, observation, coveredStatementKeys }), 'utf8');
+          return true;
+        }
+    """.trimIndent() + "\n"
+}
+
+private fun classReplayValueEncoderSource(): String = """
         function encode(value: unknown, seen = new Set<object>()): unknown {
           if (value === undefined) return { kind: 'undefined' };
           if (value === null) return { kind: 'null' };
@@ -451,45 +493,7 @@ private fun classReplayWrapper(
           seen.delete(value);
           return encoded;
         }
-
-${classReplayThrownValueDiagnosticSource().prependIndent(indent = "        ")}
-
-        export function replayClassScenario(...args: unknown[]): boolean {
-          const actualArgs = $actualArgs;
-          const inputs = actualArgs.map(value => encode(value));
-          $counterSetup
-          let observation: any;
-          let returned: any;
-          let completion = 'RETURNED';
-          try {
-            returned = (scenarioModule as any)[$exportKey](...actualArgs);
-          } catch (error) {
-            completion = 'THREW';
-            const isShapeFailure = error instanceof Error && error.message.startsWith('USVM class observation shape:');
-            const diagnostic = isShapeFailure ? error.message :
-              'Thrown class scenarios have no complete return/state snapshot; ' + describeThrownValue(error);
-            observation = { completion, representable: false, diagnostic };
-          }
-          if (completion === 'RETURNED') {
-            try {
-              const encoded = encode(returned) as any;
-              const exactFields = encoded.kind === 'object' &&
-                JSON.stringify(Object.keys(encoded.fields).sort()) === JSON.stringify($expectedFields);
-              if (!exactFields) {
-                throw new Error('Class scenario observation fields differ from frozen surface');
-              }
-              observation = { completion, values: encoded.fields };
-            } catch (error) {
-              const diagnostic = error instanceof Error ? error.message : String(error);
-              observation = { completion, representable: false, diagnostic };
-            }
-          }
-          const coveredStatementKeys = Array.from($counterRead);
-          writeFileSync($outputPath, stringifyProtocolJson({ inputs, observation, coveredStatementKeys }), 'utf8');
-          return true;
-        }
-    """.trimIndent() + "\n"
-}
+""".trimIndent()
 
 private fun classReplayThrownValueDiagnosticSource(): String = """
     function describeThrownValue(error: unknown): string {

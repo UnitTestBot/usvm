@@ -101,30 +101,46 @@ class CallsFrozenProjectResolutionTest {
             sourceFile = sourceFile,
             exportName = "Receiver",
             constructorInputs = emptyList(),
-            members = listOf(CallsClassMember(
-                id = "read", name = "read", kind = CallsClassMemberKind.METHOD,
-                inputs = emptyList(), resultDomain = NumberDomain(),
-            )),
+            members = listOf(
+                CallsClassMember(
+                    id = "read",
+                    name = "read",
+                    kind = CallsClassMemberKind.METHOD,
+                    inputs = emptyList(),
+                    resultDomain = NumberDomain(),
+                ),
+            ),
             stateFields = emptyMap(),
         )
         val project = CallsProjectCase(
-            projectId = "source-only", revision = revision, sourceRoot = directory.toString(),
-            development = true, functions = emptyList(),
+            projectId = "source-only",
+            revision = revision,
+            sourceRoot = directory.toString(),
+            development = true,
+            functions = emptyList(),
         )
         val harness = prepareCallsClassHarness(sourceRoot = directory, project = project, surface = surface)
         val instrumentation = CallsClassSourceInstrumentation.create(
-            sourceRoot = directory, sourceFile = sourceFile, className = surface.exportName,
+            sourceRoot = directory,
+            sourceFile = sourceFile,
+            className = surface.exportName,
         )
         val harnessFile = harness.functions.first().sourceFile
         val record = CallsClassPreparedRecord(
             classCase = CallsClassCase(
-                classId = "receiver", projectId = project.projectId, revision = revision,
+                classId = "receiver",
+                projectId = project.projectId,
+                revision = revision,
                 sourceRoot = directory.toString(),
-                sourceSha256 = mapOf(sourceFile to callsClassSourceSha256(Files.readAllBytes(directory.resolve(sourceFile)))),
+                sourceSha256 = mapOf(
+                    sourceFile to callsClassSourceSha256(Files.readAllBytes(directory.resolve(sourceFile)))
+                ),
                 surface = surface,
             ),
-            originalSourceRoot = directory.toString(), scenarios = harness.scenarios,
-            functions = harness.functions, observations = harness.observations,
+            originalSourceRoot = directory.toString(),
+            scenarios = harness.scenarios,
+            functions = harness.functions,
+            observations = harness.observations,
             harnessFile = harnessFile,
             harnessSha256 = callsClassSourceSha256(Files.readAllBytes(directory.resolve(harnessFile))),
             instrumentation = instrumentation,
@@ -155,12 +171,16 @@ class CallsFrozenProjectResolutionTest {
         )
         instrumentation.validateSurface(harness.surface)
 
-        val loaded = assertIs<CallsSourceProject.Loaded>(loadCallsSourceProject(sourceRoot = directory, source = source))
+        val sourceProject = loadCallsSourceProject(sourceRoot = directory, source = source)
+        val loaded = assertIs<CallsSourceProject.Loaded>(sourceProject)
         val index = harness.scenarios.indexOfFirst { it.memberIds == listOf("formatTime") }
-        val inputs = listOf(
-            JsConcreteValue.number(65_430.0),
-            JsConcreteValue.Object(mapOf("partial" to JsConcreteValue.Boolean(false), "alwaysIncludeMinute" to JsConcreteValue.Boolean(false))),
+        val options = JsConcreteValue.Object(
+            fields = mapOf(
+                "partial" to JsConcreteValue.Boolean(value = false),
+                "alwaysIncludeMinute" to JsConcreteValue.Boolean(value = false),
+            ),
         )
+        val inputs = listOf(JsConcreteValue.number(value = 65_430.0), options)
         val original = OriginalTypeScriptClassReplayer(
             sourceRoot = directory,
             function = harness.functions[index],
@@ -186,45 +206,7 @@ class CallsFrozenProjectResolutionTest {
     }
 
     private fun statsFixture(importSpecifier: String, usePackageExport: Boolean): CallsClassPreparedHarness {
-        Files.createDirectories(directory.resolve("src"))
-        val resource = requireNotNull(javaClass.getResourceAsStream("/project-resolution/Stats.ts"))
-        resource.use { Files.copy(it, directory.resolve("src/Stats.ts")) }
-        val exports = if (usePackageExport) ",\"exports\":{\"./Stats\":{\"types\":\"./missing.d.ts\",\"default\":\"./src/Stats.ts\"}}" else ""
-        Files.writeString(directory.resolve("package.json"), "{\"name\":\"@fixture/stats\",\"version\":\"1.0.0\",\"type\":\"module\"$exports}")
-        Files.writeString(directory.resolve("package-lock.json"), "{\"lockfileVersion\":3,\"packages\":{\"\":{\"name\":\"@fixture/stats\",\"version\":\"1.0.0\"}}}")
-        val paths = if (usePackageExport) "" else ",\"paths\":{\"@local/*\":[\"src/*\"]}"
-        Files.writeString(directory.resolve("tsconfig.json"), "{\"compilerOptions\":{\"target\":\"ES2022\",\"module\":\"ESNext\",\"moduleResolution\":\"Bundler\"$paths}}")
-        val flag = OptionalDomain(value = BooleanDomain, nil = JsConcreteValue.Undefined)
-        val surface = CallsClassSurface(
-            sourceFile = "src/Stats.ts",
-            exportName = "Stats",
-            constructorInputs = emptyList(),
-            members = listOf(
-                CallsClassMember(
-                    id = "timeParts",
-                    name = "timeParts",
-                    kind = CallsClassMemberKind.METHOD,
-                    inputs = listOf(
-                        PropertyInput(name = "time", domain = NumberDomain(min = JsNumber.fromDouble(0.0), max = JsNumber.fromDouble(100_000.0), allowNaN = false)),
-                        PropertyInput(name = "options", domain = ObjectDomain(mapOf("alwaysIncludeMinute" to flag))),
-                    ),
-                    resultDomain = ObjectDomain(mapOf("secFirst" to StringDomain(maxLength = 20), "secRest" to StringDomain(maxLength = 20), "decimals" to StringDomain(maxLength = 20))),
-                    isStatic = true,
-                ),
-                CallsClassMember(
-                    id = "formatTime",
-                    name = "formatTime",
-                    kind = CallsClassMemberKind.METHOD,
-                    inputs = listOf(
-                        PropertyInput(name = "time", domain = OptionalDomain(value = NumberDomain(min = JsNumber.fromDouble(0.0), max = JsNumber.fromDouble(100_000.0), allowNaN = false), nil = JsConcreteValue.Null)),
-                        PropertyInput(name = "options", domain = OptionalDomain(value = ObjectDomain(mapOf("partial" to flag, "alwaysIncludeMinute" to flag)), nil = JsConcreteValue.Undefined)),
-                    ),
-                    resultDomain = StringDomain(maxLength = 30),
-                    isStatic = true,
-                ),
-            ),
-            stateFields = emptyMap(),
-        )
+        writeStatsSources(usePackageExport = usePackageExport)
         val project = CallsProjectCase(
             projectId = "source-linked-stats",
             revision = "d1d482e2d67f1d21cf3d13d7b32283e84eba7331",
@@ -232,10 +214,81 @@ class CallsFrozenProjectResolutionTest {
             development = true,
             functions = emptyList(),
         )
-        val harness = prepareCallsClassHarness(sourceRoot = directory, project = project, surface = surface)
+        val harness = prepareCallsClassHarness(sourceRoot = directory, project = project, surface = statsSurface())
         // Only the generated consumer changes. The real class retains every byte and public member.
         val harnessFile = directory.resolve(harness.functions.first().sourceFile)
         Files.writeString(harnessFile, Files.readString(harnessFile).replace("./src/Stats.ts", importSpecifier))
         return harness
+    }
+
+    private fun writeStatsSources(usePackageExport: Boolean) {
+        Files.createDirectories(directory.resolve("src"))
+        val resource = requireNotNull(javaClass.getResourceAsStream("/project-resolution/Stats.ts"))
+        resource.use { Files.copy(it, directory.resolve("src/Stats.ts")) }
+        val exports = if (usePackageExport) {
+            ",\"exports\":{\"./Stats\":{\"types\":\"./missing.d.ts\"," +
+                "\"default\":\"./src/Stats.ts\"}}"
+        } else {
+            ""
+        }
+        val packageJson = "{\"name\":\"@fixture/stats\",\"version\":\"1.0.0\",\"type\":\"module\"$exports}"
+        Files.writeString(directory.resolve("package.json"), packageJson)
+        val packageLockJson = "{\"lockfileVersion\":3,\"packages\":{\"\":{\"name\":\"@fixture/stats\"," +
+            "\"version\":\"1.0.0\"}}}"
+        Files.writeString(directory.resolve("package-lock.json"), packageLockJson)
+        val paths = if (usePackageExport) "" else ",\"paths\":{\"@local/*\":[\"src/*\"]}"
+        val tsconfigJson = "{\"compilerOptions\":{\"target\":\"ES2022\",\"module\":\"ESNext\"," +
+            "\"moduleResolution\":\"Bundler\"$paths}}"
+        Files.writeString(directory.resolve("tsconfig.json"), tsconfigJson)
+    }
+
+    private fun statsSurface(): CallsClassSurface {
+        val flag = OptionalDomain(value = BooleanDomain, nil = JsConcreteValue.Undefined)
+        val milliseconds = NumberDomain(
+            min = JsNumber.fromDouble(0.0),
+            max = JsNumber.fromDouble(100_000.0),
+            allowNaN = false,
+        )
+        val timeParts = CallsClassMember(
+            id = "timeParts",
+            name = "timeParts",
+            kind = CallsClassMemberKind.METHOD,
+            inputs = listOf(
+                PropertyInput(name = "time", domain = milliseconds),
+                PropertyInput(name = "options", domain = ObjectDomain(mapOf("alwaysIncludeMinute" to flag))),
+            ),
+            resultDomain = ObjectDomain(
+                fields = mapOf(
+                    "secFirst" to StringDomain(maxLength = 20),
+                    "secRest" to StringDomain(maxLength = 20),
+                    "decimals" to StringDomain(maxLength = 20),
+                ),
+            ),
+            isStatic = true,
+        )
+        val formatTime = CallsClassMember(
+            id = "formatTime",
+            name = "formatTime",
+            kind = CallsClassMemberKind.METHOD,
+            inputs = listOf(
+                PropertyInput(name = "time", domain = OptionalDomain(value = milliseconds, nil = JsConcreteValue.Null)),
+                PropertyInput(
+                    name = "options",
+                    domain = OptionalDomain(
+                        value = ObjectDomain(mapOf("partial" to flag, "alwaysIncludeMinute" to flag)),
+                        nil = JsConcreteValue.Undefined,
+                    ),
+                ),
+            ),
+            resultDomain = StringDomain(maxLength = 30),
+            isStatic = true,
+        )
+        return CallsClassSurface(
+            sourceFile = "src/Stats.ts",
+            exportName = "Stats",
+            constructorInputs = emptyList(),
+            members = listOf(timeParts, formatTime),
+            stateFields = emptyMap(),
+        )
     }
 }
