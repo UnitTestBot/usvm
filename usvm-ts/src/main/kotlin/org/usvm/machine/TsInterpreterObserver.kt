@@ -15,6 +15,16 @@ import org.usvm.statistics.UInterpreterObserver
 
 @Suppress("unused")
 interface TsInterpreterObserver : UInterpreterObserver {
+    /** Each completed selector turn, including the final partial turn and repeated turns of one entry point. */
+    fun onEntryPointTimeQuantum(event: TsEntryPointTimeQuantumEvent) {
+        // default empty implementation
+    }
+
+    /** Actual SMT checks, including retries with soft assumptions; setup queries are also reported. */
+    fun onSolverQuery(event: TsSolverQueryEvent) {
+        // default empty implementation
+    }
+
     /**
      * Called after the dispatcher completes a model or fallback decision for an unknown call.
      * A model decision is reported once after all its satisfiable successor callbacks complete.
