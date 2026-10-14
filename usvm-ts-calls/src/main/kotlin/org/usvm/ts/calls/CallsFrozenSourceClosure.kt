@@ -26,7 +26,8 @@ internal fun copyCallsSourceClosure(root: Path, destination: Path, closure: Type
         }
         val expected = closure.resolution?.inputSha256?.get(relative)
         if (expected != null) {
-            require(callsClassSourceSha256(Files.readAllBytes(input)) == expected) { "Frozen module input changed: $relative" }
+            val actual = callsClassSourceSha256(Files.readAllBytes(input))
+            require(actual == expected) { "Frozen module input changed: $relative" }
         }
         Files.createDirectories(output.parent)
         Files.copy(input, output)
@@ -47,6 +48,7 @@ internal fun verifyCallsFrozenResolution(root: Path, resolution: TypeScriptFroze
     for ((relative, expected) in resolution.inputSha256) {
         val source = canonicalRoot.resolve(relative).normalize().toRealPath()
         require(source.startsWith(canonicalRoot)) { "Frozen resolution input escapes root: $relative" }
-        require(callsClassSourceSha256(Files.readAllBytes(source)) == expected) { "Frozen module input changed: $relative" }
+        val actual = callsClassSourceSha256(Files.readAllBytes(source))
+        require(actual == expected) { "Frozen module input changed: $relative" }
     }
 }

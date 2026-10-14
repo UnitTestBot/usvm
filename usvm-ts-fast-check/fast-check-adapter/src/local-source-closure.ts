@@ -2,6 +2,7 @@ import { readFileSync, realpathSync } from 'node:fs'
 import path from 'node:path'
 import ts from 'typescript'
 import { FrozenModuleResolver, type FrozenModuleResolution } from './frozen-module-resolution.js'
+import { unsupportedModuleInitialization } from './module-initialization.js'
 
 interface LocalSourceClosure {
   files: string[]
@@ -21,7 +22,7 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
     return { files: [], reasonCode: 'IMPORTED_CALLEES_UNSUPPORTED', diagnostic: String(error) }
   }
   const pending = [entry]
-  let entryInitializationIssue: { reasonCode: string, diagnostic: string } | undefined
+  let entryAmbientIssue: string | undefined
   const files = new Set<string>()
   const runtimeImportRanges = new Map<string, Array<{ start: number, end: number }>>()
   const sources = new Map<string, ts.SourceFile>()
@@ -82,15 +83,10 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
           return reject('IMPORTED_CALLEES_UNSUPPORTED', `Import assignment in ${relative}`)
         }
       } else {
-        const reasonCode = isAmbientRuntimeDeclaration(statement)
-          ? 'IMPORTED_CALLEES_UNSUPPORTED'
-          : !safeModuleStatement(statement, source) ? 'TOP_LEVEL_INITIALIZATION_UNSUPPORTED' : undefined
-        if (reasonCode !== undefined) {
-          const diagnostic = reasonCode === 'IMPORTED_CALLEES_UNSUPPORTED'
-            ? `Ambient runtime declaration in ${relative} at offset ${statement.getStart(source)}`
-            : `Unsupported module initialization in ${relative} at offset ${statement.getStart(source)}`
-          if (file !== entry) return reject(reasonCode, diagnostic)
-          entryInitializationIssue ??= { reasonCode, diagnostic }
+        if (isAmbientRuntimeDeclaration(statement)) {
+          const diagnostic = `Ambient runtime declaration in ${relative} at offset ${statement.getStart(source)}`
+          if (file !== entry) return reject('IMPORTED_CALLEES_UNSUPPORTED', diagnostic)
+          entryAmbientIssue ??= diagnostic
         }
       }
     }
@@ -115,11 +111,8 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
     }
   }
 
-  // A single source keeps the existing capture/readiness validation, including supported
-  // block captures and immutable object aliases. Loading additional modules needs the
-  // stricter initialization contract because their bindings are not reconstructed there.
-  if (files.size > 1 && entryInitializationIssue !== undefined) {
-    return reject(entryInitializationIssue.reasonCode, entryInitializationIssue.diagnostic)
+  if (files.size > 1 && entryAmbientIssue !== undefined) {
+    return reject('IMPORTED_CALLEES_UNSUPPORTED', entryAmbientIssue)
   }
 
   // Replay overlays link dependency files to the original checkout. A back-import
@@ -130,7 +123,7 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
 
   // Ask TypeScript to validate the imported bindings as well as the files. Diagnostics
   // in unrelated function bodies do not determine closure admission.
-  if ([...runtimeImportRanges.values()].some(ranges => ranges.length > 0)) {
+  if (files.size > 1 || [...runtimeImportRanges.values()].some(ranges => ranges.length > 0)) {
     const options: ts.CompilerOptions = { ...resolver.options, noLib: true, noEmit: true, types: [] }
     const host = ts.createCompilerHost(options)
     const directories = new Set<string>()
@@ -150,6 +143,20 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
     host.realpath = file => path.resolve(file)
     host.resolveModuleNames = (names, containingFile) => names.map(name => resolver.resolvedModule(name, containingFile))
     const program = ts.createProgram([...sources.keys()], options, host)
+    // A single source retains its dedicated capture validation. For a module
+    // closure, initializer identities are attested by this exact source program.
+    if (files.size > 1) {
+      const checker = program.getTypeChecker()
+      const closure = new Set(sources.values())
+      for (const source of closure) {
+        const unsupported = unsupportedModuleInitialization(source, checker, closure)
+        if (unsupported !== undefined) {
+          return reject('TOP_LEVEL_INITIALIZATION_UNSUPPORTED',
+            `Unsupported module initialization in ${path.relative(root, source.fileName)} at offset ${unsupported.getStart(source)}`)
+        }
+      }
+    }
+
     for (const [file, ranges] of runtimeImportRanges) {
       if (ranges.length === 0) continue
       const source = program.getSourceFile(file)!
@@ -235,54 +242,4 @@ function isAmbientRuntimeDeclaration(statement: ts.Statement): boolean {
   if (!ts.isVariableStatement(statement) && !ts.isFunctionDeclaration(statement)
     && !ts.isClassDeclaration(statement) && !ts.isEnumDeclaration(statement)) return false
   return statement.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.DeclareKeyword) ?? false
-}
-
-function safeModuleStatement(statement: ts.Statement, source: ts.SourceFile): boolean {
-  if (ts.isFunctionDeclaration(statement) || ts.isInterfaceDeclaration(statement)
-    || ts.isTypeAliasDeclaration(statement) || ts.isEmptyStatement(statement)) return true
-  if (ts.isExpressionStatement(statement) && ts.isStringLiteral(statement.expression)) return true
-  if (ts.isVariableStatement(statement)) {
-    return statement.declarationList.declarations.every(declaration => ts.isIdentifier(declaration.name)
-      && (!declaration.initializer || safeInitializer(declaration.initializer, source)))
-  }
-  if (ts.isExportAssignment(statement)) return !statement.isExportEquals && safeInitializer(statement.expression, source)
-  if (ts.isClassDeclaration(statement)) {
-    const extendsRuntimeBase = statement.heritageClauses?.some(clause => clause.token === ts.SyntaxKind.ExtendsKeyword) ?? false
-    const decorated = (ts.getDecorators(statement)?.length ?? 0) > 0
-    if (extendsRuntimeBase || decorated) return false
-    return statement.members.every(member => !ts.isClassStaticBlockDeclaration(member)
-      && !(member.name && ts.isComputedPropertyName(member.name))
-      && !(ts.canHaveDecorators(member) && ts.getDecorators(member)?.length)
-      && !(ts.isPropertyDeclaration(member) && member.initializer
-        && member.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.StaticKeyword)))
-  }
-  if (ts.isEnumDeclaration(statement)) {
-    return statement.members.every(member => !member.initializer || ts.isLiteralExpression(member.initializer))
-  }
-  return false
-}
-
-function safeInitializer(expression: ts.Expression, source: ts.SourceFile, seen = new Set<ts.Node>()): boolean {
-  if (seen.has(expression)) return false
-  seen.add(expression)
-  if (ts.isParenthesizedExpression(expression) || ts.isAsExpression(expression)
-    || ts.isTypeAssertionExpression(expression) || ts.isSatisfiesExpression(expression)
-    || ts.isNonNullExpression(expression)) return safeInitializer(expression.expression, source, seen)
-  if (ts.isLiteralExpression(expression) || ts.isArrowFunction(expression) || ts.isFunctionExpression(expression)
-    || expression.kind === ts.SyntaxKind.TrueKeyword || expression.kind === ts.SyntaxKind.FalseKeyword
-    || expression.kind === ts.SyntaxKind.NullKeyword) return true
-  if (ts.isPrefixUnaryExpression(expression)
-    && [ts.SyntaxKind.PlusToken, ts.SyntaxKind.MinusToken, ts.SyntaxKind.ExclamationToken, ts.SyntaxKind.TildeToken]
-      .includes(expression.operator)) return safeInitializer(expression.operand, source, seen)
-  if (!ts.isIdentifier(expression)) return false
-  for (const statement of source.statements) {
-    if (ts.isFunctionDeclaration(statement) && statement.name?.text === expression.text) return Boolean(statement.body)
-    if (!ts.isVariableStatement(statement)) continue
-    for (const declaration of statement.declarationList.declarations) {
-      if (ts.isIdentifier(declaration.name) && declaration.name.text === expression.text && declaration.initializer
-        && declaration.getStart(source) < expression.getStart(source)
-        && (ts.isArrowFunction(declaration.initializer) || ts.isFunctionExpression(declaration.initializer))) return true
-    }
-  }
-  return false
 }

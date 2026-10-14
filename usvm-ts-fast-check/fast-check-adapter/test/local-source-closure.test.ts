@@ -160,7 +160,7 @@ test('binding inspection does not read ignored type imports outside the runtime 
 
 test('single-source captures retain their dedicated validation route', () => {
   workspace({
-    'entry.ts': 'const source = { value: 7 }; const alias = source; '
+    'entry.ts': 'declare const unused: unknown; const source = { value: 7 }; const alias = source; '
       + 'export const entry = () => source === alias;',
   }, root => {
     assert.deepEqual(inspectLocalSourceClosure(root, path.join(root, 'entry.ts')), { files: ['entry.ts'] })
@@ -350,3 +350,46 @@ test('paths without baseUrl do not invent fallback resolution for unrelated bare
     assert.equal(closure.reasonCode, 'IMPORTED_CALLEES_UNSUPPORTED')
   })
 })
+
+test('module closure attests nested literal allocations and const aliases across reexports', () => {
+  workspace({
+    'entry.ts': "import { alias } from './barrel'; const local = alias; "
+      + 'export function entry() { return local; }',
+    'barrel.ts': "export { alias } from './data';",
+    'data.ts': 'const positive = 3; const count = -positive; const items = [count]; const box = { items, nested: [items, items] }; '
+      + 'export const alias = box;',
+  }, root => {
+    assert.deepEqual(inspectLocalSourceClosure(root, path.join(root, 'entry.ts')), {
+      files: ['barrel.ts', 'data.ts', 'entry.ts'],
+    })
+  })
+})
+
+for (const [name, initialization] of [
+  ['temporal dead zone', 'const alias = items; const items = [];'],
+  ['mutable binding alias', 'let items = []; const alias = items;'],
+  ['self reference', 'const items = [items];'],
+  ['spread effect', 'const items = [...external];'],
+  ['array holes', 'const items = [, 1];'],
+  ['computed property', 'const items = { [effect()]: 1 };'],
+  ['getter', 'const items = { get value() { return 1; } };'],
+  ['prototype override', 'const items = { "__proto__": {} };'],
+  ['environment call in literal', 'const items = [Math.random()];'],
+  ['object numeric coercion', 'const items = +{ valueOf: () => Math.random() };'],
+  ['array numeric coercion', 'const items = +[{ toString: () => Date.now() }];'],
+  ['cast object numeric coercion', 'const items = +({ valueOf: () => Math.random() } as unknown as number);'],
+  ['aliased numeric coercion', 'const object = { valueOf: () => Math.random() }; const items = ~object;'],
+  ['escaped prototype override', String.raw`const items = { \u005f\u005fproto__: {} };`],
+  ['unknown imported alias', "import { absent } from './empty'; const items = [absent];"],
+] as const) {
+  test(`module initialization rejects ${name}`, () => {
+    workspace({
+      'entry.ts': "import './data'; export function entry() { return 1; }",
+      'data.ts': initialization,
+      'empty.ts': 'export {};',
+    }, root => {
+      const result = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+      assert.equal(result.reasonCode, 'TOP_LEVEL_INITIALIZATION_UNSUPPORTED', result.diagnostic)
+    })
+  })
+}

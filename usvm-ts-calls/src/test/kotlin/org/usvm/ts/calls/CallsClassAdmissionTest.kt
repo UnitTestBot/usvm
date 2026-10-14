@@ -198,7 +198,7 @@ class CallsClassAdmissionTest {
 
     @Test
     fun `source closure preparation failure is a hard admission gate independent of pilot outcomes`() {
-        val harness = fixture(source = "const cache: number[][] = [];\n" + source)
+        val harness = fixture(source = "const cache = [Math.random()];\n" + source)
         val failures = callsClassSourceAdmissionFailures(harness, CallsBuildIdentity.nativeFrontendRevision)
 
         val result = admission(harness, sourceFailures = failures, smoke = null)
