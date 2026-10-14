@@ -23,6 +23,7 @@ import org.usvm.types.UTypeSystem
 class TsComponents(
     private val typeSystem: TsTypeSystem,
     private val options: UMachineOptions,
+    private val solverQueryObserver: ((TsSolverQueryEvent) -> Unit)? = null,
 ) : UComponents<EtsType, TsSizeSort> {
     private val closeableResources = mutableListOf<AutoCloseable>()
 
@@ -65,7 +66,11 @@ class TsComponents(
 
         val typeSolver = UTypeSolver(typeSystem)
 
-        return USolverBase(ctx, smtSolver, typeSolver, translator, decoder, options.solverTimeout)
+        val observedSolver = solverQueryObserver?.let { observer ->
+            observeTsSolverQueries(smtSolver, observer)
+        } ?: smtSolver
+
+        return USolverBase(ctx, observedSolver, typeSolver, translator, decoder, options.solverTimeout)
     }
 
     fun close() {
