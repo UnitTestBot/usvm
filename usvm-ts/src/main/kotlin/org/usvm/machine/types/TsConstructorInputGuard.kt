@@ -43,7 +43,7 @@ internal fun EtsType.requiresConstructorWitness(
             false
         } else {
             val declaration = genericParameters[typeName]
-            listOfNotNull(constraint, defaultType, declaration?.constraint, declaration?.defaultType).any {
+            listOfNotNull(constraint, declaration?.constraint).any {
                 it.requiresConstructorWitness(genericParameters, visitedGenerics + typeName)
             }
         }

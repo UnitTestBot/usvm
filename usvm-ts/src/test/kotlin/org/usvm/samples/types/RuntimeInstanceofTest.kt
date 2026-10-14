@@ -498,6 +498,32 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `constructor generic default permits inferred number input`() {
+        val methodName = "genericDefaultConstructorParameter"
+        val method = getMethod(methodName = methodName, className = "RuntimeInstanceof")
+
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+            method = method,
+            { input, result -> input is TsTestValue.TsNumber && result.number == 1.0 },
+            invariants = arrayOf({ input, result ->
+                val expected = if (input is TsTestValue.TsNumber) 1.0 else 0.0
+                result.number == expected
+            }),
+        )
+
+        val outcome = analyze(methodName)
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.isEmpty(), "${outcome.unsupportedPaths}")
+        assertTrue(outcome.states.isNotEmpty())
+
+        replay(listOf(
+            "if (new RuntimeInstanceof().genericDefaultConstructorParameter(7) !== 1) " +
+                "throw Error('inferred number despite constructor default');",
+        ))
+    }
+
+    @Test
     fun `constructor arrays have an explicit unsupported outcome`() {
         val methods = listOf("constructorArrayParameter", "constructorNestedArrayParameter")
 
