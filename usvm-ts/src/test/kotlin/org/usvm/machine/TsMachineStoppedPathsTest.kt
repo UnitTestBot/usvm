@@ -6,7 +6,6 @@ import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.machine.call.TsUnknownCallModelSelection
 import org.usvm.machine.state.TsState
-import org.usvm.statistics.UMachineObserver
 import org.usvm.util.TsMethodTestRunner
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -18,11 +17,10 @@ import kotlin.time.Duration
 class TsMachineStoppedPathsTest : TsMethodTestRunner() {
     override val scene: EtsScene = loadScene("/samples/arrays/ArrayMethods.ts")
 
-    private fun options(emit: Boolean) = UMachineOptions(
+    private fun options() = UMachineOptions(
         solverType = SolverType.YICES,
         stopOnCoverage = 0,
         timeout = Duration.INFINITE,
-        emitRemainingStatesOnStop = emit,
     )
 
     @Test
@@ -30,36 +28,44 @@ class TsMachineStoppedPathsTest : TsMethodTestRunner() {
         val method = getMethod(methodName = "arrayPush", className = "ArrayMethods")
         val tsOptions = TsOptions(unknownCallModelSelection = TsUnknownCallModelSelection.Only(emptySet()))
 
+        val suspendedStates = mutableListOf<TsState>()
+        val stoppedObserver = TsStoppedStatesObserver { suspendedStates += it }
+
         val outcome = TsMachine(
             scene = scene,
-            options = options(emit = true),
+            options = options(),
             tsOptions = tsOptions,
-        ).use { machine -> machine.analyzeWithMetadata(methods = listOf(method)) }
+            observer = stoppedObserver,
+            machineObserverFactory = stoppedObserver::createMachineObserver,
+        ).use { machine ->
+            val result = machine.analyzeWithMetadata(methods = listOf(method))
+            stoppedObserver.collectRemainingStates()
+            result
+        }
 
-        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertEquals(expected = TsAnalysisStopReason.EXHAUSTED, actual = outcome.stopReason)
         assertTrue(outcome.unsupportedCall)
         assertFalse(outcome.engineFailed)
         assertTrue(outcome.states.isEmpty())
-        assertTrue(outcome.suspendedStates.isNotEmpty())
-        assertTrue(outcome.suspendedStates.all { it.models.isNotEmpty() })
-        assertTrue(outcome.suspendedStates.all { it.callStack.isNotEmpty() })
-        assertTrue(outcome.suspendedStates.all { it.unsupportedReason?.contains("push") == true })
+        assertTrue(suspendedStates.isNotEmpty())
+        assertTrue(suspendedStates.all { it.models.isNotEmpty() })
+        assertTrue(suspendedStates.all { it.callStack.isNotEmpty() })
+        assertTrue(suspendedStates.all { it.unsupportedReason?.contains("push") == true })
     }
 
     @Test
-    fun `stopped path collection stays disabled by default`() {
+    fun `unknown call without a stopped state observer retains ordinary witness behavior`() {
         val method = getMethod(methodName = "arrayPush", className = "ArrayMethods")
         val tsOptions = TsOptions(unknownCallModelSelection = TsUnknownCallModelSelection.Only(emptySet()))
 
         val outcome = TsMachine(
             scene = scene,
-            options = options(emit = false),
+            options = options(),
             tsOptions = tsOptions,
         ).use { machine -> machine.analyzeWithMetadata(methods = listOf(method)) }
 
         assertTrue(outcome.unsupportedCall)
         assertTrue(outcome.states.isEmpty())
-        assertTrue(outcome.suspendedStates.isEmpty())
     }
 
     @Test
@@ -68,37 +74,46 @@ class TsMachineStoppedPathsTest : TsMethodTestRunner() {
         val owner = stringScene.projectAndSdkClasses.single { it.name == "Strings" }
         val method = owner.methods.single { it.name == "stringWithNumber" }
 
+        val suspendedStates = mutableListOf<TsState>()
+        val stoppedObserver = TsStoppedStatesObserver { suspendedStates += it }
+
         val outcome = TsMachine(
             scene = stringScene,
-            options = options(emit = true),
+            options = options(),
             tsOptions = TsOptions(),
-        ).use { machine -> machine.analyzeWithMetadata(methods = listOf(method)) }
+            observer = stoppedObserver,
+            machineObserverFactory = stoppedObserver::createMachineObserver,
+        ).use { machine ->
+            val result = machine.analyzeWithMetadata(methods = listOf(method))
+            stoppedObserver.collectRemainingStates()
+            result
+        }
 
         assertTrue(outcome.runtimeLimited)
         assertTrue(outcome.unsupportedPaths.any { it.contains("STRING_CONCAT_OPERAND_CONVERSION") })
         assertTrue(outcome.states.isEmpty())
-        assertTrue(outcome.suspendedStates.isNotEmpty())
-        assertTrue(outcome.suspendedStates.all { it.models.isNotEmpty() })
-        assertTrue(outcome.suspendedStates.all { it.unsupportedReason != null })
+        assertTrue(suspendedStates.isNotEmpty())
+        assertTrue(suspendedStates.all { it.models.isNotEmpty() })
+        assertTrue(suspendedStates.all { it.unsupportedReason != null })
     }
 
     @Test
     fun `prefix emission errors remain analysis errors instead of silently lost candidates`() {
         val method = getMethod(methodName = "arrayPush", className = "ArrayMethods")
-        val observer = object : UMachineObserver<TsState> {
-            override fun onStateSuspended(state: TsState) {
-                error("candidate sink failed")
-            }
-        }
+        val stoppedObserver = TsStoppedStatesObserver { error("candidate sink failed") }
         val tsOptions = TsOptions(unknownCallModelSelection = TsUnknownCallModelSelection.Only(emptySet()))
 
         val failure = assertFailsWith<IllegalStateException> {
             TsMachine(
                 scene = scene,
-                options = options(emit = true),
+                options = options(),
                 tsOptions = tsOptions,
-                machineObserver = observer,
-            ).use { machine -> machine.analyzeWithMetadata(methods = listOf(method)) }
+                observer = stoppedObserver,
+                machineObserverFactory = stoppedObserver::createMachineObserver,
+            ).use { machine ->
+                machine.analyzeWithMetadata(methods = listOf(method))
+                stoppedObserver.collectRemainingStates()
+            }
         }
 
         assertEquals(expected = "candidate sink failed", actual = failure.message)
