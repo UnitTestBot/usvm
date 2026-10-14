@@ -179,15 +179,14 @@ export class FrozenModuleResolver {
     if (this.configStack.has(canonical)) throw new Error('Cyclic tsconfig extends chain')
     this.configStack.add(canonical)
     this.inputs.add(canonical)
+    this.recordMetadata(canonical)
     const loaded = ts.readConfigFile(canonical, file => readFileSync(file, 'utf8'))
     if (loaded.error) throw new Error(ts.flattenDiagnosticMessageText(loaded.error.messageText, '\n'))
     const config = loaded.config as { extends?: string | string[], compilerOptions?: Record<string, unknown> }
     let merged: Record<string, unknown> = {}
     const parents = config.extends ? Array.isArray(config.extends) ? config.extends : [config.extends] : []
     for (const parent of parents) {
-      if (!parent.startsWith('.')) throw new Error(`Package tsconfig extends is unsupported: ${parent}`)
-      let parentFile = path.resolve(path.dirname(canonical), parent)
-      if (!existsSync(parentFile) && !parentFile.endsWith('.json')) parentFile += '.json'
+      const parentFile = this.resolveConfig(parent, canonical)
       merged = { ...merged, ...this.readConfig(parentFile) }
     }
     const own = { ...config.compilerOptions }
@@ -201,6 +200,34 @@ export class FrozenModuleResolver {
       path.relative(this.root, path.resolve(path.dirname(canonical), String(value))))
     this.configStack.delete(canonical)
     return { ...merged, ...own }
+  }
+
+  private resolveConfig(specifier: string, from: string): string {
+    let target: string | undefined
+    if (specifier.startsWith('.') || path.isAbsolute(specifier)) {
+      target = path.resolve(path.dirname(from), specifier)
+    } else {
+      const parts = specifier.split('/')
+      const packageName = specifier.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0]!
+      const subpath = parts.slice(packageName.startsWith('@') ? 2 : 1).join('/')
+      for (const directory of this.ancestors(path.dirname(from))) {
+        const metadata = path.join(directory, 'node_modules', packageName, 'package.json')
+        if (!this.available(metadata)) continue
+        const canonical = this.checkedPath(metadata)
+        const pkg = JSON.parse(readFileSync(canonical, 'utf8')) as { tsconfig?: unknown }
+        this.inputs.add(canonical)
+        const configured = typeof pkg.tsconfig === 'string' ? pkg.tsconfig : 'tsconfig.json'
+        target = path.resolve(path.dirname(canonical), subpath || configured)
+        break
+      }
+    }
+    if (!target) throw new Error(`Missing frozen configuration package: ${specifier}`)
+    if (!existsSync(target) && !target.endsWith('.json')) target += '.json'
+    if (this.available(target) && statSync(target).isDirectory()) target = path.join(target, 'tsconfig.json')
+    if (!this.available(target) || !statSync(target).isFile()) {
+      throw new Error(`Missing frozen configuration source: ${specifier} -> ${target}`)
+    }
+    return this.checkedPath(target)
   }
 
   private recordMetadata(file: string): void {

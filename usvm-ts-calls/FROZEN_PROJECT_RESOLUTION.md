@@ -5,7 +5,9 @@ one frozen project root:
 
 - Relative `.ts`, extensionless and `.js`-to-absent-`.js`/existing-`.ts` imports.
 - Local aliases through the nearest `tsconfig.json`, including relative JSON/JSONC
-  `extends` chains, `baseUrl`, `paths` and inherited compiler settings.
+  `extends` chains, offline installed config package `tsconfig` entries/subpaths,
+  `baseUrl`, `paths` and inherited compiler settings. The complete chain and
+  config package metadata are frozen; packages must already be inside the root.
 - Package self references and already-installed in-root workspace symlinks, when
   explicit package `exports` or `main` selects actual `.ts` runtime source.
   `types`/`.d.ts` entries are kept distinct from runtime entries.
@@ -13,7 +15,7 @@ one frozen project root:
 A package source must have a stable project identity outside physical `node_modules`.
 This first subset does not admit installed JavaScript packages, declaration-only
 runtime dependencies, packages outside the frozen root, export patterns or different
-`import`/`require` implementations (including mode-only exports). Package `imports` without a checked config alias, package-based `tsconfig extends`, unresolved
+`import`/`require` implementations (including mode-only exports). Package `imports` without a checked config alias, missing config packages, unresolved
 external modules, dynamic imports, JSON `require` and dependency cycles remain
 explicit acquisition failures. Initialization and class/domain checks still apply.
 No dependency installation or network resolution runs during measurement.
