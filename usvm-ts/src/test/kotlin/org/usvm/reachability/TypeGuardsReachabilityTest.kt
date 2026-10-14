@@ -70,12 +70,14 @@ class TypeGuardsReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
+
         assertTrue(
             results.isNotEmpty(),
             "Expected at least one result for typeof guard reachability"
         )
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+
         assertTrue(
             returnStmt in reachedStatements,
             "Expected return statement to be reached when value is exactly 'hello'"
@@ -108,12 +110,14 @@ class TypeGuardsReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
+
         assertTrue(
             results.isNotEmpty(),
             "Expected at least one result for instanceof guard reachability"
         )
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+
         assertTrue(
             returnStmt in reachedStatements,
             "Expected return statement to be reached when obj is array with length 3"
@@ -146,12 +150,14 @@ class TypeGuardsReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
+
         assertTrue(
             results.isNotEmpty(),
             "Expected at least one result for user-defined guard reachability"
         )
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+
         assertTrue(
             returnStmt in reachedStatements,
             "Expected return statement to be reached when input is exactly 'test'"
@@ -179,12 +185,14 @@ class TypeGuardsReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
+
         assertTrue(
             results.isNotEmpty(),
             "Expected at least one result for type assertion reachability"
         )
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+
         assertTrue(
             returnStmt in reachedStatements,
             "Expected return statement to be reached when value is exactly 'A'"
@@ -217,12 +225,14 @@ class TypeGuardsReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
+
         assertTrue(
             results.isNotEmpty(),
             "Expected at least one result for non-null assertion reachability"
         )
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+
         assertTrue(
             returnStmt in reachedStatements,
             "Expected return statement to be reached when value is non-null 'nonempty'"
@@ -259,12 +269,14 @@ class TypeGuardsReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
+
         assertTrue(
             results.isNotEmpty(),
             "Expected at least one result for numeric type guard reachability"
         )
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+
         assertTrue(
             returnStmt in reachedStatements,
             "Expected return statement to be reached for numbers between 10 and 20"
@@ -296,12 +308,14 @@ class TypeGuardsReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
+
         assertTrue(
             results.isNotEmpty(),
             "Expected at least one result for boolean type guard reachability"
         )
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+
         assertTrue(
             returnStmt in reachedStatements,
             "Expected return statement to be reached when value is boolean true"
@@ -329,12 +343,14 @@ class TypeGuardsReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
+
         assertTrue(
             results.isNotEmpty(),
             "Expected at least one result for object type guard reachability"
         )
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+
         assertTrue(
             returnStmt in reachedStatements,
             "Expected return statement to be reached for non-null objects"
@@ -371,12 +387,14 @@ class TypeGuardsReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
+
         assertTrue(
             results.isNotEmpty(),
             "Expected at least one result for complex type guard reachability"
         )
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+
         assertTrue(
             returnStmt in reachedStatements,
             "Expected return statement to be reached for dates after 2020"
