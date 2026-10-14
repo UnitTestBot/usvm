@@ -4,6 +4,7 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.io.TempDir
 import org.usvm.PathSelectionStrategy
@@ -11,8 +12,11 @@ import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
+import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.util.TsTestResolver
 import org.usvm.util.assertNodeReplay
 import org.usvm.util.jsString
@@ -26,6 +30,80 @@ import kotlin.time.Duration
 class TsArrayShiftReplayTest {
     @TempDir
     lateinit var directory: Path
+
+    @Test
+    fun `compatibility push and unshift reject capacity overflow`() {
+        val source = directory.resolve("ArrayCompatibilityCapacity.ts")
+        source.writeText(
+            """
+                class ArrayCompatibilityCapacity {
+                    pushBelow() {
+                        const values = [1];
+                        const alias = values;
+                        const length = values.push(3);
+                        return length === 2 && alias[0] === 1 && alias[1] === 3 ? 1 : -1;
+                    }
+
+                    unshiftBelow() {
+                        const values = [1];
+                        const alias = values;
+                        const length = values.unshift(3);
+                        return length === 2 && alias[0] === 3 && alias[1] === 1 ? 1 : -1;
+                    }
+
+                    pushAtLimit() {
+                        const values = [1, 2];
+                        return values.push(3);
+                    }
+
+                    unshiftAtLimit() {
+                        const values = [1, 2];
+                        return values.unshift(3);
+                    }
+                }
+            """.trimIndent()
+        )
+        val scene = EtsScene(projectFiles = listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
+        val methods = scene.projectClasses.single { it.name == "ArrayCompatibilityCapacity" }.methods.associateBy { it.name }
+
+        for (operation in listOf("push", "unshift")) {
+            val events = mutableListOf<TsRuntimeFeatureLimitationEvent>()
+            val observer = object : TsInterpreterObserver {
+                override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
+                    events += event
+                }
+            }
+            val below = methods.getValue("${operation}Below")
+            val atLimit = methods.getValue("${operation}AtLimit")
+
+            val belowAnalysis = TsMachine(
+                scene = scene,
+                options = machineOptions,
+                tsOptions = TsOptions(maxArraySize = 2),
+                observer = observer,
+                unknownCallDispatcher = TsCompatibilityUnknownCallDispatcher,
+            ).use { machine -> machine.analyzeWithMetadata(methods = listOf(below)) }
+            val belowReturns = belowAnalysis.states.map { state ->
+                assertIs<TsTestValue.TsNumber>(TsTestResolver().resolve(below, state).returnValue).number
+            }
+
+            assertEquals(listOf(1.0), belowReturns)
+            assertTrue(!belowAnalysis.engineFailed)
+            assertTrue(events.isEmpty())
+
+            val atLimitAnalysis = TsMachine(
+                scene = scene,
+                options = machineOptions,
+                tsOptions = TsOptions(maxArraySize = 2),
+                observer = observer,
+                unknownCallDispatcher = TsCompatibilityUnknownCallDispatcher,
+            ).use { machine -> machine.analyzeWithMetadata(methods = listOf(atLimit)) }
+
+            assertTrue(atLimitAnalysis.states.isEmpty())
+            assertTrue(!atLimitAnalysis.engineFailed)
+            assertEquals(listOf(TsRuntimeFeatureLimitationReason.ARRAY_LENGTH_CAPACITY), events.map { it.reason })
+        }
+    }
 
     @TestFactory
     fun `symbolic shift inputs results and heap changes replay in JavaScript`(): List<DynamicTest> {
@@ -290,6 +368,43 @@ class TsArrayShiftReplayTest {
     )
 
     private fun mutationCases(type: String): List<ReplayCase> = listOf(
+        ReplayCase(
+            name = "$type compatibility pop ignores evaluated extra arguments",
+            parameters = "values: $type[]",
+            maxResult = 1,
+            body = """
+                if (values.length !== 1) return 0;
+                const alias = values;
+                const removed = values.pop(values.push(true));
+                return removed === true && alias.length === 1 ? 1 : -1;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "$type compatibility push accepts zero and three values",
+            parameters = "values: $type[]",
+            maxResult = 1,
+            body = """
+                if (values.length !== 1) return 0;
+                const alias = values;
+                const unchangedLength = values.push();
+                const newLength = values.push(7, true, null);
+                return unchangedLength === 1 && newLength === 4 && alias[1] === 7 &&
+                    alias[2] === true && alias[3] === null ? 1 : -1;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "$type compatibility unshift accepts zero and three values",
+            parameters = "values: $type[]",
+            maxResult = 1,
+            body = """
+                if (values.length !== 1) return 0;
+                const alias = values;
+                const unchangedLength = values.unshift();
+                const newLength = values.unshift(7, true, null);
+                return unchangedLength === 1 && newLength === 4 && alias[0] === 7 &&
+                    alias[1] === true && alias[2] === null ? 1 : -1;
+            """.trimIndent(),
+        ),
         ReplayCase(
             name = "$type unshift preserves unread tail and pop kind",
             parameters = "values: $type[]",

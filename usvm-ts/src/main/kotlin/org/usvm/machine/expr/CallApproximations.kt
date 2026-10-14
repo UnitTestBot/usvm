@@ -196,7 +196,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle 'Array.push()' method calls
         if (expr.callee.name == "push") {
-            return from(handleArrayPush(expr, instanceType, elementSort, array))
+            return from(handleArrayPush(stmt, instanceType, array))
         }
 
         // Handle `Array.pop() method calls
@@ -211,7 +211,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.unshift() method calls
         if (expr.callee.name == "unshift") {
-            return from(handleArrayUnshift(expr, instanceType, array))
+            return from(handleArrayUnshift(stmt, instanceType, array))
         }
 
         // Handle `Array.shift() method calls
@@ -548,42 +548,54 @@ private fun TsExprResolver.handleMathFloor(expr: EtsInstanceCallExpr): UExpr<*>?
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.push
  */
 private fun TsExprResolver.handleArrayPush(
-    expr: EtsInstanceCallExpr,
+    stmt: TsVirtualMethodCallStmt,
     arrayType: EtsArrayType,
-    elementSort: USort,
     array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    check(expr.args.size == 1) {
-        "Array.push() should have exactly one argument, but got ${expr.args.size}"
+    val lengthLValue = mkArrayLengthLValue(array, arrayType)
+    val length = scope.calcOnState { memory.read(lengthLValue) }
+    ensureArrayGrowthWithinCapacity(length, stmt.args.size, operation = "push") ?: return null
+
+    val newLength = mkBvAddExpr(length, mkBv(stmt.args.size))
+    if (stmt.args.isNotEmpty()) {
+        scope.doWithState { memory.write(lengthLValue, newLength, guard = trueExpr) }
     }
-    val arg = resolve(expr.args.single()) ?: return null
 
-    scope.calcOnState {
-        // Read the length of the array
-        val lengthLValue = mkArrayLengthLValue(array, arrayType)
-        val length = memory.read(lengthLValue)
-
-        // Increase the length of the array
-        val newLength = mkBvAddExpr(length, mkBv(1))
-        memory.write(lengthLValue, newLength, guard = trueExpr)
-
-        // Write the new element to the end of the array
+    for ((offset, arg) in stmt.args.withIndex()) {
+        val index = mkBvAddExpr(length, mkBv(offset))
         assignToArrayIndex(
             scope = scope,
             array = array,
-            index = length,
+            index = index,
             expr = arg,
             arrayType = arrayType,
-        ) ?: return@calcOnState null
+        ) ?: return null
+    }
 
-        // Return the new length of the array (as per ECMAScript spec for Array.push)
-        mkBvToFpExpr(
-            sort = fp64Sort,
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = newLength.asExpr(sizeSort),
-            signed = true,
+    mkBvToFpExpr(
+        sort = fp64Sort,
+        roundingMode = fpRoundingModeSortDefaultValue(),
+        value = newLength.asExpr(sizeSort),
+        signed = true,
+    )
+}
+
+private fun TsExprResolver.ensureArrayGrowthWithinCapacity(
+    length: UExpr<TsSizeSort>,
+    itemCount: Int,
+    operation: String,
+): Unit? = with(ctx) {
+    val maximumCurrentLength = options.maxArraySize - itemCount
+    val withinCapacity = mkBvSignedLessOrEqualExpr(length, mkBv(maximumCurrentLength))
+    val canExceedCapacity = scope.checkSat(mkNot(withinCapacity)) != null
+    if (canExceedCapacity) {
+        reportRuntimeFeatureLimitation(
+            reason = TsRuntimeFeatureLimitationReason.ARRAY_LENGTH_CAPACITY,
+            detail = "Array.$operation would grow beyond configured length bound ${options.maxArraySize}",
         )
     }
+
+    scope.assert(withinCapacity)
 }
 
 /**
@@ -613,10 +625,6 @@ private fun TsExprResolver.handleArrayPop(
     arrayType: EtsArrayType,
     array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    check(stmt.args.isEmpty()) {
-        "Array.pop() should have no arguments, but got ${stmt.args.size}"
-    }
-
     removeArrayElement(stmt, array, arrayType, first = false)
 }
 
@@ -643,9 +651,17 @@ private fun TsExprResolver.removeArrayElement(
         val removed = readArrayElement(scope, array, index, arrayType)
 
         if (first) {
-            copyArrayElements(array, array, arrayType, fromSrc = mkBv(1), fromDst = mkBv(0), length = newLength)
+            copyArrayElements(
+                srcRef = array,
+                dstRef = array,
+                arrayType = arrayType,
+                fromSrc = mkBv(1),
+                fromDst = mkBv(0),
+                length = newLength,
+            )
             moveInitializedArrayIndices(array) { sourceIndex -> mkBvSubExpr(sourceIndex, mkBv(1)) }
         }
+
         truncateKnownArrayIndices(array, newLength)
         memory.write(lengthLValue, newLength, guard = trueExpr)
 
@@ -832,49 +848,48 @@ private fun TsExprResolver.handleArrayShift(
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.unshift
  */
 private fun TsExprResolver.handleArrayUnshift(
-    expr: EtsInstanceCallExpr,
+    stmt: TsVirtualMethodCallStmt,
     arrayType: EtsArrayType,
     array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    // TODO: support vararg
-    check(expr.args.size == 1) {
-        "Array.unshift() should have exactly one argument, but got ${expr.args.size}"
+    val lengthLValue = mkArrayLengthLValue(array, arrayType)
+    val length = scope.calcOnState { memory.read(lengthLValue) }
+    ensureArrayGrowthWithinCapacity(length, stmt.args.size, operation = "unshift") ?: return null
+
+    val itemCount = stmt.args.size
+    val newLength = mkBvAddExpr(length, mkBv(itemCount))
+    if (itemCount != 0) {
+        scope.doWithState {
+            memory.write(lengthLValue, newLength, guard = trueExpr)
+
+            copyArrayElements(
+                srcRef = array,
+                dstRef = array,
+                arrayType = arrayType,
+                fromSrc = mkBv(0),
+                fromDst = mkBv(itemCount),
+                length = length,
+            )
+            moveInitializedArrayIndices(array) { index -> mkBvAddExpr(index, mkBv(itemCount)) }
+        }
     }
-    val arg = resolve(expr.args.single()) ?: return null
 
-    scope.calcOnState {
-        // Read the length of the array
-        val lengthLValue = mkArrayLengthLValue(array, arrayType)
-        val length = memory.read(lengthLValue)
-
-        // Increase the length of the array
-        val newLength = mkBvAddExpr(length, mkBv(1))
-        memory.write(lengthLValue, newLength, guard = trueExpr)
-
-        // Shift elements to the right
-        copyArrayElements(
-            srcRef = array,
-            dstRef = array,
+    for ((index, arg) in stmt.args.withIndex()) {
+        assignToArrayIndex(
+            scope = scope,
+            array = array,
+            index = mkBv(index),
+            expr = arg,
             arrayType = arrayType,
-            fromSrc = mkBv(0),
-            fromDst = mkBv(1),
-            length = length,
-        )
-
-        moveInitializedArrayIndices(array) { index -> mkBvAddExpr(index, mkBv(1)) }
-
-        // Write the new element to the start of the array
-        assignToArrayIndex(scope, array, index = mkBv(0), expr = arg, arrayType = arrayType)
-            ?: return@calcOnState null
-
-        // Return the new length of the array (as per ECMAScript spec for Array.unshift)
-        mkBvToFpExpr(
-            sort = fp64Sort,
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = newLength.asExpr(sizeSort),
-            signed = true,
-        )
+        ) ?: return null
     }
+
+    mkBvToFpExpr(
+        sort = fp64Sort,
+        roundingMode = fpRoundingModeSortDefaultValue(),
+        value = newLength.asExpr(sizeSort),
+        signed = true,
+    )
 }
 
 /**
