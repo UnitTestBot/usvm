@@ -30,6 +30,7 @@ import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
+import org.jacodb.ets.model.EtsVoidType
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -167,6 +168,7 @@ class TsContext(
         is EtsStringType -> addressSort
         is EtsNullType -> addressSort
         is EtsUndefinedType -> addressSort
+        is EtsVoidType -> addressSort
         is EtsUnionType -> unresolvedSort
         is EtsIntersectionType -> {
             val memberSorts = type.types.map(::typeToSort)
