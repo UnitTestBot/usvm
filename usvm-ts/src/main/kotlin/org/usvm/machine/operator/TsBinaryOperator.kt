@@ -1046,7 +1046,17 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<KFp64Sort>,
             rhs: UExpr<KFp64Sort>,
         ): UExpr<KFp64Sort> {
-            return mkFpRemExpr(lhs, rhs)
+            // IEEE remainder rounds the quotient to nearest; JavaScript truncates it toward zero.
+            // Correct the nonzero IEEE result only when it has the opposite sign to the dividend.
+            val remainder = mkFpRemExpr(lhs, rhs)
+            val dividendIsNegative = mkFpIsNegativeExpr(lhs)
+            val signsDiffer = mkNot(mkEq(dividendIsNegative, mkFpIsNegativeExpr(remainder)))
+            val needsCorrection = mkAnd(mkNot(mkFpIsZeroExpr(remainder)), signsDiffer)
+            val divisorMagnitude = mkFpAbsExpr(rhs)
+            val correction = mkIte(dividendIsNegative, mkFpNegationExpr(divisorMagnitude), divisorMagnitude)
+            val corrected = mkFpAddExpr(fpRoundingModeSortDefaultValue(), remainder, correction)
+
+            return mkIte(needsCorrection, corrected, remainder)
         }
     }
 
