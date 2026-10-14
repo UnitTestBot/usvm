@@ -67,3 +67,27 @@ internal fun TsState.moveInitializedArrayIndices(
     }
     initializedArrayIndices += array to moved
 }
+
+/** Copies known own slots into a fresh array; the caller establishes complete destination provenance. */
+internal fun TsState.copyKnownArrayIndexPresence(
+    srcRef: UHeapRef,
+    dstRef: UHeapRef,
+    fromSrc: UExpr<TsSizeSort>,
+    fromDst: UExpr<TsSizeSort>,
+    length: UExpr<TsSizeSort>,
+) = with(ctx) {
+    require(srcRef in knownArrayPropertyPresence) { "Source array has no known own-slot provenance" }
+
+    val fromSrcEnd = mkBvAddExpr(fromSrc, length)
+    val copied = initializedArrayIndices[dstRef].orEmpty().toMutableMap()
+    for ((index, present) in initializedArrayIndices[srcRef].orEmpty()) {
+        val isInCopiedRange = mkAnd(
+            mkBvSignedGreaterOrEqualExpr(index, fromSrc),
+            mkBvSignedLessExpr(index, fromSrcEnd),
+        )
+        val destinationIndex = mkBvAddExpr(fromDst, mkBvSubExpr(index, fromSrc))
+        val copiedPresence = mkAnd(isInCopiedRange, present)
+        copied[destinationIndex] = mkOr(copied[destinationIndex] ?: falseExpr, copiedPresence)
+    }
+    initializedArrayIndices += dstRef to copied
+}

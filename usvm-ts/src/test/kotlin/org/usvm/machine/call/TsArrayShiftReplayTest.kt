@@ -32,7 +32,7 @@ class TsArrayShiftReplayTest {
     lateinit var directory: Path
 
     @Test
-    fun `compatibility push and unshift reject capacity overflow`() {
+    fun `compatibility array growth rejects capacity overflow`() {
         val source = directory.resolve("ArrayCompatibilityCapacity.ts")
         source.writeText(
             """
@@ -60,13 +60,28 @@ class TsArrayShiftReplayTest {
                         const values = [1, 2];
                         return values.unshift(3);
                     }
+
+                    concatBelow() {
+                        const values = [1];
+                        const alias = values;
+
+                        const combined = values.concat([3]);
+
+                        return combined[0] === 1 && combined[1] === 3 &&
+                            alias.length === 1 && alias[0] === 1 ? 1 : -1;
+                    }
+
+                    concatAtLimit() {
+                        const values = [1, 2];
+                        return values.concat([3]);
+                    }
                 }
             """.trimIndent()
         )
         val scene = EtsScene(projectFiles = listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
         val methods = scene.projectClasses.single { it.name == "ArrayCompatibilityCapacity" }.methods.associateBy { it.name }
 
-        for (operation in listOf("push", "unshift")) {
+        for (operation in listOf("push", "unshift", "concat")) {
             val events = mutableListOf<TsRuntimeFeatureLimitationEvent>()
             val observer = object : TsInterpreterObserver {
                 override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
@@ -303,6 +318,34 @@ class TsArrayShiftReplayTest {
 
     private fun copyCases(type: String): List<ReplayCase> = listOf(
         ReplayCase(
+            name = "$type slice ignores an evaluated extra argument",
+            parameters = "values: $type[]",
+            maxResult = 1,
+            body = """
+                if (values.length !== 1) return 0;
+                const alias = values;
+
+                const copy = values.slice(0, 1, values.push(true));
+
+                return copy.length === 1 && alias.length === 2 && alias[1] === true ? 1 : -1;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "$type slice preserves a deleted slot at a translated index",
+            parameters = "values: $type[]",
+            maxResult = 1,
+            body = """
+                if (values.length !== 1) return 0;
+                const source = [7, 11, 22];
+                delete source[1];
+
+                const copy = source.slice(1, 3);
+
+                return copy.length === 2 && copy[0] === undefined && copy[1] === 22 &&
+                    source[0] === 7 ? 1 : -1;
+            """.trimIndent(),
+        ),
+        ReplayCase(
             name = "$type slice() retains all runtime kinds",
             parameters = "values: $type[]",
             maxResult = 6,
@@ -452,6 +495,38 @@ class TsArrayShiftReplayTest {
     )
 
     private fun concatCases(type: String): List<ReplayCase> = listOf(
+        ReplayCase(
+            name = "$type concat preserves deleted receiver slot and alias",
+            parameters = "values: $type[]",
+            maxResult = 1,
+            body = """
+                if (values.length !== 1) return 0;
+                const source = [7, 11];
+                const alias = source;
+                delete source[1];
+
+                const copy = source.concat([22], 33);
+
+                return copy.length === 4 && copy[1] === undefined && copy[2] === 22 &&
+                    copy[3] === 33 && alias[1] === undefined && alias.length === 2 ? 1 : -1;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "$type concat preserves deleted argument slot at offset",
+            parameters = "values: $type[]",
+            maxResult = 1,
+            body = """
+                if (values.length !== 1) return 0;
+                const source = [7];
+                const other = [11, 22];
+                delete other[0];
+
+                const copy = source.concat(other);
+
+                return copy.length === 3 && copy[0] === 7 && copy[1] === undefined &&
+                    copy[2] === 22 ? 1 : -1;
+            """.trimIndent(),
+        ),
         ReplayCase(
             name = "$type concat copies unread input arrays",
             parameters = "left: $type[], right: $type[]",

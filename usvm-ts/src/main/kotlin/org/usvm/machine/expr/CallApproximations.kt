@@ -47,6 +47,7 @@ import org.usvm.types.TypesResult
 import org.usvm.util.arrayStorageType
 import org.usvm.util.componentType
 import org.usvm.util.copyArrayElements
+import org.usvm.util.copyKnownArrayIndexPresence
 import org.usvm.util.forEachArrayPayloadRegion
 import org.usvm.util.initializeArrayKind
 import org.usvm.util.initializeTypedArrayOverrides
@@ -226,7 +227,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.slice() method calls
         if (expr.callee.name == "slice") {
-            return from(handleArraySlice(expr, instanceType, array))
+            return from(handleArraySlice(stmt, instanceType, array))
         }
 
         // Handle `Array.concat() method calls
@@ -953,19 +954,11 @@ private const val ARRAY_JOIN_RESULT = "joined_array_result"
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.slice
  */
 private fun TsExprResolver.handleArraySlice(
-    expr: EtsInstanceCallExpr,
+    stmt: TsVirtualMethodCallStmt,
     arrayType: EtsArrayType,
     array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    check(expr.args.size <= 2) {
-        "Array.slice() should have at most two arguments, but got ${expr.args.size}"
-    }
-
-    val start = if (expr.args.isNotEmpty()) {
-        resolve(expr.args[0]) ?: return null
-    } else {
-        mkBv(0)
-    }
+    val start = stmt.args.getOrNull(0) ?: mkBv(0)
     val startBv: UExpr<TsSizeSort> = when (start.sort) {
         sizeSort -> start.asExpr(sizeSort)
 
@@ -982,9 +975,7 @@ private fun TsExprResolver.handleArraySlice(
         }
     }
 
-    val end = if (expr.args.size > 1) {
-        resolve(expr.args[1]) ?: return null
-    } else {
+    val end = stmt.args.getOrNull(1) ?: run {
         val lengthLValue = mkArrayLengthLValue(array, arrayType)
         scope.calcOnState { memory.read(lengthLValue) }
     }
@@ -1006,6 +997,7 @@ private fun TsExprResolver.handleArraySlice(
 
     scope.calcOnState {
         val descriptor = arrayDescriptorOf(arrayType)
+        val hasKnownOwnSlots = array in knownArrayPropertyPresence
 
         val length = memory.read(mkArrayLengthLValue(array, arrayType))
         val zero = mkBv(0)
@@ -1032,6 +1024,16 @@ private fun TsExprResolver.handleArraySlice(
             fromDst = mkBv(0),
             length = newLength,
         )
+        if (hasKnownOwnSlots) {
+            copyKnownArrayIndexPresence(
+                srcRef = array,
+                dstRef = slicedArray,
+                fromSrc = from,
+                fromDst = mkBv(0),
+                length = newLength,
+            )
+            knownArrayPropertyPresence += slicedArray
+        }
 
         memory.write(mkArrayLengthLValue(slicedArray, arrayType), newLength, guard = trueExpr)
 
@@ -1049,7 +1051,7 @@ private fun TsExprResolver.handleArraySlice(
  * let a = [1, 2];
  * let b = [3, 4];
  *
- * a.concat() -> [1, 2] // same array
+ * a.concat() -> [1, 2] // new array with the same elements
  * a.concat(b) -> [1, 2, 3, 4] // concat two arrays
  * a.concat(b, 5) -> [1, 2, 3, 4, 5] // concat with an array and a single element
  *
@@ -1064,34 +1066,63 @@ private fun TsExprResolver.handleArrayConcat(
     array: UHeapRef,
 ): TsExprApproximationResult = with(ctx) {
     val elementSort = typeToSort(arrayType.componentType)
-    val arrayTypes = stmt.args.mapIndexed { index, arg ->
+    val arrayTypes = mutableListOf<EtsArrayType?>()
+    for ((index, arg) in stmt.args.withIndex()) {
         if (arg.sort == addressSort) {
             val ref = arg.asExpr(addressSort)
             // A fake or an untyped reference may itself contain an array; spreading requires runtime dispatch.
             if (ref.hasFakeValueBranch()) return TsExprApproximationResult.NoApproximation
             val type = scope.calcOnState { arrayStorageType(ref, stmt.call.args[index].type) }
             if (typeToSort(type) is TsUnresolvedSort) return TsExprApproximationResult.NoApproximation
-            type as? EtsArrayType
+            arrayTypes += type as? EtsArrayType
         } else {
-            null
+            arrayTypes += null
         }
     }
-    if (arrayTypes.withIndex().any { (index, type) ->
-            if (type != null) {
-                typeToSort(type.componentType) != elementSort
-            } else {
-                elementSort !is TsUnresolvedSort && stmt.args[index].sort != elementSort
-            }
+    val hasIncompatibleElementSort = arrayTypes.withIndex().any { (index, type) ->
+        if (type != null) {
+            typeToSort(type.componentType) != elementSort
+        } else {
+            elementSort !is TsUnresolvedSort && stmt.args[index].sort != elementSort
         }
-    ) {
+    }
+    if (hasIncompatibleElementSort) {
         logger.debug { "Array.concat requires conversion between different element storage sorts" }
         return TsExprApproximationResult.NoApproximation
     }
 
+    val copySources = mutableListOf(array)
+    for ((index, type) in arrayTypes.withIndex()) {
+        if (type != null) {
+            copySources += stmt.args[index].asExpr(addressSort)
+        }
+    }
+    val knownSources = scope.calcOnState { copySources.map { it in knownArrayPropertyPresence } }
+    val preserveKnownPresence = knownSources.all { it }
+    val hasMixedPresence = knownSources.any { it } && !preserveKnownPresence
+    if (hasMixedPresence) return TsExprApproximationResult.NoApproximation
+
+    val originalLength = scope.calcOnState { memory.read(mkArrayLengthLValue(array, arrayType)) }
+    val argumentLengths = scope.calcOnState {
+        arrayTypes.mapIndexed { index, type ->
+            if (type == null) {
+                mkBv(1)
+            } else {
+                val ref = stmt.args[index].asExpr(addressSort)
+                memory.read(mkArrayLengthLValue(ref, type))
+            }
+        }
+    }
+    var resultLength = originalLength
+    for (length in argumentLengths) {
+        resultLength = mkBvAddExpr(resultLength, length)
+    }
+    ensureArrayGrowthWithinCapacity(resultLength, itemCount = 0, operation = "concat")
+        ?: return TsExprApproximationResult.ResolveFailure
+
     from(
         scope.calcOnState {
             val resultArray = memory.allocConcrete(arrayDescriptorOf(arrayType))
-            val originalLength = memory.read(mkArrayLengthLValue(array, arrayType))
             copyArrayElements(
                 srcRef = array,
                 dstRef = resultArray,
@@ -1100,30 +1131,51 @@ private fun TsExprResolver.handleArrayConcat(
                 fromDst = mkBv(0),
                 length = originalLength,
             )
+            if (preserveKnownPresence) {
+                copyKnownArrayIndexPresence(
+                    srcRef = array,
+                    dstRef = resultArray,
+                    fromSrc = mkBv(0),
+                    fromDst = mkBv(0),
+                    length = originalLength,
+                )
+            }
 
-            var totalLength = originalLength
+            var copiedLength = originalLength
             stmt.args.forEachIndexed { index, arg ->
                 val argType = arrayTypes[index]
                 if (argType != null) {
                     val ref = arg.asExpr(addressSort)
-                    val length = memory.read(mkArrayLengthLValue(ref, argType))
+                    val length = argumentLengths[index]
                     copyArrayElements(
                         srcRef = ref,
                         dstRef = resultArray,
                         arrayType = argType,
                         fromSrc = mkBv(0),
-                        fromDst = totalLength,
+                        fromDst = copiedLength,
                         length = length,
                     )
-                    totalLength = mkBvAddExpr(totalLength, length)
+                    if (preserveKnownPresence) {
+                        copyKnownArrayIndexPresence(
+                            srcRef = ref,
+                            dstRef = resultArray,
+                            fromSrc = mkBv(0),
+                            fromDst = copiedLength,
+                            length = length,
+                        )
+                    }
+                    copiedLength = mkBvAddExpr(copiedLength, length)
                 } else {
-                    val newLength = mkBvAddExpr(totalLength, mkBv(1))
+                    val newLength = mkBvAddExpr(copiedLength, mkBv(1))
                     memory.write(mkArrayLengthLValue(resultArray, arrayType), newLength, guard = trueExpr)
-                    assignToArrayIndex(scope, resultArray, totalLength, arg, arrayType) ?: return@calcOnState null
-                    totalLength = newLength
+                    assignToArrayIndex(scope, resultArray, copiedLength, arg, arrayType) ?: return@calcOnState null
+                    copiedLength = newLength
                 }
             }
-            memory.write(mkArrayLengthLValue(resultArray, arrayType), totalLength, guard = trueExpr)
+            memory.write(mkArrayLengthLValue(resultArray, arrayType), resultLength, guard = trueExpr)
+            if (preserveKnownPresence) {
+                knownArrayPropertyPresence += resultArray
+            }
 
             resultArray
         }
