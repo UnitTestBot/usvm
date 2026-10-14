@@ -76,7 +76,7 @@ class TsMachine(
     override val options: UMachineOptions = UMachineOptions(solverType = SolverType.YICES),
     private val tsOptions: TsOptions,
     private val machineObserver: UMachineObserver<TsState>? = null,
-    observer: TsInterpreterObserver? = null,
+    private val observer: TsInterpreterObserver? = null,
     unknownCallDispatcher: TsUnknownCallDispatcher? = null,
     unknownCallModels: TsUnknownCallModelCatalog? = null,
 ) : UMachine<TsState>() {
@@ -107,7 +107,11 @@ class TsMachine(
     private val runtimeScene = analysisScene.withCoreRuntimeSdk()
     private val graph = TsGraph(runtimeScene)
     private val typeSystem = TsTypeSystem(runtimeScene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
-    private val components = TsComponents(typeSystem, options)
+    private val components = TsComponents(
+        typeSystem = typeSystem,
+        options = options,
+        solverQueryObserver = observer?.let { it::onSolverQuery },
+    )
     private val ctx = TsContext(
         scene = runtimeScene,
         components = components,
@@ -159,6 +163,14 @@ class TsMachine(
         )
     }
 
+    private fun createTimeStatistics(): TimeStatistics<EtsMethod, TsState> = TimeStatistics(
+        onEntryPointTimeQuantum = { method, requested, elapsed ->
+            observer?.onEntryPointTimeQuantum(
+                TsEntryPointTimeQuantumEvent(entrypoint = method, requested = requested, elapsed = elapsed),
+            )
+        },
+    )
+
     fun analyzeWithMetadata(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
@@ -190,7 +202,7 @@ class TsMachine(
                 else -> TODO("Unsupported yet")
             }
 
-        val timeStatistics = TimeStatistics<EtsMethod, TsState>()
+        val timeStatistics = createTimeStatistics()
 
         val pathSelector = createPathSelector(
             initialStates = initialStates,

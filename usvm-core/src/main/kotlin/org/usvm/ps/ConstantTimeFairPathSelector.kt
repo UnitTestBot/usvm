@@ -32,6 +32,7 @@ class ConstantTimeFairPathSelector<State, Key, KeyPriority : Comparable<KeyPrior
     private val getKeyPriority: (Key) -> KeyPriority,
     basePathSelectorFactory: (Key) -> UPathSelector<State>,
     private val maxTimeQuantum: Duration = Duration.INFINITE,
+    private val onTimeQuantum: (Key, Duration, Duration) -> Unit = { _, _, _ -> },
 ) : KeyedPathSelector<State, Key>(getKey) {
 
     private data class KeysQueueElement<Key, KeyPriority>(val key: Key, var priority: KeyPriority, var elapsed: Duration)
@@ -72,6 +73,15 @@ class ConstantTimeFairPathSelector<State, Key, KeyPriority : Comparable<KeyPrior
         return activeQueue.peek()
     }
 
+    /** Flush the final partial turn when the machine stops without another peek. */
+    fun finishTimeQuantum() {
+        if (!stopwatch.isRunning) return
+
+        stopwatch.stop()
+        val currentKey = activeQueue.peek() ?: return
+        onTimeQuantum(currentKey.key, currentTimeQuantum, stopwatch.elapsed)
+    }
+
     override fun isEmpty(): Boolean {
         if (activeQueue.isEmpty() && expiredList.isEmpty()) {
             return true
@@ -86,7 +96,7 @@ class ConstantTimeFairPathSelector<State, Key, KeyPriority : Comparable<KeyPrior
         val quantumEnded = stopwatch.isRunning && stopwatch.elapsed >= currentTimeQuantum
         // When time quantum is exceeded or there is nothing to peek, start peeking the next one
         if (quantumEnded || isCurrentPathSelectorEmpty) {
-            stopwatch.stop()
+            finishTimeQuantum()
             activeQueue.remove(currentKey)
             if (!isCurrentPathSelectorEmpty) {
                 currentKey.elapsed += stopwatch.elapsed

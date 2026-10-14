@@ -15,6 +15,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 class PathSelectorDrainTest {
@@ -34,6 +35,7 @@ class PathSelectorDrainTest {
     fun `constant time drain includes unvisited keys without new scheduling events`() {
         val stopwatch = TestStopwatch()
         val children = mutableMapOf<Char, TrackingSelector<String>>()
+        val turns = mutableListOf<Triple<Char, Duration, Duration>>()
         var stopped = false
         val selector = ConstantTimeFairPathSelector(
             initialKeys = setOf('a', 'b', 'c'),
@@ -49,11 +51,12 @@ class PathSelectorDrainTest {
             },
             basePathSelectorFactory = { key -> TrackingSelector<String>().also { children[key] = it } },
             maxTimeQuantum = 2.seconds,
+            onTimeQuantum = { key, requested, elapsed -> turns += Triple(key, requested, elapsed) },
         )
         selector.add(states = listOf("a1", "a2", "b1", "c1"))
         assertEquals(expected = "a1", actual = selector.peek())
         stopwatch.elapsedRaw = 3L
-        stopwatch.stop()
+        selector.finishTimeQuantum()
         stopped = true
 
         val drained = selector.drain().toList()
@@ -61,6 +64,7 @@ class PathSelectorDrainTest {
         assertEquals(expected = setOf("a1", "a2", "b1", "c1"), actual = drained.toSet())
         assertEquals(expected = 4, actual = drained.size)
         assertEquals(expected = 1, actual = children.values.sumOf { it.peekCount })
+        assertEquals(expected = listOf(Triple('a', 2.seconds, 3.seconds)), actual = turns)
         assertEquals(expected = 3.seconds, actual = stopwatch.elapsed)
         assertFalse(stopwatch.isRunning)
         assertTrue(selector.isEmpty())

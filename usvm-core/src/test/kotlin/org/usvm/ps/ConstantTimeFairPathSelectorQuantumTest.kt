@@ -100,6 +100,55 @@ class ConstantTimeFairPathSelectorQuantumTest {
     }
 
     @Test
+    fun `measured turns preserve overrun and final partial turn exactly once`() {
+        val stopwatch = TestStopwatch()
+        val turns = mutableListOf<Triple<Char, Duration, Duration>>()
+        val selector = selector(
+            stopwatch = stopwatch,
+            remainingTime = { 30.seconds },
+            maxTimeQuantum = 2.seconds,
+            onTimeQuantum = { key, requested, elapsed -> turns += Triple(key, requested, elapsed) },
+        )
+        selector.add(states = listOf("a1", "b1", "c1"))
+        assertEquals(expected = "a1", actual = selector.peek())
+
+        stopwatch.elapsedRaw = 4L
+        assertEquals(expected = "b1", actual = selector.peek())
+        stopwatch.elapsedRaw = 1L
+        selector.finishTimeQuantum()
+        selector.finishTimeQuantum()
+
+        assertEquals(
+            expected = listOf(Triple('a', 2.seconds, 4.seconds), Triple('b', 2.seconds, 1.seconds)),
+            actual = turns,
+        )
+    }
+
+    @Test
+    fun `successive turns of the only remaining key remain distinct`() {
+        val stopwatch = TestStopwatch()
+        val turns = mutableListOf<Triple<Char, Duration, Duration>>()
+        val selector = selector(
+            stopwatch = stopwatch,
+            remainingTime = { 30.seconds },
+            maxTimeQuantum = 2.seconds,
+            onTimeQuantum = { key, requested, elapsed -> turns += Triple(key, requested, elapsed) },
+        )
+        selector.add(states = listOf("a1"))
+        assertEquals(expected = "a1", actual = selector.peek())
+
+        stopwatch.elapsedRaw = 2L
+        assertEquals(expected = "a1", actual = selector.peek())
+        stopwatch.elapsedRaw = 1L
+        selector.finishTimeQuantum()
+
+        assertEquals(
+            expected = listOf(Triple('a', 2.seconds, 2.seconds), Triple('a', 2.seconds, 1.seconds)),
+            actual = turns,
+        )
+    }
+
+    @Test
     fun `nonpositive turn bounds are rejected`() {
         for (quantum in listOf(Duration.ZERO, -1.seconds)) {
             val stopwatch = TestStopwatch()
@@ -118,6 +167,7 @@ class ConstantTimeFairPathSelectorQuantumTest {
         stopwatch: TestStopwatch,
         remainingTime: () -> Duration,
         maxTimeQuantum: Duration,
+        onTimeQuantum: (Char, Duration, Duration) -> Unit = { _, _, _ -> },
     ): ConstantTimeFairPathSelector<String, Char, Char> = ConstantTimeFairPathSelector(
         initialKeys = setOf('a', 'b', 'c'),
         stopwatch = stopwatch,
@@ -126,5 +176,6 @@ class ConstantTimeFairPathSelectorQuantumTest {
         getKeyPriority = { key -> key },
         basePathSelectorFactory = { BfsPathSelector() },
         maxTimeQuantum = maxTimeQuantum,
+        onTimeQuantum = onTimeQuantum,
     )
 }

@@ -7,7 +7,11 @@ import kotlin.time.Duration
 /**
  * Maintains information about time spent on machine processes.
  */
-class TimeStatistics<Method, State : UState<*, Method, *, *, *, State>> : UMachineObserver<State> {
+class TimeStatistics<Method, State : UState<*, Method, *, *, *, State>>(
+    val onEntryPointTimeQuantum: (Method, Duration, Duration) -> Unit = { _, _, _ -> },
+) : UMachineObserver<State> {
+    internal var finishTimeQuantum: () -> Unit = { }
+
     private val stopwatch = RealTimeStopwatch()
     private val methodStopwatch = RealTimeStopwatch()
 
@@ -30,6 +34,7 @@ class TimeStatistics<Method, State : UState<*, Method, *, *, *, State>> : UMachi
 
     override fun onMachineStopped() {
         check(stopwatch.isRunning) { "Machine stopwatch was not running on machine stopped" }
+        finishTimeQuantum()
         stopwatch.stop()
         methodStopwatch.stop()
     }
