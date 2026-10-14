@@ -54,8 +54,20 @@ class PropertyDomainTest {
         val invalidNumber = JsConcreteValue.Number(
             number = JsNumber(value = JsNumberKind.FINITE, bits = "invalid"),
         )
+        val malformedFiniteNumber = JsConcreteValue.Number(
+            number = JsNumber(value = JsNumberKind.FINITE, bits = "000000000000000"),
+        )
+        val malformedSpecialNumbers = listOf(
+            JsNumberKind.NAN,
+            JsNumberKind.NEGATIVE_INFINITY,
+            JsNumberKind.POSITIVE_INFINITY,
+        ).map { kind -> JsConcreteValue.Number(JsNumber(value = kind, bits = "invalid")) }
 
         assertFalse(invalidNumber in IntegerDomain())
         assertFalse(invalidNumber in NumberDomain())
+        assertFalse(malformedFiniteNumber in NumberDomain())
+        malformedSpecialNumbers.forEach { number ->
+            assertFalse(number in NumberDomain())
+        }
     }
 }

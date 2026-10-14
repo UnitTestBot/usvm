@@ -113,6 +113,8 @@ private fun JsConcreteValue.Number.isIntegerIn(domain: IntegerDomain): Boolean {
 }
 
 private fun JsConcreteValue.Number.isNumberIn(domain: NumberDomain): Boolean {
+    if (!number.hasValidEncoding()) return false
+
     if (number.value == JsNumberKind.NAN) return domain.allowNaN
 
     val value = validDoubleOrNull() ?: return false
