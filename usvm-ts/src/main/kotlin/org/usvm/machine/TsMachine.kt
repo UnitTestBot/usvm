@@ -9,6 +9,7 @@ import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
+import org.usvm.UPathSelector
 import org.usvm.api.targets.TsTarget
 import org.usvm.machine.call.TsBuiltInUnknownCallModels
 import org.usvm.machine.call.TsModelUnknownCallDispatcher
@@ -32,6 +33,7 @@ import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
+import org.usvm.statistics.collectors.StatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CfgStatisticsImpl
@@ -79,6 +81,8 @@ class TsMachine(
     private val observer: TsInterpreterObserver? = null,
     unknownCallDispatcher: TsUnknownCallDispatcher? = null,
     unknownCallModels: TsUnknownCallModelCatalog? = null,
+    /** Creates an observer with access to the analysis queue, including unsupported terminal states. */
+    private val machineObserverFactory: ((UPathSelector<TsState>) -> UMachineObserver<TsState>)? = null,
 ) : UMachine<TsState>() {
     init {
         val hasCompatibleCoverageScope = tsOptions.classCoverageTargets == null ||
@@ -214,15 +218,7 @@ class TsMachine(
             callGraphStatisticsFactory = { callGraphStatistics },
         )
 
-        val statesCollector =
-            when (options.stateCollectionStrategy) {
-                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<TsState>(coverageStatistics) {
-                    it.methodResult is TsMethodResult.TsException
-                }
-
-                StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
-                StateCollectionStrategy.ALL -> AllStatesCollector()
-            }
+        val statesCollector = createStatesCollector(coverageStatistics)
 
         val observers = mutableListOf<UMachineObserver<TsState>>(coverageStatistics)
         observers.add(statesCollector)
@@ -283,14 +279,23 @@ class TsMachine(
         }
 
         val supportedObserver = CompositeUMachineObserver(observers)
-        val outcomeObserver = UnsupportedPathsObserver(supportedObserver, unsupportedPaths)
+        val outcomeObserver = UnsupportedPathsObserver(
+            delegate = supportedObserver,
+            unsupportedPaths = unsupportedPaths,
+        )
+        val factoryObserver = machineObserverFactory?.invoke(pathSelector)
+        val executionObserver = if (factoryObserver == null) {
+            outcomeObserver
+        } else {
+            CompositeUMachineObserver(outcomeObserver, factoryObserver)
+        }
 
         run(
-            interpreter,
-            pathSelector,
-            observer = outcomeObserver,
+            interpreter = interpreter,
+            pathSelector = pathSelector,
+            observer = executionObserver,
             isStateTerminated = { state -> state.callStack.isEmpty() },
-            stopStrategy = stopStrategy
+            stopStrategy = stopStrategy,
         )
 
         val stopReason = if (pathSelector.isEmpty()) {
@@ -307,6 +312,16 @@ class TsMachine(
             engineFailed = interpreter.stepFailed,
             unsupportedPaths = unsupportedPaths.toList(),
         )
+    }
+
+    private fun createStatesCollector(
+        coverageStatistics: CoverageStatistics<EtsMethod, EtsStmt, TsState>,
+    ): StatesCollector<TsState> = when (options.stateCollectionStrategy) {
+        StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<TsState>(coverageStatistics) {
+            it.methodResult is TsMethodResult.TsException
+        }
+        StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
+        StateCollectionStrategy.ALL -> AllStatesCollector()
     }
 
     private fun classCoverageMethods(entryMethods: Set<EtsMethod>): Set<EtsMethod> {
@@ -377,6 +392,10 @@ private class FailureTrackingUnknownCallObserver(
 ) : TsInterpreterObserver {
     var pathStopped: Boolean = false
         private set
+
+    override fun onPathStopped(state: TsState, reason: String) {
+        delegate?.onPathStopped(state = state, reason = reason)
+    }
 
     override fun onUnknownCall(event: TsUnknownCallEvent) {
         val decision = event.decision
