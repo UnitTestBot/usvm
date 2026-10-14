@@ -75,6 +75,7 @@ internal data class CallsClassRawAnalysis(
     val timeQuantumCount: Long,
     val timeQuantumOverruns: Long,
     val methodSteps: Map<String, Long>,
+    val sourceEnteredStatementKinds: Map<String, Long>,
     val sourceMappedIrUniverse: List<CallsClassRawIrPoint>,
     val sourceMappedIrEntered: List<CallsClassRawIrPoint>,
     val statementUniverseSha256: String,
@@ -97,6 +98,7 @@ internal class ClassRawAnalysisObserver(
     private val remaining = mutableListOf<CallsClassRawStateSnapshot>()
     private val snapshotFailures = mutableListOf<String>()
     private val methodSteps = linkedMapOf<String, Long>()
+    private val sourceKinds = linkedMapOf<String, Long>()
     private val solverStatuses = linkedMapOf<String, Long>()
     private var executingMethod: String? = null
     private var returnedStates = 0L
@@ -113,6 +115,7 @@ internal class ClassRawAnalysisObserver(
 
     fun recordOriginalEntry(stmt: EtsStmt) {
         entered += stmt.toClassRawIrPoint(sourceFile = sourceFile)
+        sourceKinds.merge(stmt::class.java.simpleName, 1L, Long::plus)
     }
 
     override fun onStatePeeked(state: TsState) {
@@ -249,6 +252,7 @@ internal class ClassRawAnalysisObserver(
             timeQuantumCount = quantumCount,
             timeQuantumOverruns = quantumOverruns,
             methodSteps = methodSteps,
+            sourceEnteredStatementKinds = sourceKinds,
             sourceMappedIrUniverse = universe,
             sourceMappedIrEntered = entered.toList(),
             statementUniverseSha256 = callsArtifactSha256(encodedUniverse),

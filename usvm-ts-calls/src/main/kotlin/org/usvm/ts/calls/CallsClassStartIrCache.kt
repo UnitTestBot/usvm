@@ -13,11 +13,22 @@ import kotlin.time.Duration.Companion.seconds
 @Serializable
 internal data class CallsClassStartIrCache(val fingerprint: String, val irSha256: Map<String, String>)
 
+private fun bundledFrontendBinarySha256(): String {
+    val location = checkNotNull(EtsIrProvider::class.java.protectionDomain.codeSource).location
+    val path = Path.of(location.toURI()).toRealPath()
+    if (Files.isRegularFile(path)) return callsArtifactSha256(Files.readAllBytes(path))
+
+    val contents = startupIrFiles(path)
+    require(contents.isNotEmpty()) { "Bundled frontend runtime files are absent" }
+    return callsArtifactSha256(encodeCallsArtifact(contents).toByteArray(Charsets.UTF_8))
+}
+
 internal fun startupIrFingerprint(case: CallsClassStartCase): String {
     val values = mapOf(
         "inputs" to CallsExperimentJson.json.encodeToUtf8SafeString(case.inputSha256.toSortedMap().toMap()),
         "frontendConfig" to case.frontendConfig.orEmpty(),
         "frontendRevision" to CallsBuildIdentity.nativeFrontendRevision,
+        "frontendBinarySha256" to bundledFrontendBinarySha256(),
         "projectRevision" to case.projectRevision,
     )
     return callsArtifactSha256(CallsExperimentJson.json.encodeToUtf8SafeString(values).toByteArray())

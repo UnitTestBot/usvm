@@ -22,9 +22,9 @@ group, including a frontend subprocess.
 ## Startup criterion
 
 `started` requires both a real initial state with a model and an interpreter callback for an original
-executable statement of the selected target class. Assignment, unresolved assignment call, standalone
-call, conditional, explicit return, and throw callbacks run inside the corresponding interpreter visit,
-before expression resolution or unknown-call dispatch. Queue selection alone cannot establish startup.
+executable statement of the selected target class. The generic callback runs inside `TsInterpreter.step`,
+after step preparation and before statement dispatch, including field definitions. Source attribution
+does not run on exception-propagation or failed preparation paths. Queue selection alone cannot establish startup.
 Synthetic default returns, NOPs, declarations without initializers, foreign classes, and missing source
 spans cannot establish it either. A first unsupported residual call can establish startup even when its
 successful transition count is zero; this is recorded as `STARTED_WITH_LIMITATION`.
@@ -62,8 +62,20 @@ identity requires a new output directory. An interrupted child without a final d
 requires a fresh attempt directory.
 
 The shared cache stores immutable frontend IR only, keyed by frozen inputs, resolved compiler config,
-frontend revision, and project revision. It verifies every cached file before reuse. Scenes, machines,
+frontend revision and actual provider binary hash, and project revision. It verifies every cached file before reuse. Scenes, machines,
 initial states, and solver states are always created separately for each class.
+
+Runtime target lookup requires the exact file, class name, and `CLASS` declaration category. A merged
+TypeScript interface remains in the full scene and is listed in the receipt; it cannot compete as the
+runtime target. All target IR bodies remain loaded and reported. Compiler-lowered anonymous closures
+are marked `LOWERED_CLOSURE_REACHABLE_VIA_OWNER`; they run through their owning member with its allocated
+closure environment rather than receiving a fabricated independent closure argument. Declared methods,
+constructors, and initialization bodies remain independent entries. The source-mapped IR universe keeps
+the complete class, including these dependent closure bodies.
+
+Both `ETS_FRONTEND_SCRIPT` and `ETS_FRONTEND_DIR` overrides are rejected. The exploratory gate additionally
+requires the exact tool/frontend revisions and runtime byte hashes that produced the completed startup
+screen; changing the engine, frontend, shared driver, Java, or Node requires a fresh startup screen.
 
 ## Exploratory four-profile probe
 

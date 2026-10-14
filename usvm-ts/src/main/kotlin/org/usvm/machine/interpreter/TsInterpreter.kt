@@ -166,6 +166,8 @@ class TsInterpreter(
         try {
             scope.prepareRefinedStringBackings() ?: return scope.stepResult()
 
+            observer?.onStatementEntered(stmt, scope)
+
             when (stmt) {
                 is TsVirtualMethodCallStmt -> visitVirtualMethodCall(scope, stmt)
                 is TsConcreteMethodCallStmt -> visitConcreteMethodCall(scope, stmt)

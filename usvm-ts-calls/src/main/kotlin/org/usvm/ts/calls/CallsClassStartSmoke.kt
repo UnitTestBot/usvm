@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallExpr
 import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsMethod
@@ -12,6 +13,7 @@ import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsThrowStmt
+import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.usvm.CoverageZone
 import org.usvm.SolverType
@@ -148,7 +150,28 @@ internal data class CallsClassStartResult(
     val failureLog: String? = null,
     val inputDriftLog: String? = null,
     val rawAnalysis: CallsClassRawAnalysis? = null,
+    val targetDeclarationCandidates: List<String> = emptyList(),
+    val entryPointEligibility: List<CallsClassStartEntryPoint> = emptyList(),
 )
+
+@Serializable
+internal data class CallsClassStartEntryPoint(
+    val methodSignature: String,
+    val standalone: Boolean,
+    val reason: String? = null,
+)
+
+/** Compiler-lowered closures need their allocated environment from the owning member's execution. */
+internal fun classStartupEntryPoints(
+    methods: List<EtsMethod>,
+): List<CallsClassStartEntryPoint> = methods.map { method ->
+    val requiresClosureBinding = method.name.startsWith(ANONYMOUS_METHOD_PREFIX)
+    CallsClassStartEntryPoint(
+        methodSignature = method.signature.toString(),
+        standalone = !requiresClosureBinding,
+        reason = if (requiresClosureBinding) "LOWERED_CLOSURE_REACHABLE_VIA_OWNER" else null,
+    )
+}
 
 /** A source return must be explicit; a synthetic default constructor return cannot prove startup. */
 internal fun isOriginalClassStartupStep(
@@ -271,7 +294,7 @@ internal class ClassStartObserver(
     }
 
     /** Statement callbacks run inside interpreter visits, before expression resolution or fallback. */
-    private fun onStatementEntered(stmt: EtsStmt, scope: TsStepScope) {
+    override fun onStatementEntered(stmt: EtsStmt, scope: TsStepScope) {
         val state = scope.calcOnState { this }
         val original =
             isOriginalClassStartupStep(stmt = stmt, target = target, sourceFile = sourceFile, sourceText = sourceText)
@@ -385,7 +408,9 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
     }
     require(manifest.toolRevision == CallsBuildIdentity.toolRevision) { "Smoke runtime revision changed" }
     require(manifest.nativeFrontendRevision == CallsBuildIdentity.nativeFrontendRevision) { "Smoke frontend changed" }
-    require(System.getenv("ETS_FRONTEND_SCRIPT") == null) { "Use the pinned bundled frontend" }
+    require(System.getenv("ETS_FRONTEND_SCRIPT") == null && System.getenv("ETS_FRONTEND_DIR") == null) {
+        "Use the pinned bundled frontend without script/directory overrides"
+    }
     val case = manifest.classes.single { it.classId == args[1] }
     val output = Path.of(args[2]).toAbsolutePath().normalize()
     Files.createDirectories(output)
@@ -395,7 +420,9 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
     val startedAt = TimeSource.Monotonic.markNow()
     var stage = "INPUT_VERIFICATION"
     var targetSignature: EtsClassSignature? = null
+    var targetDeclarations = emptyList<String>()
     var methods = emptyList<EtsMethod>()
+    var entryPoints = emptyList<CallsClassStartEntryPoint>()
     var observer: ClassStartObserver? = null
     var rawObserver: ClassRawAnalysisObserver? = null
     var remainingSelector: UPathSelector<TsState>? = null
@@ -436,11 +463,15 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
         checkpoint(next = "SCENE")
         val scene = loadEtsProjectFromIR(projectFilesPath = ir, sdkFilesPath = null)
         checkpoint(next = "TARGET")
-        val targets = scene.projectClasses.filter { owner ->
+        val declarations = scene.projectClasses.filter { owner ->
             val file = owner.signature.file.fileName.replace('\\', '/')
             owner.name == case.className && (file == case.sourceFile || file.endsWith("/${case.sourceFile}"))
         }
-        require(targets.size == 1) { "Target class is absent or ambiguous: ${targets.size}" }
+        targetDeclarations = declarations.map { "${it.signature} [${it.category}] methods=${it.methods.size}" }
+        val targets = declarations.filter { it.category == EtsClassCategory.CLASS }
+        require(targets.size == 1) {
+            "Runtime target class is absent or ambiguous: ${targets.size}; declarations=$targetDeclarations"
+        }
         val target = targets.single()
         targetSignature = target.signature
         val sourceText = Files.readString(scope.resolve(case.sourceFile))
@@ -448,6 +479,9 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
             method.cfg.stmts.any { isOriginalClassStartupStep(it, target.signature, case.sourceFile, sourceText) }
         }
         require(methods.isNotEmpty()) { "Target class has no executable IR bodies" }
+        entryPoints = classStartupEntryPoints(methods)
+        val independentMethods = methods.filter { !it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
+        require(independentMethods.isNotEmpty()) { "Target class has no independently bindable entry points" }
         val raw = if (exploratory) {
             ClassRawAnalysisObserver.forTarget(
                 methods = methods,
@@ -492,6 +526,7 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
                     targetSignature = target.signature.toString(),
                     methodSignatures = methods.map { it.signature.toString() },
                     firstOriginalStep = current.firstOriginalStep,
+                    entryPointEligibility = entryPoints,
                 )
                 writeCallsArtifactAtomically(output.resolve("progress.json"), encodeCallsArtifact(progress))
             },
@@ -566,7 +601,7 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
             val analysisStarted = TimeSource.Monotonic.markNow()
             try {
                 outcome = machine.analyzeWithMetadata(
-                    methods = methods,
+                    methods = independentMethods,
                     configureInitialState = { method, state ->
                         machineObserver.registerInitialState(method = method, state = state)
                     },
@@ -637,6 +672,8 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
         failureLog = failureLog,
         inputDriftLog = inputDriftLog,
         rawAnalysis = rawObserver?.result(manifest = manifest, analysisElapsedMillis = analysisElapsedMillis),
+        targetDeclarationCandidates = targetDeclarations,
+        entryPointEligibility = entryPoints,
     )
     writeCallsArtifactAtomically(output.resolve("result.json"), encodeCallsArtifact(result))
     System.out.appendLine(encodeCallsArtifact(result))

@@ -37,9 +37,11 @@ def verify_startup_gate(manifest, results, fingerprint):
 
 
 def profile_manifest(source, profile, catalog, original_directory, output):
+    if (catalog['toolRevision'] != source['toolRevision']
+            or catalog['nativeFrontendRevision'] != source['nativeFrontendRevision']):
+        raise ValueError('Exploratory runtime differs from the exact runtime that proved the startup gate')
     result = copy.deepcopy(source)
-    result.update(toolRevision=catalog['toolRevision'], nativeFrontendRevision=catalog['nativeFrontendRevision'],
-                  budgetMillis=BUDGET_MILLIS, solverLimitMillis=250, timeQuantumMillis=25,
+    result.update(budgetMillis=BUDGET_MILLIS, solverLimitMillis=250, timeQuantumMillis=25,
                   collectedStatesLimit=None, profile=profile, seed=SEED)
     for case in result['classes']:
         receipt = case.get('acquisitionReceipt')
@@ -121,6 +123,9 @@ def main():
     calls = args.calls.resolve(strict=True)
     catalog = json.loads(subprocess.check_output([str(calls), 'class-catalog'], text=True, timeout=60))
     runtime = startup.runtime_identity(calls)
+    startup_identity = startup.read(args.startup_summary.resolve(strict=True).parent / 'identity.json')
+    if startup_identity.get('manifestSha256') != startup.sha(manifest_path) or startup_identity.get('runtime') != runtime:
+        raise ValueError('Exploratory runtime bytes differ from the exact frozen startup runtime')
     identity = {'startupManifestSha256': startup.sha(manifest_path), 'startupSummarySha256': startup.sha(args.startup_summary),
                 'qualifyingStarted': qualifying, 'runtime': runtime, 'driverSha256': startup.sha(Path(__file__)),
                 'catalog': catalog, 'profiles': list(PROFILES), 'budgetMillis': BUDGET_MILLIS, 'seed': SEED,

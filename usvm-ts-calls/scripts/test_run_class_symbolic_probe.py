@@ -45,7 +45,8 @@ class SymbolicProbeIntegrityTest(unittest.TestCase):
     def test_four_modes_keep_original_inputs_and_disable_terminal_cap(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
-            source = {'classes': [{'classId': 'original', 'identity': 'unchanged', 'inputSha256': {'Target.ts': 'frozen'}}]}
+            source = {'toolRevision': 'new-build', 'nativeFrontendRevision': 'pinned',
+                      'classes': [{'classId': 'original', 'identity': 'unchanged', 'inputSha256': {'Target.ts': 'frozen'}}]}
             catalog = {'toolRevision': 'new-build', 'nativeFrontendRevision': 'pinned'}
 
             manifests = [probe.profile_manifest(source, profile, catalog, directory, directory) for profile in probe.PROFILES]
@@ -54,6 +55,13 @@ class SymbolicProbeIntegrityTest(unittest.TestCase):
             self.assertTrue(all(manifest['classes'] == source['classes'] for manifest in manifests))
             self.assertTrue(all(manifest['collectedStatesLimit'] is None for manifest in manifests))
             self.assertTrue(all(manifest['budgetMillis'] == 30000 and manifest['seed'] == 17 for manifest in manifests))
+
+    def test_changed_engine_or_frontend_cannot_reuse_old_startup_gate(self):
+        source = {'toolRevision': 'frozen-build', 'nativeFrontendRevision': 'frozen-frontend', 'classes': []}
+        for catalog in [{'toolRevision': 'changed-build', 'nativeFrontendRevision': 'frozen-frontend'},
+                        {'toolRevision': 'frozen-build', 'nativeFrontendRevision': 'changed-frontend'}]:
+            with self.assertRaisesRegex(ValueError, 'exact runtime'):
+                probe.profile_manifest(source, 'EMPTY_STOP', catalog, Path('/tmp'), Path('/tmp'))
 
     def test_missing_metrics_are_unavailable_and_pending_cells_remain(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -87,6 +87,7 @@ def runtime_identity(calls):
     files['javaVersion'] = subprocess.check_output([str(java), '-version'], stderr=subprocess.STDOUT,
                                                   text=True, timeout=10)
     files['JVMEnvironment'] = {name: os.environ.get(name) for name in ('JAVA_OPTS', 'JDK_JAVA_OPTIONS', '_JAVA_OPTIONS')}
+    files['frontendOverrides'] = {name: os.environ.get(name) for name in ('ETS_FRONTEND_SCRIPT', 'ETS_FRONTEND_DIR')}
     return files
 
 
@@ -183,7 +184,7 @@ def main():
     calls = args.calls.resolve(strict=True)
     fingerprint = sha(manifest_path)
     environment = dict(os.environ)
-    if environment.get('ETS_FRONTEND_SCRIPT') is not None:
+    if environment.get('ETS_FRONTEND_SCRIPT') is not None or environment.get('ETS_FRONTEND_DIR') is not None:
         raise ValueError('Startup probes require the pinned bundled frontend')
     environment['USVM_TS_CALLS_OPTS'] = '-Xms1g -Xmx6g -XX:+UseG1GC'
     environment['USVM_TS_STARTUP_IR_CACHE'] = str((args.ir_cache or output / 'ir-cache').resolve())

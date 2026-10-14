@@ -164,6 +164,49 @@ class CallsClassStartSmokeTest {
         assertTrue(Files.isRegularFile(directory.resolve("output/states.jsonl")))
     }
 
+    @Test
+    fun `merged interface does not make its runtime class ambiguous`() {
+        val result = runFixture(
+            sourceText = "export class Target { value = 1; read(): number { return this.value; } } " +
+                "export interface Target { read(): number; }",
+        )
+
+        assertEquals(2, result.targetDeclarationCandidates.size)
+        assertTrue(result.targetDeclarationCandidates.any { it.contains("[INTERFACE]") })
+        assertTrue(result.targetDeclarationCandidates.any { it.contains("[CLASS]") })
+        assertTrue(result.methodSignatures.any { it.contains("read") })
+        assertTrue(result.targetSignature != null)
+        assertTrue(result.stage != "TARGET", result.toString())
+    }
+
+    @Test
+    fun `lowered closures keep complete IR but require their owning member environment`() {
+        val result = runFixture(
+            sourceText = "export class Target { value = 1; read(): number { " +
+                "const callback = () => this.value; return callback(); } }",
+        )
+
+        assertTrue(result.started, result.toString())
+        val dependent = result.entryPointEligibility.filter { !it.standalone }
+        assertTrue(dependent.isNotEmpty(), result.toString())
+        assertTrue(dependent.all { it.reason == "LOWERED_CLOSURE_REACHABLE_VIA_OWNER" })
+        assertTrue(result.methodSignatures.containsAll(dependent.map { it.methodSignature }))
+        assertTrue(result.entryPointEligibility.any { it.standalone && it.methodSignature.contains("read") })
+        assertTrue(result.generatedInitialMethodCount < result.methodSignatures.size)
+    }
+
+    @Test
+    fun `generic interpreter entry callback observes source property definitions`() {
+        val result = runFixture(
+            sourceText = "export class Target { read(): number { const object = { value: 1 }; return object.value; } }",
+            exploratory = true,
+        )
+
+        assertTrue(result.started, result.toString())
+        val raw = checkNotNull(result.rawAnalysis)
+        assertTrue(raw.sourceEnteredStatementKinds.getOrDefault("EtsDefineDataPropertyStmt", 0) > 0, raw.toString())
+    }
+
     private fun runFixture(
         sourceText: String,
         profile: CallsExperimentProfile = CallsExperimentProfile.FROZEN_STOP,
