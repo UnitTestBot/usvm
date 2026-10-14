@@ -134,6 +134,8 @@ fun <T : USort> TsState.extractValue(
     sort: T,
     extractIntermediateLValue: (Int) -> ULValue<*, T>,
 ): Pair<UExpr<T>?, UBoolExpr> = with(ctx) {
+    val hasFakeResultBranches = value.sort == addressSort && value.asExpr(addressSort).hasFakeValueBranch()
+
     when {
         value.isFakeObject() -> {
             val lValue = extractIntermediateLValue(value.address)
@@ -145,6 +147,19 @@ fun <T : USort> TsState.extractValue(
                 else -> error("Unsupported $sort")
             }
             memory.read(lValue) to typeCondition
+        }
+
+        value is UIteExpr<*> && hasFakeResultBranches -> {
+            val (trueValue, trueTypeCondition) = extractValue(value.trueBranch, sort, extractIntermediateLValue)
+            val (falseValue, falseTypeCondition) = extractValue(value.falseBranch, sort, extractIntermediateLValue)
+            val typeCondition = mkIte(value.condition, trueTypeCondition, falseTypeCondition)
+            val payload = when {
+                trueValue != null && falseValue != null -> mkIte(value.condition, trueValue, falseValue)
+                trueValue != null -> trueValue
+                else -> falseValue
+            }
+
+            payload to typeCondition
         }
 
         value.sort == sort -> {
