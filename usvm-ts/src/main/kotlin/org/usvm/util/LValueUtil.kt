@@ -30,7 +30,10 @@ internal fun TsState.arrayStorageType(ref: UHeapRef, staticType: EtsType): EtsTy
     if (ref !is UConcreteHeapRef && ref !is USymbolicHeapRef) return staticType
 
     val memoryType = memory.typeStreamOf(ref).singleOrNull()
-    return if (memoryType is EtsArrayType || memoryType == EtsStringType || isAllocatedConcreteHeapRef(ref)) {
+    val usesRuntimeStorage = memoryType is EtsArrayType || memoryType == EtsStringType ||
+        isAllocatedConcreteHeapRef(ref)
+
+    return if (usesRuntimeStorage) {
         memoryType ?: staticType
     } else {
         staticType
@@ -76,7 +79,7 @@ fun mkArrayLengthLValue(
     type: EtsArrayType,
 ): UArrayLengthLValue<EtsType, TsSizeSort> = with(ref.tctx) {
     val descriptor = arrayDescriptorOf(type)
-    return UArrayLengthLValue(ref, descriptor, sizeSort)
+    UArrayLengthLValue(ref, descriptor, sizeSort)
 }
 
 internal fun mkStringBackingLengthLValue(
