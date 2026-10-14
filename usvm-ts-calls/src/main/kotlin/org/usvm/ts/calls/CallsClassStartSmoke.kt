@@ -115,6 +115,8 @@ internal data class CallsClassStartResult(
     val startupStatus: String = "NOT_STARTED",
     val acquisitionComplete: Boolean = false,
     val acquisitionSha256: String? = null,
+    val generatedInitialStates: Int = 0,
+    val generatedInitialMethodCount: Int = 0,
     val targetSignature: String? = null,
     val methodSignatures: List<String> = emptyList(),
     val firstOriginalStep: CallsUnknownCallSite? = null,
@@ -126,6 +128,8 @@ internal data class CallsClassStartResult(
     val unsupportedPaths: List<String> = emptyList(),
     val unknownCalls: List<CallsClassUnknownCallEvent> = emptyList(),
     val diagnostic: String? = null,
+    val failureLog: String? = null,
+    val inputDriftLog: String? = null,
 )
 
 /** A source return must be explicit; a synthetic default constructor return cannot prove startup. */
@@ -213,6 +217,7 @@ internal class ClassStartObserver(
     private val seenInitial = java.util.Collections.newSetFromMap(IdentityHashMap<TsState, Boolean>())
     private val pending = IdentityHashMap<TsState, EtsStmt>()
     private val entered = java.util.Collections.newSetFromMap(IdentityHashMap<TsState, Boolean>())
+    private val initialMethods = mutableSetOf<String>()
     var executedSteps: Long = 0
         private set
     var targetSteps: Long = 0
@@ -226,8 +231,13 @@ internal class ClassStartObserver(
     var firstOriginalStep: CallsUnknownCallSite? = null
         private set
     val initialStates: Int get() = seenInitial.size
+    val generatedInitialStates: Int get() = initial.size
+    val generatedInitialMethodCount: Int get() = initialMethods.size
 
-    fun registerInitialState(state: TsState) { initial += state }
+    fun registerInitialState(method: EtsMethod, state: TsState) {
+        initial += state
+        initialMethods += method.signature.toString()
+    }
 
     override fun onStatePeeked(state: TsState) {
         if (state in initial && state.models.isNotEmpty()) seenInitial += state
@@ -404,6 +414,8 @@ internal fun runClassStartSmoke(args: List<String>) {
                     startupStatus = "STARTED",
                     acquisitionComplete = case.acquisitionComplete,
                     acquisitionSha256 = case.acquisitionSha256,
+                    generatedInitialStates = current.generatedInitialStates,
+                    generatedInitialMethodCount = current.generatedInitialMethodCount,
                     stageElapsedMillis = elapsed,
                     targetSignature = target.signature.toString(),
                     methodSignatures = methods.map { it.signature.toString() },
@@ -447,8 +459,8 @@ internal fun runClassStartSmoke(args: List<String>) {
             checkpoint(next = "INITIAL_STATE")
             outcome = machine.analyzeWithMetadata(
                 methods = methods,
-                configureInitialState = { _, state ->
-                    machineObserver.registerInitialState(state)
+                configureInitialState = { method, state ->
+                    machineObserver.registerInitialState(method = method, state = state)
                 }
             )
         }
@@ -464,6 +476,14 @@ internal fun runClassStartSmoke(args: List<String>) {
     val started = (metrics?.initialStates ?: 0) > 0 && entered
     val engineFailed = outcome?.engineFailed == true || (failure != null && observer != null)
     val limited = outcome?.unsupportedCall == true || outcome?.runtimeLimited == true || engineFailed
+    val failureLog = failure?.let {
+        Files.writeString(output.resolve("failure.log"), it.stackTraceToString())
+        "failure.log"
+    }
+    val inputDriftLog = drift?.let {
+        Files.writeString(output.resolve("input-drift.log"), it.stackTraceToString())
+        "input-drift.log"
+    }
     val result = CallsClassStartResult(
         classId = case.classId,
         identity = case.identity,
@@ -481,6 +501,8 @@ internal fun runClassStartSmoke(args: List<String>) {
         targetSuccessfulTransitions = metrics?.originalSteps ?: 0,
         acquisitionComplete = case.acquisitionComplete,
         acquisitionSha256 = case.acquisitionSha256,
+        generatedInitialStates = metrics?.generatedInitialStates ?: 0,
+        generatedInitialMethodCount = metrics?.generatedInitialMethodCount ?: 0,
         startupStatus = when {
             started && limited -> "STARTED_WITH_LIMITATION"
             started -> "STARTED"
@@ -500,6 +522,8 @@ internal fun runClassStartSmoke(args: List<String>) {
         diagnostic = listOfNotNull(failure, drift).distinct().takeIf { it.isNotEmpty() }?.joinToString {
             "${it::class.java.name}: ${it.message}"
         },
+        failureLog = failureLog,
+        inputDriftLog = inputDriftLog,
     )
     writeCallsArtifactAtomically(output.resolve("result.json"), encodeCallsArtifact(result))
     System.out.appendLine(encodeCallsArtifact(result))
