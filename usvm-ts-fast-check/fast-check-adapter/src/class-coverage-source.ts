@@ -262,7 +262,8 @@ export function instrumentClassCoverage(file: ts.SourceFile, className: string):
         const inList = ts.isBlock(parent) || ts.isCaseClause(parent) || ts.isDefaultClause(parent)
         const prefix = `${marker(statement.id)} `
         if (inList) {
-          insertions.push({ offset: anchor.getStart(file), text: prefix, order: 0 })
+          // A parenthesized counter must not continue a preceding semicolonless expression.
+          insertions.push({ offset: anchor.getStart(file), text: `; ${prefix}`, order: 0 })
         } else {
           insertions.push({ offset: anchor.getStart(file), text: `{ ${prefix}`, order: 0 })
           insertions.push({ offset: anchor.getEnd(), text: ' }', order: 1 })

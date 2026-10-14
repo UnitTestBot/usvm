@@ -201,3 +201,52 @@ test('rejects unchecked free helpers that could enter private class bodies', () 
   assert.equal(instrument('export class Target { static run(value: number) { function local(input: number) { return String(input); } return this.helper(local(value)); } private static helper(value: string) { return value.length; } }').reason, null)
   assert.match(instrument('function String(value: unknown) { return Target.hidden(); } export class Target { static run() { return String(1); } private static hidden() { return 2; } }').reason!, /Unchecked free helper/)
 })
+
+test('preserves automatic semicolon insertion between assignments and statement counters', () => {
+  const source = `export class Target {
+    private size!: number
+    private buckets!: number[][]
+    private readonly loadFactor = 0.75
+
+    constructor() {
+      this.clear()
+    }
+
+    clear() {
+      this.size = 0
+      this.initializeBuckets(3)
+    }
+
+    private initializeBuckets(amount: number) {
+      this.buckets = []
+      for (let i = 0; i < amount; i++) {
+        this.buckets.push([])
+      }
+    }
+
+    run() {
+      this.size = 0
+      if (this.size === 0)
+        this.initializeBuckets(3)
+      else
+        this.buckets = []
+      return this.buckets.length
+    }
+  }`
+  const result = instrument(source)
+  assert.equal(result.reason, null)
+
+  const original = load(source, null)
+  const instrumented = load(result.source!, result.counterGlobalName)
+  const originalReceiver = new original.Target()
+  const instrumentedReceiver = new instrumented.Target()
+
+  assert.equal(instrumentedReceiver['run']!(), originalReceiver['run']!())
+  assert.equal(instrumentedReceiver['run']!(), 3)
+  const nativeHits = instrumented.sandbox[result.counterGlobalName] as string[]
+  const coveredMemberNames = result.statements.filter((statement) => nativeHits.includes(statement.id))
+    .map((statement) => statement.memberName)
+  assert.equal(coveredMemberNames.includes('loadFactor'), true)
+  assert.equal(coveredMemberNames.includes('constructor'), true)
+  assert.equal(coveredMemberNames.includes('initializeBuckets'), true)
+})
