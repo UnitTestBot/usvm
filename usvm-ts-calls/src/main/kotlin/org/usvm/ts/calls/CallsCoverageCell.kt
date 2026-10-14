@@ -170,8 +170,8 @@ internal fun runCoverageCell(
         search = search,
         replayErrors = events.count { it.error != null },
         completionMismatches = events.indices.count { index ->
-            events[index].replay?.completion != null &&
-                events[index].replay?.completion != search.candidates[index].completion
+            val replayCompletion = events[index].replay?.completion
+            replayCompletion != null && replayCompletion != search.candidates[index].completion
         },
         replayElapsedMillis = events.sumOf { event -> event.replay?.replayElapsedMillis ?: 0L },
         cellElapsedMillis = cellStarted.elapsedNow().inWholeMilliseconds,
@@ -235,10 +235,11 @@ private fun parseCoverageCellRequest(
     )
     require(universeRecord.identity == expectedUniverseIdentity) { "Coverage universe identity differs" }
     val universe = universeRecord.universe
-    require(source.function.sourceFile in universe.sourceFiles && universe.supportedStatementKeys.isNotEmpty()) {
+    val includesEntrySource = source.function.sourceFile in universe.sourceFiles
+    val hasSupportedStatements = universe.supportedStatementKeys.isNotEmpty()
+    require(includesEntrySource && hasSupportedStatements) {
         "Coverage universe does not include the entry source statements"
     }
-
 
     val identity = CallsCoverageCellIdentity(
         schemaVersion = 3,
