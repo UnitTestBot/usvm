@@ -4,7 +4,9 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
+import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsAnalysisStopReason
@@ -19,6 +21,9 @@ import org.usvm.util.getResourcePath
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
+private const val UNMODELED_NUMERIC_CONVERSION_REASON =
+    "Numeric conversion needs a modeled StringToNumber or ToPrimitive conversion"
 
 class RuntimeLimitationBoundariesTest : TsMethodTestRunner() {
     override val scene = EtsScene(
@@ -106,6 +111,52 @@ class RuntimeLimitationBoundariesTest : TsMethodTestRunner() {
             method = method("ordinaryLengthField"),
             { result -> result.number == 17.0 },
             invariants = arrayOf({ result -> result.number == 17.0 }),
+        )
+    }
+
+    @Test
+    fun `unmodeled numeric conversion stops while a stored numeric sibling returns`() {
+        assertUnsupportedNumericSibling(methodName = "unsupportedNumericConversionOrSupportedSibling", expected = 7.0)
+    }
+
+    @Test
+    fun `unmodeled binary numeric conversion stops while a stored numeric sibling returns`() {
+        assertUnsupportedNumericSibling(methodName = "unsupportedNumericBinaryConversionOrSupportedSibling", expected = 6.0)
+    }
+
+    private fun assertUnsupportedNumericSibling(methodName: String, expected: Double) {
+        val target = method(name = methodName)
+        val options = UMachineOptions(
+            pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
+            solverType = SolverType.YICES,
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            throwExceptionOnStepFailure = false,
+            stepsFromLastCovered = 128L,
+        )
+
+        TsMachine(scene = scene, options = options, tsOptions = TsOptions()).use { machine ->
+            val outcome = machine.analyzeWithOutcome(listOf(target))
+            val witnesses = outcome.states.map { state -> TsTestResolver().resolve(target, state) }
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+            assertTrue(UNMODELED_NUMERIC_CONVERSION_REASON in outcome.unsupportedPaths)
+            assertTrue(witnesses.isNotEmpty())
+            witnesses.forEach { witness ->
+                val useString = witness.before.parameters.single() as TsTestValue.TsBoolean
+                val result = witness.returnValue as TsTestValue.TsNumber
+
+                assertTrue(!useString.value)
+                assertEquals(expected, result.number)
+            }
+        }
+    }
+
+    @Test
+    fun `stored primitives and zero or one code unit strings keep numeric conversions`() {
+        discoverProperties<TsTestValue.TsBoolean>(
+            method = method(name = "modeledNumericConversions"),
+            { result -> result.value },
+            invariants = arrayOf({ result -> result.value }),
         )
     }
 

@@ -21,6 +21,7 @@ import org.usvm.machine.TsSizeSort
 import org.usvm.machine.expr.ensureTruthinessSupported
 import org.usvm.machine.expr.mkIsNullOrUndefined
 import org.usvm.machine.expr.mkNumericExpr
+import org.usvm.machine.expr.mkNumericExprWithGuard
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
@@ -925,6 +926,32 @@ sealed interface TsBinaryOperator {
     }
 
     data object Add : TsBinaryOperator {
+        override fun TsContext.resolve(
+            lhs: UExpr<*>,
+            rhs: UExpr<*>,
+            scope: TsStepScope,
+            activeGuard: UBoolExpr,
+        ): UExpr<KFp64Sort> {
+            val left = mkNumericExprWithGuard(expr = lhs, scope = scope, activeGuard = activeGuard)
+            val right = mkNumericExprWithGuard(expr = rhs, scope = scope, activeGuard = activeGuard)
+
+            return onFp(left, right, scope)
+        }
+
+        override fun TsContext.onRefWithGuard(
+            lhs: UHeapRef,
+            rhs: UHeapRef,
+            scope: TsStepScope,
+            activeGuard: UBoolExpr,
+        ): UExpr<KFp64Sort> = resolve(lhs, rhs, scope, activeGuard)
+
+        override fun TsContext.resolveFakeObjectWithGuard(
+            lhs: UExpr<*>,
+            rhs: UExpr<*>,
+            scope: TsStepScope,
+            activeGuard: UBoolExpr,
+        ): UExpr<KFp64Sort> = resolve(lhs, rhs, scope, activeGuard)
+
         override fun TsContext.onBool(
             lhs: UBoolExpr,
             rhs: UBoolExpr,
@@ -962,16 +989,7 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<*>,
             scope: TsStepScope,
         ): UExpr<KFp64Sort> {
-            return commonResolveFakeObject(
-                lhs,
-                rhs,
-                scope,
-                fp64Sort
-            ) { conjuncts ->
-                conjuncts.foldRight(mkFp(0.0, fp64Sort).asExpr(fp64Sort)) { value, acc ->
-                    mkIte(value.constraint, value.expr, acc)
-                }
-            } ?: error("Should not be null")
+            return resolve(lhs, rhs, scope, activeGuard = trueExpr)
         }
 
         override fun TsContext.internalResolve(
@@ -1169,6 +1187,32 @@ sealed interface TsBinaryOperator {
     }
 
     data object Lt : TsBinaryOperator {
+        override fun TsContext.resolve(
+            lhs: UExpr<*>,
+            rhs: UExpr<*>,
+            scope: TsStepScope,
+            activeGuard: UBoolExpr,
+        ): UBoolExpr {
+            val left = mkNumericExprWithGuard(expr = lhs, scope = scope, activeGuard = activeGuard)
+            val right = mkNumericExprWithGuard(expr = rhs, scope = scope, activeGuard = activeGuard)
+
+            return onFp(left, right, scope)
+        }
+
+        override fun TsContext.onRefWithGuard(
+            lhs: UHeapRef,
+            rhs: UHeapRef,
+            scope: TsStepScope,
+            activeGuard: UBoolExpr,
+        ): UBoolExpr = resolve(lhs, rhs, scope, activeGuard)
+
+        override fun TsContext.resolveFakeObjectWithGuard(
+            lhs: UExpr<*>,
+            rhs: UExpr<*>,
+            scope: TsStepScope,
+            activeGuard: UBoolExpr,
+        ): UBoolExpr = resolve(lhs, rhs, scope, activeGuard)
+
         override fun TsContext.onBool(
             lhs: UBoolExpr,
             rhs: UBoolExpr,
@@ -1200,16 +1244,7 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<*>,
             scope: TsStepScope,
         ): UBoolExpr {
-            return commonResolveFakeObject(
-                lhs,
-                rhs,
-                scope,
-                boolSort
-            ) { conjuncts ->
-                conjuncts.foldRight(mkFalse().asExpr(boolSort)) { value, acc ->
-                    mkIte(value.constraint, value.expr, acc)
-                }
-            } ?: error("Should not be null")
+            return resolve(lhs, rhs, scope, activeGuard = trueExpr)
         }
 
         override fun TsContext.internalResolve(
@@ -1227,6 +1262,32 @@ sealed interface TsBinaryOperator {
     }
 
     data object Gt : TsBinaryOperator {
+        override fun TsContext.resolve(
+            lhs: UExpr<*>,
+            rhs: UExpr<*>,
+            scope: TsStepScope,
+            activeGuard: UBoolExpr,
+        ): UBoolExpr {
+            val left = mkNumericExprWithGuard(expr = lhs, scope = scope, activeGuard = activeGuard)
+            val right = mkNumericExprWithGuard(expr = rhs, scope = scope, activeGuard = activeGuard)
+
+            return onFp(left, right, scope)
+        }
+
+        override fun TsContext.onRefWithGuard(
+            lhs: UHeapRef,
+            rhs: UHeapRef,
+            scope: TsStepScope,
+            activeGuard: UBoolExpr,
+        ): UBoolExpr = resolve(lhs, rhs, scope, activeGuard)
+
+        override fun TsContext.resolveFakeObjectWithGuard(
+            lhs: UExpr<*>,
+            rhs: UExpr<*>,
+            scope: TsStepScope,
+            activeGuard: UBoolExpr,
+        ): UBoolExpr = resolve(lhs, rhs, scope, activeGuard)
+
         override fun TsContext.onBool(
             lhs: UBoolExpr,
             rhs: UBoolExpr,
@@ -1258,16 +1319,7 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<*>,
             scope: TsStepScope,
         ): UBoolExpr {
-            return commonResolveFakeObject(
-                lhs,
-                rhs,
-                scope,
-                boolSort
-            ) { conjuncts ->
-                conjuncts.foldRight(falseExpr.asExpr(boolSort)) { value, acc ->
-                    mkIte(value.constraint, value.expr, acc)
-                }
-            } ?: error("Should not be null")
+            return resolve(lhs, rhs, scope, activeGuard = trueExpr)
         }
 
         override fun TsContext.internalResolve(
@@ -1286,6 +1338,32 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<KFp64Sort>,
             rhs: UExpr<KFp64Sort>,
         ): UExpr<KFp64Sort>
+
+        override fun TsContext.resolve(
+            lhs: UExpr<*>,
+            rhs: UExpr<*>,
+            scope: TsStepScope,
+            activeGuard: UBoolExpr,
+        ): UExpr<KFp64Sort> {
+            val left = mkNumericExprWithGuard(expr = lhs, scope = scope, activeGuard = activeGuard)
+            val right = mkNumericExprWithGuard(expr = rhs, scope = scope, activeGuard = activeGuard)
+
+            return apply(left, right)
+        }
+
+        override fun TsContext.onRefWithGuard(
+            lhs: UHeapRef,
+            rhs: UHeapRef,
+            scope: TsStepScope,
+            activeGuard: UBoolExpr,
+        ): UExpr<KFp64Sort> = resolve(lhs, rhs, scope, activeGuard)
+
+        override fun TsContext.resolveFakeObjectWithGuard(
+            lhs: UExpr<*>,
+            rhs: UExpr<*>,
+            scope: TsStepScope,
+            activeGuard: UBoolExpr,
+        ): UExpr<KFp64Sort> = resolve(lhs, rhs, scope, activeGuard)
 
         override fun TsContext.onBool(
             lhs: UBoolExpr,
