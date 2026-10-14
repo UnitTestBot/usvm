@@ -26,7 +26,7 @@ export class FrozenModuleResolver {
   constructor(private readonly root: string, entry: string) {
     const preparedConfig = path.join(root, '.usvm-frozen.tsconfig.json')
     const config = existsSync(preparedConfig) ? preparedConfig
-      : this.ancestors(path.dirname(entry)).map(directory => path.join(directory, 'tsconfig.json')).find(existsSync)
+      : this.ancestors(path.dirname(entry)).flatMap(directory => ['tsconfig.json', 'tsconfig.jsonc'].map(name => path.join(directory, name))).find(existsSync)
     this.rawOptions = config ? this.readConfig(config) : {
       target: 'ES2022', module: 'ESNext', moduleResolution: 'Node10', allowImportingTsExtensions: true,
     }
@@ -124,6 +124,16 @@ export class FrozenModuleResolver {
       this.aliases.set(specifier, target)
     }
     return result
+  }
+
+  recordDynamicStartupBoundary(from: string, importKind: RuntimeImportKind, startOffset: number, expression: string): void {
+    const source = this.checkedPath(from)
+    this.usedStartupResolution = true
+    this.inputs.add(source)
+    this.startupBoundaries.set(`${source}\0dynamic\0${startOffset}`, {
+      sourceFile: path.relative(this.root, source).split(path.sep).join('/'),
+      specifier: '<unresolved dynamic target>', importKind, kind: 'dynamic-module', startOffset, expression,
+    })
   }
 
   resolvedModule(specifier: string, from: string): ts.ResolvedModule | undefined {

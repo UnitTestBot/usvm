@@ -8,7 +8,9 @@ export interface StartupRuntimeBoundary {
   sourceFile: string
   specifier: string
   importKind: RuntimeImportKind
-  kind: 'node-builtin' | 'json'
+  kind: 'node-builtin' | 'json' | 'dynamic-module'
+  startOffset?: number
+  expression?: string
   runtimeFile?: string
 }
 export type StartupRuntimeResolution = { kind: 'source', file: string }

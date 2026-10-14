@@ -1,6 +1,7 @@
 import { readFileSync, realpathSync } from 'node:fs'
 import path from 'node:path'
 import ts from 'typescript'
+import { type RuntimeImportKind } from './startup-runtime-resolution.js'
 import { FrozenModuleResolver, type FrozenModuleResolution } from './frozen-module-resolution.js'
 import { unsupportedModuleInitialization } from './module-initialization.js'
 
@@ -39,9 +40,16 @@ function inspectSourceClosure(rootPath: string, entryPath: string, mode: 'checke
   const sources = new Map<string, ts.SourceFile>()
   const dependencies = new Map<string, string[]>()
 
-  const reject = (reasonCode: string, diagnostic: string): LocalSourceClosure => ({
-    files: [...files].sort(), reasonCode, diagnostic,
-  })
+  const reject = (reasonCode: string, diagnostic: string): LocalSourceClosure => {
+    const knownFiles = [...files].sort()
+    const result: LocalSourceClosure = { files: knownFiles, reasonCode, diagnostic }
+    if (mode === 'startup') {
+      const resolution = resolver.freeze(knownFiles)
+      if (resolution) result.resolution = resolution
+      result.initializationIssues = initializationIssues
+    }
+    return result
+  }
 
   while (pending.length > 0) {
     const file = pending.shift()!
@@ -58,7 +66,7 @@ function inspectSourceClosure(rootPath: string, entryPath: string, mode: 'checke
     const emittedModules = runtimeModuleSpecifiers(source, resolver.options)
     const edges: string[] = []
     dependencies.set(file, edges)
-    const imports: string[] = []
+    const imports: Array<{ specifier: string, importKind: RuntimeImportKind }> = []
     const ranges: Array<{ start: number, end: number }> = []
     runtimeImportRanges.set(file, ranges)
     for (const statement of source.statements) {
@@ -73,7 +81,7 @@ function inspectSourceClosure(rootPath: string, entryPath: string, mode: 'checke
         }
         if (!emittedModules.has(statement.moduleSpecifier.text)
           && importedBindingsUsedOnlyAsTypes(statement, source)) continue
-        imports.push(statement.moduleSpecifier.text)
+        imports.push({ specifier: statement.moduleSpecifier.text, importKind: 'import' })
         ranges.push({ start: statement.getStart(source), end: statement.end })
       } else if (ts.isExportDeclaration(statement)) {
         if (statement.isTypeOnly) continue
@@ -87,7 +95,7 @@ function inspectSourceClosure(rootPath: string, entryPath: string, mode: 'checke
           if (!ts.isStringLiteral(statement.moduleSpecifier)) {
             return reject('IMPORTED_CALLEES_UNSUPPORTED', `Nonliteral re-export in ${relative}`)
           }
-          imports.push(statement.moduleSpecifier.text)
+          imports.push({ specifier: statement.moduleSpecifier.text, importKind: 'import' })
         }
       } else if (ts.isImportEqualsDeclaration(statement)) {
         if (!statement.isTypeOnly) {
@@ -107,16 +115,35 @@ function inspectSourceClosure(rootPath: string, entryPath: string, mode: 'checke
 
     let dynamicImport = false
     const visit = (node: ts.Node): void => {
-      if (ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword
-        || ts.isIdentifier(node.expression) && node.expression.text === 'require')) dynamicImport = true
+      if (ts.isCallExpression(node)) {
+        const requireCall = ts.isIdentifier(node.expression) && node.expression.text === 'require'
+        const literalRequire = requireCall && node.arguments.length === 1 && ts.isStringLiteral(node.arguments[0]!)
+        if (mode === 'startup' && literalRequire) {
+          imports.push({ specifier: (node.arguments[0] as ts.StringLiteral).text, importKind: 'require' })
+          ranges.push({ start: node.getStart(source), end: node.end })
+        } else if (node.expression.kind === ts.SyntaxKind.ImportKeyword || requireCall) {
+          if (mode === 'startup') {
+            const startOffset = node.getStart(source)
+            const importKind = requireCall ? 'require' : 'import'
+            resolver.recordDynamicStartupBoundary(file, importKind, startOffset, node.getText(source))
+            initializationIssues.push({ sourceFile: relative, startOffset,
+              diagnostic: `Unresolved dynamic runtime module boundary in ${relative} at offset ${startOffset}` })
+          } else dynamicImport = true
+        }
+      }
       ts.forEachChild(node, visit)
     }
     visit(source)
     if (dynamicImport) return reject('IMPORTED_CALLEES_UNSUPPORTED', `Dynamic import or require in ${relative}`)
 
-    for (const specifier of imports) {
+    for (const imported of imports) {
       try {
-        const target = resolver.resolve(specifier, file)
+        let target: string
+        if (mode === 'startup') {
+          const resolved = resolver.resolveStartup(imported.specifier, file, imported.importKind)
+          if (resolved.kind === 'boundary') continue
+          target = resolved.file
+        } else target = resolver.resolve(imported.specifier, file)
         pending.push(target)
         edges.push(target)
       } catch (error) {
@@ -132,7 +159,8 @@ function inspectSourceClosure(rootPath: string, entryPath: string, mode: 'checke
   // Ask TypeScript to validate the imported bindings as well as the files. Diagnostics
   // in unrelated function bodies do not determine closure admission.
   if (mode === 'startup' || files.size > 1 || [...runtimeImportRanges.values()].some(ranges => ranges.length > 0)) {
-    const options: ts.CompilerOptions = { ...resolver.options, noLib: true, noEmit: true, types: [] }
+    const options: ts.CompilerOptions = { ...resolver.options, ...(mode === 'startup' ? { allowJs: true } : {}),
+      noLib: true, noEmit: true, types: [] }
     const host = ts.createCompilerHost(options)
     const directories = new Set<string>()
     for (const file of sources.keys()) {
@@ -176,8 +204,9 @@ function inspectSourceClosure(rootPath: string, entryPath: string, mode: 'checke
         diagnostic.category === ts.DiagnosticCategory.Error && diagnostic.start !== undefined
         && ranges.some(range => diagnostic.start! >= range.start && diagnostic.start! < range.end))
       if (invalidImport) {
-        return reject('IMPORTED_CALLEES_UNSUPPORTED',
-          `${path.relative(root, file)}: ${ts.flattenDiagnosticMessageText(invalidImport.messageText, '\n')}`)
+        const diagnostic = `${path.relative(root, file)}: ${ts.flattenDiagnosticMessageText(invalidImport.messageText, '\n')}`
+        if (mode === 'checked') return reject('IMPORTED_CALLEES_UNSUPPORTED', diagnostic)
+        initializationIssues.push({ sourceFile: path.relative(root, file), startOffset: invalidImport.start!, diagnostic })
       }
     }
   }

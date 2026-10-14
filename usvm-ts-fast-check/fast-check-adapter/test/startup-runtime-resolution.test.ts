@@ -4,6 +4,7 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
+import { inspectLocalSourceClosure, inspectStartupSourceClosure } from '../src/local-source-closure.js'
 import { FrozenModuleResolver } from '../src/frozen-module-resolution.js'
 
 function workspace(files: Record<string, string>, action: (root: string, entry: string) => void): void {
@@ -103,5 +104,39 @@ test('startup rejects declaration-only entries and dependencies escaping the acq
     assert.throws(() => resolver.resolveStartup('example', entry), /declaration-only/)
     assert.throws(() => resolver.resolveStartup('../outside', entry), /Unresolved/)
     assert.throws(() => resolver.resolveStartup('./escape/anything.ts', entry), /Unresolved/)
+  })
+})
+
+
+test('shared startup traversal follows generated JavaScript require and records JSON/native boundaries', () => {
+  workspace({
+    'entry.ts': "import { value } from './generated.js'; export class Entry { read() { return value; } }",
+    'generated.js': "const data = require('./data.json'); const fs = require('node:fs'); exports.value = data.answer;",
+    'data.json': '{"answer":42}',
+    'tsconfig.jsonc': '{"compilerOptions":{"strict":true}}',
+  }, (root, entry) => {
+    const graph = inspectStartupSourceClosure(root, entry)
+
+    assert.equal(graph.reasonCode, undefined)
+    assert.deepEqual(graph.files, ['entry.ts', 'generated.js'])
+    assert.ok(graph.resolution!.inputSha256['data.json'])
+    assert.ok(graph.resolution!.inputSha256['tsconfig.jsonc'])
+    assert.equal(graph.resolution!.runtimeBoundaries!.length, 2)
+    assert.ok(graph.initializationIssues!.length > 0)
+    assert.equal(JSON.parse(graph.resolution!.tsconfig).compilerOptions.strictBuiltinIteratorReturn, undefined)
+    assert.equal(inspectLocalSourceClosure(root, entry).reasonCode, 'IMPORTED_CALLEES_UNSUPPORTED')
+  })
+})
+
+test('startup records an unresolved dynamic boundary and checked mode still rejects it', () => {
+  workspace({ 'entry.ts': 'export class Entry { load(name: string) { return require(name); } }' }, (root, entry) => {
+    const graph = inspectStartupSourceClosure(root, entry)
+
+    assert.equal(graph.reasonCode, undefined)
+    assert.deepEqual(graph.files, ['entry.ts'])
+    assert.equal(graph.resolution!.runtimeBoundaries![0]!.kind, 'dynamic-module')
+    assert.equal(graph.resolution!.runtimeBoundaries![0]!.expression, 'require(name)')
+    assert.match(graph.initializationIssues![0]!.diagnostic, /Unresolved dynamic/)
+    assert.equal(inspectLocalSourceClosure(root, entry).reasonCode, 'IMPORTED_CALLEES_UNSUPPORTED')
   })
 })
