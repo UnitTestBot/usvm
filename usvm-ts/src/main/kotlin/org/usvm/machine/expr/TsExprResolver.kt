@@ -799,6 +799,7 @@ class TsExprResolver(
                 }
             }
         }
+
         return resolveBinaryOperator(TsBinaryOperator.Add, expr)
     }
 
@@ -829,7 +830,8 @@ class TsExprResolver(
         // Resolve a conditional field payload through the same forker used for property and array receivers.
         val ref = resolveHeapRef(scope, operand.asExpr(addressSort)) ?: return null
         concreteStringValue(ref)?.let { return mkStringConstant(it, scope) }
-        if (scope.calcOnState { ref !in boundedStringBackingRefs }) {
+        val hasModeledStringBacking = scope.calcOnState { ref in boundedStringBackingRefs }
+        if (!hasModeledStringBacking) {
             stopRuntimeFeatureLimitation(
                 reason = TsRuntimeFeatureLimitationReason.STRING_CONCAT_OPERAND_CONVERSION,
                 detail = "String concatenation needs a modeled string backing for $ref",
