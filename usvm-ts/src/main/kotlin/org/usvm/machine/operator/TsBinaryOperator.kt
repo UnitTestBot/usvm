@@ -31,6 +31,175 @@ import org.usvm.util.mkStringBackingElementLValue
 import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.mkStringBackingLengthLValue
 
+private fun TsContext.stringReferenceKind(
+    reference: UHeapRef,
+    scope: TsStepScope,
+): UBoolExpr {
+    if (reference is UIteExpr<*>) {
+        val trueReference = reference.trueBranch.asExpr(addressSort)
+        val falseReference = reference.falseBranch.asExpr(addressSort)
+        val trueIsString = stringReferenceKind(trueReference, scope)
+        val falseIsString = stringReferenceKind(falseReference, scope)
+
+        return mkIte(reference.condition, trueIsString, falseIsString)
+    }
+
+    return scope.calcOnState { memory.types.evalTypeEquals(reference, EtsStringType) }
+}
+
+private fun TsContext.stringReferenceAndKind(
+    value: UExpr<*>,
+    scope: TsStepScope,
+): Pair<UHeapRef?, UBoolExpr> {
+    val (reference, referenceKind) = when {
+        value.isFakeObject() -> value.extractRef(scope) to value.getFakeType(scope).refTypeExpr
+        value.sort == addressSort -> value.asExpr(addressSort) to trueExpr
+        else -> return null to falseExpr
+    }
+
+    val stringKind = stringReferenceKind(reference, scope)
+
+    return reference to mkAnd(referenceKind, stringKind)
+}
+
+/** Compare backed primitive strings by the first differing UTF-16 code unit, then by length. */
+private fun TsContext.stringValueLessThan(
+    lhs: UHeapRef,
+    rhs: UHeapRef,
+    scope: TsStepScope,
+    activeGuard: UBoolExpr,
+): UBoolExpr {
+    if (lhs is UIteExpr<*>) {
+        val trueGuard = mkAnd(activeGuard, lhs.condition)
+        val falseGuard = mkAnd(activeGuard, mkNot(lhs.condition))
+        val trueResult = stringValueLessThan(lhs.trueBranch.asExpr(addressSort), rhs, scope, trueGuard)
+        val falseResult = stringValueLessThan(lhs.falseBranch.asExpr(addressSort), rhs, scope, falseGuard)
+
+        return mkIte(lhs.condition, trueResult, falseResult)
+    }
+
+    if (rhs is UIteExpr<*>) {
+        val trueGuard = mkAnd(activeGuard, rhs.condition)
+        val falseGuard = mkAnd(activeGuard, mkNot(rhs.condition))
+        val trueResult = stringValueLessThan(lhs, rhs.trueBranch.asExpr(addressSort), scope, trueGuard)
+        val falseResult = stringValueLessThan(lhs, rhs.falseBranch.asExpr(addressSort), scope, falseGuard)
+
+        return mkIte(rhs.condition, trueResult, falseResult)
+    }
+
+    val lhsConstant = (lhs as? UConcreteHeapRef)?.let(::getStringConstantValue)
+    val rhsConstant = (rhs as? UConcreteHeapRef)?.let(::getStringConstantValue)
+    if (lhsConstant != null && rhsConstant != null) {
+        return if (lhsConstant < rhsConstant) trueExpr else falseExpr
+    }
+
+    val (lhsBound, rhsBound, machineBound) = scope.calcOnState {
+        Triple(boundedStringBackingRefs[lhs], boundedStringBackingRefs[rhs], maxStringLength)
+    }
+    val backedWithinLimit = lhsBound != null && rhsBound != null &&
+        lhsBound >= 0 && lhsBound <= machineBound &&
+        rhsBound >= 0 && rhsBound <= machineBound
+    val unsupportedReason = "Relational string comparison needs bounded primitive string backings"
+    if (!backedWithinLimit) {
+        val inactive = scope.fork(mkNot(activeGuard), blockOnFalseState = {
+            terminateAsUnsupported(reason = unsupportedReason)
+        })
+        if (inactive == null) throw UnsupportedOperationException(unsupportedReason)
+
+        return falseExpr
+    }
+
+    val leftBound = requireNotNull(lhsBound)
+    val rightBound = requireNotNull(rhsBound)
+    val comparison = scope.calcOnState {
+        val leftChars = memory.read(mkStringBackingLValue(lhs))
+        val rightChars = memory.read(mkStringBackingLValue(rhs))
+
+        StringComparisonData(
+            lhsChars = leftChars,
+            rhsChars = rightChars,
+            lhsLength = memory.read(mkStringBackingLengthLValue(leftChars)),
+            rhsLength = memory.read(mkStringBackingLengthLValue(rightChars)),
+            maxLength = maxOf(leftBound, rightBound),
+        )
+    }
+    val zero = mkBv(0)
+    val lengthsWithinBounds = mkAnd(
+        mkBvSignedGreaterOrEqualExpr(comparison.lhsLength, zero),
+        mkBvSignedLessOrEqualExpr(comparison.lhsLength, mkBv(leftBound)),
+        mkBvSignedGreaterOrEqualExpr(comparison.rhsLength, zero),
+        mkBvSignedLessOrEqualExpr(comparison.rhsLength, mkBv(rightBound)),
+    )
+    val supported = mkOr(mkNot(activeGuard), lengthsWithinBounds)
+    val currentSupported = scope.fork(supported, blockOnFalseState = {
+        terminateAsUnsupported(reason = unsupportedReason)
+    })
+    if (currentSupported == null) throw UnsupportedOperationException(unsupportedReason)
+
+    var lessThan = mkBvSignedLessExpr(comparison.lhsLength, comparison.rhsLength)
+    for (index in (0 until comparison.maxLength).reversed()) {
+        val position = mkBv(index)
+        val bothHaveCodeUnit = mkAnd(
+            mkBvSignedLessExpr(position, comparison.lhsLength),
+            mkBvSignedLessExpr(position, comparison.rhsLength),
+        )
+        val (leftCodeUnit, rightCodeUnit) = scope.calcOnState {
+            memory.read(mkStringBackingElementLValue(comparison.lhsChars, position)) to
+                memory.read(mkStringBackingElementLValue(comparison.rhsChars, position))
+        }
+        val differingCodeUnits = mkAnd(bothHaveCodeUnit, mkNot(mkEq(leftCodeUnit, rightCodeUnit)))
+
+        lessThan = mkIte(differingCodeUnits, mkBvUnsignedLessExpr(leftCodeUnit, rightCodeUnit), lessThan)
+    }
+
+    return lessThan
+}
+
+private fun TsContext.relationalComparison(
+    lhs: UExpr<*>,
+    rhs: UExpr<*>,
+    scope: TsStepScope,
+    activeGuard: UBoolExpr,
+    reversed: Boolean,
+): UBoolExpr {
+    if (lhs is UIteExpr<*>) {
+        val trueGuard = mkAnd(activeGuard, lhs.condition)
+        val falseGuard = mkAnd(activeGuard, mkNot(lhs.condition))
+        val trueResult = relationalComparison(lhs.trueBranch, rhs, scope, trueGuard, reversed)
+        val falseResult = relationalComparison(lhs.falseBranch, rhs, scope, falseGuard, reversed)
+
+        return mkIte(lhs.condition, trueResult, falseResult)
+    }
+
+    if (rhs is UIteExpr<*>) {
+        val trueGuard = mkAnd(activeGuard, rhs.condition)
+        val falseGuard = mkAnd(activeGuard, mkNot(rhs.condition))
+        val trueResult = relationalComparison(lhs, rhs.trueBranch, scope, trueGuard, reversed)
+        val falseResult = relationalComparison(lhs, rhs.falseBranch, scope, falseGuard, reversed)
+
+        return mkIte(rhs.condition, trueResult, falseResult)
+    }
+
+    val (lhsReference, lhsString) = stringReferenceAndKind(lhs, scope)
+    val (rhsReference, rhsString) = stringReferenceAndKind(rhs, scope)
+    val bothStrings = mkAnd(lhsString, rhsString)
+    val stringGuard = mkAnd(activeGuard, bothStrings)
+    val numericGuard = mkAnd(activeGuard, mkNot(bothStrings))
+
+    val leftNumber = mkNumericExprWithGuard(expr = lhs, scope = scope, activeGuard = numericGuard)
+    val rightNumber = mkNumericExprWithGuard(expr = rhs, scope = scope, activeGuard = numericGuard)
+    val numericResult = if (reversed) mkFpGreaterExpr(leftNumber, rightNumber) else mkFpLessExpr(leftNumber, rightNumber)
+    if (lhsReference == null || rhsReference == null) return numericResult
+
+    val stringResult = if (reversed) {
+        stringValueLessThan(rhsReference, lhsReference, scope, stringGuard)
+    } else {
+        stringValueLessThan(lhsReference, rhsReference, scope, stringGuard)
+    }
+
+    return mkIte(bothStrings, stringResult, numericResult)
+}
+
 private val logger = KotlinLogging.logger {}
 
 /** Strings are primitive values even though the TS heap stores their UTF-16 contents behind references. */
@@ -1297,10 +1466,7 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
             activeGuard: UBoolExpr,
         ): UBoolExpr {
-            val left = mkNumericExprWithGuard(expr = lhs, scope = scope, activeGuard = activeGuard)
-            val right = mkNumericExprWithGuard(expr = rhs, scope = scope, activeGuard = activeGuard)
-
-            return onFp(left, right, scope)
+            return relationalComparison(lhs, rhs, scope, activeGuard, reversed = false)
         }
 
         override fun TsContext.onRefWithGuard(
@@ -1338,9 +1504,7 @@ sealed interface TsBinaryOperator {
             rhs: UHeapRef,
             scope: TsStepScope,
         ): UBoolExpr {
-            val lhsNumeric = mkNumericExpr(lhs, scope)
-            val rhsNumeric = mkNumericExpr(rhs, scope)
-            return mkFpLessExpr(lhsNumeric, rhsNumeric)
+            return resolve(lhs, rhs, scope, activeGuard = trueExpr)
         }
 
         override fun TsContext.resolveFakeObject(
@@ -1356,12 +1520,7 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<*>,
             scope: TsStepScope,
         ): UBoolExpr {
-            // TODO: the immediate conversion to numbers is not correct,
-            //       we first need to try to convert arguments to primitive values,
-            //       which might become strings, for which LT has different semantics.
-            val lhsNumeric = mkNumericExpr(lhs, scope)
-            val rhsNumeric = mkNumericExpr(rhs, scope)
-            return mkFpLessExpr(lhsNumeric, rhsNumeric)
+            return resolve(lhs, rhs, scope, activeGuard = trueExpr)
         }
     }
 
@@ -1372,10 +1531,7 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
             activeGuard: UBoolExpr,
         ): UBoolExpr {
-            val left = mkNumericExprWithGuard(expr = lhs, scope = scope, activeGuard = activeGuard)
-            val right = mkNumericExprWithGuard(expr = rhs, scope = scope, activeGuard = activeGuard)
-
-            return onFp(left, right, scope)
+            return relationalComparison(lhs, rhs, scope, activeGuard, reversed = true)
         }
 
         override fun TsContext.onRefWithGuard(
@@ -1413,9 +1569,7 @@ sealed interface TsBinaryOperator {
             rhs: UHeapRef,
             scope: TsStepScope,
         ): UBoolExpr {
-            val lhsNumeric = mkNumericExpr(lhs, scope)
-            val rhsNumeric = mkNumericExpr(rhs, scope)
-            return mkFpGreaterExpr(lhsNumeric, rhsNumeric)
+            return resolve(lhs, rhs, scope, activeGuard = trueExpr)
         }
 
         override fun TsContext.resolveFakeObject(
@@ -1431,9 +1585,7 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<*>,
             scope: TsStepScope,
         ): UBoolExpr {
-            val lhsNumeric = mkNumericExpr(lhs, scope)
-            val rhsNumeric = mkNumericExpr(rhs, scope)
-            return mkFpGreaterExpr(lhsNumeric, rhsNumeric)
+            return resolve(lhs, rhs, scope, activeGuard = trueExpr)
         }
     }
 
