@@ -75,6 +75,13 @@ class MergingPathSelector<State : UState<*, *, *, *, *, State>>(
         closeStatesSearcher.add(states)
     }
 
+    override fun drain(): Sequence<State> = sequence {
+        for (state in underlyingPathSelector.drain()) {
+            closeStatesSearcher.remove(state)
+            yield(state)
+        }
+    }
+
     override fun remove(state: State) {
         underlyingPathSelector.remove(state)
         closeStatesSearcher.remove(state)

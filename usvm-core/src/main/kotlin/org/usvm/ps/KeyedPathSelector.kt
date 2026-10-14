@@ -25,6 +25,12 @@ abstract class KeyedPathSelector<State, Key>(private val getKey: (State) -> Key)
         pathSelectors[key]?.remove(state) ?: throw IllegalStateException("Trying to remove state with unknown key")
     }
 
+    override fun drain(): Sequence<State> = sequence {
+        for (selector in pathSelectors.values) {
+            yieldAll(selector.drain())
+        }
+    }
+
     fun removeKey(key: Key) {
         pathSelectors.remove(key)
     }
