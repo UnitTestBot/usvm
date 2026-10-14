@@ -437,6 +437,63 @@ class CallsExperimentTest {
     }
 
     @Test
+    fun `single witness replay accepts stored completed return target`(@TempDir directory: Path) {
+        val baseManifest = manifest(sourceRoot = ".", seeds = listOf(13L))
+        val project = baseManifest.projects.single()
+        val function = project.functions.single()
+        val completedReturn = function.targets.single().copy(
+            mode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpressionStartOffset = 7,
+            returnExpressionEndOffset = 10,
+        )
+        val frozenManifest = baseManifest.copy(
+            projects = listOf(project.copy(functions = listOf(function.copy(targets = listOf(completedReturn))))),
+        )
+        val rawOutput = directory.resolve("results.jsonl")
+        val storedInputs = listOf(JsConcreteValue.Boolean(true))
+        CallsExperimentRunner(
+            symbolicEngine = CallsSymbolicEngine {
+                result(status = CallsSymbolicStatus.REACHED, inputs = storedInputs)
+            },
+            targetReplayer = CallsTargetReplayer { _, _, _, _, _ ->
+                CallsSourceReplayResult(status = CallsReplayStatus.CONFIRMED)
+            },
+            runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            sourceCheckoutVerifier = { _, _ -> },
+        ).run(
+            manifest = frozenManifest,
+            manifestDirectory = directory,
+            rawOutput = rawOutput,
+        )
+
+        val raw = CallsRawResultsReader.read(rawOutput)
+        val storedRow = raw.results.single { row -> row.profile == CallsExperimentProfile.FROZEN_STOP }
+        var replayedInputs: List<JsConcreteValue>? = null
+        var replayedTarget: CallsSourceTarget? = null
+        val replay = CallsWitnessReplayer(
+            targetReplayer = CallsTargetReplayer { _, _, inputs, target, _ ->
+                replayedInputs = inputs
+                replayedTarget = target
+                CallsSourceReplayResult(status = CallsReplayStatus.REJECTED)
+            },
+            runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            verifyProjectCheckout = { _, _ -> },
+        ).replay(
+            manifest = frozenManifest,
+            manifestDirectory = directory,
+            rawInput = rawOutput,
+            selector = selector(seed = 13L, profile = CallsExperimentProfile.FROZEN_STOP),
+        )
+
+        assertEquals(CallsSourceTargetMode.COMPLETED_RETURN, raw.metadata.targets.single().targetMode)
+        assertEquals(CallsSourceTargetMode.COMPLETED_RETURN, storedRow.targetMode)
+        assertEquals(storedInputs, storedRow.inputs)
+        assertEquals(storedInputs, replayedInputs)
+        assertEquals(completedReturn, replayedTarget)
+        assertEquals(CallsReplayStatus.REJECTED, replay.status)
+    }
+
+    @Test
     fun `single witness replay selects function when projects share an ID`(@TempDir directory: Path) {
         val baseManifest = manifest(sourceRoot = ".", seeds = listOf(19L))
         val firstProject = baseManifest.projects.single()

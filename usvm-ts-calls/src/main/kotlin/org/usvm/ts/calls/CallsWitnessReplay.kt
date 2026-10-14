@@ -133,6 +133,7 @@ internal class CallsWitnessReplayer(
                         functionId = function.functionId,
                         targetId = target.targetId,
                         siteId = target.siteId,
+                        targetMode = target.mode,
                     )
                 }
             }
