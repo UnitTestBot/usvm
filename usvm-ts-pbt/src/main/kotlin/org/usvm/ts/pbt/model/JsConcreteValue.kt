@@ -49,20 +49,18 @@ data class JsNumber(
     /** Whether this tag can represent exactly the encoded ECMAScript binary64 value. */
     fun hasValidEncoding(): Boolean = when (value) {
         JsNumberKind.FINITE -> {
-            bits?.takeIf { it.matches(FINITE_NUMBER_BITS_REGEX) }
-                ?.let { Double.fromBits(it.toULong(JS_NUMBER_HEX_RADIX).toLong()).isFinite() }
-                ?: false
+            val finiteBits = bits?.takeIf { it.matches(FINITE_NUMBER_BITS_REGEX) }
+            finiteBits?.let { Double.fromBits(it.toULong(radix = JS_NUMBER_HEX_RADIX).toLong()).isFinite() } ?: false
         }
 
         else -> bits == null
     }
 
     fun toDouble(): Double = when (value) {
-        JsNumberKind.FINITE -> Double.fromBits(
-            requireNotNull(bits) { "A finite JavaScript number requires IEEE-754 bits" }
-                .toULong(JS_NUMBER_HEX_RADIX)
-                .toLong(),
-        )
+        JsNumberKind.FINITE -> {
+            val finiteBits = requireNotNull(bits) { "A finite JavaScript number requires IEEE-754 bits" }
+            Double.fromBits(finiteBits.toULong(radix = JS_NUMBER_HEX_RADIX).toLong())
+        }
 
         JsNumberKind.NAN -> Double.NaN
         JsNumberKind.POSITIVE_INFINITY -> Double.POSITIVE_INFINITY
@@ -78,8 +76,8 @@ data class JsNumber(
                 bits = value
                     .toRawBits()
                     .toULong()
-                    .toString(JS_NUMBER_HEX_RADIX)
-                    .padStart(JS_NUMBER_HEX_DIGITS, '0'),
+                    .toString(radix = JS_NUMBER_HEX_RADIX)
+                    .padStart(length = JS_NUMBER_HEX_DIGITS, padChar = '0'),
             )
         }
 

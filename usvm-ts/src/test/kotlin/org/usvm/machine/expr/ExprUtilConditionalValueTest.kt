@@ -312,6 +312,39 @@ class ExprUtilConditionalValueTest {
     }
 
     @Test
+    fun `loose equality compares the selected right numeric payload`() = with(ctx) {
+        val leftBooleanSelected = mkRegisterReading(idx = 0, sort = boolSort)
+        val leftKinds = EtsFakeType(
+            boolTypeExpr = leftBooleanSelected,
+            fpTypeExpr = mkNot(leftBooleanSelected),
+            refTypeExpr = falseExpr,
+        )
+        val rightKinds = EtsFakeType(
+            boolTypeExpr = mkNot(leftBooleanSelected),
+            fpTypeExpr = leftBooleanSelected,
+            refTypeExpr = falseExpr,
+        )
+        val left = state.mkFakeValue(
+            scope = null,
+            boolValue = trueExpr,
+            fpValue = mkFp64(2.0),
+            valueType = leftKinds,
+        )
+        val right = state.mkFakeValue(
+            scope = null,
+            boolValue = falseExpr,
+            fpValue = mkFp64(1.0),
+            valueType = rightKinds,
+        )
+
+        val resolved = with(TsBinaryOperator.Eq) { ctx.resolve(left, right, scope) }
+        val result = assertNotNull(resolved)
+
+        assertEquals(trueExpr, evaluateSelection(expr = result, selectedValue = true))
+        assertEquals(falseExpr, evaluateSelection(expr = result, selectedValue = false))
+    }
+
+    @Test
     fun `numeric binary support failures stay under the enclosing active guard`() = with(ctx) {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
         val unmodeledString = state.mkInitializedStringConstant(value = "42")

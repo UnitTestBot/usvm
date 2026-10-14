@@ -312,14 +312,14 @@ sealed interface TsBinaryOperator {
                 )
 
                 // fake(bool) + fake(fp)
-                val boolFpExpr = internalResolve(lhsBool, lhsFp, scope)?.asExpr(resultSort) ?: return null
+                val boolFpExpr = internalResolve(lhsBool, rhsFp, scope)?.asExpr(resultSort) ?: return null
                 conjuncts += ExprWithTypeConstraint(
                     constraint = mkAnd(lhsType.boolTypeExpr, rhsType.fpTypeExpr),
                     expr = boolFpExpr
                 )
 
                 // fake(bool) + fake(ref)
-                val boolRefExpr = internalResolve(lhsBool, lhsRef, scope)?.asExpr(resultSort) ?: return null
+                val boolRefExpr = internalResolve(lhsBool, rhsRef, scope)?.asExpr(resultSort) ?: return null
                 conjuncts += ExprWithTypeConstraint(
                     constraint = mkAnd(lhsType.boolTypeExpr, rhsType.refTypeExpr),
                     expr = boolRefExpr
