@@ -2,15 +2,16 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import ts from 'typescript'
 import { instrumentSourceReplay } from './source-replay.js'
 import { inspectSourceCaptures } from './source-captures.js'
-import { inspectLocalSourceClosure } from './local-source-closure.js'
+import { inspectLocalSourceClosure, inspectStartupSourceClosure } from './local-source-closure.js'
 import { instrumentClassCoverage } from './class-coverage-source.js'
 
 const [operation, sourcePath, ...arguments_] = process.argv.slice(2)
 if (sourcePath === undefined) throw new Error('Expected a TypeScript source path')
-if (operation === 'inspect-local-closure') {
+if (operation === 'inspect-local-closure' || operation === 'inspect-startup-closure') {
   const entryPath = arguments_[0]
   if (entryPath === undefined) throw new Error('Expected an entry source path')
-  writeFileSync(1, JSON.stringify(inspectLocalSourceClosure(sourcePath, entryPath)))
+  const inspectClosure = operation === 'inspect-startup-closure' ? inspectStartupSourceClosure : inspectLocalSourceClosure
+  writeFileSync(1, JSON.stringify(inspectClosure(sourcePath, entryPath)))
 } else {
   const source = readFileSync(sourcePath, 'utf8')
   const sourceFile = ts.createSourceFile(sourcePath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)

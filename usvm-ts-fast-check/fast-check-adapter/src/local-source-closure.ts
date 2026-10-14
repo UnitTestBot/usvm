@@ -9,10 +9,20 @@ interface LocalSourceClosure {
   resolution?: FrozenModuleResolution
   reasonCode?: string
   diagnostic?: string
+  initializationIssues?: Array<{ sourceFile: string, startOffset: number, diagnostic: string }>
 }
 
 /** Inspect source only. Never execute a project or consult a profile/model result. */
 export function inspectLocalSourceClosure(rootPath: string, entryPath: string): LocalSourceClosure {
+  return inspectSourceClosure(rootPath, entryPath, 'checked')
+}
+
+/** Graph acquisition only: initialization limitations remain explicit diagnostics for the symbolic startup driver. */
+export function inspectStartupSourceClosure(rootPath: string, entryPath: string): LocalSourceClosure {
+  return inspectSourceClosure(rootPath, entryPath, 'startup')
+}
+
+function inspectSourceClosure(rootPath: string, entryPath: string, mode: 'checked' | 'startup'): LocalSourceClosure {
   const root = realpathSync(rootPath)
   const entry = path.resolve(root, path.relative(path.resolve(rootPath), path.resolve(entryPath)))
   let resolver: FrozenModuleResolver
@@ -22,6 +32,7 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
     return { files: [], reasonCode: 'IMPORTED_CALLEES_UNSUPPORTED', diagnostic: String(error) }
   }
   const pending = [entry]
+  const initializationIssues: NonNullable<LocalSourceClosure['initializationIssues']> = []
   let entryAmbientIssue: string | undefined
   const files = new Set<string>()
   const runtimeImportRanges = new Map<string, Array<{ start: number, end: number }>>()
@@ -85,8 +96,11 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
       } else {
         if (isAmbientRuntimeDeclaration(statement)) {
           const diagnostic = `Ambient runtime declaration in ${relative} at offset ${statement.getStart(source)}`
-          if (file !== entry) return reject('IMPORTED_CALLEES_UNSUPPORTED', diagnostic)
-          entryAmbientIssue ??= diagnostic
+          if (mode === 'startup') initializationIssues.push({ sourceFile: relative, startOffset: statement.getStart(source), diagnostic })
+          else {
+            if (file !== entry) return reject('IMPORTED_CALLEES_UNSUPPORTED', diagnostic)
+            entryAmbientIssue ??= diagnostic
+          }
         }
       }
     }
@@ -115,15 +129,9 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
     return reject('IMPORTED_CALLEES_UNSUPPORTED', entryAmbientIssue)
   }
 
-  // Replay overlays link dependency files to the original checkout. A back-import
-  // would then create a second entry-module instance with different mutable state.
-  if (hasDependencyCycle(dependencies)) {
-    return reject('IMPORTED_CALLEES_UNSUPPORTED', 'Cyclic local module dependencies are unsupported by source replay')
-  }
-
   // Ask TypeScript to validate the imported bindings as well as the files. Diagnostics
   // in unrelated function bodies do not determine closure admission.
-  if (files.size > 1 || [...runtimeImportRanges.values()].some(ranges => ranges.length > 0)) {
+  if (mode === 'startup' || files.size > 1 || [...runtimeImportRanges.values()].some(ranges => ranges.length > 0)) {
     const options: ts.CompilerOptions = { ...resolver.options, noLib: true, noEmit: true, types: [] }
     const host = ts.createCompilerHost(options)
     const directories = new Set<string>()
@@ -145,14 +153,18 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
     const program = ts.createProgram([...sources.keys()], options, host)
     // A single source retains its dedicated capture validation. For a module
     // closure, initializer identities are attested by this exact source program.
-    if (files.size > 1) {
+    if (mode === 'startup' || files.size > 1) {
       const checker = program.getTypeChecker()
       const closure = new Set(sources.values())
+      const evaluationOrder = moduleEvaluationOrder(dependencies, entry)
       for (const source of closure) {
-        const unsupported = unsupportedModuleInitialization(source, checker, closure)
+        const unsupported = unsupportedModuleInitialization(source, checker, closure, evaluationOrder)
         if (unsupported !== undefined) {
-          return reject('TOP_LEVEL_INITIALIZATION_UNSUPPORTED',
-            `Unsupported module initialization in ${path.relative(root, source.fileName)} at offset ${unsupported.getStart(source)}`)
+          const sourceFile = path.relative(root, source.fileName)
+          const startOffset = unsupported.getStart(source)
+          const diagnostic = `Unsupported module initialization in ${sourceFile} at offset ${startOffset}`
+          if (mode === 'checked') return reject('TOP_LEVEL_INITIALIZATION_UNSUPPORTED', diagnostic)
+          initializationIssues.push({ sourceFile, startOffset, diagnostic })
         }
       }
     }
@@ -172,7 +184,9 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
 
   const sortedFiles = [...files].sort()
   const resolution = resolver.freeze(sortedFiles)
-  return resolution ? { files: sortedFiles, resolution } : { files: sortedFiles }
+  const result: LocalSourceClosure = resolution ? { files: sortedFiles, resolution } : { files: sortedFiles }
+  if (mode === 'startup') result.initializationIssues = initializationIssues
+  return result
 }
 
 function runtimeModuleSpecifiers(source: ts.SourceFile, options: ts.CompilerOptions): Set<string> {
@@ -221,21 +235,18 @@ function importedBindingsUsedOnlyAsTypes(statement: ts.ImportDeclaration, source
   return names.every(name => typeUses.has(name) && !valueUses.has(name))
 }
 
-function hasDependencyCycle(dependencies: Map<string, string[]>): boolean {
-  const active = new Set<string>()
+/** Ordered DFS evaluates a dependency before its importer, without revisiting an active cycle. */
+function moduleEvaluationOrder(dependencies: Map<string, string[]>, entry: string): Map<string, number> {
   const visited = new Set<string>()
-  const visit = (file: string): boolean => {
-    if (active.has(file)) return true
-    if (visited.has(file)) return false
-    active.add(file)
-    for (const dependency of dependencies.get(file) ?? []) {
-      if (visit(dependency)) return true
-    }
-    active.delete(file)
+  const order = new Map<string, number>()
+  const visit = (file: string): void => {
+    if (visited.has(file)) return
     visited.add(file)
-    return false
+    for (const dependency of dependencies.get(file) ?? []) visit(dependency)
+    order.set(file, order.size)
   }
-  return [...dependencies.keys()].some(visit)
+  visit(entry)
+  return order
 }
 
 function isAmbientRuntimeDeclaration(statement: ts.Statement): boolean {

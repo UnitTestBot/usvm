@@ -8,6 +8,8 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.generateEtsIR
 import org.jacodb.ets.utils.loadEtsProjectFromIR
+import org.usvm.ts.pbt.fastcheck.TypeScriptLocalSourceClosure
+import org.usvm.ts.pbt.fastcheck.TypeScriptModuleInitializationIssue
 import org.usvm.ts.pbt.fastcheck.TypeScriptSourceInspector
 import java.nio.file.Files
 import java.nio.file.Path
@@ -19,6 +21,7 @@ internal sealed interface CallsSourceProject {
         val entryModule: String,
         val sourceByFile: Map<EtsFileSignature, String>,
         val sourcePaths: Map<EtsFileSignature, String>,
+        val initializationIssues: List<TypeScriptModuleInitializationIssue> = emptyList(),
     ) : CallsSourceProject
 
     data class Unsupported(val issue: CallsIrReadinessIssue) : CallsSourceProject
@@ -26,6 +29,20 @@ internal sealed interface CallsSourceProject {
 
 internal fun loadCallsSourceProject(sourceRoot: Path, source: Path): CallsSourceProject {
     val closure = TypeScriptSourceInspector.localSourceClosure(sourceRoot = sourceRoot, source = source)
+    return loadCallsResolvedSourceProject(sourceRoot = sourceRoot, source = source, closure = closure)
+}
+
+/** Direct EtsIR startup is independent of class admission; all unresolved initialization assumptions are retained. */
+internal fun loadCallsStartupSourceProject(sourceRoot: Path, source: Path): CallsSourceProject {
+    val closure = TypeScriptSourceInspector.startupSourceClosure(sourceRoot = sourceRoot, source = source)
+    return loadCallsResolvedSourceProject(sourceRoot = sourceRoot, source = source, closure = closure)
+}
+
+private fun loadCallsResolvedSourceProject(
+    sourceRoot: Path,
+    source: Path,
+    closure: TypeScriptLocalSourceClosure,
+): CallsSourceProject {
     if (closure.reasonCode != null) {
         return CallsSourceProject.Unsupported(
             issue = CallsIrReadinessIssue(
@@ -44,6 +61,7 @@ internal fun loadCallsSourceProject(sourceRoot: Path, source: Path): CallsSource
             entryModule = source.fileName.toString(),
             sourceByFile = mapOf(entry.signature to Files.readString(source)),
             sourcePaths = mapOf(entry.signature to entryModule.replace('\\', '/')),
+            initializationIssues = closure.initializationIssues,
         )
     }
 
@@ -95,6 +113,7 @@ internal fun loadCallsSourceProject(sourceRoot: Path, source: Path): CallsSource
             entryModule = entryModule,
             sourceByFile = sourcePaths.mapValues { (_, relative) -> sources.getValue(relative) },
             sourcePaths = sourcePaths.mapValues { (_, relative) -> relative.replace('\\', '/') },
+            initializationIssues = closure.initializationIssues,
         )
     } finally {
         temporaryProject.toFile().deleteRecursively()
