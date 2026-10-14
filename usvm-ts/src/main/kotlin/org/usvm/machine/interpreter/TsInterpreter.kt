@@ -20,6 +20,7 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsPropertyRef
+import org.jacodb.ets.model.EtsRawStmt
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
@@ -161,6 +162,9 @@ class TsInterpreter(
                 is EtsCallStmt -> visitCallStmt(scope, stmt)
                 is EtsThrowStmt -> visitThrowStmt(scope, stmt)
                 is EtsNopStmt -> visitNopStmt(scope, stmt)
+                is EtsRawStmt -> {
+                    throw UnsupportedOperationException("Unsupported frontend statement: $stmt")
+                }
                 else -> {
                     logger.error { "Unknown stmt: $stmt" }
                     scope.doWithState {
