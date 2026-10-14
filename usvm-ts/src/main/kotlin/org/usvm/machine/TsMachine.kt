@@ -9,6 +9,7 @@ import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
+import org.usvm.UPathSelector
 import org.usvm.api.targets.TsTarget
 import org.usvm.machine.call.TsBuiltInUnknownCallModels
 import org.usvm.machine.call.TsModelUnknownCallDispatcher
@@ -32,6 +33,7 @@ import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
+import org.usvm.statistics.collectors.StatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CfgStatisticsImpl
@@ -56,9 +58,11 @@ data class TsAnalysisResult(
     val stopReason: TsAnalysisStopReason,
     /** Reasons for satisfiable paths excluded by an explicit engine model bound. */
     val unsupportedPaths: List<String>,
+    /** Live inputs at an execution limit; these states have not completed their entry point. */
+    val suspendedStates: List<TsState> = emptyList(),
 )
 
-/** Terminal states and failure metadata for one TypeScript analysis. */
+/** Terminal states, suspended inputs and failure metadata for one TypeScript analysis. */
 data class TsMachineAnalysisResult(
     val states: List<TsState>,
     val stopReason: TsAnalysisStopReason,
@@ -66,6 +70,8 @@ data class TsMachineAnalysisResult(
     val unsupportedCall: Boolean,
     val engineFailed: Boolean,
     val unsupportedPaths: List<String>,
+    /** Feasible stopped prefixes and queued states at limits, separately from completed witnesses. */
+    val suspendedStates: List<TsState> = emptyList(),
 ) {
     /** Includes execution bounds and unsupported entry inputs retained in [unsupportedPaths]. */
     val runtimeLimited: Boolean get() = unsupportedPaths.isNotEmpty()
@@ -160,6 +166,7 @@ class TsMachine(
             states = result.states,
             stopReason = result.stopReason,
             unsupportedPaths = result.unsupportedPaths,
+            suspendedStates = result.suspendedStates,
         )
     }
 
@@ -214,18 +221,12 @@ class TsMachine(
             callGraphStatisticsFactory = { callGraphStatistics },
         )
 
-        val statesCollector =
-            when (options.stateCollectionStrategy) {
-                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<TsState>(coverageStatistics) {
-                    it.methodResult is TsMethodResult.TsException
-                }
+        val statesCollector = createStatesCollector(coverageStatistics)
 
-                StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
-                StateCollectionStrategy.ALL -> AllStatesCollector()
-            }
-
+        val suspendedStatesCollector = SuspendedStatesCollector()
         val observers = mutableListOf<UMachineObserver<TsState>>(coverageStatistics)
         observers.add(statesCollector)
+        observers.add(suspendedStatesCollector)
         if (tsOptions.enableVisualization) {
             observers += TsStateVisualizer()
         }
@@ -283,17 +284,18 @@ class TsMachine(
         }
 
         val supportedObserver = CompositeUMachineObserver(observers)
-        val outcomeObserver = UnsupportedPathsObserver(supportedObserver, unsupportedPaths)
-
-        run(
-            interpreter,
-            pathSelector,
+        val outcomeObserver = UnsupportedPathsObserver(
+            delegate = supportedObserver,
+            unsupportedPaths = unsupportedPaths,
+            emitStoppedPaths = options.emitRemainingStatesOnStop,
+        )
+        val exhausted = runWithStoppedPathEmission(
+            pathSelector = pathSelector,
             observer = outcomeObserver,
-            isStateTerminated = { state -> state.callStack.isEmpty() },
-            stopStrategy = stopStrategy
+            stopStrategy = stopStrategy,
         )
 
-        val stopReason = if (pathSelector.isEmpty()) {
+        val stopReason = if (exhausted) {
             TsAnalysisStopReason.EXHAUSTED
         } else {
             TsAnalysisStopReason.STOPPED
@@ -306,7 +308,53 @@ class TsMachine(
             unsupportedCall = failureTrackingUnknownCallObserver.pathStopped,
             engineFailed = interpreter.stepFailed,
             unsupportedPaths = unsupportedPaths.toList(),
+            suspendedStates = suspendedStatesCollector.states.toList(),
         )
+    }
+
+    private fun createStatesCollector(
+        coverageStatistics: CoverageStatistics<EtsMethod, EtsStmt, TsState>,
+    ): StatesCollector<TsState> = when (options.stateCollectionStrategy) {
+        StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<TsState>(coverageStatistics) {
+            it.methodResult is TsMethodResult.TsException
+        }
+        StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
+        StateCollectionStrategy.ALL -> AllStatesCollector()
+    }
+
+    private fun runWithStoppedPathEmission(
+        pathSelector: UPathSelector<TsState>,
+        observer: UMachineObserver<TsState>,
+        stopStrategy: StopStrategy,
+    ): Boolean {
+        failureTrackingUnknownCallObserver.onPathStoppedListener = if (options.emitRemainingStatesOnStop) {
+            { state, reason ->
+                // STOP_PATH prunes the original next: retain its feasible prefix before that mutation.
+                val prefix = state.clone()
+                prefix.unsupportedReason = reason
+                observer.onStateSuspended(prefix)
+            }
+        } else {
+            null
+        }
+
+        val exhausted = try {
+            run(
+                interpreter = interpreter,
+                pathSelector = pathSelector,
+                observer = observer,
+                isStateTerminated = { state -> state.callStack.isEmpty() },
+                stopStrategy = stopStrategy,
+            )
+        } finally {
+            failureTrackingUnknownCallObserver.onPathStoppedListener = null
+        }
+        val emissionFailure = failureTrackingUnknownCallObserver.pathEmissionFailure
+        if (emissionFailure != null) {
+            throw emissionFailure
+        }
+
+        return exhausted
     }
 
     private fun classCoverageMethods(entryMethods: Set<EtsMethod>): Set<EtsMethod> {
@@ -372,11 +420,34 @@ class TsMachine(
     }
 }
 
+private class SuspendedStatesCollector : UMachineObserver<TsState> {
+    val states = mutableListOf<TsState>()
+
+    override fun onStateSuspended(state: TsState) {
+        states += state
+    }
+}
+
 private class FailureTrackingUnknownCallObserver(
     private val delegate: TsInterpreterObserver?,
 ) : TsInterpreterObserver {
     var pathStopped: Boolean = false
         private set
+
+    var onPathStoppedListener: ((TsState, String) -> Unit)? = null
+
+    var pathEmissionFailure: Throwable? = null
+        private set
+
+    override fun onPathStopped(state: TsState, reason: String) {
+        val emission = runCatching { onPathStoppedListener?.invoke(state, reason) }
+        val failure = emission.exceptionOrNull()
+        if (failure != null && pathEmissionFailure == null) {
+            pathEmissionFailure = failure
+        }
+
+        delegate?.onPathStopped(state, reason)
+    }
 
     override fun onUnknownCall(event: TsUnknownCallEvent) {
         val decision = event.decision
@@ -391,6 +462,7 @@ private class FailureTrackingUnknownCallObserver(
 
     fun reset() {
         pathStopped = false
+        pathEmissionFailure = null
     }
 }
 
@@ -398,12 +470,16 @@ private class FailureTrackingUnknownCallObserver(
 private class UnsupportedPathsObserver(
     private val delegate: UMachineObserver<TsState>,
     private val unsupportedPaths: MutableSet<String>,
+    private val emitStoppedPaths: Boolean,
 ) : UMachineObserver<TsState> by delegate {
     override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
         val unsupportedReason = state.unsupportedReason
         if (unsupportedReason != null) {
             if (stateReachable) {
                 unsupportedPaths += unsupportedReason
+                if (emitStoppedPaths) {
+                    delegate.onStateSuspended(state)
+                }
             }
             return
         }
