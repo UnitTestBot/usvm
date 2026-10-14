@@ -126,6 +126,25 @@ class TsStringEqualityTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `loose equality converts primitive strings and preserves nullish comparisons`() {
+        val methodNames = listOf(
+            "loosePrimitiveStringEquals",
+            "loosePrimitiveStringNotEquals",
+            "loosePrimitiveNullishControls",
+        )
+
+        methodNames.forEach { name ->
+            val method = getMethod(methodName = name, className = "StringEquality")
+
+            discoverProperties<TsTestValue.TsNumber>(
+                method = method,
+                { result -> result.number == 1.0 },
+                invariants = arrayOf({ result -> result.number == 1.0 }),
+            )
+        }
+    }
+
+    @Test
     fun `default string bound can compare two symbolic inputs`() {
         discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsNumber>(
             method = getMethod(methodName = "equalsOther", className = "StringEquality"),

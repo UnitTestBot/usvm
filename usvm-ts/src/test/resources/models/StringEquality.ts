@@ -103,4 +103,27 @@ class StringEquality {
     nullAndUndefined(): number {
         return null === undefined ? 1 : null == undefined ? 2 : 3;
     }
+
+    loosePrimitiveStringEquals(): number {
+        const one: any = "1";
+
+        if (true == one && one == true && 1 == one && one == 1) return 1;
+        return 2;
+    }
+
+    loosePrimitiveStringNotEquals(): number {
+        const one: any = "1";
+
+        if (true != one || one != true || 1 != one || one != 1) return 2;
+        return 1;
+    }
+
+    loosePrimitiveNullishControls(): number {
+        const nil: any = null;
+        const missing: any = undefined;
+
+        if (true == nil || nil == true || 1 == missing || missing == 1) return 2;
+        if (true != nil && nil != true && 1 != missing && missing != 1) return 1;
+        return 2;
+    }
 }
