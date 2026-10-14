@@ -140,3 +140,38 @@ test('startup records an unresolved dynamic boundary and checked mode still reje
     assert.equal(inspectLocalSourceClosure(root, entry).reasonCode, 'IMPORTED_CALLEES_UNSUPPORTED')
   })
 })
+
+
+test('paths-only startup aliases have an explicit bounded current directory', () => {
+  workspace({
+    'tsconfig.json': '{"compilerOptions":{"paths":{"alias":["./helper.ts"]}}}',
+    'helper.ts': 'export const value = 1;',
+  }, (root, entry) => {
+    const resolver = new FrozenModuleResolver(root, entry)
+
+    assert.deepEqual(resolver.resolveStartup('alias', entry), { kind: 'source', file: path.join(root, 'helper.ts') })
+  })
+})
+
+test('absent JSON-looking relative source paths retain real TS source rather than a fabricated JSON asset', () => {
+  workspace({ 'resource.json.ts': 'export default { answer: 42 };' }, (root, entry) => {
+    const resolver = new FrozenModuleResolver(root, entry)
+
+    assert.deepEqual(resolver.resolveStartup('./resource.json', entry),
+      { kind: 'source', file: path.join(root, 'resource.json.ts') })
+    assert.equal(resolver.resolve('./resource.json', entry), path.join(root, 'resource.json.ts'))
+  })
+})
+
+test('installed extensionless runtime entries use actual JavaScript ahead of adjacent TypeScript source', () => {
+  workspace({
+    'node_modules/example/package.json': '{"name":"example","main":"./v10"}',
+    'node_modules/example/v10.js': 'exports.value = 1;',
+    'node_modules/example/v10.ts': 'export const value = 2;',
+  }, (root, entry) => {
+    const resolver = new FrozenModuleResolver(root, entry)
+
+    assert.deepEqual(resolver.resolveStartup('example', entry),
+      { kind: 'source', file: path.join(root, 'node_modules/example/v10.js') })
+  })
+})

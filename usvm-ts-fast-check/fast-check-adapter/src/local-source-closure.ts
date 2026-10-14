@@ -186,7 +186,15 @@ function inspectSourceClosure(rootPath: string, entryPath: string, mode: 'checke
       const closure = new Set(sources.values())
       const evaluationOrder = moduleEvaluationOrder(dependencies, entry)
       for (const source of closure) {
-        const unsupported = unsupportedModuleInitialization(source, checker, closure, evaluationOrder)
+        let unsupported: ts.Node | undefined
+        try {
+          unsupported = unsupportedModuleInitialization(source, checker, closure, evaluationOrder)
+        } catch (error) {
+          const diagnostic = `Initialization inspection failed in ${path.relative(root, source.fileName)}: ${String(error)}`
+          if (mode === 'checked') return reject('TOP_LEVEL_INITIALIZATION_UNSUPPORTED', diagnostic)
+          initializationIssues.push({ sourceFile: path.relative(root, source.fileName), startOffset: source.getStart(source), diagnostic })
+          continue
+        }
         if (unsupported !== undefined) {
           const sourceFile = path.relative(root, source.fileName)
           const startOffset = unsupported.getStart(source)
@@ -200,9 +208,17 @@ function inspectSourceClosure(rootPath: string, entryPath: string, mode: 'checke
     for (const [file, ranges] of runtimeImportRanges) {
       if (ranges.length === 0) continue
       const source = program.getSourceFile(file)!
-      const invalidImport = program.getSemanticDiagnostics(source).find(diagnostic =>
-        diagnostic.category === ts.DiagnosticCategory.Error && diagnostic.start !== undefined
-        && ranges.some(range => diagnostic.start! >= range.start && diagnostic.start! < range.end))
+      let invalidImport: ts.Diagnostic | undefined
+      try {
+        invalidImport = program.getSemanticDiagnostics(source).find(diagnostic =>
+          diagnostic.category === ts.DiagnosticCategory.Error && diagnostic.start !== undefined
+          && ranges.some(range => diagnostic.start! >= range.start && diagnostic.start! < range.end))
+      } catch (error) {
+        const diagnostic = `Binding inspection failed in ${path.relative(root, file)}: ${String(error)}`
+        if (mode === 'checked') return reject('IMPORTED_CALLEES_UNSUPPORTED', diagnostic)
+        initializationIssues.push({ sourceFile: path.relative(root, file), startOffset: source.getStart(source), diagnostic })
+        continue
+      }
       if (invalidImport) {
         const diagnostic = `${path.relative(root, file)}: ${ts.flattenDiagnosticMessageText(invalidImport.messageText, '\n')}`
         if (mode === 'checked') return reject('IMPORTED_CALLEES_UNSUPPORTED', diagnostic)
@@ -222,7 +238,8 @@ function runtimeModuleSpecifiers(source: ts.SourceFile, options: ts.CompilerOpti
   const emitted = ts.transpileModule(source.text, {
     fileName: source.fileName,
     compilerOptions: { ...options, target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext,
-      noEmit: false, emitDeclarationOnly: false, declaration: false },
+      noEmit: false, emitDeclarationOnly: false, declaration: false, declarationMap: false,
+      composite: false, incremental: false, isolatedDeclarations: false },
   }).outputText
   const javascript = ts.createSourceFile(`${source.fileName}.js`, emitted, ts.ScriptTarget.ES2022, true, ts.ScriptKind.JS)
   const specifiers = new Set<string>()

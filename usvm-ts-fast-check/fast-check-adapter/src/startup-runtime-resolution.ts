@@ -73,9 +73,12 @@ export function resolveStartupRuntime(
       : suffix === '.mjs' ? candidate.slice(0, -4) + '.mts'
         : suffix === '.cjs' ? candidate.slice(0, -4) + '.cts' : undefined
     if (sourceFallback && available(sourceFallback)) return checked(sourceFallback)
-    if (!['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs', '.json'].includes(suffix)) {
+    if (!['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'].includes(suffix)) {
       const candidates = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs']
         .map(extension => candidate + extension).filter(available)
+      const installedRuntime = path.relative(root, candidate).split(path.sep).includes('node_modules')
+      const javascript = candidates.find(file => /\.[cm]?js$/.test(file))
+      if (installedRuntime && javascript) return checked(javascript)
       if (candidates.length > 1) throw new Error(`Ambiguous extensionless runtime module: ${candidate}`)
       if (candidates.length === 1) return checked(candidates[0]!)
     }
@@ -104,6 +107,7 @@ export function resolveStartupRuntime(
   } else {
     // Config aliases take precedence. Package metadata must choose runtime rather than declaration files.
     const host: ts.ModuleResolutionHost = {
+      getCurrentDirectory: () => root,
       fileExists: file => path.basename(file) !== 'package.json' && !/\.d\.[cm]?ts$/.test(file)
         && available(file) && statSync(file).isFile(),
       readFile: () => undefined,
