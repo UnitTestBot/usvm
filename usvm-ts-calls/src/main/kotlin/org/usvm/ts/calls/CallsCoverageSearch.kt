@@ -405,7 +405,7 @@ internal class CompletedCoverageCandidateObserver(
         )
     }
 
-    override fun onStateSuspended(state: TsState) {
+    fun collectStoppedState(state: TsState) {
         if (!emitSuspendedCandidates) return
 
         val started = TimeSource.Monotonic.markNow()

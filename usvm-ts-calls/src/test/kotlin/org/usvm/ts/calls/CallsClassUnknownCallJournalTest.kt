@@ -270,7 +270,7 @@ class CallsClassUnknownCallJournalTest {
                     val prefix = state.clone()
                     prefix.methodResult = TsMethodResult.NoCall
                     prefix.unsupportedReason = "Synthetic reached-prefix observer contract"
-                    observer.onStateSuspended(prefix)
+                    observer.collectStoppedState(prefix)
                 }
                 observer.onStateTerminated(state = state, stateReachable = stateReachable)
             }

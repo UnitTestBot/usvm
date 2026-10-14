@@ -15,6 +15,7 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.TsSolverQueryEvent
+import org.usvm.machine.TsStoppedStatesObserver
 import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallModelSelection
@@ -242,7 +243,8 @@ internal class CurrentTsCallsClassCoverageEngine {
         )
         val limitations = linkedSetOf<String>()
         val unknownCalls = mutableListOf<CallsClassUnknownCallEvent>()
-        val interpreterObserver = object : TsInterpreterObserver {
+        val stoppedObserver = TsStoppedStatesObserver(consumeState = candidateObserver::collectStoppedState)
+        val interpreterObserver = object : TsInterpreterObserver by stoppedObserver {
             override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
                 limitations += "${event.reason.name}: ${event.detail}"
             }
@@ -278,7 +280,6 @@ internal class CurrentTsCallsClassCoverageEngine {
                     stopOnCoverage = CALLS_STOP_ON_COVERAGE,
                     stopOnTargetsReached = false,
                     throwExceptionOnStepFailure = true,
-                    emitRemainingStatesOnStop = true,
                 ),
                 tsOptions = TsOptions(
                     maxArraySize = maxOf(TsOptions().maxArraySize, inputCapacity),
@@ -289,13 +290,16 @@ internal class CurrentTsCallsClassCoverageEngine {
                 ),
                 machineObserver = CompositeUMachineObserver(candidateObserver, schedulingObserver),
                 observer = interpreterObserver,
+                machineObserverFactory = stoppedObserver::createMachineObserver,
             ).use { machine ->
-                machine.analyzeWithMetadata(
+                val result = machine.analyzeWithMetadata(
                     methods = contexts.map(CallsCoverageCandidateContext::method),
                     configureInitialState = { method, state ->
                         byMethod.getValue(method).symbolicInputs.initialize(state)
                     },
                 )
+                stoppedObserver.collectRemainingStates()
+                result
             }
         }
         candidateObserver.finishTiming()
