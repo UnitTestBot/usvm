@@ -292,6 +292,45 @@ class TsGapModelsSourceTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `own slot deletion revokes dense reduction and slice models`() {
+        discoverProperties<TsTestValue.TsBoolean>(
+            method = method("splitReverseKeepsDenseValues"),
+            { result -> result.value },
+            invariants = arrayOf({ result -> result.value }),
+        )
+
+        for (name in listOf("reduceAfterDenseSlotDeletion", "sliceAfterDenseSlotDeletion")) {
+            val events = mutableListOf<TsUnknownCallEvent>()
+            val limitations = mutableListOf<TsRuntimeFeatureLimitationEvent>()
+            val observer = object : TsInterpreterObserver {
+                override fun onUnknownCall(event: TsUnknownCallEvent) {
+                    events += event
+                }
+
+                override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
+                    limitations += event
+                }
+            }
+
+            val analysis = TsMachine(scene = scene, options = options, tsOptions = tsOptions, observer = observer)
+                .use { machine -> machine.analyzeWithOutcome(listOf(method(name))) }
+            val residualMethod = if (name == "reduceAfterDenseSlotDeletion") "reduce" else "slice"
+            val residual = events.any { event ->
+                event.callee.name == residualMethod && event.outcome == TsUnknownCallOutcome.PATH_STOPPED
+            }
+            val reversed = events.any { event ->
+                event.callee.name == "reverse" && event.decision is TsUnknownCallDecision.ModelApplied
+            }
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason, name)
+            assertTrue(analysis.states.isEmpty(), name)
+            assertTrue(reversed, "$name: $events")
+            assertTrue(residual, "$name: $events")
+            assertTrue(limitations.isEmpty(), "$name: $limitations")
+        }
+    }
+
+    @Test
     fun `generated model witnesses replay in JavaScript`() {
         val methodNames = listOf(
             "splitEdges", "reduceAliases", "reduceEmptyError", "ignoredArguments", "composedMutations",

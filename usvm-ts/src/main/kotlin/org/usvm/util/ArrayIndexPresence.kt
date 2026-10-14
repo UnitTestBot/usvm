@@ -34,6 +34,14 @@ internal fun TsState.writtenArrayIndexPresence(array: UHeapRef, index: UExpr<TsS
 }
 
 internal fun TsState.deleteKnownArrayIndex(array: UHeapRef, index: UExpr<TsSizeSort>) = with(ctx) {
+    // Deletion can create a hole without changing length or payload storage.
+    if (array is UConcreteHeapRef) {
+        denseInputArrays.remove(array)
+    } else {
+        // A symbolic receiver can alias any recorded dense array.
+        denseInputArrays.clear()
+    }
+
     val initialized = initializedArrayIndices[array].orEmpty()
     initializedArrayIndices += array to initialized.mapValues { (writtenIndex, present) ->
         mkAnd(present, mkNot(mkEq(index, writtenIndex)))
