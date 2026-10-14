@@ -65,6 +65,7 @@ class PropertyDomainTest {
 
         assertFalse(invalidNumber in IntegerDomain())
         assertFalse(invalidNumber in NumberDomain())
+        assertFalse(malformedFiniteNumber in IntegerDomain())
         assertFalse(malformedFiniteNumber in NumberDomain())
         malformedSpecialNumbers.forEach { number ->
             assertFalse(number in NumberDomain())

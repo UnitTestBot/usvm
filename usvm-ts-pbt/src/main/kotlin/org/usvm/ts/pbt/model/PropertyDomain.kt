@@ -104,6 +104,8 @@ operator fun PropertyDomain.contains(value: JsConcreteValue): Boolean = when (th
 }
 
 private fun JsConcreteValue.Number.isIntegerIn(domain: IntegerDomain): Boolean {
+    if (!number.hasValidEncoding()) return false
+
     val value = validDoubleOrNull() ?: return false
 
     // fc.integer can generate positive zero but never the distinct binary64 value negative zero.

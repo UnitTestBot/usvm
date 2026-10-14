@@ -116,6 +116,81 @@ class IstanbulCoverageReportTest {
     }
 
     @Test
+    fun `numeric source path is rejected instead of silently omitting coverage`() {
+        val report = createTempFile(suffix = ".json")
+        try {
+            val original = Files.readString(goldenReport())
+            val malformed = original.replace(
+                oldValue = "\"path\": \"/workspace/src/math.ts\"",
+                newValue = "\"path\": 123",
+            )
+            assertTrue(malformed != original)
+            report.writeText(malformed)
+
+            val error = assertFailsWith<CoverageArtifactException> {
+                decodeIstanbulCoverageReport(
+                    reportPath = report,
+                    context = context(),
+                )
+            }
+
+            assertEquals("coverage.report.invalid", error.diagnostic.code)
+            assertEquals("coverage[/workspace/src/math.ts].path", error.diagnostic.path)
+        } finally {
+            report.deleteIfExists()
+        }
+    }
+
+    @Test
+    fun `boolean branch type is rejected instead of being converted to text`() {
+        val report = createTempFile(suffix = ".json")
+        try {
+            val original = Files.readString(goldenReport())
+            val malformed = original.replace(
+                oldValue = "\"type\": \"if\"",
+                newValue = "\"type\": false",
+            )
+            assertTrue(malformed != original)
+            report.writeText(malformed)
+
+            val error = assertFailsWith<CoverageArtifactException> {
+                decodeIstanbulCoverageReport(
+                    reportPath = report,
+                    context = context(),
+                )
+            }
+
+            assertEquals("coverage.report.invalid", error.diagnostic.code)
+            assertEquals("coverage[/workspace/src/math.ts].branchMap[0].type", error.diagnostic.path)
+        } finally {
+            report.deleteIfExists()
+        }
+    }
+
+    @Test
+    fun `null source path falls back to the report key`() {
+        val report = createTempFile(suffix = ".json")
+        try {
+            val original = Files.readString(goldenReport())
+            val withNullPath = original.replace(
+                oldValue = "\"path\": \"/workspace/src/math.ts\"",
+                newValue = "\"path\": null",
+            )
+            assertTrue(withNullPath != original)
+            report.writeText(withNullPath)
+
+            val artifact = decodeIstanbulCoverageReport(
+                reportPath = report,
+                context = context(),
+            )
+
+            assertEquals("/workspace/src/math.ts", artifact.files.single().path)
+        } finally {
+            report.deleteIfExists()
+        }
+    }
+
+    @Test
     fun `report larger than the decoder limit is rejected before parsing`() {
         val oversizedReport = createTempFile(suffix = ".json")
         try {

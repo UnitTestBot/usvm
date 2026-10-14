@@ -119,11 +119,12 @@ private fun validateProperty(
                 path = path,
             )
         }
-        if (input.generatorId != null && !isCanonicalPropertyId(input.generatorId)) {
+        val generatorIdIsInvalid = input.generatorId != null && !isCanonicalPropertyId(input.generatorId)
+        if (generatorIdIsInvalid) {
             diagnostics += diagnostic(
-                PbtDiagnosticCode.PROPERTY_GENERATOR_INVALID,
-                "Invalid generator ID",
-                "$path.generatorId",
+                code = PbtDiagnosticCode.PROPERTY_GENERATOR_INVALID,
+                message = "Invalid generator ID",
+                path = "$path.generatorId",
             )
         }
         validateDomain(input.domain, "$path.domain", diagnostics)
@@ -144,11 +145,12 @@ private fun validateAssertions(
     val seen = mutableSetOf<String>()
     assertions.forEachIndexed { index, assertion ->
         val path = "assertions[$index]"
-        if (!isCanonicalPropertyId(assertion.id) || !seen.add(assertion.id)) {
+        val assertionIdIsInvalidOrRepeated = !isCanonicalPropertyId(assertion.id) || !seen.add(assertion.id)
+        if (assertionIdIsInvalidOrRepeated) {
             diagnostics += diagnostic(
-                PbtDiagnosticCode.PROPERTY_ASSERTION_INVALID,
-                "Assertion ID is invalid or repeated",
-                "$path.id",
+                code = PbtDiagnosticCode.PROPERTY_ASSERTION_INVALID,
+                message = "Assertion ID is invalid or repeated",
+                path = "$path.id",
             )
         }
 
@@ -157,11 +159,12 @@ private fun validateAssertions(
         val operands = mutableSetOf<String>()
         assertion.operands.forEachIndexed { operandIndex, operand ->
             val operandPath = "$path.operands[$operandIndex]"
-            if (!isCanonicalPropertyId(operand.id) || !operands.add(operand.id)) {
+            val operandIdIsInvalidOrRepeated = !isCanonicalPropertyId(operand.id) || !operands.add(operand.id)
+            if (operandIdIsInvalidOrRepeated) {
                 diagnostics += diagnostic(
-                    PbtDiagnosticCode.PROPERTY_ASSERTION_INVALID,
-                    "Operand ID is invalid or repeated",
-                    "$operandPath.id",
+                    code = PbtDiagnosticCode.PROPERTY_ASSERTION_INVALID,
+                    message = "Operand ID is invalid or repeated",
+                    path = "$operandPath.id",
                 )
             }
             validateSourcePoint(operand.source, "$operandPath.source", diagnostics)
@@ -174,8 +177,13 @@ private fun validateSourcePoint(
     path: String,
     diagnostics: MutableList<ValidationDiagnostic>,
 ) {
-    if (!isProjectRelativePosixPath(point.module) || point.line < 1 || point.column < 1) {
-        diagnostics += diagnostic(PbtDiagnosticCode.PROPERTY_SOURCE_INVALID, "Invalid source point", path)
+    val sourcePointIsInvalid = !isProjectRelativePosixPath(point.module) || point.line < 1 || point.column < 1
+    if (sourcePointIsInvalid) {
+        diagnostics += diagnostic(
+            code = PbtDiagnosticCode.PROPERTY_SOURCE_INVALID,
+            message = "Invalid source point",
+            path = path,
+        )
     }
 }
 
@@ -186,15 +194,16 @@ private fun validateGenerator(
 ) {
     val array = inputs.getOrNull(generator.arrayInputIndex)?.domain as? ArrayDomain
     val index = inputs.getOrNull(generator.indexInputIndex)?.domain as? IntegerDomain
-    val valid = generator.kind == "array-index" && isCanonicalPropertyId(generator.id) &&
-        inputs.size == 2 && generator.arrayInputIndex == 0 && generator.indexInputIndex == 1 &&
-        array != null && array.minLength >= 1 && array.maxLength <= MAX_DIRECT_ARRAY_LENGTH &&
-        index != null && index.min == 0 && index.max == array.maxLength - 1
-    if (!valid) {
+    val hasExpectedInputPositions = inputs.size == 2 && generator.arrayInputIndex == 0 && generator.indexInputIndex == 1
+    val hasSupportedArray = array != null && array.minLength >= 1 && array.maxLength <= MAX_DIRECT_ARRAY_LENGTH
+    val hasMatchingIndex = array != null && index != null && index.min == 0 && index.max == array.maxLength - 1
+    val generatorIsValid = generator.kind == "array-index" && isCanonicalPropertyId(generator.id) &&
+        hasExpectedInputPositions && hasSupportedArray && hasMatchingIndex
+    if (!generatorIsValid) {
         diagnostics += diagnostic(
-            PbtDiagnosticCode.PROPERTY_GENERATOR_INVALID,
-            "Array-index construction requires a nonempty bounded array followed by its valid index range",
-            "generator",
+            code = PbtDiagnosticCode.PROPERTY_GENERATOR_INVALID,
+            message = "Array-index construction requires a nonempty bounded array followed by its valid index range",
+            path = "generator",
         )
     }
 }
@@ -203,13 +212,13 @@ private fun validateSourceIdentity(
     identity: PropertySourceIdentity,
     diagnostics: MutableList<ValidationDiagnostic>,
 ) {
-    if (!identity.sourceSha256.matches(SHA256_REGEX) ||
+    val sourceIdentityIsInvalid = !identity.sourceSha256.matches(SHA256_REGEX) ||
         !identity.buildSha256.matches(SHA256_REGEX) || identity.buildScope.isBlank()
-    ) {
+    if (sourceIdentityIsInvalid) {
         diagnostics += diagnostic(
-            PbtDiagnosticCode.PROPERTY_SOURCE_INVALID,
-            "Expected lowercase SHA-256 hashes",
-            "sourceIdentity",
+            code = PbtDiagnosticCode.PROPERTY_SOURCE_INVALID,
+            message = "Expected lowercase SHA-256 hashes",
+            path = "sourceIdentity",
         )
     }
 }
@@ -481,7 +490,7 @@ private fun isJavaScriptIdentifierPart(codePoint: Int): Boolean =
     isJavaScriptIdentifierStart(codePoint) ||
         codePoint == ZERO_WIDTH_NON_JOINER_CODE_POINT ||
         codePoint == ZERO_WIDTH_JOINER_CODE_POINT ||
-        Character.isUnicodeIdentifierPart(codePoint)
+        (Character.isUnicodeIdentifierPart(codePoint) && !Character.isIdentifierIgnorable(codePoint))
 
 private fun MutableList<ValidationDiagnostic>.toResult(): PropertyValidationResult {
     val orderedDiagnostics = sortedWith(compareBy(ValidationDiagnostic::path, ValidationDiagnostic::code))
