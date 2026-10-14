@@ -47,8 +47,18 @@ class TsStringReplaceAllEtsIrModelTest {
     }
 
     @Test
+    fun `replaceAll evaluates ignored extra argument and applies the model`() {
+        val (values, events) = analyze(methodName = "ignoredExtraArgumentIsEvaluated")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(values.single()).value)
+        assertTrue(events.any { (it.decision as? TsUnknownCallDecision.ModelApplied)?.modelId == MODEL_ID })
+        assertTrue(events.all { it.outcome == TsUnknownCallOutcome.MODEL_APPLIED })
+    }
+
+    @Test
     fun `non string arguments remain explicit residual calls`() {
         val cases = listOf(
+            "missingReplacementIsResidual",
             "numericSearchIsResidual",
             "numericReplacementIsResidual",
             "callbackReplacementIsResidual",

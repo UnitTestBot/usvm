@@ -24,6 +24,18 @@ export class StringReplaceAllEtsIr {
         return "aa".replaceAll("a", "aa");
     }
 
+    ignoredExtraArgumentIsEvaluated(): boolean {
+        let evaluations = 0;
+
+        const result = "aab".replaceAll("a", "X", (evaluations = evaluations + 1));
+
+        return result === "XXb" && evaluations === 1;
+    }
+
+    missingReplacementIsResidual(): string {
+        return "abc".replaceAll("a");
+    }
+
     numericSearchIsResidual(): string {
         return "123".replaceAll(1, "x");
     }

@@ -156,7 +156,7 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     }
 
     private val replaceAllAdapter = TsEtsIrUnknownCallModelInputAdapter { _, call ->
-        if (call.arguments.size == 2) call.resolvedInstanceInputs(maxArgumentCount = 2) else null
+        if (call.arguments.size >= 2) call.resolvedInstanceInputs(maxArgumentCount = 2) else null
     }
 
     private val replaceAllDomain = TsEtsIrUnknownCallModelDomainGuard { state, _, inputs ->
