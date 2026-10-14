@@ -47,9 +47,11 @@ internal fun loadCallsSourceProject(sourceRoot: Path, source: Path): CallsSource
         )
     }
 
+    val realSourceRoot = sourceRoot.toRealPath()
     val sources = closure.files.associateWith { relative ->
         val path = sourceRoot.resolve(relative).normalize()
-        require(path.startsWith(sourceRoot) && path.toRealPath().startsWith(sourceRoot.toRealPath())) {
+        val isWithinFrozenRoot = path.startsWith(sourceRoot) && path.toRealPath().startsWith(realSourceRoot)
+        require(isWithinFrozenRoot) {
             "Dependency source escapes its frozen root: $relative"
         }
         Files.readString(path)
