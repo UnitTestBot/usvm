@@ -23,6 +23,7 @@ import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.TsConstructorInputGuard
+import org.usvm.machine.types.TsInitialStateInputGuard
 import org.usvm.machine.types.TsTypeSystem
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
@@ -59,6 +60,7 @@ data class TsAnalysisResult(
     val stopReason: TsAnalysisStopReason,
     /** Reasons for satisfiable paths excluded by an explicit engine model bound. */
     val unsupportedPaths: List<String>,
+    val infeasibleEntryPoints: List<String> = emptyList(),
 )
 
 /** Terminal states and failure metadata for one TypeScript analysis. */
@@ -69,6 +71,8 @@ data class TsMachineAnalysisResult(
     val unsupportedCall: Boolean,
     val engineFailed: Boolean,
     val unsupportedPaths: List<String>,
+    /** Entry signatures whose initial constraints were UNSAT, distinct from unsupported inputs. */
+    val infeasibleEntryPoints: List<String> = emptyList(),
 ) {
     /** Includes execution bounds and unsupported entry inputs retained in [unsupportedPaths]. */
     val runtimeLimited: Boolean get() = unsupportedPaths.isNotEmpty()
@@ -165,6 +169,7 @@ class TsMachine(
             states = result.states,
             stopReason = result.stopReason,
             unsupportedPaths = result.unsupportedPaths,
+            infeasibleEntryPoints = result.infeasibleEntryPoints,
         )
     }
 
@@ -184,10 +189,11 @@ class TsMachine(
         interpreter.resetStepFailure()
         failureTrackingUnknownCallObserver.reset()
 
-        val (initialStates, unsupportedPaths) = createInitialStates(methods, targets, configureInitialState)
+        val (initialStates, unsupportedPaths, infeasibleEntryPoints) =
+            createInitialStates(methods, targets, configureInitialState)
 
         if (initialStates.isEmpty()) {
-            return emptyAnalysisResult(unsupportedPaths)
+            return emptyAnalysisResult(unsupportedPaths, infeasibleEntryPoints)
         }
 
         val methodsToTrackCoverage =
@@ -312,6 +318,7 @@ class TsMachine(
             unsupportedCall = failureTrackingUnknownCallObserver.pathStopped,
             engineFailed = interpreter.stepFailed,
             unsupportedPaths = unsupportedPaths.toList(),
+            infeasibleEntryPoints = infeasibleEntryPoints,
         )
     }
 
@@ -353,26 +360,33 @@ class TsMachine(
         return if (targets == null) coveredMethods + entryMethods else coveredMethods
     }
 
-    private fun emptyAnalysisResult(unsupportedPaths: Set<String>) = TsMachineAnalysisResult(
+    private fun emptyAnalysisResult(
+        unsupportedPaths: Set<String>,
+        infeasibleEntryPoints: List<String>,
+    ) = TsMachineAnalysisResult(
         states = emptyList(),
         stopReason = TsAnalysisStopReason.EXHAUSTED,
         timedOut = false,
         unsupportedCall = false,
         engineFailed = false,
         unsupportedPaths = unsupportedPaths.toList(),
+        infeasibleEntryPoints = infeasibleEntryPoints,
     )
 
     private fun createInitialStates(
         methods: List<EtsMethod>,
         targets: List<TsTarget>,
         configureInitialState: (EtsMethod, TsState) -> Unit,
-    ): Pair<Map<EtsMethod, TsState>, MutableSet<String>> {
+    ): Triple<Map<EtsMethod, TsState>, MutableSet<String>, List<String>> {
         val initialStates = mutableMapOf<EtsMethod, TsState>()
         val unsupportedPaths = mutableSetOf<String>()
+        val infeasibleEntryPoints = mutableListOf<String>()
         val constructorInputs = TsConstructorInputGuard()
+        val initialStateInputs = TsInitialStateInputGuard()
 
         methods.forEach { method ->
             val unsupportedReason = constructorInputs.unsupportedReason(method)
+                ?: initialStateInputs.unsupportedReason(method)
             if (unsupportedReason != null) {
                 unsupportedPaths += unsupportedReason
             } else {
@@ -381,11 +395,13 @@ class TsMachine(
                 }
                 if (initialState != null) {
                     initialStates[method] = initialState
+                } else {
+                    infeasibleEntryPoints += method.humanReadableSignature
                 }
             }
         }
 
-        return initialStates to unsupportedPaths
+        return Triple(initialStates, unsupportedPaths, infeasibleEntryPoints)
     }
 
     override fun close() {
