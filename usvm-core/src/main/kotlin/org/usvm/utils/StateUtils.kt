@@ -35,6 +35,7 @@ internal fun <Type, State : UState<Type, *, *, *, *, State>> State.checkSat(cond
         val trueModels = conditionalState.models.filter { it.eval(condition).isTrue }
 
         if (trueModels.isNotEmpty()) {
+            conditionalState.models = trueModels
             return conditionalState
         }
     }
@@ -44,7 +45,7 @@ internal fun <Type, State : UState<Type, *, *, *, *, State>> State.checkSat(cond
 
     return when (solverResult) {
         is USatResult -> {
-            conditionalState.models += solverResult.model
+            conditionalState.models = listOf(solverResult.model)
 
             // If state with the added condition is satisfiable, it means that the original state is satisfiable too,
             // and we can save a model from the solver

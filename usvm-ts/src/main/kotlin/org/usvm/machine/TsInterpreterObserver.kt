@@ -11,6 +11,7 @@ import org.usvm.UBoolExpr
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.expr.TsSimpleValueResolver
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.state.TsState
 import org.usvm.statistics.UInterpreterObserver
 
 @Suppress("unused")
@@ -30,6 +31,14 @@ interface TsInterpreterObserver : UInterpreterObserver {
      * A model decision is reported once after all its satisfiable successor callbacks complete.
      */
     fun onUnknownCall(event: TsUnknownCallEvent) {
+        // default empty implementation
+    }
+
+    /**
+     * Reports a feasible prefix before STOP_PATH prunes an unknown call or a semantic-model residual.
+     * The state is live; observers retaining it must take their own snapshot before this callback returns.
+     */
+    fun onPathStopped(state: TsState, reason: String) {
         // default empty implementation
     }
 

@@ -273,4 +273,10 @@ data class UMachineOptions(
      * Disable this for budget/exhaustion experiments that must retain those states between turns.
      */
     val removeCoveredEntryPoints: Boolean = true,
+    /**
+     * Emit interrupted inputs through the nonterminal observer callback. The core flushes queued states
+     * after a normal stop; frontends can also retain feasible prefixes at unsupported execution boundaries.
+     * Draining does not execute additional interpreter steps or check state satisfiability.
+     */
+    val emitRemainingStatesOnStop: Boolean = false,
 )
