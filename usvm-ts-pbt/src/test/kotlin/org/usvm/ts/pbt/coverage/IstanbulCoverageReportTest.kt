@@ -144,6 +144,51 @@ class IstanbulCoverageReportTest {
     }
 
     @Test
+    fun `invalid source path reports its field location`() {
+        val report = createTempFile(suffix = ".json")
+        val invalidPath = "/workspace/src/math.ts\\u0000"
+
+        try {
+            report.writeText("""{"/workspace/src/math.ts":{"path":"$invalidPath"}}""")
+
+            val error = assertFailsWith<CoverageArtifactException> {
+                decodeIstanbulCoverageReport(
+                    reportPath = report,
+                    context = context(),
+                )
+            }
+
+            assertEquals("coverage.report.invalid", error.diagnostic.code)
+            assertEquals("coverage[/workspace/src/math.ts].path", error.diagnostic.path)
+        } finally {
+            report.deleteIfExists()
+        }
+    }
+
+    @Test
+    fun `invalid report key reports its entry location when path is absent`() {
+        val report = createTempFile(suffix = ".json")
+        val invalidReportKey = "/workspace/src/math.ts\\u0000"
+        val decodedReportKey = "/workspace/src/math.ts" + '\u0000'
+
+        try {
+            report.writeText("""{"$invalidReportKey":{}}""")
+
+            val error = assertFailsWith<CoverageArtifactException> {
+                decodeIstanbulCoverageReport(
+                    reportPath = report,
+                    context = context(),
+                )
+            }
+
+            assertEquals("coverage.report.invalid", error.diagnostic.code)
+            assertEquals("coverage[$decodedReportKey]", error.diagnostic.path)
+        } finally {
+            report.deleteIfExists()
+        }
+    }
+
+    @Test
     fun `boolean branch type is rejected instead of being converted to text`() {
         val report = createTempFile(suffix = ".json")
         try {
