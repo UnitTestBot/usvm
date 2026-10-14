@@ -4,6 +4,7 @@ import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -139,7 +140,7 @@ internal class UsvmCandidateInputResolver(private val objectShapes: PlainObjectI
             }
         }
 
-        val nestedType = (etsType as org.jacodb.ets.model.EtsUnionType).types.first { type ->
+        val nestedType = (etsType as EtsUnionType).types.first { type ->
             UsvmProjectionCapabilityResolver(state.ctx.scene).domainCompatibilityForProjector(domain.value, type)
         }
 
