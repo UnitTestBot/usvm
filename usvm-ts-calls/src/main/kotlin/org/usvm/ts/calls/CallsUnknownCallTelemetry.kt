@@ -138,7 +138,7 @@ internal fun CallsExperimentCellIdentity.unknownCallRecord(
     )
 }
 
-private fun EtsStmt.toCallsUnknownCallSite(): CallsUnknownCallSite {
+internal fun EtsStmt.toCallsUnknownCallSite(): CallsUnknownCallSite {
     val stmtLocation = location
     val origin = stmtLocation.origin
     val containingMethod = stmtLocation.method.signature
@@ -165,7 +165,7 @@ internal fun callsUnknownCallEventSink(
     }
 }
 
-private fun EtsMethodSignature.toCallsUnknownCallCallee(): CallsUnknownCallCallee {
+internal fun EtsMethodSignature.toCallsUnknownCallCallee(): CallsUnknownCallCallee {
     val parameterTypes = parameters.map { parameter -> parameter.type.toString() }
     val namespace = enclosingClass.namespace?.qualifiedName()
     val className = listOfNotNull(namespace, enclosingClass.name).joinToString(separator = "::")

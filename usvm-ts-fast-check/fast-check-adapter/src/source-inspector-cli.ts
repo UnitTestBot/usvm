@@ -3,6 +3,7 @@ import ts from 'typescript'
 import { instrumentSourceReplay } from './source-replay.js'
 import { inspectSourceCaptures } from './source-captures.js'
 import { inspectLocalSourceClosure } from './local-source-closure.js'
+import { instrumentClassCoverage } from './class-coverage-source.js'
 
 const [operation, sourcePath, ...arguments_] = process.argv.slice(2)
 if (sourcePath === undefined) throw new Error('Expected a TypeScript source path')
@@ -20,7 +21,11 @@ if (operation === 'inspect-local-closure') {
   }).diagnostics?.filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error) ?? []
   if (diagnostics.length > 0) throw new Error(ts.flattenDiagnosticMessageText(diagnostics[0]?.messageText ?? '', '\n'))
 
-  if (operation === 'inspect-captures') {
+  if (operation === 'instrument-class-coverage') {
+    const className = arguments_[0]
+    if (className === undefined) throw new Error('Expected a target class name')
+    process.stdout.write(JSON.stringify(instrumentClassCoverage(sourceFile, className)))
+  } else if (operation === 'inspect-captures') {
     const [exportName, namesText] = arguments_
     if (exportName === undefined || namesText === undefined) throw new Error('Expected export and capture names')
     const names: unknown = JSON.parse(namesText)

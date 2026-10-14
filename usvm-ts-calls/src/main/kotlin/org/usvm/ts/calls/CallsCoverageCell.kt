@@ -124,8 +124,8 @@ internal fun runCoverageUniverse(
     val universe = probeFunction(source)
     source.verifyUnchanged()
     val record = CallsCoverageUniverseRecord(identity = identity, universe = universe)
-    atomicWrite(output.resolve("universe.json"), encode(record))
-    System.out.appendLine(encode(record))
+    writeCallsArtifactAtomically(output.resolve("universe.json"), encodeCallsArtifact(record))
+    System.out.appendLine(encodeCallsArtifact(record))
 }
 
 internal fun runCoverageCell(
@@ -147,12 +147,12 @@ internal fun runCoverageCell(
 
     Files.createDirectories(output)
     val identityPath = output.resolve("identity.json")
-    val expectedIdentity = encode(identity)
+    val expectedIdentity = encodeCallsArtifact(identity)
     if (Files.exists(identityPath)) {
         require(Files.readString(identityPath).trim() == expectedIdentity) { "Cell identity changed" }
     } else {
         require(Files.list(output).use { entries -> entries.findAny().isEmpty }) { "Output directory is not empty" }
-        atomicWrite(identityPath, expectedIdentity)
+        writeCallsArtifactAtomically(identityPath, expectedIdentity)
     }
     require(!Files.exists(output.resolve("result.json"))) { "Cell already completed" }
 
@@ -182,8 +182,8 @@ internal fun runCoverageCell(
             budgetMillis = identity.budgetMillis,
         ),
     )
-    atomicWrite(output.resolve("result.json"), encode(result))
-    System.out.appendLine(encode(result))
+    writeCallsArtifactAtomically(output.resolve("result.json"), encodeCallsArtifact(result))
+    System.out.appendLine(encodeCallsArtifact(result))
 }
 
 private data class CoverageCellRequest(
@@ -254,7 +254,7 @@ private fun parseCoverageCellRequest(
         budgetMillis = budgetMillis,
         solverLimitMillis = solverLimitMillis,
         candidateCap = candidateCap,
-        coverageUniverseSha256 = coverageUniverseSha256(universeBytes),
+        coverageUniverseSha256 = callsArtifactSha256(universeBytes),
     )
 
     return CoverageCellRequest(source = source, identity = identity, output = output, universe = universe)
@@ -286,13 +286,13 @@ private fun loadOrRunCoverageSearch(
             solverQueryLimit = identity.solverLimitMillis.milliseconds,
             solverType = SolverType.valueOf(identity.solver),
             candidateCap = identity.candidateCap,
-            onCandidate = { candidate -> appendDurably(candidatePath, encode(candidate)) },
+            onCandidate = { candidate -> appendCallsJournalDurably(candidatePath, encodeCallsArtifact(candidate)) },
         )
         val result = searchFunction(request)
         source.verifyUnchanged()
-        val persistedCandidates = readLines<CallsCoverageCandidate>(candidatePath)
+        val persistedCandidates = readCallsJournal<CallsCoverageCandidate>(candidatePath)
         require(result.candidates == persistedCandidates) { "Persisted candidate journal differs from search result" }
-        atomicWrite(searchPath, encode(result))
+        writeCallsArtifactAtomically(searchPath, encodeCallsArtifact(result))
         result
     }
 }
@@ -303,7 +303,7 @@ private fun replayCoverageCandidates(
     output: Path,
 ): List<CallsCoverageReplayEvent> {
     val replayPath = output.resolve("replays.jsonl")
-    val events = readLines<CallsCoverageReplayEvent>(replayPath).toMutableList()
+    val events = readCallsJournal<CallsCoverageReplayEvent>(replayPath).toMutableList()
     require(events.map(CallsCoverageReplayEvent::index) == events.indices.toList()) {
         "Replay journal has missing or duplicate indices"
     }
@@ -325,7 +325,7 @@ private fun replayCoverageCandidates(
                     replay = replay.getOrNull(),
                     error = replay.exceptionOrNull()?.let { error -> error.message ?: error::class.java.name },
                 )
-                appendDurably(replayPath, encode(event))
+                appendCallsJournalDurably(replayPath, encodeCallsArtifact(event))
                 events += event
             }
         }
@@ -379,7 +379,7 @@ private fun validateCoverageManifestBuild(
     }
 }
 
-private inline fun <reified T> readLines(path: Path): List<T> = if (Files.exists(path)) {
+internal inline fun <reified T> readCallsJournal(path: Path): List<T> = if (Files.exists(path)) {
     Files.readAllLines(path).filter(String::isNotBlank).map { line ->
         CallsExperimentJson.json.decodeFromString<T>(line)
     }
@@ -387,9 +387,10 @@ private inline fun <reified T> readLines(path: Path): List<T> = if (Files.exists
     emptyList()
 }
 
-private inline fun <reified T> encode(value: T): String = CallsExperimentJson.json.encodeToUtf8SafeString(value)
+internal inline fun <reified T> encodeCallsArtifact(value: T): String =
+    CallsExperimentJson.json.encodeToUtf8SafeString(value)
 
-private fun appendDurably(path: Path, line: String) {
+internal fun appendCallsJournalDurably(path: Path, line: String) {
     val bytes = ByteBuffer.wrap((line + "\n").toByteArray(Charsets.UTF_8))
     FileChannel.open(
         path,
@@ -402,7 +403,7 @@ private fun appendDurably(path: Path, line: String) {
     }
 }
 
-private fun atomicWrite(path: Path, contents: String) {
+internal fun writeCallsArtifactAtomically(path: Path, contents: String) {
     val temporary = path.resolveSibling("${path.fileName}.tmp")
     Files.writeString(temporary, contents + "\n")
     FileChannel.open(temporary, StandardOpenOption.READ).use { it.force(true) }
@@ -420,7 +421,7 @@ private val COVERAGE_CHECKPOINT_MILLIS = listOf(
     THIRD_CHECKPOINT_MILLIS,
 )
 
-private fun coverageUniverseSha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(bytes)
+internal fun callsArtifactSha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(bytes)
     .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and UNSIGNED_BYTE_MASK) }
 
 private const val COVERAGE_UNIVERSE_ARGUMENT_COUNT = 4
