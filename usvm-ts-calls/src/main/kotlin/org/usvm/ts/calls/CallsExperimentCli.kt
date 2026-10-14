@@ -11,6 +11,7 @@ fun main(args: Array<String>) {
     when (args.first()) {
         "class-catalog" -> runClassCatalog(args.drop(1))
         "class-start-smoke" -> runClassStartSmoke(args.drop(1))
+        "class-symbolic-probe" -> runClassSymbolicProbe(args.drop(1))
         "class-prepare" -> runClassPrepare(args.drop(1))
         "class-preflight" -> runClassPreflight(args.drop(1))
         "class-cell" -> runClassCell(args.drop(1))
@@ -106,6 +107,7 @@ private fun usage(): String = """
     Usage:
       calls class-catalog
       calls class-start-smoke <startup-manifest.json> <class-id> <output-directory>
+      calls class-symbolic-probe <startup-manifest.json> <class-id> <output-directory>
       calls class-prepare <class-manifest.json> <prepared-directory>
       calls class-preflight <prepared-directory> <class-id> <preflight-ms>
       calls class-cell <prepared-directory> <class-id> <profile> <seed> <budget-ms> <output-directory>

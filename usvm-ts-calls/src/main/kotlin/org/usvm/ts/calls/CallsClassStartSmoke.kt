@@ -1,6 +1,7 @@
 package org.usvm.ts.calls
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallExpr
 import org.jacodb.ets.model.EtsCallStmt
@@ -16,19 +17,26 @@ import org.usvm.CoverageZone
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
+import org.usvm.UPathSelector
+import org.usvm.machine.TsEntryPointTimeQuantumEvent
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.TsSolverQueryEvent
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallModelSelection
 import org.usvm.machine.expr.TsSimpleValueResolver
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.lastStmt
 import org.usvm.statistics.UMachineObserver
+import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import java.util.IdentityHashMap
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
@@ -81,7 +89,8 @@ internal data class CallsClassStartManifest(
     val expectedClassCount: Int = 200,
     val budgetMillis: Long = 2_000,
     val solverLimitMillis: Long = 250,
-    val collectedStatesLimit: Int = 10,
+    val collectedStatesLimit: Int? = 10,
+    val timeQuantumMillis: Long = 25,
     val seed: Long = 17,
     val profile: CallsExperimentProfile = CallsExperimentProfile.FROZEN_STOP,
     val classes: List<CallsClassStartCase>,
@@ -91,8 +100,16 @@ internal data class CallsClassStartManifest(
         require(classes.map { it.classId }.distinct().size == classes.size)
         require(classes.map { it.identity }.distinct().size == classes.size)
         require(ledgerSha256.matches(Regex("[0-9a-f]{64}")))
-        require(budgetMillis > 0 && solverLimitMillis in 1..budgetMillis && collectedStatesLimit > 0)
+        require(budgetMillis > 0 && solverLimitMillis in 1..budgetMillis)
+        require(collectedStatesLimit == null || collectedStatesLimit > 0)
+        require(timeQuantumMillis in 1..budgetMillis)
     }
+}
+
+/** Explicit null preserves the disabled cap instead of restoring the default startup cap on decode. */
+internal fun encodeClassStartManifest(manifest: CallsClassStartManifest): String {
+    val json = Json(CallsExperimentJson.json) { explicitNulls = true }
+    return json.encodeToUtf8SafeString(manifest)
 }
 
 @Serializable
@@ -130,6 +147,7 @@ internal data class CallsClassStartResult(
     val diagnostic: String? = null,
     val failureLog: String? = null,
     val inputDriftLog: String? = null,
+    val rawAnalysis: CallsClassRawAnalysis? = null,
 )
 
 /** A source return must be explicit; a synthetic default constructor return cannot prove startup. */
@@ -212,11 +230,15 @@ internal class ClassStartObserver(
     private val sourceText: String,
     private val onFirstOriginalStep: () -> Unit,
     private val unknownCallObserver: (TsUnknownCallEvent) -> Unit = {},
+    private val originalEntryObserver: (EtsStmt) -> Unit = {},
 ) : UMachineObserver<TsState>, TsInterpreterObserver {
     private val initial = java.util.Collections.newSetFromMap(IdentityHashMap<TsState, Boolean>())
     private val seenInitial = java.util.Collections.newSetFromMap(IdentityHashMap<TsState, Boolean>())
     private val pending = IdentityHashMap<TsState, EtsStmt>()
+    private val pendingPaths = IdentityHashMap<TsState, Any>()
+    private val pendingResults = IdentityHashMap<TsState, TsMethodResult>()
     private val entered = java.util.Collections.newSetFromMap(IdentityHashMap<TsState, Boolean>())
+    private val completedAssignments = java.util.Collections.newSetFromMap(IdentityHashMap<TsState, Boolean>())
     private val initialMethods = mutableSetOf<String>()
     var executedSteps: Long = 0
         private set
@@ -242,7 +264,10 @@ internal class ClassStartObserver(
     override fun onStatePeeked(state: TsState) {
         if (state in initial && state.models.isNotEmpty()) seenInitial += state
         entered -= state
+        completedAssignments -= state
         pending[state] = state.lastStmt
+        pendingPaths[state] = state.pathNode
+        pendingResults[state] = state.methodResult
     }
 
     /** Statement callbacks run inside interpreter visits, before expression resolution or fallback. */
@@ -253,6 +278,7 @@ internal class ClassStartObserver(
         if (!original || state.pathConstraints.isFalse || state in entered) return
         entered += state
         originalStatementsEntered++
+        originalEntryObserver(stmt)
         if (firstOriginalStep == null) {
             firstOriginalStep = stmt.toCallsUnknownCallSite()
             onFirstOriginalStep()
@@ -273,6 +299,14 @@ internal class ClassStartObserver(
         scope: TsStepScope,
     ) {
         onStatementEntered(stmt = scope.calcOnState { lastStmt }, scope = scope)
+    }
+
+    override fun onAssignmentCompleted(
+        simpleValueResolver: TsSimpleValueResolver,
+        stmt: EtsAssignStmt,
+        scope: TsStepScope,
+    ) {
+        completedAssignments += scope.calcOnState { this }
     }
 
     override fun onCallStatement(simpleValueResolver: TsSimpleValueResolver, stmt: EtsCallStmt, scope: TsStepScope) {
@@ -302,11 +336,16 @@ internal class ClassStartObserver(
     override fun onState(parent: TsState, forks: Sequence<TsState>) {
         executedSteps++
         val stmt = pending.remove(parent) ?: return
+        val previousPath = pendingPaths.remove(parent)
+        val previousResult = pendingResults.remove(parent)
         val statementEntered = entered.remove(parent)
+        val assignmentCompleted = completedAssignments.remove(parent)
         if (stmt.location.method.signature.enclosingClass != target) return
         targetSteps++
-        val parentSucceeded = !parent.pathConstraints.isFalse && parent.unsupportedReason == null
-        val forkSucceeded = forks.any { !it.pathConstraints.isFalse && it.unsupportedReason == null }
+        val parentSucceeded = hasSuccessfulTransition(parent, previousPath, previousResult, assignmentCompleted)
+        val forkSucceeded = forks.any {
+            hasSuccessfulTransition(it, previousPath, previousResult, assignmentCompleted = false)
+        }
         val feasibleTransition = parentSucceeded || forkSucceeded
         val original =
             isOriginalClassStartupStep(stmt = stmt, target = target, sourceFile = sourceFile, sourceText = sourceText)
@@ -314,17 +353,36 @@ internal class ClassStartObserver(
         if (!feasibleTransition || !original || !statementEntered) return
         originalSteps++
     }
+
+    private fun hasSuccessfulTransition(
+        state: TsState,
+        previousPath: Any?,
+        previousResult: TsMethodResult?,
+        assignmentCompleted: Boolean,
+    ): Boolean {
+        val advanced = state.pathNode !== previousPath || state.methodResult !== previousResult || assignmentCompleted
+        return advanced && !state.pathConstraints.isFalse && state.unsupportedReason == null
+    }
 }
 
 /** Full raw source/IR/machine smoke, independent of observation domains and native coverage admission. */
 @Suppress("LongMethod")
-internal fun runClassStartSmoke(args: List<String>) {
+internal fun runClassStartSmoke(args: List<String>) = runRawClassAnalysis(args = args, exploratory = false)
+
+internal fun runClassSymbolicProbe(args: List<String>) = runRawClassAnalysis(args = args, exploratory = true)
+
+@Suppress("LongMethod")
+private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
     require(args.size == CLASS_START_ARGUMENT_COUNT) {
         "class-start-smoke requires <manifest.json> <class-id> <output-directory>"
     }
     val manifestPath = Path.of(args[0]).toRealPath()
     val bytes = Files.readAllBytes(manifestPath)
     val manifest = CallsExperimentJson.json.decodeFromString<CallsClassStartManifest>(bytes.toString(Charsets.UTF_8))
+    if (exploratory) {
+        require(manifest.budgetMillis == EXPLORATORY_BUDGET_MILLIS && manifest.seed == EXPLORATORY_SEED)
+        require(manifest.collectedStatesLimit == null) { "The exploratory probe has no terminal-state cap" }
+    }
     require(manifest.toolRevision == CallsBuildIdentity.toolRevision) { "Smoke runtime revision changed" }
     require(manifest.nativeFrontendRevision == CallsBuildIdentity.nativeFrontendRevision) { "Smoke frontend changed" }
     require(System.getenv("ETS_FRONTEND_SCRIPT") == null) { "Use the pinned bundled frontend" }
@@ -339,6 +397,9 @@ internal fun runClassStartSmoke(args: List<String>) {
     var targetSignature: EtsClassSignature? = null
     var methods = emptyList<EtsMethod>()
     var observer: ClassStartObserver? = null
+    var rawObserver: ClassRawAnalysisObserver? = null
+    var remainingSelector: UPathSelector<TsState>? = null
+    var analysisElapsedMillis = 0L
     val unknownCalls = mutableListOf<CallsClassUnknownCallEvent>()
     var outcome: org.usvm.machine.TsMachineAnalysisResult? = null
     var lastCheckpointMillis = 0L
@@ -387,6 +448,17 @@ internal fun runClassStartSmoke(args: List<String>) {
             method.cfg.stmts.any { isOriginalClassStartupStep(it, target.signature, case.sourceFile, sourceText) }
         }
         require(methods.isNotEmpty()) { "Target class has no executable IR bodies" }
+        val raw = if (exploratory) {
+            ClassRawAnalysisObserver.forTarget(
+                methods = methods,
+                sourceFile = case.sourceFile,
+                sourceText = sourceText,
+                output = output,
+            )
+        } else {
+            null
+        }
+        rawObserver = raw
         checkpoint(next = "MACHINE")
         val machineObserver = ClassStartObserver(
             target = target.signature,
@@ -425,23 +497,56 @@ internal fun runClassStartSmoke(args: List<String>) {
             },
             unknownCallObserver = { event ->
                 unknownCalls += event.toCallsClassUnknownCallEvent(eventIndex = unknownCalls.size + 1)
-                writeCallsArtifactAtomically(output.resolve("unknown-calls.json"), encodeCallsArtifact(unknownCalls))
+                if (exploratory) {
+                    Files.writeString(
+                        output.resolve("unknown-calls.jsonl"),
+                        encodeCallsArtifact(unknownCalls.last()) + "\n",
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.APPEND,
+                    )
+                } else {
+                    writeCallsArtifactAtomically(
+                        output.resolve("unknown-calls.json"),
+                        encodeCallsArtifact(unknownCalls)
+                    )
+                }
             },
+            originalEntryObserver = { raw?.recordOriginalEntry(it) },
         )
         observer = machineObserver
+        val interpreterObserver = object : TsInterpreterObserver by machineObserver {
+            override fun onPathStopped(state: TsState, reason: String) {
+                raw?.recordStoppedPrefix(state = state, reason = reason)
+            }
+
+            override fun onSolverQuery(event: TsSolverQueryEvent) {
+                raw?.recordSolverQuery(event)
+            }
+
+            override fun onEntryPointTimeQuantum(event: TsEntryPointTimeQuantumEvent) {
+                raw?.recordTimeQuantum(event)
+            }
+        }
+        fun rawMachineObserver(selector: UPathSelector<TsState>): UMachineObserver<TsState> {
+            remainingSelector = selector
+            return checkNotNull(raw)
+        }
+        val factory = if (raw == null) null else ::rawMachineObserver
+        val timeQuantum = if (exploratory) manifest.timeQuantumMillis.milliseconds else Duration.INFINITE
         TsMachine(
             scene = scene,
             options = UMachineOptions(
                 stateCollectionStrategy = StateCollectionStrategy.ALL,
                 randomSeed = manifest.seed,
                 collectedStatesLimit = manifest.collectedStatesLimit,
+                maxEntryPointTimeQuantum = timeQuantum,
                 timeout = manifest.budgetMillis.milliseconds,
                 solverTimeout = manifest.solverLimitMillis.milliseconds,
                 solverType = SolverType.YICES,
                 coverageZone = CoverageZone.CLASS,
                 stopOnCoverage = 0,
                 removeCoveredEntryPoints = false,
-                throwExceptionOnStepFailure = true,
+                throwExceptionOnStepFailure = !exploratory,
             ),
             tsOptions = TsOptions(
                 unknownCallModelSelection = if (manifest.profile.usesFrozenModels) {
@@ -454,15 +559,22 @@ internal fun runClassStartSmoke(args: List<String>) {
                 classCoverageTargets = setOf(target.signature),
             ),
             machineObserver = machineObserver,
-            observer = machineObserver,
+            observer = interpreterObserver,
+            machineObserverFactory = factory,
         ).use { machine ->
             checkpoint(next = "INITIAL_STATE")
-            outcome = machine.analyzeWithMetadata(
-                methods = methods,
-                configureInitialState = { method, state ->
-                    machineObserver.registerInitialState(method = method, state = state)
-                }
-            )
+            val analysisStarted = TimeSource.Monotonic.markNow()
+            try {
+                outcome = machine.analyzeWithMetadata(
+                    methods = methods,
+                    configureInitialState = { method, state ->
+                        machineObserver.registerInitialState(method = method, state = state)
+                    },
+                )
+            } finally {
+                analysisElapsedMillis = analysisStarted.elapsedNow().inWholeMilliseconds
+                raw?.retainRemainingStates(selector = remainingSelector)
+            }
         }
         case.verifyInputs()
         checkpoint(next = "STOPPED")
@@ -524,9 +636,12 @@ internal fun runClassStartSmoke(args: List<String>) {
         },
         failureLog = failureLog,
         inputDriftLog = inputDriftLog,
+        rawAnalysis = rawObserver?.result(manifest = manifest, analysisElapsedMillis = analysisElapsedMillis),
     )
     writeCallsArtifactAtomically(output.resolve("result.json"), encodeCallsArtifact(result))
     System.out.appendLine(encodeCallsArtifact(result))
 }
 
 private const val CLASS_START_ARGUMENT_COUNT = 3
+private const val EXPLORATORY_BUDGET_MILLIS = 30_000L
+private const val EXPLORATORY_SEED = 17L

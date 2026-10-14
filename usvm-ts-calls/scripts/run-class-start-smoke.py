@@ -125,6 +125,10 @@ def child_result(child, receipt, case, fingerprint):
         journal = child / 'unknown-calls.json'
         if journal.exists():
             result['unknownCalls'] = read(journal)
+        elif (child / 'unknown-calls.jsonl').exists():
+            result['unknownCalls'] = [json.loads(line) for line in (child / 'unknown-calls.jsonl').read_text().splitlines()]
+        if (child / 'states.jsonl').exists():
+            result['durableStateSnapshotsPath'] = str(child / 'states.jsonl')
     else:
         stage = 'CHILD_TIMEOUT' if receipt.get('timedOut') else 'CHILD_EXIT_FAILURE'
         result = failure_result(case, fingerprint, stage, f'Child did not produce result: {receipt}')
@@ -159,6 +163,8 @@ def main():
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--child-timeout-seconds', type=int, default=60)
+    parser.add_argument('--command', choices=('class-start-smoke', 'class-symbolic-probe'), default='class-start-smoke')
+    parser.add_argument('--ir-cache', type=Path)
     args = parser.parse_args()
     manifest_path = args.manifest.resolve(strict=True)
     manifest = read(manifest_path)
@@ -180,10 +186,11 @@ def main():
     if environment.get('ETS_FRONTEND_SCRIPT') is not None:
         raise ValueError('Startup probes require the pinned bundled frontend')
     environment['USVM_TS_CALLS_OPTS'] = '-Xms1g -Xmx6g -XX:+UseG1GC'
-    environment['USVM_TS_STARTUP_IR_CACHE'] = str(output / 'ir-cache')
+    environment['USVM_TS_STARTUP_IR_CACHE'] = str((args.ir_cache or output / 'ir-cache').resolve())
     runtime = runtime_identity(calls)
     freeze(output / 'identity.json', {'manifestSha256': fingerprint, 'calls': str(calls), 'runtime': runtime,
                                     'childTimeoutSeconds': args.child_timeout_seconds,
+                                    'command': args.command, 'irCache': environment['USVM_TS_STARTUP_IR_CACHE'],
                                     'JVMOptions': environment['USVM_TS_CALLS_OPTS']})
     for index, case in enumerate(classes):
         directory = output / 'classes' / case['classId']
@@ -206,7 +213,7 @@ def main():
         print(f'{index + 1}/{len(classes)} {case["identity"]}', flush=True)
         log = directory / 'process.log'
         with log.open('w', encoding='utf-8') as stream:
-            process = subprocess.Popen([str(calls), 'class-start-smoke', str(manifest_path),
+            process = subprocess.Popen([str(calls), args.command, str(manifest_path),
                                         case['classId'], str(child)], stdout=stream,
                                        stderr=subprocess.STDOUT, env=environment, start_new_session=True)
             try:

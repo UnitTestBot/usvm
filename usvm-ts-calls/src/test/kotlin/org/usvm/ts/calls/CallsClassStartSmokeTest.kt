@@ -143,9 +143,31 @@ class CallsClassStartSmokeTest {
         assertTrue(result.unsupportedCall)
     }
 
+    @Test
+    fun `exploratory probe retains residual prefixes and independent source mapped IR universe`() {
+        val result = runFixture(
+            sourceText = "export class Target { constructor() { Date.now(); } }",
+            profile = CallsExperimentProfile.EMPTY_STOP,
+            exploratory = true,
+        )
+
+        assertTrue(result.started, result.toString())
+        val raw = checkNotNull(result.rawAnalysis)
+        assertEquals(30_000L, raw.budgetMillis)
+        assertEquals(null, raw.collectedStatesLimit)
+        assertTrue(raw.stoppedPrefixStates > 0)
+        assertEquals(raw.stoppedPrefixStates, raw.stoppedPrefixSnapshots.size.toLong())
+        assertTrue(raw.sourceMappedIrUniverse.isNotEmpty())
+        assertTrue(raw.sourceMappedIrEntered.isNotEmpty())
+        assertTrue(raw.sourceMappedIrUniverse.containsAll(raw.sourceMappedIrEntered))
+        assertTrue(raw.stateSnapshotFailures.isEmpty(), raw.stateSnapshotFailures.toString())
+        assertTrue(Files.isRegularFile(directory.resolve("output/states.jsonl")))
+    }
+
     private fun runFixture(
         sourceText: String,
         profile: CallsExperimentProfile = CallsExperimentProfile.FROZEN_STOP,
+        exploratory: Boolean = false,
     ): CallsClassStartResult {
         val source = directory.resolve("Target.ts")
         Files.writeString(source, sourceText)
@@ -169,13 +191,20 @@ class CallsClassStartSmokeTest {
             ledgerSha256 = "b".repeat(64),
             expectedClassCount = 1,
             profile = profile,
+            budgetMillis = if (exploratory) 30_000 else 2_000,
+            collectedStatesLimit = if (exploratory) null else 10,
             classes = listOf(case),
         )
         val path = directory.resolve("manifest.json")
-        Files.writeString(path, encodeCallsArtifact(manifest))
+        Files.writeString(path, encodeClassStartManifest(manifest))
         val output = directory.resolve("output")
 
-        runClassStartSmoke(listOf(path.toString(), "target", output.toString()))
+        val args = listOf(path.toString(), "target", output.toString())
+        if (exploratory) {
+            runClassSymbolicProbe(args)
+        } else {
+            runClassStartSmoke(args)
+        }
 
         return CallsExperimentJson.json.decodeFromString(Files.readString(output.resolve("result.json")))
     }

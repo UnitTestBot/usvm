@@ -64,3 +64,40 @@ requires a fresh attempt directory.
 The shared cache stores immutable frontend IR only, keyed by frozen inputs, resolved compiler config,
 frontend revision, and project revision. It verifies every cached file before reuse. Scenes, machines,
 initial states, and solver states are always created separately for each class.
+
+## Exploratory four-profile probe
+
+After a completed startup screen proves at least 180 qualifying starts from the exact original 200
+classes, run the exploratory diagnostic with:
+
+```sh
+python3 usvm-ts-calls/scripts/run-class-symbolic-probe.py \
+  --calls usvm-ts-calls/build/install/usvm-ts-calls/bin/usvm-ts-calls \
+  --startup-manifest /absolute/path/startup-manifest.json \
+  --startup-summary /absolute/path/startup-results/summary.json \
+  --output /absolute/path/fresh-symbolic-probe
+```
+
+This reuses the isolated startup driver and raw loading path through `class-symbolic-probe`. It freezes
+all 200 original identities and their ordering in each of `EMPTY_STOP`, `EMPTY_FRESH`, `FROZEN_STOP`, and
+`FROZEN_FRESH`, for 800 recorded cells. Every class has a 30-second engine search budget, seed 17, a
+250ms solver-check limit, 25ms entry-point quanta, CLASS coverage scope, and no terminal-state cap.
+The driver copies and verifies frozen acquisition receipts; it does not run dependency installation.
+An unsupported or failed class remains in the same denominator. The current build's complete model
+catalog and runtime bytes are frozen before any profile runs.
+
+Unlike diagnostic startup, interpreter step failures are retained through the machine's failure
+metadata while other paths continue. Returned, exceptional, unsupported terminal, stopped-prefix,
+and remaining queued states are counted separately. Diagnostic snapshots retain method provenance,
+statement text, symbolic result, and path constraints in `states.jsonl`; snapshot failures remain
+explicit. Remaining states are drained after the machine has computed its actual stop reason.
+Unknown-call events are appended to `unknown-calls.jsonl`. These diagnostic snapshots are not concrete
+native witnesses or resumable machine states.
+
+The raw report freezes the original target's source-mapped IR point universe before search and records
+actual interpreter entries in that universe. The driver rejects any changed universe between the four
+profiles. This diagnostic is distinct from executable original-source/native replay coverage; the
+summary reports native class coverage as unavailable. Setup, actual analysis elapsed time, budget
+overruns, solver checks/statuses, entry-point quantum overruns, and engine/unsupported outcomes remain
+visible. Missing raw metrics are unavailable rather than fabricated zeroes. The external child deadline
+defaults to 120 seconds and does not create a 120-second measurement budget.
