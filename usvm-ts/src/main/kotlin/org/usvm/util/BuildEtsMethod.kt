@@ -25,15 +25,19 @@ fun buildEtsMethod(
         signature = EtsMethodSignature(
             enclosingClass = enclosingClass.signature,
             name = name,
-            parameters = parameters.mapIndexed { index, (name, type) ->
-                EtsMethodParameter(index, name, type)
+            parameters = parameters.mapIndexed { index, (parameterName, type) ->
+                EtsMethodParameter(
+                    index = index,
+                    name = parameterName,
+                    type = type,
+                )
             },
             returnType = returnType,
         )
     )
 
-    val prog = program(program)
-    val blockCfg = prog.toBlockCfg()
+    val dslProgram = program(program)
+    val blockCfg = dslProgram.toBlockCfg()
     val etsCfg = blockCfg.toEtsBlockCfg(method)
     method.body.cfg = etsCfg
 
