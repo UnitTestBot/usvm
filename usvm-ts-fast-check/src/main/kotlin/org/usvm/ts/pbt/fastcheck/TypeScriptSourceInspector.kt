@@ -206,4 +206,11 @@ data class TypeScriptClassSurfaceInventory(
     val constructorParameterNames: List<String>,
     val publicMembers: List<TypeScriptClassCallableDescriptor>,
     val instanceDataFields: List<TypeScriptClassStateFieldDescriptor>,
+    val dataClasses: List<TypeScriptClassDataClassDescriptor> = emptyList(),
+)
+
+@Serializable
+data class TypeScriptClassDataClassDescriptor(
+    val exportName: String,
+    val fields: List<String>,
 )

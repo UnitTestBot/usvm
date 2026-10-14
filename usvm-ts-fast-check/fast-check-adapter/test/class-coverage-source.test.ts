@@ -250,3 +250,113 @@ test('preserves automatic semicolon insertion between assignments and statement 
   assert.equal(coveredMemberNames.includes('constructor'), true)
   assert.equal(coveredMemberNames.includes('initializeBuckets'), true)
 })
+
+
+test('inventories same-source exported generic data classes with complete own fields', () => {
+  const source = `
+    export class Target { run() { return 1; } }
+    export class MapEntry<K, V> {
+      key: K
+      value: V
+
+      constructor(key: K, value: V) {
+        this.key = key
+        this.value = value
+      }
+    }
+    export class Coordinates {
+      readonly label = 'point';
+      readonly negative = -1;
+      constructor(public x: number, private y: number = 0) {}
+    }
+  `
+  const result = instrument(source)
+
+  assert.equal(result.reason, null)
+  assert.deepEqual(result.inventory!.dataClasses, [
+    { exportName: 'Coordinates', fields: ['label', 'negative', 'x', 'y'] },
+    { exportName: 'MapEntry', fields: ['key', 'value'] },
+  ])
+  assert.deepEqual(result.statements.map((statement) => statement.memberName), ['run'])
+})
+
+
+test('excludes non-data companion classes without rejecting unrelated target coverage', () => {
+  const companions = [
+    'export class Companion { value = 1; method() {} }',
+    'export class Companion { get value() { return 1; } }',
+    'export class Companion extends Base { value = 1; }',
+    'export class Companion implements Shape { value = 1; }',
+    'export class Companion { static value = 1; }',
+    'export class Companion { static {} }',
+    'export class Companion { ["value"] = 1; }',
+    'export class Companion { #value = 1; }',
+    'export class Companion { constructor: number = 1; }',
+    'export class Companion { __usvmCallsClassIdentity = "fake"; }',
+    'export class Companion { callback: () => number; }',
+    'type Callback = () => number; export class Companion { callback: Callback; }',
+    'export class Companion<T extends () => number> { callback: T; }',
+    'export class Companion { callback = () => 1; }',
+    'export class Companion { value = effect(); }',
+    'export class Companion { value: number; constructor(value: number) { this.value = effect(value); } }',
+    'export class Companion { amount: number; constructor(value: unknown) { this.amount = +value; } }',
+    'export class Companion { amount: number; constructor(value: unknown) { this.amount = -value; } }',
+    'export class Companion { amount: number; constructor(value: unknown) { this.amount = ~value; } }',
+    'export class Companion { value: number; constructor(value: number) { this.extra = value; } }',
+    'export class Companion { constructor(callback: () => number) {} }',
+    'export abstract class Companion { value = 1; }',
+    'export default class Companion { value = 1; }',
+    'export declare class Companion { value: number; }',
+    '@decorate export class Companion { value = 1; }',
+  ]
+
+  for (const companion of companions) {
+    const result = instrument(`export class Target { run() { return 1; } } ${companion}`)
+
+    assert.equal(result.reason, null, companion)
+    assert.deepEqual(result.inventory!.dataClasses, [], companion)
+  }
+})
+
+
+test('excludes companion exports with shadowed or re-exported constructor identity', () => {
+  const conflicts = [
+    'export { Foreign as Companion } from "./foreign";',
+    'const Companion = replacement;',
+    'const { original: Companion } = replacement;',
+    'const [Companion] = replacement;',
+    'import Companion from "./foreign";',
+    'import { Foreign as Companion } from "./foreign";',
+    'import * as Companion from "./foreign";',
+    'import Companion = require("./foreign");',
+  ]
+
+  for (const conflict of conflicts) {
+    const result = instrument(`export class Target { run() { return 1; } }
+      export class Companion { value = 1; } ${conflict}`)
+
+    assert.equal(result.reason, null, conflict)
+    assert.deepEqual(result.inventory!.dataClasses, [], conflict)
+  }
+})
+
+
+test('excludes reassigned companion constructors including destructuring writes', () => {
+  const mutations = [
+    'Companion = replacement;',
+    'Companion++;',
+    '[Companion] = replacement;',
+    '({ Companion } = replacement);',
+    '({ original: Companion } = replacement);',
+    '[Companion = replacement] = replacements;',
+    '[...Companion] = replacements;',
+  ]
+
+  for (const mutation of mutations) {
+    const result = instrument(`export class Target { run() { return 1; } }
+      export class Companion { value = 1; } ${mutation}`)
+
+    assert.equal(result.reason, null, mutation)
+    assert.deepEqual(result.inventory!.dataClasses, [], mutation)
+  }
+})

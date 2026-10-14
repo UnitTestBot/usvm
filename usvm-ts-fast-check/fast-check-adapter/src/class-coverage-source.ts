@@ -23,10 +23,12 @@ export interface ClassCallableDescriptor {
 }
 
 export interface ClassStateFieldDescriptor { name: string; isEcmaPrivate: boolean; typeText: string | null }
+export interface ClassDataClassDescriptor { exportName: string; fields: string[] }
 export interface ClassSurfaceInventory {
   constructorParameterNames: string[]
   publicMembers: ClassCallableDescriptor[]
   instanceDataFields: ClassStateFieldDescriptor[]
+  dataClasses: ClassDataClassDescriptor[]
 }
 
 export interface ClassCoverageInstrumentation {
@@ -449,7 +451,9 @@ function inspectClassSurface(selected: ts.ClassDeclaration, file: ts.SourceFile)
     if (!isStatic) visitWrites(member)
   }
   if (reason !== null) return reason
-  return { constructorParameterNames, publicMembers, instanceDataFields: [...stateFields.values()].sort((left, right) => left.name.localeCompare(right.name)) }
+  return { constructorParameterNames, publicMembers,
+    instanceDataFields: [...stateFields.values()].sort((left, right) => left.name.localeCompare(right.name)),
+    dataClasses: inspectDataClasses(file) }
 }
 
 
@@ -488,4 +492,180 @@ function declaredValueBindings(file: ts.SourceFile): Set<string> {
   }
   visit(file)
   return names
+}
+
+
+/** Source identity is the same captured module; registries cannot admit arbitrary instance prototypes. */
+function inspectDataClasses(file: ts.SourceFile): ClassDataClassDescriptor[] {
+  const candidates = file.statements.filter(ts.isClassDeclaration)
+  const typeAliases = new Map(file.statements.filter(ts.isTypeAliasDeclaration).map((node) => [node.name.text, node.type]))
+  const valueNames = declaredValueBindings(file)
+  const safeName = (name: string): boolean => /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name)
+    && !['__proto__', 'prototype', 'constructor', '__usvmCallsClassIdentity'].includes(name)
+  const callableType = (type: ts.TypeNode | undefined, parameters: Map<string, ts.TypeNode | undefined>, seen = new Set<string>()): boolean => {
+    if (type === undefined) return false
+    if (ts.isFunctionTypeNode(type) || ts.isConstructorTypeNode(type) || ts.isTypeQueryNode(type)) return true
+    if (ts.isTypeReferenceNode(type) && ts.isIdentifier(type.typeName)) {
+      const name = type.typeName.text
+      if (name === 'Function' || seen.has(name)) return true
+      const referenced = typeAliases.get(name) ?? parameters.get(name)
+      if (referenced !== undefined) {
+        const nestedSeen = new Set(seen)
+        nestedSeen.add(name)
+        if (callableType(referenced, parameters, nestedSeen)) return true
+      }
+    }
+    let found = false
+    ts.forEachChild(type, (node) => {
+      if (ts.isTypeNode(node) && callableType(node, parameters, seen)) found = true
+      if (ts.isCallSignatureDeclaration(node) || ts.isConstructSignatureDeclaration(node)) found = true
+    })
+    return found
+  }
+  const pureValue = (node: ts.Expression, inputs: Set<string>): boolean => {
+    if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)
+      || ts.isSatisfiesExpression(node) || ts.isNonNullExpression(node)) return pureValue(node.expression, inputs)
+    if (ts.isStringLiteral(node) || ts.isNumericLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
+      || node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword
+      || node.kind === ts.SyntaxKind.NullKeyword) return true
+    if (ts.isIdentifier(node)) return inputs.has(node.text)
+      || (['undefined', 'NaN', 'Infinity'].includes(node.text) && !valueNames.has(node.text))
+    if (ts.isPrefixUnaryExpression(node)
+      && [ts.SyntaxKind.PlusToken, ts.SyntaxKind.MinusToken, ts.SyntaxKind.ExclamationToken, ts.SyntaxKind.TildeToken].includes(node.operator)) {
+      // Coercing an unknown constructor input can invoke valueOf or Symbol.toPrimitive.
+      return pureValue(node.operand, new Set())
+    }
+    if (ts.isArrayLiteralExpression(node)) return node.elements.every((element) =>
+      !ts.isSpreadElement(element) && !ts.isOmittedExpression(element) && pureValue(element, inputs))
+    if (ts.isObjectLiteralExpression(node)) return node.properties.every((property) => {
+      if (!ts.isPropertyAssignment(property)) return false
+      const name = property.name
+      const literalName = ts.isIdentifier(name) || ts.isStringLiteral(name)
+      return literalName && safeName(name.text) && pureValue(property.initializer, inputs)
+    })
+    return false
+  }
+  const result: ClassDataClassDescriptor[] = []
+  for (const candidate of candidates) {
+    const modifiers = ts.getModifiers(candidate) ?? []
+    const exported = modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)
+    const disallowedClassModifier = modifiers.some((modifier) => [ts.SyntaxKind.DefaultKeyword,
+      ts.SyntaxKind.AbstractKeyword, ts.SyntaxKind.DeclareKeyword].includes(modifier.kind))
+    const exportName = candidate.name?.text
+    if (!exported || disallowedClassModifier || exportName === undefined || !safeName(exportName)) continue
+    const decorated = (ts.getDecorators(candidate)?.length ?? 0) > 0
+    if (decorated || (candidate.heritageClauses?.length ?? 0) > 0 || !uniqueDirectClassExport(file, candidate, exportName)) continue
+    const parameters = new Map((candidate.typeParameters ?? []).map((parameter) => [parameter.name.text, parameter.constraint]))
+    const fields = new Set<string>()
+    let eligible = true
+    let constructor: ts.ConstructorDeclaration | undefined
+    for (const member of candidate.members) {
+      if (ts.isSemicolonClassElement(member)) continue
+      const memberModifiers = ts.canHaveModifiers(member) ? ts.getModifiers(member) ?? [] : []
+      const memberDecorated = ts.canHaveDecorators(member) && (ts.getDecorators(member)?.length ?? 0) > 0
+      const isStatic = memberModifiers.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword)
+      if (memberDecorated || isStatic) { eligible = false; break }
+      if (ts.isConstructorDeclaration(member)) {
+        if (member.body === undefined) continue
+        if (constructor !== undefined) { eligible = false; break }
+        constructor = member
+        continue
+      }
+      if (!ts.isPropertyDeclaration(member) || member.name === undefined || ts.isPrivateIdentifier(member.name)
+        || (!ts.isIdentifier(member.name) && !ts.isStringLiteral(member.name))) { eligible = false; break }
+      const name = member.name.text
+      const valueInitializer = member.initializer
+      const safeInitializer = valueInitializer === undefined || pureValue(valueInitializer, new Set())
+      if (!safeName(name) || fields.has(name) || callableType(member.type, parameters) || !safeInitializer) {
+        eligible = false
+        break
+      }
+      fields.add(name)
+    }
+    if (!eligible) continue
+    if (constructor !== undefined) {
+      const inputs = new Set<string>()
+      for (const parameter of constructor.parameters) {
+        if (!ts.isIdentifier(parameter.name) || parameter.dotDotDotToken !== undefined
+          || inputs.has(parameter.name.text) || callableType(parameter.type, parameters)) { eligible = false; break }
+        inputs.add(parameter.name.text)
+        if (parameter.initializer !== undefined && !pureValue(parameter.initializer, inputs)) { eligible = false; break }
+        const parameterProperty = parameter.modifiers?.some((modifier) => [ts.SyntaxKind.PublicKeyword,
+          ts.SyntaxKind.PrivateKeyword, ts.SyntaxKind.ProtectedKeyword, ts.SyntaxKind.ReadonlyKeyword].includes(modifier.kind))
+        if (parameterProperty) {
+          const name = parameter.name.text
+          if (!safeName(name) || fields.has(name)) { eligible = false; break }
+          fields.add(name)
+        }
+      }
+      if (!eligible) continue
+      for (const statement of constructor.body!.statements) {
+        if (ts.isEmptyStatement(statement)) continue
+        if (!ts.isExpressionStatement(statement) || !ts.isBinaryExpression(statement.expression)
+          || statement.expression.operatorToken.kind !== ts.SyntaxKind.EqualsToken) { eligible = false; break }
+        const assignment = statement.expression
+        const target = assignment.left
+        const ownField = ts.isPropertyAccessExpression(target) && target.expression.kind === ts.SyntaxKind.ThisKeyword
+          && fields.has(target.name.text)
+        if (!ownField || !pureValue(assignment.right, inputs)) { eligible = false; break }
+      }
+    }
+    if (!eligible) continue
+    // An exported class binding must retain the source-declared constructor identity.
+    const modified = classBindingModified(file, exportName)
+    if (modified) continue
+    result.push({ exportName, fields: [...fields].sort() })
+  }
+  return result.sort((left, right) => left.exportName.localeCompare(right.exportName))
+}
+
+function uniqueDirectClassExport(file: ts.SourceFile, candidate: ts.ClassDeclaration, name: string): boolean {
+  const bindsName = (binding: ts.BindingName): boolean => ts.isIdentifier(binding) ? binding.text === name
+    : binding.elements.some((element) => !ts.isOmittedExpression(element) && bindsName(element.name))
+  let declarations = 0
+  for (const statement of file.statements) {
+    if ((ts.isClassDeclaration(statement) || ts.isFunctionDeclaration(statement) || ts.isEnumDeclaration(statement)
+      || ts.isModuleDeclaration(statement)) && statement.name?.getText(file) === name) declarations++
+    if (ts.isVariableStatement(statement) && statement.declarationList.declarations.some((declaration) =>
+      bindsName(declaration.name))) declarations++
+    if (ts.isImportEqualsDeclaration(statement) && !statement.isTypeOnly && statement.name.text === name) declarations++
+    if (ts.isImportDeclaration(statement) && statement.importClause !== undefined && !statement.importClause.isTypeOnly) {
+      const clause = statement.importClause
+      const bindings = clause.namedBindings
+      const defaultBinding = clause.name?.text === name
+      const namespaceBinding = bindings !== undefined && ts.isNamespaceImport(bindings) && bindings.name.text === name
+      const namedBinding = bindings !== undefined && ts.isNamedImports(bindings)
+        && bindings.elements.some((element) => !element.isTypeOnly && element.name.text === name)
+      if (defaultBinding || namespaceBinding || namedBinding) declarations++
+    }
+    const conflictingExport = ts.isExportDeclaration(statement) && !statement.isTypeOnly
+      && statement.exportClause !== undefined && ts.isNamedExports(statement.exportClause)
+      && statement.exportClause.elements.some((element) => !element.isTypeOnly && element.name.text === name)
+    if (conflictingExport) return false
+  }
+  return declarations === 1 && candidate.name?.text === name
+}
+
+function classBindingModified(file: ts.SourceFile, name: string): boolean {
+  const writesName = (target: ts.Node): boolean => {
+    if (ts.isIdentifier(target)) return target.text === name
+    if (ts.isParenthesizedExpression(target)) return writesName(target.expression)
+    if (ts.isArrayLiteralExpression(target)) return target.elements.some(writesName)
+    if (ts.isObjectLiteralExpression(target)) return target.properties.some((property) => {
+      if (ts.isShorthandPropertyAssignment(property)) return property.name.text === name
+      if (ts.isPropertyAssignment(property)) return writesName(property.initializer)
+      return ts.isSpreadAssignment(property) && writesName(property.expression)
+    })
+    if (ts.isSpreadElement(target)) return writesName(target.expression)
+    if (ts.isBinaryExpression(target) && target.operatorToken.kind === ts.SyntaxKind.EqualsToken) return writesName(target.left)
+    return false
+  }
+  let modified = false
+  const visit = (node: ts.Node): void => {
+    const target = assignmentTarget(node)
+    if (target !== null && writesName(target)) modified = true
+    ts.forEachChild(node, visit)
+  }
+  visit(file)
+  return modified
 }

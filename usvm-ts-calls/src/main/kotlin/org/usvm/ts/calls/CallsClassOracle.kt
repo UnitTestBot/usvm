@@ -471,9 +471,21 @@ private fun classReplayWrapper(
 /** Check raw values before projection, so snapshots cannot silently hide an unlisted concrete property. */
 private fun nativeCheckedClassHarness(source: String): String {
     val marker = "// __usvm_class_observe "
+    val registryMarker = "// __usvm_class_registry "
     val checked = source.lines().joinToString(separator = "\n") { line ->
         val offset = line.indexOf(marker)
-        if (offset < 0) {
+        val registryOffset = line.indexOf(registryMarker)
+        if (registryOffset >= 0) {
+            val raw = line.substring(registryOffset + registryMarker.length)
+            val registry = CallsExperimentJson.json.decodeFromString<List<CallsClassDataClass>>(raw)
+            val entries = registry.mapIndexed { index, dataClass ->
+                val fields = CallsExperimentJson.json.encodeToString<PropertyDomain>(ObjectDomain(dataClass.fields))
+                val name = CallsExperimentJson.json.encodeToUtf8SafeString(dataClass.exportName)
+                "{ constructor: CallsDataClass$index, prototype: CallsDataClass$index.prototype, " +
+                    "name: $name, length: CallsDataClass$index.length, domain: $fields }"
+            }
+            "const __usvmClassDataRegistry = [${entries.joinToString()}];"
+        } else if (offset < 0) {
             line
         } else {
             val raw = line.substring(offset + marker.length)
@@ -486,27 +498,82 @@ private fun nativeCheckedClassHarness(source: String): String {
             }
             val allowedClass = if (check.allowTargetClass) "CallsTargetClass" else "undefined"
             val callableNames = CallsExperimentJson.json.encodeToUtf8SafeString(check.callablePropertyNames.sorted())
+            val registry = if (check.dataClasses.isEmpty()) "[]" else "__usvmClassDataRegistry"
             "  __usvmAssertObservedShape(${check.expression}, $domain, " +
-                "$allowCallableFields, $allowedClass, $callableNames);"
+                "$allowCallableFields, $allowedClass, $callableNames, $registry);"
         }
     }
-    val validator = """
+    return "$NATIVE_CLASS_SHAPE_VALIDATOR\n$checked"
+}
+
+private val NATIVE_CLASS_SHAPE_VALIDATOR = """
+        function __usvmCanonicalDomain(domain: any): any {
+          if (domain === null || typeof domain !== 'object') return domain;
+          if (Array.isArray(domain)) return domain.map(__usvmCanonicalDomain);
+          return Object.fromEntries(Object.keys(domain).sort().map(key => [key, __usvmCanonicalDomain(domain[key])]));
+        }
         function __usvmAssertObservedShape(
           value: any, domain: any, skipCallableProperties = false, allowedClass?: any,
-          callablePropertyNames: string[] = [],
+          callablePropertyNames: string[] = [], dataClasses: any[] = [],
         ): void {
           const fail = (reason: string): never => { throw new Error('USVM class observation shape: ' + reason); };
+          const exactOwnKeys = (value: any, names: string[]): boolean => {
+            const keys = Reflect.ownKeys(value);
+            return keys.every(key => typeof key === 'string') &&
+              JSON.stringify(keys.sort()) === JSON.stringify([...names].sort());
+          };
+          for (const entry of dataClasses) {
+            const ctor = entry.constructor;
+            const prototype = entry.prototype;
+            const validConstructor = Object.getPrototypeOf(ctor) === Function.prototype &&
+              ctor.prototype === prototype && ctor.name === entry.name && ctor.length === entry.length &&
+              exactOwnKeys(ctor, ['length', 'name', 'prototype']);
+            const descriptor = Object.getOwnPropertyDescriptor(prototype, 'constructor');
+            const validPrototype = Object.getPrototypeOf(prototype) === Object.prototype &&
+              exactOwnKeys(prototype, ['constructor']) && descriptor && 'value' in descriptor &&
+              descriptor.value === ctor && descriptor.writable && descriptor.configurable && !descriptor.enumerable;
+            const validConstructorProperties = ['length', 'name', 'prototype'].every(name => {
+              const property = Object.getOwnPropertyDescriptor(ctor, name)!;
+              return property && 'value' in property && !property.enumerable && !property.writable &&
+                property.configurable === (name !== 'prototype');
+            });
+            if (!validConstructor || !validPrototype || !validConstructorProperties) {
+              fail('Registered data-class constructor or prototype changed');
+            }
+          }
           if (domain.kind === 'optional') {
             const nil = domain.nil?.kind === 'null' ? null : undefined;
             if (value !== nil) {
-              __usvmAssertObservedShape(value, domain.value, skipCallableProperties, allowedClass, callablePropertyNames);
+              __usvmAssertObservedShape(
+                value, domain.value, skipCallableProperties, allowedClass, callablePropertyNames, dataClasses,
+              );
             }
           } else if (domain.kind === 'object') {
             if (value === null || typeof value !== 'object' || Array.isArray(value)) fail('Expected object');
             const prototype = Object.getPrototypeOf(value);
             const knownClass = allowedClass !== undefined && value instanceof allowedClass &&
               prototype === allowedClass.prototype;
-            if (prototype !== Object.prototype && prototype !== null && !knownClass) fail('Unlisted object prototype');
+            const dataClass = dataClasses.find(entry =>
+              prototype === entry.prototype && value instanceof entry.constructor);
+            if (prototype !== Object.prototype && prototype !== null && !knownClass && !dataClass) {
+              fail('Unlisted object prototype');
+            }
+            if (dataClass && JSON.stringify(__usvmCanonicalDomain(domain)) !==
+                JSON.stringify(__usvmCanonicalDomain(dataClass.domain))) {
+              fail('Registered data-class observation domain changed');
+            }
+            if (dataClass && !exactOwnKeys(value, Object.keys(dataClass.domain.fields))) {
+              fail('Registered data-class own fields changed');
+            }
+            if (dataClass) {
+              for (const [key, nested] of Object.entries(dataClass.domain.fields)) {
+                const descriptor = Object.getOwnPropertyDescriptor(value, key)!;
+                const ordinaryField = 'value' in descriptor && descriptor.enumerable &&
+                  descriptor.writable && descriptor.configurable;
+                if (!ordinaryField) fail('Registered data-class field is not an ordinary data property');
+                __usvmAssertObservedShape(value[key], nested, false, undefined, [], dataClasses);
+              }
+            }
             const allowedCallables = new Set(skipCallableProperties ? callablePropertyNames : []);
             for (const name of allowedCallables) {
               const descriptor = Object.getOwnPropertyDescriptor(value, name);
@@ -524,13 +591,15 @@ private fun nativeCheckedClassHarness(source: String): String {
             if (!exactKeys) {
               fail('Unlisted or missing object property');
             }
-            for (const [key, nested] of Object.entries(domain.fields)) __usvmAssertObservedShape(value[key], nested);
+            for (const [key, nested] of Object.entries(domain.fields)) {
+              __usvmAssertObservedShape(value[key], nested, false, undefined, [], dataClasses);
+            }
           } else if (domain.kind === 'array') {
             const validArray = Array.isArray(value) && value.length <= (domain.maxLength ?? 10);
             if (!validArray) fail('Array exceeds observation capacity');
             for (let i = 0; i < value.length; i++) {
               if (!Object.hasOwn(value, i)) fail('Sparse array');
-              __usvmAssertObservedShape(value[i], domain.element);
+              __usvmAssertObservedShape(value[i], domain.element, false, undefined, [], dataClasses);
             }
             const allowed = new Set(['length', ...value.map((_: any, index: number) => String(index))]);
             const unlistedProperty = Reflect.ownKeys(value).some(key => typeof key !== 'string' || !allowed.has(key));
@@ -552,6 +621,4 @@ private fun nativeCheckedClassHarness(source: String): String {
             if (expected.kind === 'number' && typeof value !== 'number') fail('Expected constant number');
           } else fail('Unsupported observation domain');
         }
-    """.trimIndent()
-    return "$validator\n$checked"
-}
+""".trimIndent()

@@ -33,6 +33,14 @@ internal data class CallsClassMember(
     val resultClassName: String? = null,
 )
 
+/** A same-module exported class whose complete state consists only of these own data fields. */
+@Serializable
+internal data class CallsClassDataClass(
+    val id: String,
+    val exportName: String,
+    val fields: Map<String, PropertyDomain>,
+)
+
 /** A complete source-inventoried callable surface and receiver-state shape, frozen before comparing policies. */
 @Serializable
 internal data class CallsClassSurface(
@@ -41,6 +49,7 @@ internal data class CallsClassSurface(
     val constructorInputs: List<PropertyInput>,
     val members: List<CallsClassMember>,
     val stateFields: Map<String, PropertyDomain>,
+    val dataClasses: List<CallsClassDataClass> = emptyList(),
 ) {
     init {
         CallsSymbolicCoverageClass(sourceFile = sourceFile, className = exportName)
@@ -48,6 +57,37 @@ internal data class CallsClassSurface(
         require(members.map(CallsClassMember::id).distinct().size == members.size) { "Member IDs must be unique" }
         require(members.all { it.id.isNotBlank() && it.name.matches(CLASS_IDENTIFIER) }) {
             "Every callable member needs a stable ID and an identifier name"
+        }
+        require(dataClasses.map(CallsClassDataClass::id).distinct().size == dataClasses.size) {
+            "Data-class IDs must be unique"
+        }
+        require(dataClasses.map(CallsClassDataClass::exportName).distinct().size == dataClasses.size) {
+            "Data-class exports must be unique"
+        }
+        for (dataClass in dataClasses) {
+            require(dataClass.id.matches(CLASS_IDENTIFIER) && dataClass.id !in setOf("plain", "target")) {
+                "Data-class IDs must be non-reserved identifiers"
+            }
+            require(dataClass.exportName.matches(CLASS_IDENTIFIER) && dataClass.exportName != exportName) {
+                "Data classes must name distinct same-module exports"
+            }
+            require(dataClass.fields.keys.all { it.matches(CLASS_IDENTIFIER) }) {
+                "Data-class fields must be identifiers"
+            }
+            require(dataClass.fields.values.all { it.isSupportedCallsSymbolicDomain() }) {
+                "Unsupported data-class observation domain"
+            }
+        }
+        val domains = stateFields.values + constructorInputs.map(PropertyInput::domain) +
+            members.flatMap { member -> member.inputs.map(PropertyInput::domain) + member.resultDomain } +
+            dataClasses.flatMap { it.fields.values }
+        if (dataClasses.isNotEmpty()) {
+            require(domains.none { it.hasClassIdentityField() } && CLASS_IDENTITY_FIELD !in stateFields) {
+                "Observation fields collide with the reserved class-identity field"
+            }
+            require(dataClasses.none { CLASS_IDENTITY_FIELD in it.fields }) {
+                "Data-class fields collide with the reserved class-identity field"
+            }
         }
         require(stateFields.keys.all { it.matches(CLASS_IDENTIFIER) }) { "State fields must be identifiers" }
         for (member in members) {
@@ -104,7 +144,12 @@ internal fun prepareCallsClassHarness(
     require(!Files.exists(root.resolve(fileName))) { "A generated class harness already exists in the overlay" }
     val source = StringBuilder()
     val moduleName = CallsExperimentJson.json.encodeToUtf8SafeString("./${surface.sourceFile}")
-    source.appendLine("import { ${surface.exportName} as CallsTargetClass } from $moduleName;")
+    val imports = listOf("${surface.exportName} as CallsTargetClass") +
+        surface.dataClasses.mapIndexed { index, dataClass -> "${dataClass.exportName} as CallsDataClass$index" }
+    source.appendLine("import { ${imports.joinToString()} } from $moduleName;")
+    if (surface.dataClasses.isNotEmpty()) {
+        source.appendLine("// __usvm_class_registry ${CallsExperimentJson.json.encodeToString(surface.dataClasses)}")
+    }
     val functions = mutableListOf<CallsFunctionCase>()
     val observations = mutableListOf<Map<String, PropertyDomain>>()
     for ((index, scenario) in scenarios.withIndex()) {
@@ -139,6 +184,7 @@ internal data class CallsClassRawShapeCheck(
     val skipCallableProperties: Boolean,
     val allowTargetClass: Boolean = false,
     val callablePropertyNames: Set<String> = emptySet(),
+    val dataClasses: List<CallsClassDataClass> = emptyList(),
 )
 
 private data class GeneratedClassScenario(
@@ -214,6 +260,13 @@ private class ClassScenarioSource(
             skipCallableProperties = true,
             allowTargetClass = true,
         )
+        if (surface.dataClasses.isNotEmpty()) {
+            observe(
+                name = "state_${step}_$CLASS_IDENTITY_FIELD",
+                expression = classIdentity("receiver"),
+                domain = classIdentityDomain(),
+            )
+        }
         surface.stateFields.forEach { (name, domain) ->
             val type = domain.classTypeScriptType()
             observe(
@@ -238,7 +291,7 @@ private class ClassScenarioSource(
         )
         val snapshot = snapshot(expression, domain)
         declarations.appendLine("  const $name = $snapshot;")
-        fields[name] = domain
+        fields[name] = observationDomain(domain)
     }
 
     private fun rawShapeCheck(
@@ -256,24 +309,55 @@ private class ClassScenarioSource(
             skipCallableProperties = skipCallableProperties,
             allowTargetClass = allowTargetClass,
             callablePropertyNames = callablePropertyNames,
+            dataClasses = surface.dataClasses,
         )
         val encoded = CallsExperimentJson.json.encodeToString(check)
         declarations.appendLine("  // __usvm_class_observe $encoded")
     }
 
+    private fun classIdentityDomain(): StringDomain = StringDomain(
+        maxLength = maxOf("target".length, "plain".length, surface.dataClasses.maxOf { it.id.length }),
+    )
+
+    private fun classIdentity(expression: String): String {
+        val registered = surface.dataClasses.mapIndexed { index, dataClass ->
+            val id = CallsExperimentJson.json.encodeToUtf8SafeString(dataClass.id)
+            "($expression) instanceof CallsDataClass$index ? $id : "
+        }.joinToString(separator = "")
+        return "(($expression) instanceof CallsTargetClass ? \"target\" : ${registered}\"plain\")"
+    }
+
+    private fun observationDomain(domain: PropertyDomain): PropertyDomain {
+        if (surface.dataClasses.isEmpty()) return domain
+
+        return when (domain) {
+            is ObjectDomain -> ObjectDomain(
+                fields = domain.fields.mapValues { (_, value) -> observationDomain(value) } +
+                    (CLASS_IDENTITY_FIELD to classIdentityDomain()),
+            )
+            is OptionalDomain -> domain.copy(value = observationDomain(domain.value))
+            is ArrayDomain -> domain.copy(element = observationDomain(domain.element))
+            else -> domain
+        }
+    }
+
     private fun snapshot(expression: String, domain: PropertyDomain): String = when (domain) {
         is ObjectDomain -> {
-            domain.fields.entries.joinToString(prefix = "{ ", postfix = " }") { (name, nested) ->
+            val entries = domain.fields.map { (name, nested) ->
                 require(name.matches(CLASS_IDENTIFIER)) { "Observed object fields must be identifiers" }
                 "$name: ${snapshot("($expression).$name", nested)}"
+            }.toMutableList()
+            if (surface.dataClasses.isNotEmpty()) {
+                entries += "$CLASS_IDENTITY_FIELD: ${classIdentity(expression)}"
             }
+            entries.joinToString(prefix = "{ ", postfix = " }")
         }
         is OptionalDomain -> {
             val nil = if (domain.nil == JsConcreteValue.Null) "null" else "undefined"
             val temporary = "snapshot_${snapshotIndex++}"
             val original = "snapshot_${snapshotIndex++}"
             declarations.appendLine("  const $original = $expression;")
-            declarations.appendLine("  let $temporary: ${domain.classTypeScriptType()};")
+            declarations.appendLine("  let $temporary: ${observationDomain(domain).classTypeScriptType()};")
             declarations.appendLine("  if ($original === $nil) {")
             declarations.appendLine("    $temporary = $nil;")
             declarations.appendLine("  } else {")
@@ -285,7 +369,7 @@ private class ClassScenarioSource(
         is ArrayDomain -> {
             val temporary = "snapshot_${snapshotIndex++}"
             val variable = "snapshot_index_${snapshotIndex++}"
-            declarations.appendLine("  const $temporary: ${domain.classTypeScriptType()} = [];")
+            declarations.appendLine("  const $temporary: ${observationDomain(domain).classTypeScriptType()} = [];")
             declarations.appendLine("  for (let $variable = 0; $variable < ($expression).length; $variable++) {")
             val element = snapshot("($expression)[$variable]", domain.element)
             declarations.appendLine("    $temporary[$variable] = $element;")
@@ -317,5 +401,15 @@ internal fun PropertyDomain.classTypeScriptType(): String = when (this) {
         "$key: ${domain.classTypeScriptType()}"
     }
 }
+
+private fun PropertyDomain.hasClassIdentityField(): Boolean = when (this) {
+    is ObjectDomain -> CLASS_IDENTITY_FIELD in fields || fields.values.any { it.hasClassIdentityField() }
+    is OptionalDomain -> value.hasClassIdentityField()
+    is ArrayDomain -> element.hasClassIdentityField()
+    is TupleDomain -> elements.any { it.hasClassIdentityField() }
+    else -> false
+}
+
+internal const val CLASS_IDENTITY_FIELD = "__usvmCallsClassIdentity"
 
 private val CLASS_IDENTIFIER = Regex("[A-Za-z_$][A-Za-z0-9_$]*")

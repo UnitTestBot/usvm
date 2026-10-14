@@ -54,6 +54,25 @@ internal data class CallsClassSourceInstrumentation(
         require(surface.stateFields.keys == expectedFields) {
             "Class harness must observe every original receiver data field: $expectedFields"
         }
+        validateDataClasses(surface)
+    }
+
+    private fun validateDataClasses(surface: CallsClassSurface) {
+        val duplicateExports = surface.dataClasses.map { dataClass -> dataClass.exportName }.distinct().size !=
+            surface.dataClasses.size
+        require(!duplicateExports) { "Companion data-class exports must be unique" }
+        for (dataClass in surface.dataClasses) {
+            require(dataClass.exportName != universe.className) { "The target class has its own observation identity" }
+            val original = inventory.dataClasses.singleOrNull { original ->
+                original.exportName == dataClass.exportName
+            }
+            requireNotNull(original) {
+                "Unverified companion data class ${dataClass.exportName} in ${universe.sourceFile}"
+            }
+            require(dataClass.fields.keys == original.fields.toSet()) {
+                "Companion data class ${dataClass.exportName} must preserve every original own data field"
+            }
+        }
     }
 
     companion object {

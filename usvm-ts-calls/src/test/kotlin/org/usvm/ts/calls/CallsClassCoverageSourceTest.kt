@@ -72,6 +72,70 @@ internal class CallsClassCoverageSourceTest {
     }
 
     @Test
+    fun `companion registry preserves exact same-source data class fields`() {
+        val sourceRoot = Files.createTempDirectory("calls-class-data-registry-")
+        try {
+            Files.writeString(
+                sourceRoot.resolve("Target.ts"),
+                """
+                    export class Target { run() { return 1; } }
+                    export class MapEntry<K, V> {
+                        key: K
+                        value: V
+
+                        constructor(key: K, value: V) {
+                            this.key = key
+                            this.value = value
+                        }
+                    }
+                    export class CallableCompanion { value = 1; run() { return 1; } }
+                """.trimIndent(),
+            )
+            val companion = CallsClassDataClass(
+                id = "entry",
+                exportName = "MapEntry",
+                fields = mapOf("key" to IntegerDomain(min = 0, max = 1), "value" to BooleanDomain),
+            )
+            val surface = CallsClassSurface(
+                sourceFile = "Target.ts",
+                exportName = "Target",
+                constructorInputs = emptyList(),
+                members = listOf(
+                    CallsClassMember(
+                        id = "run",
+                        name = "run",
+                        kind = CallsClassMemberKind.METHOD,
+                        inputs = emptyList(),
+                        resultDomain = IntegerDomain(min = 1, max = 1),
+                    ),
+                ),
+                stateFields = emptyMap(),
+                dataClasses = listOf(companion),
+            )
+            val instrumented = CallsClassSourceInstrumentation.create(
+                sourceRoot = sourceRoot,
+                sourceFile = "Target.ts",
+                className = "Target",
+            )
+
+            instrumented.validateSurface(surface = surface)
+            val missingField = companion.copy(fields = companion.fields - "value")
+            val extraField = companion.copy(fields = companion.fields + ("foreign" to BooleanDomain))
+            val unknownClass = companion.copy(exportName = "Unknown")
+            val callableClass = companion.copy(exportName = "CallableCompanion", fields = mapOf("value" to BooleanDomain))
+            for (invalid in listOf(missingField, extraField, unknownClass, callableClass)) {
+                assertFailsWith<IllegalArgumentException> {
+                    instrumented.validateSurface(surface = surface.copy(dataClasses = listOf(invalid)))
+                }
+            }
+        } finally {
+            Files.walk(sourceRoot).use { files ->
+                files.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists)
+            }
+        }
+    }
+
+    @Test
     fun `class source drift and unsupported reachability remain explicit failures`() {
         val sourceRoot = Files.createTempDirectory("calls-class-source-drift-")
         try {
