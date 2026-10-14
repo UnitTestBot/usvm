@@ -106,14 +106,20 @@ internal fun extractCallsClassObservation(
     method: EtsMethod,
     fields: Map<String, PropertyDomain>,
 ): CallsClassObservation {
-    val completion = if (state.methodResult is TsMethodResult.TsException) {
-        CallsCoverageCompletion.THREW
-    } else {
-        CallsCoverageCompletion.RETURNED
+    val methodResult = state.methodResult
+    if (methodResult is TsMethodResult.TsException) {
+        return CallsClassObservation(
+            completion = CallsCoverageCompletion.THREW,
+            representable = false,
+            diagnostic = "Thrown class scenarios have no complete return/state snapshot; " +
+                "exception type=${methodResult.type}, value=${methodResult.value}",
+        )
     }
+
+    val completion = CallsCoverageCompletion.RETURNED
     return runCatching {
-        val result = state.methodResult as? TsMethodResult.Success.RegularCall
-            ?: error("Thrown class scenarios have no complete return/state snapshot")
+        val result = methodResult as? TsMethodResult.Success.RegularCall
+            ?: error("Class scenario did not produce a regular returned snapshot")
         require(result.method == method) { "Class scenario did not complete its wrapper" }
         val value = ClassObservationValueResolver(state, state.models.first()).resolve(
             domain = ObjectDomain(fields),

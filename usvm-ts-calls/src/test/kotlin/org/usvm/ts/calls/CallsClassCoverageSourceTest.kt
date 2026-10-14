@@ -122,7 +122,10 @@ internal class CallsClassCoverageSourceTest {
             val missingField = companion.copy(fields = companion.fields - "value")
             val extraField = companion.copy(fields = companion.fields + ("foreign" to BooleanDomain))
             val unknownClass = companion.copy(exportName = "Unknown")
-            val callableClass = companion.copy(exportName = "CallableCompanion", fields = mapOf("value" to BooleanDomain))
+            val callableClass = companion.copy(
+                exportName = "CallableCompanion",
+                fields = mapOf("value" to BooleanDomain),
+            )
             for (invalid in listOf(missingField, extraField, unknownClass, callableClass)) {
                 assertFailsWith<IllegalArgumentException> {
                     instrumented.validateSurface(surface = surface.copy(dataClasses = listOf(invalid)))

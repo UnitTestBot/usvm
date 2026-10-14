@@ -15,6 +15,7 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.TsSolverQueryEvent
+import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallModelSelection
 import org.usvm.machine.interpreter.TsInitialStateSolverUnknownException
@@ -90,6 +91,49 @@ internal data class CallsClassSolverMetrics(
     val statusCounts: Map<String, Long>,
 )
 
+/** Ordered observer notifications for the entire search, without implying ancestry of any candidate. */
+@Serializable
+internal data class CallsClassUnknownCallEvent(
+    val eventIndex: Int,
+    val callSite: CallsUnknownCallSite,
+    val callerMethodSignature: String,
+    val callee: CallsUnknownCallCallee,
+    val failureReason: String,
+    val decision: CallsUnknownCallDecisionKind,
+    val outcome: String,
+    val modelId: String? = null,
+    val residualPolicy: String? = null,
+) {
+    init {
+        require(eventIndex >= 1) { "Unknown-call event index must be positive" }
+        require((decision == CallsUnknownCallDecisionKind.MODEL_APPLIED) == (modelId != null)) {
+            "Exactly a model-applied decision must carry a model ID"
+        }
+        require((decision == CallsUnknownCallDecisionKind.RESIDUAL_FALLBACK) == (residualPolicy != null)) {
+            "Exactly a residual-fallback decision must carry a residual policy"
+        }
+    }
+}
+
+internal fun TsUnknownCallEvent.toCallsClassUnknownCallEvent(eventIndex: Int): CallsClassUnknownCallEvent {
+    val selectedDecision = decision
+
+    return CallsClassUnknownCallEvent(
+        eventIndex = eventIndex,
+        callSite = callSite.toCallsUnknownCallSite(),
+        callerMethodSignature = callSite.location.method.signature.toString(),
+        callee = callee.toCallsUnknownCallCallee(),
+        failureReason = failureReason.name,
+        decision = when (selectedDecision) {
+            is TsUnknownCallDecision.ModelApplied -> CallsUnknownCallDecisionKind.MODEL_APPLIED
+            is TsUnknownCallDecision.ResidualFallback -> CallsUnknownCallDecisionKind.RESIDUAL_FALLBACK
+        },
+        outcome = outcome.name,
+        modelId = (selectedDecision as? TsUnknownCallDecision.ModelApplied)?.modelId,
+        residualPolicy = (selectedDecision as? TsUnknownCallDecision.ResidualFallback)?.policy?.name,
+    )
+}
+
 @Serializable
 internal data class CallsClassSearchResult(
     val search: CallsCoverageSearchResult,
@@ -102,6 +146,7 @@ internal data class CallsClassSearchResult(
     val solverCalls: Long? = null,
     val solverElapsedMillis: Long? = null,
     val unavailableMetrics: List<String> = emptyList(),
+    val unknownCalls: List<CallsClassUnknownCallEvent> = emptyList(),
 )
 
 /** A class owns one machine and one timeout; scenarios retain their path selectors between bounded visits. */
@@ -194,14 +239,14 @@ internal class CurrentTsCallsClassCoverageEngine {
             targetClass = requireNotNull(scope.classSignature),
         )
         val limitations = linkedSetOf<String>()
-        var unknownCallEvents = 0
+        val unknownCalls = mutableListOf<CallsClassUnknownCallEvent>()
         val interpreterObserver = object : TsInterpreterObserver {
             override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
                 limitations += "${event.reason.name}: ${event.detail}"
             }
 
             override fun onUnknownCall(event: TsUnknownCallEvent) {
-                unknownCallEvents++
+                unknownCalls += event.toCallsClassUnknownCallEvent(eventIndex = unknownCalls.size + 1)
             }
 
             override fun onSolverQuery(event: TsSolverQueryEvent) {
@@ -286,7 +331,8 @@ internal class CurrentTsCallsClassCoverageEngine {
             search = search,
             scenarios = schedulingObserver.metrics(candidates),
             visits = schedulingObserver.visits,
-            unknownCallEvents = unknownCallEvents,
+            unknownCallEvents = unknownCalls.size,
+            unknownCalls = unknownCalls.toList(),
             methods = schedulingObserver.methodMetrics(),
             timeQuanta = schedulingObserver.timeQuanta,
             solverQueries = schedulingObserver.solverMetrics(),
