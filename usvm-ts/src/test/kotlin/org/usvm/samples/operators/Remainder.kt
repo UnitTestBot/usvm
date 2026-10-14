@@ -14,6 +14,29 @@ class Remainder : TsMethodTestRunner() {
     override val scene = loadScene(tsPath)
 
     @Test
+    fun `remainder uses a truncating quotient`() {
+        assertRemainderProperty(methodName = "remTruncationExamples")
+    }
+
+    @Test
+    fun `remainder preserves exceptional and signed zero cases`() {
+        assertRemainderProperty(methodName = "remExceptionalValues")
+    }
+
+    @Test
+    fun `remainder handles very large and tiny finite operands`() {
+        assertRemainderProperty(methodName = "remFiniteExtremes")
+    }
+
+    private fun assertRemainderProperty(methodName: String) {
+        discoverProperties<TsTestValue.TsBoolean>(
+            method = getMethod(methodName),
+            { result -> result.value },
+            invariants = arrayOf({ result -> result.value }),
+        )
+    }
+
+    @Test
     fun testRemNumberAndNumber() {
         val method = getMethod("remNumberAndNumber")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(

@@ -45,4 +45,11 @@ export class RuntimeLimitationBoundaries {
 
         return values[0] - 1;
     }
+
+    static dynamicStringAdditionOrSupportedNumericSibling(useString: boolean): number {
+        const values: any[] = [7];
+        if (useString) values[0] = "1";
+
+        return values[0] + 2;
+    }
 }

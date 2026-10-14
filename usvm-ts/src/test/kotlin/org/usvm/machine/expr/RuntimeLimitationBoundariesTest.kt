@@ -25,6 +25,8 @@ import kotlin.test.assertTrue
 
 private const val UNMODELED_NUMERIC_CONVERSION_REASON =
     "Numeric conversion needs a modeled StringToNumber or ToPrimitive conversion"
+private const val DYNAMIC_STRING_ADDITION_REASON =
+    "Dynamic string addition needs a modeled mixed-kind result"
 
 class RuntimeLimitationBoundariesTest : TsMethodTestRunner() {
     override val scene = EtsScene(
@@ -159,7 +161,20 @@ class RuntimeLimitationBoundariesTest : TsMethodTestRunner() {
         assertUnsupportedNumericSibling(methodName = "unsupportedNumericBinaryConversionOrSupportedSibling", expected = 6.0)
     }
 
-    private fun assertUnsupportedNumericSibling(methodName: String, expected: Double) {
+    @Test
+    fun `dynamic string addition stops while numeric sibling returns`() {
+        assertUnsupportedNumericSibling(
+            methodName = "dynamicStringAdditionOrSupportedNumericSibling",
+            expected = 9.0,
+            unsupportedReason = DYNAMIC_STRING_ADDITION_REASON,
+        )
+    }
+
+    private fun assertUnsupportedNumericSibling(
+        methodName: String,
+        expected: Double,
+        unsupportedReason: String = UNMODELED_NUMERIC_CONVERSION_REASON,
+    ) {
         val target = method(name = methodName)
         val options = UMachineOptions(
             pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
@@ -174,7 +189,7 @@ class RuntimeLimitationBoundariesTest : TsMethodTestRunner() {
             val witnesses = outcome.states.map { state -> TsTestResolver().resolve(target, state) }
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
-            assertTrue(UNMODELED_NUMERIC_CONVERSION_REASON in outcome.unsupportedPaths)
+            assertTrue(unsupportedReason in outcome.unsupportedPaths)
             assertTrue(witnesses.isNotEmpty())
             witnesses.forEach { witness ->
                 val useString = witness.before.parameters.single() as TsTestValue.TsBoolean

@@ -62,6 +62,20 @@ private fun TsContext.stringReferenceAndKind(
     return reference to mkAnd(referenceKind, stringKind)
 }
 
+private fun TsContext.primitiveStringKind(
+    value: UExpr<*>,
+    scope: TsStepScope,
+): UBoolExpr {
+    if (value is UIteExpr<*>) {
+        val trueIsString = primitiveStringKind(value.trueBranch, scope)
+        val falseIsString = primitiveStringKind(value.falseBranch, scope)
+
+        return mkIte(value.condition, trueIsString, falseIsString)
+    }
+
+    return stringReferenceAndKind(value, scope).second
+}
+
 /** Compare backed primitive strings by the first differing UTF-16 code unit, then by length. */
 private fun TsContext.stringValueLessThan(
     lhs: UHeapRef,
@@ -1205,6 +1219,20 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
             activeGuard: UBoolExpr,
         ): UExpr<KFp64Sort> {
+            val lhsIsString = primitiveStringKind(lhs, scope)
+            val rhsIsString = primitiveStringKind(rhs, scope)
+            val hasStringOperand = mkOr(lhsIsString, rhsIsString)
+            val numericAlternative = mkOr(mkNot(activeGuard), mkNot(hasStringOperand))
+            if (!numericAlternative.isTrue) {
+                val unsupportedReason = "Dynamic string addition needs a modeled mixed-kind result"
+                val currentNumericAlternative = scope.fork(numericAlternative, blockOnFalseState = {
+                    terminateAsUnsupported(reason = unsupportedReason)
+                })
+                if (currentNumericAlternative == null) {
+                    throw UnsupportedOperationException(unsupportedReason)
+                }
+            }
+
             val left = mkNumericExprWithGuard(expr = lhs, scope = scope, activeGuard = activeGuard)
             val right = mkNumericExprWithGuard(expr = rhs, scope = scope, activeGuard = activeGuard)
 
