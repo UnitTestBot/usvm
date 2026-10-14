@@ -53,6 +53,7 @@ import org.usvm.machine.expr.TsVoidSort
 import org.usvm.machine.expr.TsVoidValue
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.EtsFakeType
+import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.types.single
 import org.usvm.util.componentType
@@ -196,12 +197,24 @@ class TsContext(
     }
 
     fun arrayDescriptorOf(type: EtsArrayType): EtsArrayType {
-        val storageElement = type.componentType
-        return when (storageElement) {
-            is EtsBooleanType -> EtsArrayType(EtsBooleanType, dimensions = 1)
-            is EtsNumberType -> EtsArrayType(EtsNumberType, dimensions = 1)
-            else -> EtsArrayType(EtsUnknownType, dimensions = 1)
+        val storageElement = arrayStorageElementType(type.componentType)
+        return EtsArrayType(elementType = storageElement, dimensions = 1)
+    }
+
+    // Descriptor-only operations remain available when the element's expression sort is unsupported.
+    private fun arrayStorageElementType(type: EtsType): EtsType = when (type) {
+        is EtsBooleanType, is EtsBooleanLiteralType -> EtsBooleanType
+        is EtsNumberType, is EtsNumberLiteralType -> EtsNumberType
+        is EtsAliasType -> arrayStorageElementType(type.originalType)
+        is EtsIntersectionType -> {
+            val storageElements = type.types.map(::arrayStorageElementType)
+            val commonStorageElement = storageElements.firstOrNull() ?: EtsUnknownType
+            val hasCommonStorageElement = storageElements.all { it == commonStorageElement }
+
+            if (hasCommonStorageElement) commonStorageElement else EtsUnknownType
         }
+
+        else -> EtsUnknownType
     }
 
     fun UConcreteHeapRef.getFakeType(memory: UReadOnlyMemory<*>): EtsFakeType {
@@ -241,6 +254,19 @@ class TsContext(
     fun UExpr<*>.toFakeObject(scope: TsStepScope): UConcreteHeapRef {
         if (isFakeObject()) {
             return this
+        }
+
+        val hasFakeResultBranches = sort == addressSort && asExpr(addressSort).hasFakeValueBranch()
+        if (this is UIteExpr<*> && hasFakeResultBranches) {
+            val trueValue = trueBranch.asExpr(addressSort)
+            val falseValue = falseBranch.asExpr(addressSort)
+
+            return iteWriteIntoFakeObject(
+                scope = scope,
+                condition = condition,
+                trueBranchValue = trueValue,
+                falseBranchValue = falseValue,
+            )
         }
 
         val ref = createFakeObjectRef()
