@@ -117,6 +117,7 @@ import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsOptions
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
+import org.usvm.machine.onRuntimeFeatureLimitationSafely
 import org.usvm.machine.call.TsUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.dispatch
@@ -212,7 +213,7 @@ class TsExprResolver(
 
     internal fun reportRuntimeFeatureLimitation(reason: TsRuntimeFeatureLimitationReason, detail: String) {
         val statement = scope.calcOnState { lastStmt }
-        observer?.onRuntimeFeatureLimitation(
+        observer?.onRuntimeFeatureLimitationSafely(
             TsRuntimeFeatureLimitationEvent(statement = statement, reason = reason, detail = detail),
         )
     }

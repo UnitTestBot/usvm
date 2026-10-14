@@ -20,6 +20,7 @@ import org.usvm.util.TsTestResolver
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 private const val UNMODELED_NUMERIC_CONVERSION_REASON =
@@ -60,6 +61,40 @@ class RuntimeLimitationBoundariesTest : TsMethodTestRunner() {
             )
         }
         assertEquals(listOf(TsRuntimeFeatureLimitationReason.REGULAR_EXPRESSION_LITERAL), observer.reasons)
+    }
+
+    @Test
+    fun `throwing limitation observer preserves unsupported path metadata`() {
+        var callbackCount = 0
+        val observer = object : TsInterpreterObserver {
+            override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
+                callbackCount++
+                error("Injected runtime limitation observer failure")
+            }
+        }
+        val target = method("regularExpressionLiteral")
+
+        val result = TsMachine(
+            scene = scene,
+            options = UMachineOptions(
+                solverType = SolverType.YICES,
+                throwExceptionOnStepFailure = true,
+                stepsFromLastCovered = 128L,
+            ),
+            tsOptions = TsOptions(),
+            observer = observer,
+        ).use { machine ->
+            machine.analyzeWithMetadata(methods = listOf(target))
+        }
+
+        assertEquals(1, callbackCount)
+        assertTrue(result.states.isEmpty())
+        assertTrue(result.runtimeLimited)
+        assertFalse(result.engineFailed)
+        assertTrue(
+            result.unsupportedPaths.any { "REGULAR_EXPRESSION_LITERAL" in it },
+            result.unsupportedPaths.toString(),
+        )
     }
 
     @Test
