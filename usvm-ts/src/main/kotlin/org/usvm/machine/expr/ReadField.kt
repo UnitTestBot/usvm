@@ -52,6 +52,7 @@ import org.usvm.util.mkStringBackingElementLValue
 import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.mkStringBackingLengthLValue
 import org.usvm.util.resolveEtsField
+import org.usvm.util.boxArrayValue as boxRuntimeValue
 
 private val logger = KotlinLogging.logger {}
 
@@ -172,10 +173,10 @@ private fun TsContext.resolveDeclaredField(
         resolved = resolvedField,
         hierarchy = hierarchy,
     )
-    val declaredType = if (objectClass != null) {
-        declaredLiteralField?.type
-    } else {
-        (resolvedField as? TsResolutionResult.Unique)?.property?.type
+    val declaredType = when {
+        objectClass != null && writtenSort != null -> null
+        objectClass != null -> declaredLiteralField?.type
+        else -> (resolvedField as? TsResolutionResult.Unique)?.property?.type
     }
 
     val requiresDeclaredPresence = !wasWritten
@@ -362,8 +363,8 @@ private fun TsContext.readField(
 
         // If a fake object is already created and assigned to the field,
         // there is no need to recreate another one.
-        if (ref.isFakeObject()) {
-            ref
+        if (ref.hasFakeValueBranch()) {
+            boxRuntimeValue(scope = scope, value = ref)
         } else {
             val fakeObj = mkFakeValue(scope, bool, fp, ref)
             lValuesToAllocatedFakeObjects += refLValue to fakeObj

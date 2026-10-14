@@ -27,6 +27,7 @@ import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.resolveEtsField
 import org.usvm.util.truncateKnownArrayIndices
+import org.usvm.util.boxArrayValue as boxRuntimeValue
 
 private val logger = KotlinLogging.logger {}
 
@@ -209,8 +210,6 @@ fun TsContext.assignToInstanceField(
     if (wroteModeledErrorField) return Unit
 
     val objectLiteralClass = objectLiteralClass(scope, unwrappedInstance, hierarchy)
-    val declaredObjectLiteralField = objectLiteralClass?.fields?.singleOrNull { it.name == field.name }
-    val newObjectLiteralField = objectLiteralClass != null && declaredObjectLiteralField == null
 
     // An object literal can acquire a new own property after creation. Requiring its
     // allocation type to declare the field would reject that valid JavaScript write.
@@ -222,13 +221,14 @@ fun TsContext.assignToInstanceField(
         scope.assert(fieldExists) ?: return null
     }
 
+    val containsBoxedValue = expr.sort == addressSort && expr.asExpr(addressSort).hasFakeValueBranch()
+
     // Determine the field sort.
     val sort = when {
-        declaredObjectLiteralField != null -> typeToSort(declaredObjectLiteralField.type)
-        newObjectLiteralField -> {
-            // An undeclared own property accepts any runtime kind. A fake wrapper
-            // has address storage even when its payload is a number or boolean.
-            if (expr.isFakeObject()) unresolvedSort else expr.sort
+        objectLiteralClass != null -> {
+            // Literal declarations describe inferred source types, not runtime restrictions.
+            // Optional values can be undefined even when the frontend inferred a primitive field.
+            if (containsBoxedValue) unresolvedSort else expr.sort
         }
 
         else -> when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
@@ -268,7 +268,7 @@ fun TsContext.assignToInstanceField(
     // Otherwise, assign expr directly.
     return scope.doWithState {
         if (sort is TsUnresolvedSort) {
-            val fakeObject = expr.toFakeObject(scope)
+            val fakeObject = boxRuntimeValue(scope = scope, value = expr)
             val lValue = mkFieldLValue(addressSort, unwrappedInstance, field)
             lValuesToAllocatedFakeObjects += lValue to fakeObject
             memory.write(lValue, fakeObject, guard = trueExpr)
@@ -291,7 +291,7 @@ fun TsContext.assignToInstanceField(
         memory.write(deletedFieldLValue(unwrappedInstance, field), falseExpr, guard = trueExpr)
         if (isAllocatedConcreteHeapRef(unwrappedInstance)) {
             writtenConcreteFields = writtenConcreteFields + (unwrappedInstance to field.name)
-            if (newObjectLiteralField) {
+            if (objectLiteralClass != null) {
                 saveObjectLiteralFieldSort(unwrappedInstance, field.name, sort)
             }
         }
