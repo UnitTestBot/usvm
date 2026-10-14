@@ -15,10 +15,8 @@ fun TsContext.readGlobal(
     file: EtsFile,
     name: String,
 ): UExpr<*>? = scope.calcOnState {
-    // Initialize globals in `file` if necessary
     ensureGlobalsInitialized(scope, file) ?: return@calcOnState null
 
-    // Restore the sort of the requested global variable
     val savedSort = getSortForDfltObjectField(file, name)
     if (savedSort == null) {
         // No saved sort means this variable was never assigned to, which is an error to read.
@@ -27,10 +25,8 @@ fun TsContext.readGlobal(
         return@calcOnState null
     }
 
-    // Get the globals container object
     val dfltObject = getDfltObject(file)
 
-    // Read the global variable as a field of the globals container object
     val lValue = mkFieldLValue(savedSort, dfltObject, name)
     memory.read(lValue)
 }

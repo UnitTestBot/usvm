@@ -13,9 +13,7 @@ private val logger = KotlinLogging.logger {}
 internal fun TsExprResolver.handleAssignToLocal(
     local: EtsLocal,
     expr: UExpr<*>,
-): Unit? = with(ctx) {
-    return assignToLocal(scope, local, expr)
-}
+): Unit? = ctx.assignToLocal(scope, local, expr)
 
 fun TsContext.assignToLocal(
     scope: TsStepScope,
@@ -26,16 +24,15 @@ fun TsContext.assignToLocal(
 
     val idx = getLocalIdx(local, currentMethod)
 
-    // If local is found in the current method:
     if (idx != null) {
         return scope.doWithState {
             saveSortForLocal(idx, expr.sort)
+
             val lValue = mkRegisterStackLValue(expr.sort, idx)
             memory.write(lValue, expr.cast(), guard = trueExpr)
         }
     }
 
-    // Local not found, probably a global
     val file = currentMethod.enclosingClass!!.declaringFile!!
     logger.warn {
         "Assigning to a global variable: ${local.name} in $file"
