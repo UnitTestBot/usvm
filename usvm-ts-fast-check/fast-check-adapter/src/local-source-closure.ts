@@ -253,7 +253,9 @@ function safeModuleStatement(statement: ts.Statement, source: ts.SourceFile): bo
   }
   if (ts.isExportAssignment(statement)) return !statement.isExportEquals && safeInitializer(statement.expression, source)
   if (ts.isClassDeclaration(statement)) {
-    if (statement.heritageClauses?.length || ts.getDecorators(statement)?.length) return false
+    const extendsRuntimeBase = statement.heritageClauses?.some(clause => clause.token === ts.SyntaxKind.ExtendsKeyword) ?? false
+    const decorated = (ts.getDecorators(statement)?.length ?? 0) > 0
+    if (extendsRuntimeBase || decorated) return false
     return statement.members.every(member => !ts.isClassStaticBlockDeclaration(member)
       && !(member.name && ts.isComputedPropertyName(member.name))
       && !(ts.canHaveDecorators(member) && ts.getDecorators(member)?.length)
