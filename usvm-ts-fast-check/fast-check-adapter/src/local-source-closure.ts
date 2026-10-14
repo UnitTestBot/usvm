@@ -22,6 +22,7 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
     return { files: [], reasonCode: 'IMPORTED_CALLEES_UNSUPPORTED', diagnostic: String(error) }
   }
   const pending = [entry]
+  let entryAmbientIssue: string | undefined
   const files = new Set<string>()
   const runtimeImportRanges = new Map<string, Array<{ start: number, end: number }>>()
   const sources = new Map<string, ts.SourceFile>()
@@ -83,8 +84,9 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
         }
       } else {
         if (isAmbientRuntimeDeclaration(statement)) {
-          return reject('IMPORTED_CALLEES_UNSUPPORTED',
-            `Ambient runtime declaration in ${relative} at offset ${statement.getStart(source)}`)
+          const diagnostic = `Ambient runtime declaration in ${relative} at offset ${statement.getStart(source)}`
+          if (file !== entry) return reject('IMPORTED_CALLEES_UNSUPPORTED', diagnostic)
+          entryAmbientIssue ??= diagnostic
         }
       }
     }
@@ -107,6 +109,10 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
         return reject('IMPORTED_CALLEES_UNSUPPORTED', String(error))
       }
     }
+  }
+
+  if (files.size > 1 && entryAmbientIssue !== undefined) {
+    return reject('IMPORTED_CALLEES_UNSUPPORTED', entryAmbientIssue)
   }
 
   // Replay overlays link dependency files to the original checkout. A back-import

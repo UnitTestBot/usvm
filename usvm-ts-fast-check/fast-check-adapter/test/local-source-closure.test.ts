@@ -160,7 +160,7 @@ test('binding inspection does not read ignored type imports outside the runtime 
 
 test('single-source captures retain their dedicated validation route', () => {
   workspace({
-    'entry.ts': 'const source = { value: 7 }; const alias = source; '
+    'entry.ts': 'declare const unused: unknown; const source = { value: 7 }; const alias = source; '
       + 'export const entry = () => source === alias;',
   }, root => {
     assert.deepEqual(inspectLocalSourceClosure(root, path.join(root, 'entry.ts')), { files: ['entry.ts'] })
