@@ -1,6 +1,11 @@
 import importlib.util
 import json
+import os
+import signal
+import subprocess
+import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -11,6 +16,70 @@ SPEC.loader.exec_module(campaign)
 
 
 class CampaignIntegrityTest(unittest.TestCase):
+    def write_process_tree(self, directory):
+        heartbeat = directory / 'heartbeat'
+        child = directory / 'grandchild.py'
+        child.write_text('import sys,time\nfrom pathlib import Path\n'
+                         'path=Path(sys.argv[1])\nwhile True:\n'
+                         '    with path.open("a") as stream: stream.write("alive\\n")\n'
+                         '    time.sleep(0.02)\n')
+        parent = directory / 'parent.py'
+        parent.write_text('import subprocess,sys,time\n'
+                          'subprocess.Popen([sys.executable,sys.argv[1],sys.argv[2]])\n'
+                          'time.sleep(60)\n')
+        return parent, child, heartbeat
+
+    def assert_heartbeat_stopped(self, heartbeat):
+        self.assertTrue(heartbeat.exists())
+        after_cleanup = heartbeat.read_bytes()
+
+        time.sleep(0.15)
+
+        self.assertEqual(after_cleanup, heartbeat.read_bytes())
+
+    @unittest.skipUnless(os.name == 'posix', 'Owned process groups are a POSIX contract')
+    def test_cell_timeout_stops_grandchildren_and_records_log_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            parent, child, heartbeat = self.write_process_tree(directory)
+
+            outcome = campaign.invoke(Path(sys.executable), [parent, child, heartbeat],
+                                      directory / 'cell.log', timeout=0.5)
+
+            self.assertIsNone(outcome['exitCode'])
+            self.assertTrue(outcome['processGroupKilled'])
+            self.assertEqual(outcome['pid'], outcome['processGroupId'])
+            self.assertEqual(campaign.sha(directory / 'cell.log'), outcome['logSha256'])
+            self.assert_heartbeat_stopped(heartbeat)
+
+    @unittest.skipUnless(os.name == 'posix', 'Owned process groups are a POSIX contract')
+    def test_terminating_campaign_stops_active_cell_process_group(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            parent, child, heartbeat = self.write_process_tree(directory)
+            wrapper = directory / 'campaign.py'
+            wrapper.write_text('import importlib.util,sys\nfrom pathlib import Path\n'
+                               'spec=importlib.util.spec_from_file_location("campaign",sys.argv[1])\n'
+                               'module=importlib.util.module_from_spec(spec)\nspec.loader.exec_module(module)\n'
+                               'module.invoke(Path(sys.executable),sys.argv[2:5],Path(sys.argv[5]),timeout=60)\n')
+            process = subprocess.Popen([sys.executable, str(wrapper), str(Path(campaign.__file__).resolve()),
+                                        str(parent), str(child), str(heartbeat), str(directory / 'cell.log')])
+            try:
+                deadline = time.monotonic() + 5
+                while not heartbeat.exists() and time.monotonic() < deadline:
+                    time.sleep(0.02)
+                self.assertTrue(heartbeat.exists())
+
+                process.send_signal(signal.SIGTERM)
+                code = process.wait(timeout=5)
+
+                self.assertEqual(128 + signal.SIGTERM, code)
+                self.assert_heartbeat_stopped(heartbeat)
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.wait()
+
     def make_phase_fixture(self, output):
         prepared = output / 'prepared'
         directory = prepared / 'class'
