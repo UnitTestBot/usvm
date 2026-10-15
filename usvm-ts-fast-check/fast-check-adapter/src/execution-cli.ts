@@ -13,13 +13,19 @@ interface FastCheckExecutionFailure {
 const writeProtocolOutput = process.stdout.write.bind(process.stdout) as typeof process.stdout.write;
 process.stdout.write = process.stderr.write.bind(process.stderr) as typeof process.stdout.write;
 
-const coverage = await startExecutionCoverage();
+let request: unknown;
+let inputError: unknown;
+try { request = parseRequest(await readStdin()); } catch (error) { inputError = error; }
+const admittedOnly = request !== null && typeof request === 'object' &&
+  (request as Record<string, unknown>).admittedCoverage === true;
+const timeoutMillis = request !== null && typeof request === 'object'
+  ? (request as Record<string, unknown>).timeoutMillis : undefined;
+const coverage = await startExecutionCoverage(admittedOnly, typeof timeoutMillis === 'number' ? timeoutMillis : 60_000);
 try {
   let response: FastCheckExecutionSuccess | FastCheckExecutionFailure;
   try {
-    const request = parseRequest(await readStdin());
-
-    response = await executeProperty(request);
+    if (inputError !== undefined) throw inputError;
+    response = await executeProperty(request, coverage);
   } catch (error: unknown) {
     if (!(error instanceof ProtocolError)) throw error;
 

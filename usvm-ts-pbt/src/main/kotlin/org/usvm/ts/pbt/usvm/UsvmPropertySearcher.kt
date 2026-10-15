@@ -38,8 +38,13 @@ class UsvmPropertySearcher(
     ),
     private val tsOptions: TsOptions = TsOptions(),
     projectionOptions: UsvmProjectionOptions = UsvmProjectionOptions(),
+    private val deadlineReached: (() -> Boolean)? = null,
 ) {
-    private val machineOptions = machineOptions.copy(stateCollectionStrategy = StateCollectionStrategy.ALL)
+    private val machineOptions = machineOptions.copy(
+        stateCollectionStrategy = StateCollectionStrategy.ALL,
+        // Statement saturation cannot establish the absence of a property violation.
+        stopOnCoverage = 0,
+    )
     private val projectionOptions = projectionOptions.copy(
         maxSymbolicCollectionLength = minOf(projectionOptions.maxSymbolicCollectionLength, tsOptions.maxArraySize),
         maxSymbolicStringLength = minOf(projectionOptions.maxSymbolicStringLength, tsOptions.maxArraySize),
@@ -50,6 +55,7 @@ class UsvmPropertySearcher(
         manifest: PropertyManifest,
         mapping: PropertyEtsMappingArtifact,
         concreteCapability: ProjectionCapability,
+        coverageFeedback: UsvmCoverageFeedback? = null,
     ): UsvmPropertySearchResult {
         val capability = capabilityResolver.resolve(
             manifest = manifest,
@@ -77,13 +83,25 @@ class UsvmPropertySearcher(
                 ),
             )
         val precondition = mapping.precondition?.exactTargetOrNull()
+        val guidedSelectionSupported = !machineOptions.useMerging && !machineOptions.loopIterativeDeepening &&
+            machineOptions.loopIterationLimit == null
+        val guidance = coverageFeedback?.let { feedback ->
+            UsvmEdgeGuidance(
+                scene = scene,
+                manifest = manifest,
+                mapping = mapping,
+                feedback = feedback,
+                selectionSupported = guidedSelectionSupported,
+            )
+        }
 
         return executeSearch(
             manifest = manifest,
             predicate = predicate,
             precondition = precondition,
             capability = capability,
-        )
+            guidance = guidance,
+        ).copy(edgeGuidance = guidance?.snapshot())
     }
 
     private fun executeSearch(
@@ -91,10 +109,23 @@ class UsvmPropertySearcher(
         predicate: EtsEntryPointTarget,
         precondition: EtsEntryPointTarget?,
         capability: UsvmPropertyProjectionCapability,
+        guidance: UsvmEdgeGuidance?,
     ): UsvmPropertySearchResult {
         lateinit var projection: UsvmDeclaredDomainProjection
         val target = UsvmViolationTsTarget()
-        val observer = UsvmViolationObserver(target)
+        lateinit var observer: UsvmViolationObserver
+        observer = UsvmViolationObserver(target) { state ->
+            if (guidance != null) {
+                val violation = observer.violationStates.lastOrNull { it.pathNode === state.pathNode }
+                val replayState = violation ?: state
+                val inputs = runCatching {
+                    UsvmCandidateInputResolver(projection.objectShapes).resolve(
+                        replayState, manifest.inputs, projection,
+                    )
+                }.getOrNull()
+                if (inputs != null) guidance.confirm(replayState, inputs, expectsViolation = violation != null)
+            }
+        }
         val objectShapes = PlainObjectInputShapes(scene, manifest.inputs.map { it.domain })
         val domainProjector = UsvmDomainProjector(projectionOptions, objectShapes)
 
@@ -103,6 +134,8 @@ class UsvmPropertySearcher(
             options = machineOptions,
             tsOptions = tsOptions,
             machineObserver = observer,
+            deadlineReached = deadlineReached,
+            pathSelectorFactory = guidance?.takeIf { it.selectionSupported }?.let { it::selector },
         ).use { machine ->
             val analysis = machine.analyzeWithMetadata(
                 methods = listOf(predicate.method),
@@ -422,6 +455,7 @@ private class UsvmViolationTsTarget : TsTarget(location = null)
 
 private class UsvmViolationObserver(
     private val target: UsvmViolationTsTarget,
+    private val onCompletedState: (TsState) -> Unit = {},
 ) : UMachineObserver<TsState> {
     private val mutableViolationStates = mutableListOf<TsState>()
 
@@ -461,6 +495,7 @@ private class UsvmViolationObserver(
 
             TsMethodResult.NoCall -> Unit
         }
+        onCompletedState(state)
     }
 
     private fun recordViolation(state: TsState) {

@@ -29,12 +29,17 @@ data class PropertyRunConfiguration(
     val examples: List<List<JsConcreteValue>> = emptyList(),
     val coverageRequest: PropertyCoverageRequest? = null,
     val observationRequest: PropertyObservationRequest? = null,
+    /** Execute the single explicit example, without generation after rejection or shrinking. */
+    val exactReplay: Boolean = false,
 ) {
     init {
         require(numRuns > 0) { "Number of runs must be positive" }
         require(timeoutMillis > 0) { "Timeout must be positive" }
         require(timeoutMillis <= MAX_TIMEOUT_MILLIS) {
             "Timeout exceeds the maximum delay supported by Node timers"
+        }
+        require(!exactReplay || (numRuns == 1 && examples.size == 1 && replayPath == null)) {
+            "Exact replay requires one explicit example, one run, and no replay path"
         }
     }
 

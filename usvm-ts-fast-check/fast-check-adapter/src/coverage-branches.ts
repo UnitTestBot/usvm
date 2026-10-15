@@ -353,7 +353,9 @@ function convertIf(
   if (trueBody === undefined) {
     return { kind: 'unsupported', reason: 'Empty true arm has no V8 execution point' };
   }
-  if (falseBody === undefined) {
+  const following = followingStatement(node);
+  const joinsAfterIf = node.elseStatement === undefined && falseBody === undefined && following !== undefined;
+  if (falseBody === undefined && !joinsAfterIf) {
     const reason = node.elseStatement === undefined
       ? 'An if without else requires a terminating true arm and a following false successor'
       : 'Empty false arm has no V8 execution point';
@@ -363,7 +365,14 @@ function convertIf(
 
   const conditionHits = countAt(node.getStart(ast), ast, coverage, map);
   const trueHits = countAt(trueBody.getStart(ast), ast, coverage, map);
-  const falseHits = countAt(falseBody.getStart(ast), ast, coverage, map);
+  // For a non-terminating true arm, the following statement is a join, not the
+  // false edge. Conservation is valid only when every condition evaluation
+  // reaches that join; a throwing condition/arm makes the record ambiguous.
+  const joinHits = joinsAfterIf ? countAt(following.getStart(ast), ast, coverage, map) : undefined;
+  const falseHits = joinsAfterIf
+    ? conditionHits !== undefined && joinHits === conditionHits && trueHits !== undefined
+      ? conditionHits - trueHits : undefined
+    : countAt((falseBody as ts.Statement).getStart(ast), ast, coverage, map);
 
   if (conditionHits === undefined || trueHits === undefined || falseHits === undefined ||
       trueHits < 0 || falseHits < 0 || trueHits + falseHits !== conditionHits) {
@@ -452,6 +461,10 @@ function falseSuccessor(node: ts.IfStatement): ts.Statement | undefined {
     (ts.isReturnStatement(soleStatement) || ts.isThrowStatement(soleStatement));
   if (!terminates) return undefined;
 
+  return followingStatement(node);
+}
+
+function followingStatement(node: ts.IfStatement): ts.Statement | undefined {
   const parent = node.parent;
   if (!ts.isBlock(parent) && !ts.isSourceFile(parent)) return undefined;
 
