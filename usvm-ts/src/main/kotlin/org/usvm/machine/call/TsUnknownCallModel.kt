@@ -84,7 +84,8 @@ class TsUnknownCallModelSuccessor(
  * A semantic-model execution plan.
  *
  * [residualGuard] is the input domain not covered by the model. `null` means that the model completely handles every
- * state accepted by [TsUnknownCallModel.apply].
+ * state accepted by [TsUnknownCallModel.apply]. States excluded by every successor guard are pruned, for example
+ * when a model-owned assumption is inconsistent with the current path.
  */
 class TsUnknownCallModelExecution(
     successors: List<TsUnknownCallModelSuccessor>,

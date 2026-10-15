@@ -143,7 +143,10 @@ class TsModelUnknownCallDispatcher(
         }
         scope.forkMulti(guardedStateChanges)
 
-        if (modelApplied) {
+        // A complete relation (including assume(false)) may have no feasible outputs. That is pruning,
+        // not an unsupported call and not a request to invent a fresh result.
+        val modelPruned = !modelApplied && !freshResidualApplied && !stoppedResidualIsSatisfiable
+        if (modelApplied || modelPruned) {
             observer?.onUnknownCallSafely(event(call, TsUnknownCallDecision.ModelApplied(application.modelId)))
         }
         if (freshResidualApplied || stoppedResidualIsSatisfiable) {
@@ -154,7 +157,7 @@ class TsModelUnknownCallDispatcher(
             modelApplied -> TsUnknownCallOutcome.MODEL_APPLIED
             freshResidualApplied -> TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN
             stoppedResidualIsSatisfiable -> TsUnknownCallOutcome.PATH_STOPPED
-            else -> error("Semantic model ${application.modelId} produced no satisfiable successor or residual state")
+            else -> TsUnknownCallOutcome.MODEL_APPLIED
         }
     }
 
