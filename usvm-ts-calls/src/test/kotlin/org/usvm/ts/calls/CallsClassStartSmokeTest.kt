@@ -164,6 +164,13 @@ class CallsClassStartSmokeTest {
         assertTrue(raw.sourceMappedIrUniverse.containsAll(raw.sourceMappedIrEntered))
         assertTrue(raw.stateSnapshotFailures.isEmpty(), raw.stateSnapshotFailures.toString())
         assertTrue(Files.isRegularFile(directory.resolve("output/states.jsonl.gz")))
+        assertEquals(1, raw.timingSchemaVersion)
+        assertTrue(raw.searchElapsedMillis > 0)
+        assertEquals(raw.analysisElapsedMillis, raw.analysisSetupElapsedMillis + raw.searchElapsedMillis)
+        assertEquals((raw.searchElapsedMillis - raw.budgetMillis).coerceAtLeast(0), raw.budgetOverrunMillis)
+        assertTrue(raw.searchSnapshotElapsedNanos > 0)
+        assertEquals(0L, raw.drainSnapshotElapsedNanos)
+        assertEquals(0L, raw.remainingStates)
     }
 
     @Test

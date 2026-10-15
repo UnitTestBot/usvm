@@ -608,7 +608,10 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
                 )
             } finally {
                 analysisElapsedMillis = analysisStarted.elapsedNow().inWholeMilliseconds
-                raw?.retainRemainingStates(selector = remainingSelector)
+                if (raw != null) {
+                    checkpoint(next = "DRAIN_REMAINING")
+                    raw.retainRemainingStates(selector = remainingSelector)
+                }
             }
         }
         case.verifyInputs()
