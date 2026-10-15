@@ -151,6 +151,31 @@ internal class CallsReadinessAndTelemetryTest : CurrentTsCallsSymbolicEngineTest
     }
 
     @Test
+    fun `preflight reports a call graph error for a merged class and interface`() {
+        val fixture = fixture(
+            source = """
+                class Merged {
+                  static containsA(value: string): boolean { return /a/.test(value); }
+                }
+                interface Merged {}
+
+                export function callsMerged(value: string): boolean {
+                  return Merged.containsA(value);
+                }
+            """.trimIndent(),
+            exportName = "callsMerged",
+            inputs = listOf(PropertyInput(name = "value", domain = StringDomain(maxLength = 3))),
+            targetStatement = "return Merged.containsA(value);",
+        )
+
+        val result = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.TOOL_ERROR, result.status, result.toString())
+        assertEquals(CallsSymbolicPreflightReasonCode.FRONTEND_OR_PREFLIGHT_ERROR, result.reasonCode, result.toString())
+        assertTrue(result.diagnostic.orEmpty().contains("Multiple classes with the same signature"))
+    }
+
+    @Test
     fun `preflight ignores regex allocation in an unreachable same-file helper`() {
         val fixture = fixture(
             source = """

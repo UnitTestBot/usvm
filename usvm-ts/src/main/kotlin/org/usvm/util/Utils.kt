@@ -20,7 +20,6 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.mkFakeValue
 
-// Built-in KContext.bvToBool has identical implementation.
 fun TsContext.boolToFp(expr: UExpr<UBoolSort>): UExpr<KFp64Sort> =
     mkIte(expr, mkFp64(1.0), mkFp64(0.0))
 

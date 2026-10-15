@@ -1,17 +1,21 @@
 package org.usvm.ts.calls
 
 import org.usvm.machine.call.TsUnknownCallEvent
+import org.usvm.machine.call.TsUnknownCallOutcome
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.JsNumber
 import org.usvm.ts.pbt.model.NumberDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 internal class CurrentTsCallsSymbolicEngineTest : CurrentTsCallsSymbolicEngineTestSupport() {
@@ -22,10 +26,10 @@ internal class CurrentTsCallsSymbolicEngineTest : CurrentTsCallsSymbolicEngineTe
             bundledNativeFrontendRevision = "bundled:published-jacodb",
         )
 
-        engine.verifyNativeFrontendOnce(expectedRevision = "bundled:published-jacodb")
+        engine.verifyNativeFrontend(expectedRevision = "bundled:published-jacodb")
 
         assertFailsWith<IllegalArgumentException> {
-            engine.verifyNativeFrontendOnce(expectedRevision = "bundled:different-jacodb")
+            engine.verifyNativeFrontend(expectedRevision = "bundled:different-jacodb")
         }
     }
 
@@ -38,8 +42,111 @@ internal class CurrentTsCallsSymbolicEngineTest : CurrentTsCallsSymbolicEngineTe
         )
 
         assertFailsWith<IllegalArgumentException> {
-            engine.verifyNativeFrontendOnce(expectedRevision = "bundled:published-jacodb")
+            engine.verifyNativeFrontend(expectedRevision = "bundled:published-jacodb")
         }
+    }
+
+    @Test
+    fun `bundled frontend rejects native frontend directory system property`() {
+        val propertyName = "ets.frontend.dir"
+        val previousValue = System.getProperty(propertyName)
+        val engine = CurrentTsCallsSymbolicEngine(
+            environment = emptyMap<String, String>()::get,
+            bundledNativeFrontendRevision = "bundled:published-jacodb",
+        )
+
+        System.setProperty(propertyName, "/unused/frontend")
+        try {
+            val failure = assertFailsWith<IllegalArgumentException> {
+                engine.verifyNativeFrontend(expectedRevision = "bundled:published-jacodb")
+            }
+
+            assertTrue(failure.message.orEmpty().contains(propertyName))
+        } finally {
+            if (previousValue == null) {
+                System.clearProperty(propertyName)
+            } else {
+                System.setProperty(propertyName, previousValue)
+            }
+        }
+    }
+
+    @Test
+    fun `external frontend verifies generated script and library bytes`() {
+        val frontend = externalFrontendFixture()
+        val identity = callsExternalFrontendIdentity(frontend)
+        val revision = runGit(frontend, "rev-parse", "HEAD").trim()
+        val engine = CurrentTsCallsSymbolicEngine(
+            environment = mapOf("ETS_FRONTEND_DIR" to frontend.toString())::get,
+        )
+
+        engine.verifyNativeFrontend(expectedRevision = identity)
+
+        val malformedIdentity = assertFailsWith<IllegalArgumentException> {
+            engine.verifyNativeFrontend(expectedRevision = revision)
+        }
+        assertTrue(malformedIdentity.message.orEmpty().contains("@sha256:"))
+
+        Files.writeString(frontend.resolve("dist/index.js"), "different script")
+        val changedScript = assertFailsWith<IllegalArgumentException> {
+            engine.verifyNativeFrontend(expectedRevision = identity)
+        }
+        assertTrue(changedScript.message.orEmpty().contains("runtime digest differs"))
+
+        Files.writeString(frontend.resolve("dist/index.js"), "original script")
+        Files.writeString(frontend.resolve("dist/lib.d.ts"), "different library")
+        val changedLibrary = assertFailsWith<IllegalArgumentException> {
+            engine.verifyNativeFrontend(expectedRevision = identity)
+        }
+        assertTrue(changedLibrary.message.orEmpty().contains("runtime digest differs"))
+    }
+
+    @Test
+    fun `external frontend environment directory takes precedence over system property`() {
+        val frontend = externalFrontendFixture()
+        val identity = callsExternalFrontendIdentity(frontend)
+        val propertyName = "ets.frontend.dir"
+        val previousValue = System.getProperty(propertyName)
+        val engine = CurrentTsCallsSymbolicEngine(
+            environment = mapOf("ETS_FRONTEND_DIR" to frontend.toString())::get,
+        )
+
+        System.setProperty(propertyName, "/unused/frontend")
+        try {
+            engine.verifyNativeFrontend(expectedRevision = identity)
+        } finally {
+            if (previousValue == null) {
+                System.clearProperty(propertyName)
+            } else {
+                System.setProperty(propertyName, previousValue)
+            }
+        }
+    }
+
+    @Test
+    fun `frontend identity command returns frozen external source and runtime identity`() {
+        val frontend = externalFrontendFixture()
+
+        val identity = frontendIdentity(args = listOf(frontend.toString()))
+
+        assertEquals(callsExternalFrontendIdentity(frontend), identity)
+        assertTrue(identity.matches(Regex("[0-9a-f]{40}@sha256:[0-9a-f]{64}")))
+    }
+
+    private fun externalFrontendFixture(): Path {
+        val frontend = Files.createDirectory(directory.resolve("frontend"))
+        Files.writeString(frontend.resolve(".gitignore"), "dist/\n")
+        Files.writeString(frontend.resolve("source.ts"), "export const value = 1;\n")
+        runGit(frontend, "init")
+        runGit(frontend, "config", "user.name", "USVM Tests")
+        runGit(frontend, "config", "user.email", "usvm@example.test")
+        runGit(frontend, "add", ".")
+        runGit(frontend, "commit", "-m", "Create frontend fixture")
+
+        val dist = Files.createDirectory(frontend.resolve("dist"))
+        Files.writeString(dist.resolve("index.js"), "original script")
+        Files.writeString(dist.resolve("lib.d.ts"), "original library")
+        return frontend
     }
 
     @Test
@@ -393,6 +500,36 @@ internal class CurrentTsCallsSymbolicEngineTest : CurrentTsCallsSymbolicEngineTe
         assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
         assertTrue(unknownCalls.any { event -> event.callee.name == "now" })
         fixture.assertReplayConfirmed(assertNotNull(result.inputs, result.toString()))
+    }
+
+    @Test
+    fun `stopped residual call before source target is unsupported`() {
+        val fixture = fixture(
+            source = """
+                export const stoppedNativeDate = (value: number): boolean => {
+                  if (value === 0 && Date.now() > 0) {
+                    return true;
+                  }
+                  return false;
+                };
+            """.trimIndent(),
+            exportName = "stoppedNativeDate",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+
+        val preflight = fixture.preflight()
+        val unknownCalls = mutableListOf<TsUnknownCallEvent>()
+        val result = fixture.search(
+            modelIds = emptySet(),
+            profile = CallsExperimentProfile.FROZEN_STOP,
+            unknownCallEventSink = unknownCalls::add,
+        )
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, preflight.status, preflight.toString())
+        assertTrue(unknownCalls.any { event -> event.outcome == TsUnknownCallOutcome.PATH_STOPPED })
+        assertEquals(CallsSymbolicStatus.UNSUPPORTED, result.status, result.toString())
+        assertNull(result.inputs)
     }
 
     @Test

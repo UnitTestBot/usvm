@@ -13,7 +13,11 @@ inline fun <reified T> Json.encodeToUtf8SafeString(value: T): String =
  * Keep this at the text boundary: JsonElement string contents must retain their original UTF-16 value.
  */
 fun escapeJsonSurrogates(json: String): String {
-    if (json.none { it.isSurrogate() }) return json
+    val hasNoSurrogates = json.none { it.isSurrogate() }
+
+    if (hasNoSurrogates) {
+        return json
+    }
 
     return buildString {
         json.forEach { unit ->

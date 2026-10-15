@@ -45,6 +45,7 @@ import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsLtEqExpr
 import org.jacodb.ets.model.EtsLtExpr
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsMulExpr
 import org.jacodb.ets.model.EtsNegExpr
@@ -120,13 +121,16 @@ import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.call.TsUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.dispatch
+import org.usvm.machine.interpreter.PromiseCallback
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.getGlobals
 import org.usvm.machine.interpreter.getResolvedValue
+import org.usvm.machine.interpreter.isDefinitelyNonThenable
 import org.usvm.machine.interpreter.isResolved
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
+import org.usvm.machine.onRuntimeFeatureLimitationSafely
 import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.runtimeFunctionType
@@ -212,7 +216,7 @@ class TsExprResolver(
 
     internal fun reportRuntimeFeatureLimitation(reason: TsRuntimeFeatureLimitationReason, detail: String) {
         val statement = scope.calcOnState { lastStmt }
-        observer?.onRuntimeFeatureLimitation(
+        observer?.onRuntimeFeatureLimitationSafely(
             TsRuntimeFeatureLimitationEvent(statement = statement, reason = reason, detail = detail),
         )
     }
@@ -395,9 +399,11 @@ class TsExprResolver(
 
         // The native frontend saves ToNumeric's result and writes the source target
         // in a separate assignment. Mutating that snapshot would corrupt postfix results.
-        val numericSnapshot = target is EtsLocal && target.name.startsWith("%") && scope.calcOnState {
+        val frontendTemp = target as? EtsLocal
+        val isFrontendTemp = frontendTemp?.name?.startsWith("%") == true
+        val numericSnapshot = isFrontendTemp && scope.calcOnState {
             lastEnteredMethod.cfg.stmts.any { stmt ->
-                stmt is EtsAssignStmt && stmt.lhv == target && stmt.rhv is EtsToNumericExpr
+                stmt is EtsAssignStmt && stmt.lhv == frontendTemp && stmt.rhv is EtsToNumericExpr
             }
         }
         if (numericSnapshot) return updatedValue
@@ -612,72 +618,62 @@ class TsExprResolver(
     override fun visit(expr: EtsAwaitExpr): UExpr<out USort>? = with(ctx) {
         val arg = resolve(expr.arg) ?: return null
 
+        val awaited = if (arg.isFakeObject()) {
+            arg.extractSingleValueFromFakeObjectOrNull(scope)
+                ?: throw UnsupportedOperationException("Awaiting a value with symbolic runtime kind is not modeled")
+        } else {
+            arg
+        }
+
         // Awaiting primitives does nothing.
-        if (arg.sort != addressSort) {
-            return arg
+        if (awaited.sort != addressSort) {
+            return awaited
         }
         // ...including null/undefined
-        if (arg == mkTsNullValue() || arg == mkUndefinedValue()) {
-            return arg
+        if (awaited == mkTsNullValue() || awaited == mkUndefinedValue()) {
+            return awaited
         }
 
-        val promise = arg.asExpr(addressSort)
-        check(isAllocatedConcreteHeapRef(promise)) {
-            "Promise instance should be allocated, but it is not: $promise"
+        val promise = awaited.asExpr(addressSort)
+        if (!isAllocatedConcreteHeapRef(promise)) {
+            throw UnsupportedOperationException("Awaiting a symbolic object or thenable is not modeled")
         }
 
-        val promiseState = scope.calcOnState {
-            promiseState[promise] ?: PromiseState.PENDING
+        val registeredState = scope.calcOnState { promiseState[promise] }
+        val registeredExecutor = scope.calcOnState { promiseExecutor[promise] }
+        if (registeredState == null && registeredExecutor == null) {
+            if (isDefinitelyNonThenable(scope, promise, hierarchy)) {
+                return promise
+            }
+
+            throw UnsupportedOperationException("Awaiting an unmodeled object or thenable is not supported")
         }
+
+        val promiseState = registeredState ?: PromiseState.PENDING
 
         val isResolved = scope.calcOnState { isResolved(promise) }
+        val methodResult = scope.calcOnState { methodResult }
+        val completedExecutorResult = methodResult as? TsMethodResult.Success.RegularCall
+        val returnedFromThisExecutor = completedExecutorResult?.method == registeredExecutor &&
+            registeredExecutor != null
+        if (returnedFromThisExecutor) {
+            if (!isResolved) {
+                throw UnsupportedOperationException("Awaited Promise executor returned before settling $promise")
+            }
+
+            scope.doWithState { this.methodResult = TsMethodResult.NoCall }
+        }
+
         return if (!isResolved) {
             // If the promise is not resolved yet, we need to call the executor to resolve it.
             check(promiseState == PromiseState.PENDING) {
                 "Promise state should be PENDING, but it is $promiseState for $promise"
             }
-            val executor = scope.calcOnState {
-                promiseExecutor[promise]
-                    ?: error("Await expression should have a promise executor, but it is not set for $promise")
-            }
+            val executor = registeredExecutor
+                ?: error("Await expression should have a promise executor, but it is not set for $promise")
             check(executor.cfg.stmts.isNotEmpty())
 
-            val args: MutableList<UExpr<*>> = mutableListOf()
-
-            // Executor lambda does not have 'this', so we fill it with 'undefined':
-            args += mkUndefinedValue()
-
-            val params = executor.parameters.toMutableList()
-            if (params.isNotEmpty() && params[0].type is EtsLexicalEnvType) {
-                params.removeFirst()
-                // TODO: handle closures
-                args += mkUndefinedValue()
-            }
-            if (params.isNotEmpty()) {
-                args += resolveFunctionRef
-                scope.doWithState {
-                    setBoundThis(resolveFunctionRef, promise)
-                }
-                if (params.size >= 2) {
-                    args += rejectFunctionRef
-                    scope.doWithState {
-                        setBoundThis(rejectFunctionRef, promise)
-                    }
-                    if (params.size >= 3) {
-                        error(
-                            "Promise executor should have at most 3 parameters" +
-                                " (closures, resolve, reject), but got ${params.size}"
-                        )
-                    }
-                }
-            }
-            scope.doWithState {
-                pushSortsForActualArguments(args)
-                memory.stack.push(args.toTypedArray(), executor.localsCount)
-                registerCallee(currentStatement, executor.cfg)
-                callStack.push(executor, currentStatement)
-                newStmt(executor.cfg.stmts.first())
-            }
+            invokePromiseExecutor(promise, executor)
             null
         } else {
             when (promiseState) {
@@ -709,12 +705,72 @@ class TsExprResolver(
                     }
                     scope.doWithState {
                         // TODO: create proper exception
-                        methodResult = TsMethodResult.TsException(reason, EtsStringType)
+                        this.methodResult = TsMethodResult.TsException(reason, EtsStringType)
                     }
                     null
                 }
             }
         }
+    }
+
+    private fun invokePromiseExecutor(promise: UConcreteHeapRef, executor: EtsMethod) {
+        val args = buildPromiseExecutorArguments(promise, executor)
+
+        scope.doWithState {
+            pushSortsForActualArguments(args)
+            memory.stack.push(args.toTypedArray(), executor.localsCount)
+            registerCallee(currentStatement, executor.cfg)
+            callStack.push(executor, currentStatement)
+            newStmt(executor.cfg.stmts.first())
+        }
+    }
+
+    private fun buildPromiseExecutorArguments(
+        promise: UConcreteHeapRef,
+        executor: EtsMethod,
+    ): List<UExpr<*>> = with(ctx) {
+        val args: MutableList<UExpr<*>> = mutableListOf()
+
+        // Executor lambda does not have 'this', so we fill it with 'undefined':
+        args += mkUndefinedValue()
+
+        val params = executor.parameters.toMutableList()
+        if (params.isNotEmpty() && params[0].type is EtsLexicalEnvType) {
+            params.removeFirst()
+            // TODO: handle closures
+            args += mkUndefinedValue()
+        }
+
+        if (params.isNotEmpty()) {
+            val resolveCallback = allocateConcreteRef()
+            args += resolveCallback
+            scope.doWithState {
+                registerPromiseCallback(
+                    resolveCallback,
+                    PromiseCallback(promise = promise, settlement = PromiseState.FULFILLED),
+                )
+            }
+        }
+
+        if (params.size >= 2) {
+            val rejectCallback = allocateConcreteRef()
+            args += rejectCallback
+            scope.doWithState {
+                registerPromiseCallback(
+                    rejectCallback,
+                    PromiseCallback(promise = promise, settlement = PromiseState.REJECTED),
+                )
+            }
+        }
+
+        if (params.size >= 3) {
+            error(
+                "Promise executor should have at most 3 parameters" +
+                    " (closures, resolve, reject), but got ${params.size}"
+            )
+        }
+
+        args
     }
 
     override fun visit(expr: EtsYieldExpr): UExpr<out USort>? {
@@ -798,6 +854,7 @@ class TsExprResolver(
                 }
             }
         }
+
         return resolveBinaryOperator(TsBinaryOperator.Add, expr)
     }
 
@@ -828,7 +885,8 @@ class TsExprResolver(
         // Resolve a conditional field payload through the same forker used for property and array receivers.
         val ref = resolveHeapRef(scope, operand.asExpr(addressSort)) ?: return null
         concreteStringValue(ref)?.let { return mkStringConstant(it, scope) }
-        if (scope.calcOnState { ref !in boundedStringBackingRefs }) {
+        val hasModeledStringBacking = scope.calcOnState { ref in boundedStringBackingRefs }
+        if (!hasModeledStringBacking) {
             stopRuntimeFeatureLimitation(
                 reason = TsRuntimeFeatureLimitationReason.STRING_CONCAT_OPERAND_CONVERSION,
                 detail = "String concatenation needs a modeled string backing for $ref",
@@ -1061,17 +1119,11 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsLtEqExpr): UExpr<out USort>? {
-        val eq = resolve(EtsEqExpr(expr.left, expr.right)) ?: return null
-        val lt = resolve(EtsLtExpr(expr.left, expr.right)) ?: return null
-
-        return ctx.mkOr(eq.asExpr(ctx.boolSort), lt.asExpr(ctx.boolSort))
+        return resolveBinaryOperator(TsBinaryOperator.LtEq, expr)
     }
 
     override fun visit(expr: EtsGtEqExpr): UExpr<out USort>? {
-        val eq = resolve(EtsEqExpr(expr.left, expr.right)) ?: return null
-        val gt = resolve(EtsGtExpr(expr.left, expr.right)) ?: return null
-
-        return ctx.mkOr(eq.asExpr(ctx.boolSort), gt.asExpr(ctx.boolSort))
+        return resolveBinaryOperator(TsBinaryOperator.GtEq, expr)
     }
 
     override fun visit(expr: EtsInExpr): UExpr<out USort>? = with(ctx) {
@@ -1292,34 +1344,19 @@ class TsExprResolver(
                 if (captured != null) return handleCapturedInstanceCall(expr, captured)
 
                 if (isAllocatedConcreteHeapRef(ptr)) {
-                    // Handle 'resolve' and 'reject' function call
-                    if (ptr === resolveFunctionRef || ptr === rejectFunctionRef) {
-                        val promise = scope.calcOnState {
-                            boundThis[ptr] ?: error("No bound 'this' for ptr: $ptr")
-                        }
-                        check(isAllocatedConcreteHeapRef(promise)) {
-                            "Promise instance should be allocated, but it is not: $promise"
-                        }
-                        val newState = when (ptr) {
-                            resolveFunctionRef -> PromiseState.FULFILLED
-                            rejectFunctionRef -> PromiseState.REJECTED
-                            else -> error("Unexpected ptr: $ptr")
-                        }
+                    val callback = scope.calcOnState { promiseCallbacks[ptr] }
+                    if (callback != null) {
                         check(expr.args.size == 1) {
-                            "${
-                                when (ptr) {
-                                    resolveFunctionRef -> "resolve"
-                                    rejectFunctionRef -> "reject"
-                                    else -> error("Unexpected ptr: $ptr")
-                                }
-                            }() should have exactly one argument, but got ${expr.args.size}"
+                            "Promise settlement callback should have exactly one argument, but got ${expr.args.size}"
                         }
                         val value = resolve(expr.args.single()) ?: return null
                         val fakeValue = value.toFakeObject(scope)
                         scope.doWithState {
-                            markResolved(promise.asExpr(addressSort))
-                            setPromiseState(promise, newState)
-                            setResolvedValue(promise.asExpr(addressSort), fakeValue)
+                            if (!isResolved(callback.promise)) {
+                                markResolved(callback.promise)
+                                setPromiseState(callback.promise, callback.settlement)
+                                setResolvedValue(callback.promise, fakeValue)
+                            }
                         }
                         return mkUndefinedValue()
                     }
@@ -1333,9 +1370,11 @@ class TsExprResolver(
                         )
                         return null
                     }
-                    val resolvedArgs = buildList {
-                        callee.closure?.let(::add)
-                        expr.args.mapTo(this) { resolve(it) ?: return null }
+                    val resolvedArgs = mutableListOf<UExpr<*>>()
+                    callee.closure?.let(resolvedArgs::add)
+                    for (argument in expr.args) {
+                        val resolved = resolve(argument) ?: return null
+                        resolvedArgs += resolved
                     }
 
                     when (val approximation = tryApproximateResolvedFunctionCall(callee.method)) {
@@ -1592,6 +1631,23 @@ class TsSimpleValueResolver(
     private val scope: TsStepScope,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
+    private fun hasSourceBinding(local: EtsLocal): Boolean {
+        val currentMethod = scope.calcOnState { lastEnteredMethod }
+        val isCurrentLocal = ctx.getLocalIdx(local, currentMethod) != null
+        val isParameter = currentMethod.parameters.any { it.name == local.name }
+        if (isCurrentLocal || isParameter) return true
+
+        val currentFile = currentMethod.enclosingClass?.declaringFile
+        val defaultClass = currentFile?.classes?.firstOrNull { it.name == DEFAULT_ARK_CLASS_NAME }
+        val defaultMethod = defaultClass?.methods?.firstOrNull { it.name == DEFAULT_ARK_METHOD_NAME }
+        val isGlobal = defaultMethod?.cfg?.stmts
+            ?.filterIsInstance<EtsAssignStmt>()
+            ?.any { (it.lhv as? EtsLocal)?.name == local.name } == true
+        val isImported = currentFile?.importInfos?.any { it.name == local.name } == true
+
+        return isGlobal || isImported
+    }
+
     private fun resolveLocal(local: EtsValue): UExpr<*>? = with(ctx) {
         check(local is EtsLocal || local is EtsThis || local is EtsParameterRef) {
             "Expected EtsLocal, EtsThis, or EtsParameterRef, but got ${local::class.java}: $local"
@@ -1664,7 +1720,8 @@ class TsSimpleValueResolver(
         }
 
         // If local is a global variable:
-        if (globals.any { it.name == local.name }) {
+        val isGlobal = globals.any { it.name == local.name }
+        if (isGlobal) {
             logger.info { "Reading global variable: $local in $file" }
             return readGlobal(scope, file, local.name)
         }
@@ -1700,11 +1757,16 @@ class TsSimpleValueResolver(
     }
 
     override fun visit(local: EtsLocal): UExpr<out USort>? {
+        val isNonFiniteNumericName = local.name == "NaN" || local.name == "Infinity"
+        if (isNonFiniteNumericName && hasSourceBinding(local)) {
+            return resolveLocal(local)
+        }
+
         if (local.name == "NaN") {
             return ctx.mkFp64NaN()
         }
         if (local.name == "Infinity") {
-            return ctx.mkFpInf(false, ctx.fp64Sort)
+            return ctx.mkFpInf(signBit = false, ctx.fp64Sort)
         }
 
         if (local.name.startsWith(NAMED_FUNCTION_REFERENCE_PREFIX)) {

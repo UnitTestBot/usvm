@@ -29,4 +29,49 @@ class Arg : TsMethodTestRunner() {
             )
         )
     }
+
+    @Test
+    fun `shadowed Infinity reads its parameter`() {
+        val method = getMethod(methodName = "shadowInfinity")
+
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { argument, result -> argument.number == 3.0 && result.number == 3.0 },
+            { argument, result -> argument.number == -2.0 && result.number == -2.0 },
+            invariants = arrayOf({ argument, result ->
+                if (argument.isNaN()) result.isNaN() else result.number == argument.number
+            }),
+        )
+    }
+
+    @Test
+    fun `shadowed NaN reads its parameter`() {
+        val method = getMethod(methodName = "shadowNaN")
+
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { argument, result -> argument.number == 4.0 && result.number == 4.0 },
+            { argument, result -> argument.number == -5.0 && result.number == -5.0 },
+            invariants = arrayOf({ argument, result ->
+                if (argument.isNaN()) result.isNaN() else result.number == argument.number
+            }),
+        )
+    }
+
+    @Test
+    fun `builtin nonfinite values remain numeric constants`() {
+        val infinityMethod = getMethod(methodName = "builtinInfinity")
+        val nanMethod = getMethod(methodName = "builtinNaN")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = infinityMethod,
+            { result -> result.number == Double.POSITIVE_INFINITY },
+            invariants = arrayOf({ result -> result.number == Double.POSITIVE_INFINITY }),
+        )
+        discoverProperties<TsTestValue.TsNumber>(
+            method = nanMethod,
+            { result -> result.isNaN() },
+            invariants = arrayOf({ result -> result.isNaN() }),
+        )
+    }
 }

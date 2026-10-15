@@ -24,9 +24,9 @@ internal fun TsContext.resolveAmbiguousFieldSort(
     }
 
     val runtimeType = scope.calcOnState { memory.typeStreamOf(instance).singleOrNull() }
-    val runtimeClass = (runtimeType as? EtsClassType)?.let { type ->
-        scene.projectAndSdkClasses.singleOrNull { it.signature == type.signature }
-    } ?: return unresolvedSort
+    val runtimeClassType = runtimeType as? EtsClassType ?: return unresolvedSort
+    val runtimeClass = scene.projectAndSdkClasses.singleOrNull { it.signature == runtimeClassType.signature }
+        ?: return unresolvedSort
 
     val ancestors = hierarchy.getAncestors(runtimeClass)
     // Scene-wide resolution repeats a declaration for every class inheriting it.

@@ -42,6 +42,7 @@ class TsCatchRoutingTest : TsMethodTestRunner() {
     @Test
     fun `catch paths retain the thrown value and replay in Node`() {
         val conditionalCatch = getMethod(methodName = "conditionalCatch", className = "Exceptions")
+
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = conditionalCatch,
             { input, result -> input.number == 0.0 && result.number == 2.0 },
@@ -51,6 +52,7 @@ class TsCatchRoutingTest : TsMethodTestRunner() {
 
         for (name in listOf("caughtValue", "nestedCatch", "catchesCall", "rethrowToOuter")) {
             val method = getMethod(methodName = name, className = "Exceptions")
+
             discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
                 method = method,
                 { input, result -> result.number == input.number + 1.0 },
@@ -117,6 +119,7 @@ class TsCatchRoutingTest : TsMethodTestRunner() {
                 }
             }
         }
+
         assertNodeReplay(
             source = script,
             directory = directory,

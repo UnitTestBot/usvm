@@ -1,11 +1,18 @@
 package org.usvm.samples.operators
 
 import org.jacodb.ets.model.EtsScene
+import org.usvm.StateCollectionStrategy
 import org.usvm.api.TsTestValue
+import org.usvm.machine.TsAnalysisStopReason
+import org.usvm.machine.TsMachine
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
 import org.usvm.util.toDouble
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import kotlin.time.Duration
 
 class Less : TsMethodTestRunner() {
     private val tsPath = "/samples/operators/Less.ts"
@@ -46,11 +53,28 @@ class Less : TsMethodTestRunner() {
     }
 
     @Test
-    fun testLessRefs() {
+    fun `object comparison reports unmodeled primitive conversion`() {
         val method = getMethod("lessRefs")
-        discoverProperties<TsTestValue.TsClass, TsTestValue.TsClass, TsTestValue.TsBoolean>(
-            method,
+        val analysisOptions = options.copy(
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = 0,
+            timeout = Duration.INFINITE,
+            throwExceptionOnStepFailure = false,
         )
+
+        val outcome = TsMachine(scene = scene, options = analysisOptions, tsOptions = tsOptions).use { machine ->
+            machine.analyzeWithMetadata(methods = listOf(method))
+        }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.states.isEmpty())
+        assertEquals(
+            expected = listOf("Numeric conversion needs a modeled StringToNumber or ToPrimitive conversion"),
+            actual = outcome.unsupportedPaths,
+        )
+        assertFalse(outcome.timedOut)
+        assertFalse(outcome.unsupportedCall)
+        assertFalse(outcome.engineFailed)
     }
 
     @Test

@@ -1,5 +1,7 @@
 package org.usvm.ts.calls
 
+import org.usvm.machine.call.TsResidualCallPolicy
+import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.ts.pbt.model.ArrayDomain
@@ -13,6 +15,7 @@ import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -52,6 +55,62 @@ internal class CallsObjectInputsTest : CurrentTsCallsSymbolicEngineTestSupport()
         assertTrue(assertIs<JsConcreteValue.Number>(input.fields.getValue("score")).toDouble() > 5)
         assertEquals(JsConcreteValue.Boolean(true), input.fields.getValue("enabled"))
         fixture.assertReplayConfirmed(inputs)
+    }
+
+    @Test
+    fun `plain object satisfies fields from separate intersection members`() {
+        val fixture = fixture(
+            source = """
+                export function accepts(input: { a: number } & { b: number }): boolean {
+                  if (input.a === 7 && input.b === 11) return true;
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "accepts",
+            inputs = listOf(
+                PropertyInput(
+                    name = "input",
+                    domain = ObjectDomain(
+                        mapOf(
+                            "a" to IntegerDomain(min = 6, max = 8),
+                            "b" to IntegerDomain(min = 10, max = 12),
+                        ),
+                    ),
+                ),
+            ),
+            targetStatement = "return true;",
+        )
+
+        val preflight = fixture.preflight()
+        val result = fixture.search(modelIds = emptySet())
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, preflight.status, preflight.toString())
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        val inputs = assertNotNull(result.inputs, result.toString())
+        val input = assertIs<JsConcreteValue.Object>(inputs.single())
+        assertEquals(JsConcreteValue.number(7.0), input.fields.getValue("a"))
+        assertEquals(JsConcreteValue.number(11.0), input.fields.getValue("b"))
+        fixture.assertReplayConfirmed(inputs)
+    }
+
+    @Test
+    fun `intersection field must satisfy every declaring member`() {
+        val fixture = fixture(
+            source = """
+                export function accepts(input: { value: number } & { value: boolean }): boolean {
+                  return true;
+                }
+            """.trimIndent(),
+            exportName = "accepts",
+            inputs = listOf(PropertyInput(name = "input", domain = ObjectDomain(mapOf("value" to NumberDomain())))),
+            targetStatement = "return true;",
+        )
+
+        val preflight = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, preflight.status, preflight.toString())
+        assertEquals(CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED, preflight.reasonCode)
+        assertTrue(preflight.diagnostic.orEmpty().contains("inputs.input.value"), preflight.toString())
     }
 
     @Test
@@ -122,13 +181,37 @@ internal class CallsObjectInputsTest : CurrentTsCallsSymbolicEngineTestSupport()
             inputs = listOf(PropertyInput(name = "input", domain = ObjectDomain(mapOf("x" to NumberDomain())))),
             targetStatement = "return true;",
         )
+        val plainObjectProperties = mapOf("x" to JsConcreteValue.number(value = 1.0))
+        val plainInput = JsConcreteValue.Object(plainObjectProperties)
         val unknownCalls = mutableListOf<TsUnknownCallEvent>()
 
         val result = fixture.search(modelIds = emptySet(), unknownCallEventSink = unknownCalls::add)
+        val replay = OriginalTypeScriptTargetReplayer().replay(
+            sourceRoots = listOf(fixture.sourceRoot),
+            entryPoint = fixture.function.entryPoint,
+            inputs = listOf(plainInput),
+            target = fixture.target,
+            timeoutMillis = 10_000L,
+        )
 
-        assertEquals(CallsSymbolicStatus.UNREACHED, result.status, result.toString())
+        // The missing-method STOP_PATH is an unsupported search boundary before the return target.
+        assertEquals(CallsSymbolicStatus.UNSUPPORTED, result.status, result.toString())
+        assertFalse(result.solverReached, result.toString())
         assertNull(result.inputs)
-        assertTrue(unknownCalls.any { it.failureReason == TsUnknownCallFailureReason.NO_SUITABLE_VIRTUAL_TARGET })
+
+        val unknownCall = unknownCalls.single()
+        assertEquals("f", unknownCall.callee.name)
+        assertEquals(TsUnknownCallFailureReason.NO_SUITABLE_VIRTUAL_TARGET, unknownCall.failureReason)
+        assertEquals(
+            TsUnknownCallDecision.ResidualFallback(policy = TsResidualCallPolicy.STOP_PATH),
+            unknownCall.decision,
+        )
+
+        assertEquals(CallsReplayStatus.REJECTED, replay.status, replay.toString())
+        val invocation = assertNotNull(replay.invocation, replay.toString())
+        assertFalse(invocation.targetHit)
+        assertEquals("threw", invocation.invocation)
+        assertEquals("TypeError", invocation.errorName)
     }
 
     @Test

@@ -64,7 +64,14 @@ internal class CallsWitnessReplayer(
                 "single-witness replay requires the same clean tool revision"
         }
 
-        val project = manifest.projects.single { project -> project.projectId == selector.projectId }
+        val project = manifest.projects.single { project ->
+            val sameProjectId = project.projectId == selector.projectId
+            val containsSelectedFunction = project.functions.any { function ->
+                function.functionId == selector.functionId
+            }
+
+            sameProjectId && containsSelectedFunction
+        }
         require(row.revision == project.revision && row.development == project.development) {
             "Selected raw row project identity does not match the frozen manifest"
         }
@@ -126,6 +133,7 @@ internal class CallsWitnessReplayer(
                         functionId = function.functionId,
                         targetId = target.targetId,
                         siteId = target.siteId,
+                        targetMode = target.mode,
                     )
                 }
             }

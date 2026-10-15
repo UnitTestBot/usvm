@@ -11,10 +11,18 @@ import kotlin.test.assertSame
 class TsContextTest {
     @Test
     fun `literal types use their base type sorts`() {
-        TsContext(EtsScene(emptyList()), mockk()).use { context ->
-            assertSame(context.boolSort, context.typeToSort(EtsBooleanLiteralType(true)))
-            assertSame(context.fp64Sort, context.typeToSort(EtsNumberLiteralType(1.0)))
-            assertSame(context.addressSort, context.typeToSort(EtsStringLiteralType("value")))
+        TsContext(scene = EtsScene(projectFiles = emptyList()), components = mockk()).use { context ->
+            val booleanType = EtsBooleanLiteralType(value = true)
+            val numberType = EtsNumberLiteralType(value = 1.0)
+            val stringType = EtsStringLiteralType(value = "value")
+
+            val booleanSort = context.typeToSort(booleanType)
+            val numberSort = context.typeToSort(numberType)
+            val stringSort = context.typeToSort(stringType)
+
+            assertSame(context.boolSort, booleanSort)
+            assertSame(context.fp64Sort, numberSort)
+            assertSame(context.addressSort, stringSort)
         }
     }
 }

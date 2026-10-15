@@ -34,6 +34,7 @@ import org.usvm.machine.expr.TsArrayIterator
 import org.usvm.machine.expr.TsCapturedInstanceCall
 import org.usvm.machine.expr.TsIteratorResult
 import org.usvm.machine.expr.TsStringIterator
+import org.usvm.machine.interpreter.PromiseCallback
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
@@ -81,6 +82,7 @@ class TsState(
     var discoveredCallees: UPersistentHashMap<Pair<EtsStmt, Int>, EtsBlockCfg> = persistentHashMapOf(),
     var promiseState: UPersistentHashMap<UConcreteHeapRef, PromiseState> = persistentHashMapOf(),
     var promiseExecutor: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
+    internal var promiseCallbacks: UPersistentHashMap<UConcreteHeapRef, PromiseCallback> = persistentHashMapOf(),
     var methodToRef: UPersistentHashMap<EtsMethod, UConcreteHeapRef> = persistentHashMapOf(),
     var associatedFunction: UPersistentHashMap<UConcreteHeapRef, TsFunction> = persistentHashMapOf(),
     var capturedInstanceCalls: UPersistentHashMap<UConcreteHeapRef, TsCapturedInstanceCall> = persistentHashMapOf(),
@@ -247,6 +249,10 @@ class TsState(
         promiseExecutor = promiseExecutor.put(promise, method, ownership)
     }
 
+    internal fun registerPromiseCallback(ref: UConcreteHeapRef, callback: PromiseCallback) {
+        promiseCallbacks = promiseCallbacks.put(ref, callback, ownership)
+    }
+
     fun getMethodRef(
         method: EtsMethod,
         thisInstance: UHeapRef? = null,
@@ -272,8 +278,6 @@ class TsState(
 
     fun getDfltObject(file: EtsFile): UConcreteHeapRef {
         val (updated, result) = dfltObject.getOrPut(file.signature, ownership) {
-            // val dfltClass = file.getDfltClass()
-            // memory.allocConcrete(dfltClass.type)
             ctx.allocateConcreteRef()
         }
         dfltObject = updated
@@ -296,23 +300,16 @@ class TsState(
     }
 
     /**
-     * Initializes and returns a fully constructed string constant in this state's memory.
-     * This function handles both heap reference allocation (via context) and memory initialization.
-     * Use this when you need a complete, usable string object in the current state.
+     * Initializes the reference interned by the context and its backing once in this state's memory.
      */
     fun mkInitializedStringConstant(
         value: String,
     ): UConcreteHeapRef = with(ctx) {
-        // Get the shared reference from context
         val ref = mkStringConstantRef(value)
 
-        // Check if we've already initialized this string constant in our state
         val (updated, result) = stringConstantAllocatedRefs.getOrPut(value, ownership) {
-            // Initialize the string constant only if not already done in this state
-            // Allocate type information for this ref in this state's memory
             memory.types.allocate(ref.address, EtsStringType)
 
-            // Initialize char array
             val charArray = memory.allocConcrete(EtsNumberType)
             memory.initializeArray(
                 arrayHeapRef = charArray,
@@ -357,11 +354,12 @@ class TsState(
             targets = targets.clone(),
             localToSortStack = localToSortStack.toMutableList(),
             staticStorage = staticStorage,
-            addedArtificialLocals = addedArtificialLocals,
+            addedArtificialLocals = addedArtificialLocals.toMutableSet(),
             lValuesToAllocatedFakeObjects = lValuesToAllocatedFakeObjects.toMutableList(),
             discoveredCallees = discoveredCallees,
             promiseState = promiseState,
             promiseExecutor = promiseExecutor,
+            promiseCallbacks = promiseCallbacks,
             methodToRef = methodToRef,
             associatedFunction = associatedFunction,
             capturedInstanceCalls = capturedInstanceCalls,
@@ -397,7 +395,7 @@ class TsState(
 /** Snapshot of the regions that establish dense Calls input-array contents. */
 data class TsDenseInputArray(
     val type: EtsArrayType,
-    val length: UExpr<org.usvm.machine.TsSizeSort>,
+    val length: UExpr<TsSizeSort>,
     val lengthRegion: UReadOnlyMemoryRegion<*, *>,
     val elementRegion: UReadOnlyMemoryRegion<*, *>,
 )

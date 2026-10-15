@@ -63,8 +63,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
             runCatching {
                 val tsOptions = TsOptions()
                 TsMachine(scene, options, tsOptions).use { machine ->
-                    val states = machine.analyze(methods)
-                    states.let {}
+                    machine.analyze(methods)
                 }
             }.onFailure {
                 exceptions += it
@@ -92,8 +91,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
 
         val tsOptions = TsOptions()
         TsMachine(scene, options, tsOptions).use { machine ->
-            val states = machine.analyze(methods)
-            states.let {}
+            machine.analyze(methods)
         }
     }
 
@@ -105,8 +103,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
 
         val tsOptions = TsOptions()
         TsMachine(scene, options.copy(timeout = 120.seconds), tsOptions).use { machine ->
-            val states = machine.analyze(listOf(method))
-            states.let {}
+            machine.analyze(listOf(method))
         }
     }
 }

@@ -1,7 +1,5 @@
 package org.usvm.ts.calls
 
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
@@ -11,10 +9,11 @@ import org.usvm.machine.call.TsResidualCallPolicy
 import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallFailureReason
-import org.usvm.ts.pbt.model.BooleanDomain
+import org.usvm.ts.calls.CallsExperimentTestSupport.FIXTURE_TOOL_REVISION
+import org.usvm.ts.calls.CallsExperimentTestSupport.manifest
+import org.usvm.ts.calls.CallsExperimentTestSupport.readRecords
+import org.usvm.ts.calls.CallsExperimentTestSupport.result
 import org.usvm.ts.pbt.model.JsConcreteValue
-import org.usvm.ts.pbt.model.PropertyInput
-import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.assertEquals
@@ -24,6 +23,103 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CallsExperimentTest {
+    @Test
+    fun `runner rejects changed external frontend bytes before raw publication`(@TempDir directory: Path) {
+        val sourceManifest = frozenGitManifest(directory)
+        val frontend = Files.createDirectory(directory.resolve("frontend"))
+        Files.writeString(frontend.resolve(".gitignore"), "dist/\n")
+        runCallsGit(frontend, "init")
+        runCallsGit(frontend, "config", "user.name", "USVM Tests")
+        runCallsGit(frontend, "config", "user.email", "usvm@example.test")
+        runCallsGit(frontend, "add", ".")
+        runCallsGit(frontend, "commit", "-m", "Create frontend fixture")
+        val dist = Files.createDirectory(frontend.resolve("dist"))
+        val script = dist.resolve("index.js")
+        Files.writeString(script, "original script")
+        Files.writeString(dist.resolve("lib.d.ts"), "original library")
+        val frontendIdentity = callsExternalFrontendIdentity(frontend)
+        val manifest = sourceManifest.copy(nativeFrontendRevision = frontendIdentity)
+        val rawOutput = directory.resolve("results.jsonl")
+        val engine = CallsSymbolicEngine {
+            Files.writeString(script, "changed script")
+            result(status = CallsSymbolicStatus.UNREACHED)
+        }
+
+        val failure = assertFailsWith<IllegalArgumentException> {
+            CallsExperimentRunner(
+                symbolicEngine = engine,
+                targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("Replay must not run") },
+                runtimeToolRevision = FIXTURE_TOOL_REVISION,
+                frontendRuntimeVerifier = { identity -> verifyCallsExternalFrontendRuntime(frontend, identity) },
+            ).run(
+                manifest = manifest,
+                manifestDirectory = directory,
+                rawOutput = rawOutput,
+            )
+        }
+
+        assertTrue(failure.message.orEmpty().contains("runtime digest differs"))
+        assertFalse(Files.exists(rawOutput))
+    }
+
+    @Test
+    fun `runner rejects a source edit during symbolic search before replay or publication`(@TempDir directory: Path) {
+        val frozenManifest = frozenGitManifest(directory)
+        val sourceFile = directory.resolve("source/fixture.ts")
+        val rawOutput = directory.resolve("results.jsonl")
+        val engine = CallsSymbolicEngine {
+            Files.writeString(sourceFile, "export function predicate(value: boolean): boolean { return !value; }")
+            result(status = CallsSymbolicStatus.UNREACHED)
+        }
+
+        val failure = assertFailsWith<IllegalArgumentException> {
+            CallsExperimentRunner(
+                symbolicEngine = engine,
+                targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("Replay must not run") },
+                runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            ).run(
+                manifest = frozenManifest,
+                manifestDirectory = directory,
+                rawOutput = rawOutput,
+            )
+        }
+
+        assertTrue(failure.message.orEmpty().contains("Git diff --quiet HEAD -- failed"))
+        assertFalse(Files.exists(rawOutput))
+    }
+
+    @Test
+    fun `runner rejects a source edit during replay before publication`(@TempDir directory: Path) {
+        val frozenManifest = frozenGitManifest(directory)
+        val sourceFile = directory.resolve("source/fixture.ts")
+        val rawOutput = directory.resolve("results.jsonl")
+        val engine = CallsSymbolicEngine {
+            result(
+                status = CallsSymbolicStatus.REACHED,
+                inputs = listOf(JsConcreteValue.Boolean(value = true)),
+            )
+        }
+        val replayer = CallsTargetReplayer { _, _, _, _, _ ->
+            Files.writeString(sourceFile, "export function predicate(value: boolean): boolean { return !value; }")
+            CallsSourceReplayResult(status = CallsReplayStatus.CONFIRMED)
+        }
+
+        val failure = assertFailsWith<IllegalArgumentException> {
+            CallsExperimentRunner(
+                symbolicEngine = engine,
+                targetReplayer = replayer,
+                runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            ).run(
+                manifest = frozenManifest,
+                manifestDirectory = directory,
+                rawOutput = rawOutput,
+            )
+        }
+
+        assertTrue(failure.message.orEmpty().contains("Git diff --quiet HEAD -- failed"))
+        assertFalse(Files.exists(rawOutput))
+    }
+
     @Test
     fun `runner forwards an explicitly configured solver`(@TempDir directory: Path) {
         val solvers = mutableListOf<SolverType>()
@@ -37,6 +133,7 @@ class CallsExperimentTest {
             symbolicEngine = engine,
             targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("No witness to replay") },
             runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            sourceCheckoutVerifier = { _, _ -> },
         ).run(
             manifest = z3Manifest,
             manifestDirectory = directory,
@@ -74,6 +171,7 @@ class CallsExperimentTest {
             symbolicEngine = engine,
             targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("No witness to replay") },
             runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            sourceCheckoutVerifier = { _, _ -> },
         ).run(
             manifest = manifest(sourceRoot = ".", seeds = listOf(17L)),
             manifestDirectory = directory,
@@ -110,6 +208,7 @@ class CallsExperimentTest {
                 targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("No witness to replay") },
                 runtimeToolRevision = FIXTURE_TOOL_REVISION,
                 eventRecordWriter = { _, _ -> error("Event write failed") },
+                sourceCheckoutVerifier = { _, _ -> },
             ).run(
                 manifest = manifest(sourceRoot = ".", seeds = listOf(17L)),
                 manifestDirectory = directory,
@@ -119,55 +218,6 @@ class CallsExperimentTest {
 
         assertTrue(failure.message.orEmpty().contains("Calls event"))
         assertFalse(Files.exists(rawOutput))
-    }
-
-    @Test
-    fun `legacy source target defaults to entry mode`() {
-        val encoded = """
-            {
-              "targetId": "target",
-              "siteId": "site",
-              "sourcePath": "fixture.ts",
-              "startOffset": 0,
-              "endOffset": 6,
-              "start": { "line": 0, "column": 0 },
-              "end": { "line": 0, "column": 6 }
-            }
-        """.trimIndent()
-
-        val target = CallsExperimentJson.json.decodeFromString<CallsSourceTarget>(encoded)
-
-        assertEquals(CallsSourceTargetMode.ENTRY, target.mode)
-        assertNull(target.returnExpressionStartOffset)
-        assertNull(target.returnExpressionEndOffset)
-    }
-
-    @Test
-    fun `completed return target preserves explicit expression offsets`() {
-        val entryTarget = manifest(sourceRoot = ".", seeds = listOf(17L))
-            .projects.single().functions.single().targets.single()
-        val completedReturn = entryTarget.copy(
-            mode = CallsSourceTargetMode.COMPLETED_RETURN,
-            returnExpressionStartOffset = 7,
-            returnExpressionEndOffset = 10,
-        )
-
-        val encoded = CallsExperimentJson.json.encodeToString(completedReturn)
-        val decoded = CallsExperimentJson.json.decodeFromString<CallsSourceTarget>(encoded)
-
-        assertEquals(completedReturn, decoded)
-    }
-
-    @Test
-    fun `manifest rejects breadth first search`() {
-        val accepted = manifest(sourceRoot = ".", seeds = listOf(17L))
-
-        assertEquals(CALLS_PATH_SELECTION_STRATEGY.name, accepted.searchPolicy)
-        val error = assertFailsWith<IllegalArgumentException> {
-            accepted.copy(searchPolicy = "BFS")
-        }
-
-        assertTrue(error.message.orEmpty().contains(CALLS_PATH_SELECTION_STRATEGY.name))
     }
 
     @Test
@@ -207,6 +257,7 @@ class CallsExperimentTest {
             symbolicEngine = engine,
             targetReplayer = replayer,
             runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            sourceCheckoutVerifier = { _, _ -> },
         ).run(
             manifest = manifest(sourceRoot = ".", seeds = listOf(1L)),
             manifestDirectory = directory,
@@ -257,376 +308,20 @@ class CallsExperimentTest {
         assertNull(frozenFresh.replayStatus)
     }
 
-    @Test
-    fun `target result witness uses lossless concrete value serialization`() {
-        val witness = listOf(
-            JsConcreteValue.number(-0.0),
-            JsConcreteValue.number(Double.NaN),
-            JsConcreteValue.Array(
-                elements = listOf(JsConcreteValue.Undefined, JsConcreteValue.Null, JsConcreteValue.String("value")),
-            ),
-        )
-        val result = targetResult(inputs = witness)
-
-        val encoded = CallsExperimentJson.json.encodeToString<CallsRawRecord>(result)
-        val decoded = CallsExperimentJson.json.decodeFromString<CallsRawRecord>(encoded) as CallsTargetResult
-
-        assertEquals(result, decoded)
-        assertEquals(witness, decoded.inputs)
-    }
-
-    @Test
-    fun `single witness replay uses selected stored inputs without symbolic search`(@TempDir directory: Path) {
-        val rawOutput = directory.resolve("results.jsonl")
-        val frozenManifest = manifest(sourceRoot = ".", seeds = listOf(11L))
-        CallsExperimentRunner(
-            symbolicEngine = CallsSymbolicEngine {
-                result(
-                    status = CallsSymbolicStatus.REACHED,
-                    inputs = listOf(JsConcreteValue.Boolean(true)),
-                )
-            },
-            targetReplayer = CallsTargetReplayer { _, _, _, _, _ ->
-                CallsSourceReplayResult(status = CallsReplayStatus.CONFIRMED)
-            },
-            runtimeToolRevision = FIXTURE_TOOL_REVISION,
-        ).run(
-            manifest = frozenManifest,
-            manifestDirectory = directory,
-            rawOutput = rawOutput,
-        )
-        var replayedInputs: List<JsConcreteValue>? = null
-        var replayedTarget: CallsSourceTarget? = null
-        var replayedTimeout: Long? = null
-        var verifiedCheckout: Path? = null
-        val witnessReplayer = CallsWitnessReplayer(
-            targetReplayer = CallsTargetReplayer { _, _, inputs, target, timeoutMillis ->
-                replayedInputs = inputs
-                replayedTarget = target
-                replayedTimeout = timeoutMillis
-
-                CallsSourceReplayResult(status = CallsReplayStatus.REJECTED)
-            },
-            runtimeToolRevision = FIXTURE_TOOL_REVISION,
-            verifyProjectCheckout = { checkout, expectedRevision ->
-                assertEquals("project-revision", expectedRevision)
-                verifiedCheckout = checkout
-            },
-        )
-
-        val replay = witnessReplayer.replay(
-            manifest = frozenManifest,
-            manifestDirectory = directory,
-            rawInput = rawOutput,
-            selector = selector(seed = 11L, profile = CallsExperimentProfile.FROZEN_STOP),
-        )
-
-        val expectedTarget = frozenManifest.projects
-            .single()
-            .functions
-            .single()
-            .targets
-            .single()
-        assertEquals(CallsReplayStatus.REJECTED, replay.status)
-        assertEquals(listOf(JsConcreteValue.Boolean(true)), replayedInputs)
-        assertEquals(expectedTarget, replayedTarget)
-        assertEquals(1_000L, replayedTimeout)
-        assertEquals(directory.toRealPath(), verifiedCheckout)
-    }
-
-    @Test
-    fun `historical extracted row without stored witness reports replay unavailable first`(@TempDir directory: Path) {
-        val rawOutput = directory.resolve("results.jsonl")
-        val frozenManifest = manifest(sourceRoot = ".", seeds = listOf(5L))
-        CallsExperimentRunner(
-            symbolicEngine = CallsSymbolicEngine {
-                result(
-                    status = CallsSymbolicStatus.REACHED,
-                    inputs = listOf(JsConcreteValue.Boolean(true)),
-                )
-            },
-            targetReplayer = CallsTargetReplayer { _, _, _, _, _ ->
-                CallsSourceReplayResult(status = CallsReplayStatus.CONFIRMED)
-            },
-            runtimeToolRevision = FIXTURE_TOOL_REVISION,
-        ).run(
-            manifest = frozenManifest,
-            manifestDirectory = directory,
-            rawOutput = rawOutput,
-        )
-        val historicalRecords = readRecords(rawOutput).map { record ->
-            when {
-                record is CallsTargetResult && record.profile == CallsExperimentProfile.EMPTY_FRESH -> {
-                    record.copy(inputs = null)
-                }
-
-                else -> {
-                    record
-                }
-            }
-        }
-        writeRecords(rawOutput, historicalRecords)
-        val witnessReplayer = CallsWitnessReplayer(
-            targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("Replay must not run") },
-            runtimeToolRevision = "different-runtime-revision",
-            verifyProjectCheckout = { _, _ -> error("Checkout verification must not run") },
-        )
-
-        val error = assertFailsWith<IllegalStateException> {
-            witnessReplayer.replay(
-                manifest = frozenManifest,
-                manifestDirectory = directory,
-                rawInput = rawOutput,
-                selector = selector(seed = 5L, profile = CallsExperimentProfile.EMPTY_FRESH),
-            )
-        }
-
-        assertTrue(error.message.orEmpty().contains("historical raw artifact"))
-        assertTrue(error.message.orEmpty().contains("single-witness replay is unavailable"))
-
-        val manifestPath = directory.resolve("historical-manifest.json")
-        Files.writeString(manifestPath, CallsExperimentJson.encodeManifest(frozenManifest))
-
-        val cliError = assertFailsWith<IllegalStateException> {
-            replayWitness(
-                listOf(
-                    manifestPath.toString(),
-                    rawOutput.toString(),
-                    "fixture/project",
-                    "fixture.ts::predicate/1",
-                    "fixture.ts::predicate/1#return",
-                    CallsExperimentProfile.EMPTY_FRESH.name,
-                    "5",
-                ),
-            )
-        }
-
-        assertTrue(cliError.message.orEmpty().contains("historical raw artifact"))
-        assertTrue(cliError.message.orEmpty().contains("single-witness replay is unavailable"))
-    }
-
-    @Test
-    fun `aggregator rejects an interrupted raw prefix without completion`(@TempDir directory: Path) {
-        val rawOutput = directory.resolve("results.jsonl")
-        val engine = CallsSymbolicEngine { result(status = CallsSymbolicStatus.UNREACHED) }
-
-        CallsExperimentRunner(
-            symbolicEngine = engine,
-            targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("Replay must not run") },
-            runtimeToolRevision = FIXTURE_TOOL_REVISION,
-        ).run(
-            manifest = manifest(sourceRoot = ".", seeds = listOf(0L)),
-            manifestDirectory = directory,
-            rawOutput = rawOutput,
-        )
-        val interrupted = directory.resolve("interrupted.jsonl")
-        Files.write(interrupted, Files.readAllLines(rawOutput).dropLast(1))
-
-        assertFailsWith<IllegalArgumentException> {
-            CallsExperimentAggregator.summarize(interrupted)
-        }
-    }
-
-    @Test
-    fun `aggregator counts each profile from raw rows without collapsing outcome stages`(@TempDir directory: Path) {
-        val rawOutput = directory.resolve("results.jsonl")
-        val statuses = mapOf(
-            CallsExperimentProfile.EMPTY_STOP to CallsSymbolicStatus.TIMEOUT,
-            CallsExperimentProfile.EMPTY_FRESH to CallsSymbolicStatus.REACHED,
-            CallsExperimentProfile.FROZEN_STOP to CallsSymbolicStatus.REACHED,
-            CallsExperimentProfile.FROZEN_FRESH to CallsSymbolicStatus.TOOL_ERROR,
-        )
-        val engine = CallsSymbolicEngine { request ->
-            val status = statuses.getValue(request.profile)
-            result(
-                status = status,
-                inputs = if (status == CallsSymbolicStatus.REACHED) {
-                    listOf(JsConcreteValue.Boolean(request.profile.usesFrozenModels))
-                } else {
-                    null
-                },
-            )
-        }
-        val replayer = CallsTargetReplayer { _, _, inputs, _, _ ->
-            val input = inputs.single() as JsConcreteValue.Boolean
-            CallsSourceReplayResult(
-                status = if (input.value) CallsReplayStatus.CONFIRMED else CallsReplayStatus.REJECTED,
-            )
-        }
-
-        CallsExperimentRunner(
-            symbolicEngine = engine,
-            targetReplayer = replayer,
-            runtimeToolRevision = FIXTURE_TOOL_REVISION,
-        ).run(
-            manifest = manifest(sourceRoot = ".", seeds = listOf(0L, 3L)),
-            manifestDirectory = directory,
-            rawOutput = rawOutput,
-        )
-        val summary = CallsExperimentAggregator.summarize(rawOutput)
-
-        assertEquals("fixture", summary.experimentId)
-        assertEquals(1, summary.commonEligibleTargets)
-        assertEquals(8, summary.resultRows)
-        assertEquals(
-            CallsProfileSummary(
-                runs = 2,
-                solverReached = 0,
-                inputExtracted = 0,
-                replayConfirmed = 0,
-                replayRejected = 0,
-                unsupported = 0,
-                timeouts = 2,
-                toolErrors = 0,
-                symbolicStatuses = CallsSymbolicStatus.entries.associateWith { status ->
-                    if (status == CallsSymbolicStatus.TIMEOUT) 2 else 0
-                },
-                replayStatuses = CallsReplayStatus.entries.associateWith { 0 },
-                replayNotRun = 2,
-            ),
-            summary.byProfile.getValue(CallsExperimentProfile.EMPTY_STOP),
-        )
-        assertEquals(2, summary.byProfile.getValue(CallsExperimentProfile.EMPTY_FRESH).replayRejected)
-        assertEquals(2, summary.byProfile.getValue(CallsExperimentProfile.FROZEN_STOP).replayConfirmed)
-        assertEquals(2, summary.byProfile.getValue(CallsExperimentProfile.FROZEN_FRESH).toolErrors)
-    }
-
-    @Test
-    fun `solver unknown survives raw serialization and summary without becoming unreached`(@TempDir directory: Path) {
-        val rawOutput = directory.resolve("results.jsonl")
-        val diagnostic = "Solver returned UNKNOWN while checking initial constraints"
-        val engine = CallsSymbolicEngine {
-            CallsSymbolicSearchResult(
-                status = CallsSymbolicStatus.UNKNOWN,
-                elapsedMillis = 7L,
-                diagnostic = diagnostic,
-            )
-        }
-
-        CallsExperimentRunner(
-            symbolicEngine = engine,
-            targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("No witness to replay") },
-            runtimeToolRevision = FIXTURE_TOOL_REVISION,
-        ).run(
-            manifest = manifest(sourceRoot = ".", seeds = listOf(0L)),
-            manifestDirectory = directory,
-            rawOutput = rawOutput,
-        )
-        val records = readRecords(rawOutput).filterIsInstance<CallsTargetResult>()
-        val summary = CallsExperimentAggregator.summarize(rawOutput)
-
-        assertEquals(4, records.size)
-        records.forEach { record ->
-            assertEquals(CallsSymbolicStatus.UNKNOWN, record.symbolicStatus)
-            assertFalse(record.solverReached)
-            assertFalse(record.inputExtracted)
-            assertNull(record.replayStatus)
-            assertEquals(diagnostic, record.diagnostic)
-        }
-        summary.byProfile.values.forEach { profile ->
-            assertEquals(1, profile.symbolicStatuses.getValue(CallsSymbolicStatus.UNKNOWN))
-            assertEquals(0, profile.symbolicStatuses.getValue(CallsSymbolicStatus.UNREACHED))
-            assertEquals(0, profile.timeouts)
-            assertEquals(0, profile.toolErrors)
-        }
-    }
-
-    private fun manifest(sourceRoot: String, seeds: List<Long>) = CallsExperimentManifest(
-        schemaVersion = CallsExperimentManifest.SCHEMA_VERSION,
-        experimentId = "fixture",
-        toolRevision = FIXTURE_TOOL_REVISION,
-        nativeFrontendRevision = "frontend-revision",
-        solver = "YICES",
-        searchPolicy = CALLS_PATH_SELECTION_STRATEGY.name,
-        modelSet = CallsModelSetIdentity(
-            ids = setOf("ts.array.pop", "ts.array.shift"),
-            toolRevision = FIXTURE_TOOL_REVISION,
-        ),
-        seeds = seeds,
-        perTargetBudgetMillis = 1_000L,
-        projects = listOf(
-            CallsProjectCase(
-                projectId = "fixture/project",
-                revision = "project-revision",
-                sourceRoot = sourceRoot,
-                development = true,
-                functions = listOf(
-                    CallsFunctionCase(
-                        functionId = "fixture.ts::predicate/1",
-                        sourceFile = "fixture.ts",
-                        entryPoint = TypeScriptEntryPoint(
-                            module = "fixture.ts",
-                            exportName = "predicate",
-                        ),
-                        inputs = listOf(PropertyInput(name = "value", domain = BooleanDomain)),
-                        targets = listOf(
-                            CallsSourceTarget(
-                                targetId = "fixture.ts::predicate/1#return",
-                                siteId = "fixture.ts:1:1-1:12::predicate/1",
-                                sourcePath = "fixture.ts",
-                                startOffset = 0,
-                                endOffset = 11,
-                                start = CallsSourcePosition(line = 0, column = 0),
-                                end = CallsSourcePosition(line = 0, column = 11),
-                            ),
-                        ),
-                    ),
-                ),
-            ),
-        ),
-    )
-
-    private fun result(
-        status: CallsSymbolicStatus,
-        solverReached: Boolean = status == CallsSymbolicStatus.REACHED,
-        inputs: List<JsConcreteValue>? = null,
-    ) = CallsSymbolicSearchResult(
-        status = status,
-        solverReached = solverReached,
-        inputs = inputs,
-        elapsedMillis = 7L,
-    )
-
-    private fun readRecords(path: Path): List<CallsRawRecord> = Files.readAllLines(path)
-        .filter(String::isNotBlank)
-        .map { line -> CallsExperimentJson.json.decodeFromString<CallsRawRecord>(line) }
-
-    private fun writeRecords(path: Path, records: List<CallsRawRecord>) {
+    private fun frozenGitManifest(directory: Path): CallsExperimentManifest {
+        val sourceRoot = Files.createDirectory(directory.resolve("source"))
         Files.writeString(
-            path,
-            records.joinToString(separator = "\n", postfix = "\n") { record ->
-                CallsExperimentJson.json.encodeToString<CallsRawRecord>(record)
-            },
+            sourceRoot.resolve("fixture.ts"),
+            "export function predicate(value: boolean): boolean { return value; }",
         )
-    }
+        runCallsGit(sourceRoot, "init")
+        runCallsGit(sourceRoot, "config", "user.name", "USVM Tests")
+        runCallsGit(sourceRoot, "config", "user.email", "usvm@example.test")
+        runCallsGit(sourceRoot, "add", ".")
+        runCallsGit(sourceRoot, "commit", "-m", "Create fixture")
+        val revision = runCallsGit(sourceRoot, "rev-parse", "HEAD").trim()
+        val base = manifest(sourceRoot = "source", seeds = listOf(0L))
 
-    private fun selector(seed: Long, profile: CallsExperimentProfile) = CallsWitnessSelector(
-        projectId = "fixture/project",
-        functionId = "fixture.ts::predicate/1",
-        targetId = "fixture.ts::predicate/1#return",
-        profile = profile,
-        seed = seed,
-    )
-
-    private fun targetResult(inputs: List<JsConcreteValue>) = CallsTargetResult(
-        experimentId = "fixture",
-        projectId = "fixture/project",
-        revision = "project-revision",
-        development = true,
-        functionId = "fixture.ts::predicate/1",
-        targetId = "fixture.ts::predicate/1#return",
-        siteId = "fixture.ts:1:1-1:12::predicate/1",
-        profile = CallsExperimentProfile.FROZEN_STOP,
-        seed = 1L,
-        symbolicStatus = CallsSymbolicStatus.REACHED,
-        solverReached = true,
-        inputExtracted = true,
-        inputs = inputs,
-        replayStatus = CallsReplayStatus.CONFIRMED,
-        symbolicElapsedMillis = 7L,
-    )
-
-    private companion object {
-        const val FIXTURE_TOOL_REVISION = "0000000000000000000000000000000000000001"
+        return base.copy(projects = listOf(base.projects.single().copy(revision = revision)))
     }
 }

@@ -46,15 +46,16 @@ import org.usvm.api.allocateStaticRef
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
-import org.usvm.machine.Constants.Companion.MAGIC_OFFSET
 import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.TsVoidSort
 import org.usvm.machine.expr.TsVoidValue
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.EtsFakeType
+import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.types.single
+import org.usvm.uctx
 import org.usvm.util.componentType
 import org.usvm.util.mkFieldLValue
 import kotlin.contracts.ExperimentalContracts
@@ -196,12 +197,24 @@ class TsContext(
     }
 
     fun arrayDescriptorOf(type: EtsArrayType): EtsArrayType {
-        val storageElement = type.componentType
-        return when (storageElement) {
-            is EtsBooleanType -> EtsArrayType(EtsBooleanType, dimensions = 1)
-            is EtsNumberType -> EtsArrayType(EtsNumberType, dimensions = 1)
-            else -> EtsArrayType(EtsUnknownType, dimensions = 1)
+        val storageElement = arrayStorageElementType(type.componentType)
+        return EtsArrayType(elementType = storageElement, dimensions = 1)
+    }
+
+    // Descriptor-only operations remain available when the element's expression sort is unsupported.
+    private fun arrayStorageElementType(type: EtsType): EtsType = when (type) {
+        is EtsBooleanType, is EtsBooleanLiteralType -> EtsBooleanType
+        is EtsNumberType, is EtsNumberLiteralType -> EtsNumberType
+        is EtsAliasType -> arrayStorageElementType(type.originalType)
+        is EtsIntersectionType -> {
+            val storageElements = type.types.map(::arrayStorageElementType)
+            val commonStorageElement = storageElements.firstOrNull() ?: EtsUnknownType
+            val hasCommonStorageElement = storageElements.all { it == commonStorageElement }
+
+            if (hasCommonStorageElement) commonStorageElement else EtsUnknownType
         }
+
+        else -> EtsUnknownType
     }
 
     fun UConcreteHeapRef.getFakeType(memory: UReadOnlyMemory<*>): EtsFakeType {
@@ -224,7 +237,10 @@ class TsContext(
             returns(true) implies (this@isFakeObject is UConcreteHeapRef)
         }
 
-        return sort == addressSort && this is UConcreteHeapRef && address > MAGIC_OFFSET
+        return sort == addressSort &&
+            this is UConcreteHeapRef &&
+            uctx === this@TsContext &&
+            address in fakeObjectAddresses
     }
 
     /**
@@ -241,6 +257,19 @@ class TsContext(
     fun UExpr<*>.toFakeObject(scope: TsStepScope): UConcreteHeapRef {
         if (isFakeObject()) {
             return this
+        }
+
+        val hasFakeResultBranches = sort == addressSort && asExpr(addressSort).hasFakeValueBranch()
+        if (this is UIteExpr<*> && hasFakeResultBranches) {
+            val trueValue = trueBranch.asExpr(addressSort)
+            val falseValue = falseBranch.asExpr(addressSort)
+
+            return iteWriteIntoFakeObject(
+                scope = scope,
+                condition = condition,
+                trueBranchValue = trueValue,
+                falseBranchValue = falseValue,
+            )
         }
 
         val ref = createFakeObjectRef()
@@ -308,23 +337,27 @@ class TsContext(
         return this
     }
 
+    private val fakeObjectAddresses = mutableSetOf<Int>()
+
     fun createFakeObjectRef(): UConcreteHeapRef {
-        val address = addressCounter.freshAllocatedAddress() + MAGIC_OFFSET
-        return mkConcreteHeapRef(address)
+        val address = addressCounter.freshAllocatedAddress()
+        val ref = mkConcreteHeapRef(address)
+        fakeObjectAddresses += address
+        return ref
     }
 
     fun getIntermediateBoolLValue(addr: Int): UFieldLValue<IntermediateLValueField, UBoolSort> {
-        require(addr > MAGIC_OFFSET)
+        require(addr in fakeObjectAddresses) { "Address $addr is not a fake-value wrapper" }
         return mkFieldLValue(boolSort, mkConcreteHeapRef(addr), IntermediateLValueField.BOOL)
     }
 
     fun getIntermediateFpLValue(addr: Int): UFieldLValue<IntermediateLValueField, KFp64Sort> {
-        require(addr > MAGIC_OFFSET)
+        require(addr in fakeObjectAddresses) { "Address $addr is not a fake-value wrapper" }
         return mkFieldLValue(fp64Sort, mkConcreteHeapRef(addr), IntermediateLValueField.FP)
     }
 
     fun getIntermediateRefLValue(addr: Int): UFieldLValue<IntermediateLValueField, UAddressSort> {
-        require(addr > MAGIC_OFFSET)
+        require(addr in fakeObjectAddresses) { "Address $addr is not a fake-value wrapper" }
         return mkFieldLValue(addressSort, mkConcreteHeapRef(addr), IntermediateLValueField.REF)
     }
 
@@ -364,19 +397,14 @@ class TsContext(
     fun UConcreteHeapRef.extractRef(scope: TsStepScope): UHeapRef {
         return scope.calcOnState { extractRef(memory) }
     }
-
-    // This is an identifier for a special function representing the 'resolve' function used in promises.
-    // It is not a real function in the code, but we need it to handle promise resolution.
-    val resolveFunctionRef: UConcreteHeapRef = allocateConcreteRef()
-
-    // This is an identifier for a special function representing the 'reject' function used in promises.
-    // It is not a real function in the code, but we need it to handle promise rejection.
-    val rejectFunctionRef: UConcreteHeapRef = allocateConcreteRef()
 }
 
 class Constants {
     companion object {
         const val STATIC_METHODS_FORK_LIMIT = 5
+
+        /** Obsolete fake-address offset retained for source and binary compatibility. */
+        @Deprecated("Fake values now use context-owned address provenance")
         const val MAGIC_OFFSET = 1000000
     }
 }

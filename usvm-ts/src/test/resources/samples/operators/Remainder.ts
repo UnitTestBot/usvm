@@ -2,6 +2,29 @@
 // noinspection JSUnusedGlobalSymbols
 
 class Remainder {
+    remTruncationExamples(): boolean {
+        return 7 % 4 === 3
+            && 7 % -4 === 3
+            && -7 % 4 === -3
+            && -7 % -4 === -3;
+    }
+
+    remExceptionalValues(): boolean {
+        return 1 / (0 % 4) === Infinity
+            && 1 / (-0 % 4) === -Infinity
+            && 5 % Infinity === 5
+            && Number.isNaN(5 % 0)
+            && Number.isNaN(Infinity % 3)
+            && Number.isNaN((0 / 0) % 3);
+    }
+
+    remFiniteExtremes(): boolean {
+        return 1e308 % 1.5e308 === 1e308
+            && -1e308 % 1.5e308 === -1e308
+            && 1e308 % 5e-324 === 0
+            && 5e-324 % 1e308 === 5e-324;
+    }
+
     // number % number
     remNumberAndNumber(a: number, b: number): number {
         let res = a % b;

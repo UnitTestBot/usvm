@@ -4,6 +4,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.FileNotFoundException
 import java.io.Reader
+import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 
 plugins {
@@ -91,7 +92,7 @@ val generateSdkIR by tasks.registering {
             println("Timeout!")
         }
         if (result.exitCode != 0) {
-            println("Exit code: ${result.exitCode}")
+            error("SDK IR generation failed with exit code ${result.exitCode}: $outputDir")
         }
     }
 }

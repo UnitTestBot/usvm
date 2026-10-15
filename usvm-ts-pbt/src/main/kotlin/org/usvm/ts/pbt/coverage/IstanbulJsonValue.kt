@@ -48,34 +48,48 @@ internal class IstanbulJsonValue(
                 message = "Expected a string",
                 path = childPath,
             )
+        val content = primitive.contentOrNull
 
-        return primitive.contentOrNull
+        if (!primitive.isString || content == null) {
+            throw invalidReport(
+                message = "Expected a string",
+                path = childPath,
+            )
+        }
+
+        return content
+    }
+
+    fun optionalString(name: String): String? {
+        val child = asObject()[name] ?: return null
+        val childPath = "$path.$name"
+        val primitive = child as? JsonPrimitive
             ?: throw invalidReport(
                 message = "Expected a string",
                 path = childPath,
             )
-    }
+        val content = primitive.contentOrNull ?: return null
 
-    fun optionalString(name: String): String? {
-        val primitive = asObject()[name] as? JsonPrimitive
+        if (!primitive.isString) {
+            throw invalidReport(
+                message = "Expected a string",
+                path = childPath,
+            )
+        }
 
-        return primitive?.contentOrNull
+        return content
     }
 
     fun asRange(): SourceRange {
-        val range = asObject()
-        val rangeJson = IstanbulJsonValue(range, path)
-        val start = rangeJson.required(name = "start").asPosition()
-        val end = rangeJson.required(name = "end").asPosition()
+        val start = required(name = "start").asPosition()
+        val end = required(name = "end").asPosition()
 
         return SourceRange(start = start, end = end)
     }
 
     fun asPosition(): SourcePosition {
-        val position = asObject()
-        val positionJson = IstanbulJsonValue(position, path)
-        val line = positionJson.requiredInt(name = "line")
-        val column = positionJson.requiredInt(name = "column")
+        val line = requiredInt(name = "line")
+        val column = requiredInt(name = "column")
 
         return SourcePosition(line = line, column = column)
     }

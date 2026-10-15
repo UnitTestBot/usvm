@@ -7,6 +7,7 @@ import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsCopyDataPropertiesStmt
@@ -19,6 +20,7 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsPropertyRef
+import org.jacodb.ets.model.EtsRawStmt
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
@@ -112,21 +114,38 @@ class TsInterpreter(
         val result = state.methodResult
         val isEntryPointGuardResult = stmt is TsEntryPointGuardResultStmt
         if (result is TsMethodResult.TsException && !isEntryPointGuardResult) {
-            scope.doWithState {
-                val catchers = stmt.location.method.cfg.catchers(stmt)
-                val catcher = catchers.singleOrNull()
-                if (catcher != null) {
+            val catcher = stmt.location.method.cfg
+                .catchers(stmt)
+                .singleOrNull()
+            if (catcher != null) {
+                scope.doWithState {
                     caughtException = result.value
                     methodResult = TsMethodResult.NoCall
                     newStmt(catcher)
-                    return@doWithState
                 }
+                return scope.stepResult()
+            }
 
+            val throwingMethod = state.callStack.lastMethod()
+            val rejectedPromise = if (throwingMethod.isAsync) {
+                ctx.createSettledPromise(
+                    scope = scope,
+                    value = result.value,
+                    settlement = PromiseState.REJECTED,
+                )
+            } else {
+                null
+            }
+            scope.doWithState {
                 leaveUnknownCallModelIfReturning()
                 val returnSite = callStack.pop()
                 if (callStack.isNotEmpty()) {
                     memory.stack.pop()
                     popLocalToSortStack()
+                }
+
+                if (rejectedPromise != null) {
+                    methodResult = TsMethodResult.Success.RegularCall(rejectedPromise, throwingMethod)
                 }
 
                 if (returnSite != null) {
@@ -160,6 +179,9 @@ class TsInterpreter(
                 is EtsCallStmt -> visitCallStmt(scope, stmt)
                 is EtsThrowStmt -> visitThrowStmt(scope, stmt)
                 is EtsNopStmt -> visitNopStmt(scope, stmt)
+                is EtsRawStmt -> {
+                    throw UnsupportedOperationException("Unsupported frontend statement: $stmt")
+                }
                 else -> {
                     logger.error { "Unknown stmt: $stmt" }
                     scope.doWithState {
@@ -199,6 +221,12 @@ class TsInterpreter(
         val instance = stmt.instance
         val callee = stmt.call.callee
 
+        fun selectedMethod(receiverClass: EtsClass): EtsMethod? = if (stmt.call.isSuperCall) {
+            graph.hierarchy.explicitSuperMethod(receiverClass, callee)
+        } else {
+            graph.hierarchy.nearestInstanceMethod(receiverClass, callee.name)
+        }
+
         if (instance.sort == addressSort) {
             checkUndefinedOrNullPropertyRead(scope, instance.asExpr(addressSort), callee.name) ?: return
         }
@@ -227,7 +255,11 @@ class TsInterpreter(
 
         if (isAllocatedConcreteHeapRef(receiver)) {
             val field = mkFieldLValue(addressSort, receiver, callee.name)
-            val functionRef = if (stmt.targetCaptured) null else scope.calcOnState { memory.read(field) }
+            val functionRef = if (stmt.targetCaptured || stmt.call.isSuperCall) {
+                null
+            } else {
+                scope.calcOnState { memory.read(field) }
+            }
             val function = if (functionRef != null && isAllocatedConcreteHeapRef(functionRef)) {
                 scope.calcOnState { associatedFunction[functionRef] }
             } else {
@@ -270,15 +302,8 @@ class TsInterpreter(
                     logger.warn { "Multiple (${classes.size}) classes with name '${type.typeName}'" }
                     // scope.assert(falseExpr)
                     // return
-                    for (cls in classes) {
-                        val suitableMethods = cls.methods.filter { it.name == callee.name }
-                        concreteMethods += suitableMethods
-                    }
-                } else {
-                    val cls = classes.single()
-                    val suitableMethods = cls.methods.filter { it.name == callee.name }
-                    concreteMethods += suitableMethods
                 }
+                concreteMethods += classes.mapNotNull(::selectedMethod)
             } else {
                 logger.warn {
                     "Could not resolve method: $callee on type: $type"
@@ -287,7 +312,12 @@ class TsInterpreter(
                 return
             }
         } else {
-            val methods = resolveEtsMethods(callee)
+            val methods = if (stmt.call.isSuperCall) {
+                graph.hierarchy.classesForType(EtsClassType(callee.enclosingClass))
+                    .mapNotNull { graph.hierarchy.nearestInstanceMethod(it, callee.name) }
+            } else {
+                resolveEtsMethods(callee).filterNot { it.isStatic }
+            }
             if (methods.isEmpty()) {
                 if (callee.name !in listOf("then")) {
                     logger.warn { "Could not resolve method: $callee" }
@@ -327,17 +357,10 @@ class TsInterpreter(
 
         //
         val chosenMethods = intersectedTypes.flatMap { clazz ->
-            graph.hierarchy.classesForType(clazz as EtsRefType)
-                .asSequence()
-                // TODO wrong order, ancestors are unordered
-                .map { candidate -> graph.hierarchy.getAncestors(candidate) }
-                .mapNotNull { ancestors ->
-                    ancestors.firstOrNull { ancestor ->
-                        ancestor.methods.any { method -> method.name == callee.name }
-                    }
-                }
-                .map { ancestor -> clazz to ancestor.methods.first { method -> method.name == callee.name } }
-        }.toList().take(10) // TODO check it
+            graph.hierarchy.classesForType(clazz as EtsRefType).mapNotNull { candidate ->
+                selectedMethod(candidate)?.let { clazz to it }
+            }
+        }.take(10) // TODO check it
 
         // logger.info {
         // "Preparing to fork on ${limitedConcreteMethods.size} methods out of ${concreteMethods.size}: ${
@@ -345,17 +368,15 @@ class TsInterpreter(
         // }"
         // }
 
-        val conditionsWithBlocks = chosenMethods.mapIndexed { i, (clazz, method) ->
+        val conditionsWithBlocks = chosenMethods.map { (clazz, method) ->
             val concreteCall = stmt.toConcrete(method)
             val block = { state: TsState -> state.newStmt(concreteCall) }
-            val type = requireNotNull(method.enclosingClass).type
 
             val constraint = scope.calcOnState {
-                // TODO mistake, should be separated into several hierarchies
-                //      or evalTypeEqual with several concrete types
+                // Select one runtime class even when the chosen method is declared by an ancestor.
                 mkAnd(
                     memory.types.evalIsSubtype(receiver, clazz),
-                    memory.types.evalIsSupertype(receiver, type)
+                    memory.types.evalIsSupertype(receiver, clazz),
                 )
             }
             constraint to block
@@ -523,9 +544,32 @@ class TsInterpreter(
             ?.let { exprResolver.resolve(it) ?: return }
             ?: ctx.mkUndefinedValue()
 
-        scope.doWithState {
-            returnValue(valueToReturn)
+        returnFromMethod(scope, valueToReturn)
+    }
+
+    private fun returnFromMethod(scope: TsStepScope, value: UExpr<*>) {
+        val method = scope.calcOnState { callStack.lastMethod() }
+        val returnedValue = if (method.isAsync) {
+            val existingPromise = ctx.existingPromiseOrEnsureNonThenable(
+                scope = scope,
+                value = value,
+                hierarchy = graph.hierarchy,
+                operation = "Async return",
+            )
+            if (existingPromise != null) {
+                throw UnsupportedOperationException("Async return requires unmodeled Promise adoption")
+            }
+
+            ctx.createSettledPromise(
+                scope = scope,
+                value = value,
+                settlement = PromiseState.FULFILLED,
+            )
+        } else {
+            value
         }
+
+        scope.doWithState { returnValue(returnedValue) }
     }
 
     private fun assignTo(
@@ -558,6 +602,10 @@ class TsInterpreter(
     ): Unit? = with(ctx) {
         val exprResolver = exprResolverWithScope(scope)
         val file = scope.calcOnState { lastEnteredMethod.enclosingClass!!.declaringFile!! }
+
+        fun isDfltLocalName(name: String): Boolean =
+            name.startsWith("%") || name.startsWith("_tmp") || name == "this"
+
         when (lhv) {
             is EtsPropertyRef -> {
                 exprResolver.handleAssignToProperty(lhv, expr)
@@ -569,7 +617,7 @@ class TsInterpreter(
 
             is EtsLocal -> {
                 val name = lhv.name
-                if (name.startsWith("%") || name.startsWith("_tmp") || name == "this") {
+                if (isDfltLocalName(name)) {
                     // Normal local variable
                     exprResolver.handleAssignToLocal(lhv, expr)
                 } else {
@@ -583,7 +631,7 @@ class TsInterpreter(
 
             is EtsArrayAccess -> {
                 val name = lhv.array.name
-                if (name.startsWith("%") || name.startsWith("_tmp") || name == "this") {
+                if (isDfltLocalName(name)) {
                     // Normal local array variable
                     exprResolver.handleAssignToArrayIndex(lhv, expr)
                 } else {
@@ -603,7 +651,7 @@ class TsInterpreter(
 
             is EtsInstanceFieldRef -> {
                 val name = lhv.instance.name
-                if (name.startsWith("%") || name.startsWith("_tmp") || name == "this") {
+                if (isDfltLocalName(name)) {
                     // Normal local instance variable
                     exprResolver.handleAssignToInstanceField(lhv, expr)
                 } else {
@@ -734,7 +782,7 @@ class TsInterpreter(
     private fun visitNopStmt(scope: TsStepScope, stmt: EtsNopStmt) {
         val successors = graph.successors(stmt).toList()
         when (successors.size) {
-            0 -> scope.doWithState { returnValue(ctx.mkUndefinedValue()) }
+            0 -> returnFromMethod(scope, ctx.mkUndefinedValue())
             1 -> scope.doWithState { newStmt(successors.single()) }
             else -> error("A NOP statement must not have multiple successors")
         }
@@ -754,7 +802,18 @@ class TsInterpreter(
         method: EtsMethod,
         targets: List<TsTarget>,
         configureState: TsState.() -> Unit = {},
-    ): TsState = createInitialState(ctx, graph, options, method, targets, configureState)
+    ): TsState {
+        val initialState = getInitialStateOrNull(method, targets, configureState)
+        return checkNotNull(initialState) {
+            "Initial constraints are infeasible for ${method.signature}"
+        }
+    }
+
+    internal fun getInitialStateOrNull(
+        method: EtsMethod,
+        targets: List<TsTarget>,
+        configureState: TsState.() -> Unit = {},
+    ): TsState? = createInitialStateOrNull(ctx, graph, options, method, targets, configureState)
 
     // TODO: expand with interpreter implementation
     private val EtsStmt.nextStmt: EtsStmt?

@@ -109,6 +109,17 @@ class CallsSourceReplayTest {
     }
 
     @Test
+    fun `does not confirm an entry target when a synchronous export returns an awaitable`() {
+        val fixture = fixture()
+        val target = fixture.target(functionName = "returnsAwaitable", statement = "return Promise.resolve(1);")
+
+        val replay = fixture.replay(exportName = "returnsAwaitable", inputs = emptyList(), target = target)
+
+        assertEquals(CallsReplayStatus.TOOL_ERROR, replay.status, replay.toString())
+        assertEquals(null, replay.invocation)
+    }
+
+    @Test
     fun `counts target hits from the selected invocation rather than module import`() {
         val fixture = fixture()
         val target = fixture.target(functionName = "importOnlyTarget", statement = "return 7;")

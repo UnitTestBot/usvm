@@ -4,6 +4,7 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.io.TempDir
 import org.usvm.PathSelectionStrategy
@@ -11,8 +12,11 @@ import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
+import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.util.TsTestResolver
 import org.usvm.util.assertNodeReplay
 import org.usvm.util.jsString
@@ -27,13 +31,110 @@ class TsArrayShiftReplayTest {
     @TempDir
     lateinit var directory: Path
 
+    @Test
+    fun `compatibility array growth rejects capacity overflow`() {
+        val source = directory.resolve("ArrayCompatibilityCapacity.ts")
+        source.writeText(
+            """
+                class ArrayCompatibilityCapacity {
+                    pushBelow() {
+                        const values = [1];
+                        const alias = values;
+                        const length = values.push(3);
+                        return length === 2 && alias[0] === 1 && alias[1] === 3 ? 1 : -1;
+                    }
+
+                    unshiftBelow() {
+                        const values = [1];
+                        const alias = values;
+                        const length = values.unshift(3);
+                        return length === 2 && alias[0] === 3 && alias[1] === 1 ? 1 : -1;
+                    }
+
+                    pushAtLimit() {
+                        const values = [1, 2];
+                        return values.push(3);
+                    }
+
+                    unshiftAtLimit() {
+                        const values = [1, 2];
+                        return values.unshift(3);
+                    }
+
+                    concatBelow() {
+                        const values = [1];
+                        const alias = values;
+
+                        const combined = values.concat([3]);
+
+                        return combined[0] === 1 && combined[1] === 3 &&
+                            alias.length === 1 && alias[0] === 1 ? 1 : -1;
+                    }
+
+                    concatAtLimit() {
+                        const values = [1, 2];
+                        return values.concat([3]);
+                    }
+                }
+            """.trimIndent()
+        )
+        val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        val scene = EtsScene(projectFiles = listOf(file))
+        val methods = scene.projectClasses
+            .single { it.name == "ArrayCompatibilityCapacity" }
+            .methods
+            .associateBy { it.name }
+
+        for (operation in listOf("push", "unshift", "concat")) {
+            val events = mutableListOf<TsRuntimeFeatureLimitationEvent>()
+            val observer = object : TsInterpreterObserver {
+                override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
+                    events += event
+                }
+            }
+            val below = methods.getValue("${operation}Below")
+            val atLimit = methods.getValue("${operation}AtLimit")
+
+            val belowAnalysis = TsMachine(
+                scene = scene,
+                options = machineOptions,
+                tsOptions = TsOptions(maxArraySize = 2),
+                observer = observer,
+                unknownCallDispatcher = TsCompatibilityUnknownCallDispatcher,
+            ).use { machine -> machine.analyzeWithMetadata(methods = listOf(below)) }
+            val belowReturns = belowAnalysis.states.map { state ->
+                assertIs<TsTestValue.TsNumber>(TsTestResolver().resolve(below, state).returnValue).number
+            }
+
+            assertEquals(listOf(1.0), belowReturns)
+            assertTrue(!belowAnalysis.engineFailed)
+            assertTrue(events.isEmpty())
+
+            val atLimitAnalysis = TsMachine(
+                scene = scene,
+                options = machineOptions,
+                tsOptions = TsOptions(maxArraySize = 2),
+                observer = observer,
+                unknownCallDispatcher = TsCompatibilityUnknownCallDispatcher,
+            ).use { machine -> machine.analyzeWithMetadata(methods = listOf(atLimit)) }
+
+            assertTrue(atLimitAnalysis.states.isEmpty())
+            assertTrue(!atLimitAnalysis.engineFailed)
+            assertEquals(listOf(TsRuntimeFeatureLimitationReason.ARRAY_LENGTH_CAPACITY), events.map { it.reason })
+        }
+    }
+
     @TestFactory
     fun `symbolic shift inputs results and heap changes replay in JavaScript`(): List<DynamicTest> {
-        val cases = replayCases()
+        val cases = arrayShiftReplayCases()
         val source = directory.resolve("ArrayShiftReplay.ts")
         source.writeText(renderSource(cases))
-        val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
-        val methods = scene.projectClasses.single { it.name == "ArrayShiftReplay" }.methods.associateBy { it.name }
+        val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        val scene = EtsScene(projectFiles = listOf(file))
+        val methods = scene.projectClasses
+            .single { it.name == "ArrayShiftReplay" }
+            .methods
+            .associateBy { it.name }
 
         return cases.mapIndexed { index, case ->
             DynamicTest.dynamicTest(case.name) {
@@ -80,408 +181,7 @@ class TsArrayShiftReplayTest {
         }
     }
 
-    private fun replayCases(): List<ReplayCase> = buildList {
-        for (type in listOf("any", "unknown")) {
-            add(
-                ReplayCase(
-                    name = "first $type read",
-                    parameters = "values: $type[]",
-                    maxResult = 6,
-                    body = """
-                        if (values.length !== 1) return 0;
-                        const removed = values.shift();
-                        if (removed === 42) return 1;
-                        if (removed === true) return 2;
-                        if (removed === false) return 3;
-                        if (removed === null) return 4;
-                        if (removed === undefined) return 5;
-                        return 6;
-                    """.trimIndent(),
-                )
-            )
-            add(
-                ReplayCase(
-                    name = "repeated mixed $type shifts",
-                    parameters = "values: $type[]",
-                    maxResult = 3,
-                    body = """
-                        if (values.length !== 2) return 0;
-                        const first = values.shift();
-                        const second = values.shift();
-                        if (first === 42 && second === true) return 1;
-                        if (first === false && second === 17) return 2;
-                        return 3;
-                    """.trimIndent(),
-                )
-            )
-            add(
-                ReplayCase(
-                    name = "read shifted $type tail",
-                    parameters = "values: $type[]",
-                    maxResult = 3,
-                    body = """
-                        if (values.length !== 2) return 0;
-                        values.shift();
-                        if (values[0] === 42) return 1;
-                        if (values[0] === true) return 2;
-                        return 3;
-                    """.trimIndent(),
-                )
-            )
-            add(
-                ReplayCase(
-                    name = "overwrite $type then shift",
-                    parameters = "values: $type[], index: number",
-                    maxResult = 3,
-                    body = """
-                        if (values.length !== 2 || (index !== 0 && index !== 1)) return 0;
-                        values[index] = true;
-                        const first = values.shift();
-                        if (first === 42 && values[0] === true) return 1;
-                        if (first === true && values[0] === 17) return 2;
-                        return 3;
-                    """.trimIndent(),
-                )
-            )
-        }
-        add(
-            ReplayCase(
-                name = "typed pop payload remains usable as number and array index",
-                parameters = "values: number[]",
-                maxResult = 2,
-                body = """
-                    if (values.length !== 1) return 0;
-                    const n = values.pop();
-                    if (n !== 1) return 1;
-                    const target = [10, 20];
-                    return Math.floor(n) === 1 && target[n] === 20 ? 2 : -1;
-                """.trimIndent(),
-            )
-        )
-        addAll(assertionAndWriteCases())
-        addAll(storageOperationCases())
-        addAll(pairCases())
-        addAll(typedCases())
-    }
-
-    private fun assertionAndWriteCases(): List<ReplayCase> = buildList {
-        add(
-            ReplayCase(
-                name = "number type assertions preserve runtime values",
-                parameters = "value: number",
-                maxResult = 1,
-                body = """
-                    if (value !== 42) return 0;
-                    const asserted = value as unknown as string;
-                    return typeof asserted === 'number' && asserted === 42 ? 1 : -1;
-                """.trimIndent(),
-            )
-        )
-        add(
-            ReplayCase(
-                name = "boolean type assertions do not convert to numbers",
-                parameters = "value: boolean",
-                maxResult = 1,
-                body = """
-                    if (!value) return 0;
-                    const asserted = value as unknown as number;
-                    return typeof asserted === 'boolean' && asserted === true ? 1 : -1;
-                """.trimIndent(),
-            )
-        )
-        add(
-            ReplayCase(
-                name = "truthy wrapped number retains its runtime kind through assertion and write",
-                parameters = "values: number[]",
-                maxResult = 2,
-                body = """
-                    if (values.length !== 1) return 0;
-                    const item = values[0];
-                    if (!item) return 1;
-                    const asserted = item as unknown as number;
-                    const output = [0];
-                    output[0] = asserted;
-                    return output[0] === item ? 2 : -1;
-                """.trimIndent(),
-            )
-        )
-        add(
-            ReplayCase(
-                name = "typed array copies preserve wrapped numbers including NaN",
-                parameters = "values: number[]",
-                maxResult = 1,
-                body = """
-                    if (values.length !== 2) return 0;
-                    values[0] = values[1];
-                    return values[0] === values[1] || values[0] !== values[0] ? 1 : -1;
-                """.trimIndent(),
-            )
-        )
-    }
-
-    private fun storageOperationCases(): List<ReplayCase> = listOf("any", "unknown").flatMap { type ->
-        copyCases(type) + mutationCases(type) + concatCases(type)
-    }.map { case -> case.copy(name = "compatibility storage: ${case.name}", compatibility = true) }
-
-    private fun copyCases(type: String): List<ReplayCase> = listOf(
-        ReplayCase(
-            name = "$type slice() retains all runtime kinds",
-            parameters = "values: $type[]",
-            maxResult = 6,
-            body = """
-                if (values.length !== 1) return 0;
-                const copy = values.slice();
-                const value = copy[0];
-                if (value === 42) return 1;
-                if (value === true) return 2;
-                if (value === false) return 3;
-                if (value === null) return 4;
-                if (value === undefined) return 5;
-                return 6;
-            """.trimIndent(),
-        ),
-        ReplayCase(
-            name = "$type slice().reverse() retains all runtime kinds",
-            parameters = "values: $type[]",
-            maxResult = 6,
-            body = """
-                if (values.length !== 1) return 0;
-                const copy = values.slice().reverse();
-                const value = copy[0];
-                if (value === 42) return 1;
-                if (value === true) return 2;
-                if (value === false) return 3;
-                if (value === null) return 4;
-                if (value === undefined) return 5;
-                return 6;
-            """.trimIndent(),
-        ),
-        ReplayCase(
-            name = "$type sliced input mixed with appended wrapper",
-            parameters = "values: $type[], index: number",
-            maxResult = 4,
-            body = """
-                if (values.length !== 1) return 0;
-                const i = Math.floor(index);
-                if (!(i >= 0 && i <= 1)) return 0;
-                const copy = values.slice();
-                copy.push(true);
-                const value = copy[i];
-                if (i === 1 && value === true) return 1;
-                if (i === 0 && value === 42) return 2;
-                if (i === 0 && value === false) return 3;
-                return 4;
-            """.trimIndent(),
-        ),
-        ReplayCase(
-            name = "$type copied payload moves through two shifts",
-            parameters = "values: $type[]",
-            maxResult = 3,
-            body = """
-                if (values.length !== 2) return 0;
-                const copy = values.slice();
-                const first = copy.shift();
-                const second = copy.shift();
-                if (first === 42 && second === true) return 1;
-                if (first === false && second === 17) return 2;
-                return 3;
-            """.trimIndent(),
-        ),
-    )
-
-    private fun mutationCases(type: String): List<ReplayCase> = listOf(
-        ReplayCase(
-            name = "$type unshift preserves unread tail and pop kind",
-            parameters = "values: $type[]",
-            maxResult = 3,
-            body = """
-                if (values.length !== 1) return 0;
-                const alias = values;
-                values.unshift(true);
-                const tail = alias.pop();
-                if (alias[0] !== true || alias.length !== 1) return -1;
-                if (tail === 42) return 1;
-                if (tail === false) return 2;
-                return 3;
-            """.trimIndent(),
-        ),
-        ReplayCase(
-            name = "$type reverse permutes payloads and kinds",
-            parameters = "values: $type[]",
-            maxResult = 3,
-            body = """
-                if (values.length !== 2) return 0;
-                const copy = values.slice();
-                copy.reverse();
-                if (copy[0] === 42 && copy[1] === true) return 1;
-                if (copy[0] === false && copy[1] === 17) return 2;
-                return 3;
-            """.trimIndent(),
-        ),
-        ReplayCase(
-            name = "$type fill overrides input kind selectors",
-            parameters = "values: $type[], index: number",
-            maxResult = 4,
-            body = """
-                if (values.length !== 2) return 0;
-                const i = Math.floor(index);
-                if (!(i >= 0 && i <= 1)) return 0;
-                values.fill(true, 1, 2);
-                const value = values[i];
-                if (i === 1 && value === true) return 1;
-                if (i === 0 && value === 42) return 2;
-                if (i === 0 && value === false) return 3;
-                return 4;
-            """.trimIndent(),
-        ),
-    )
-
-    private fun concatCases(type: String): List<ReplayCase> = listOf(
-        ReplayCase(
-            name = "$type concat copies unread input arrays",
-            parameters = "left: $type[], right: $type[]",
-            maxResult = 3,
-            body = """
-                if (left.length !== 1 || right.length !== 1) return 0;
-                const copy = left.concat(right);
-                const first = copy.shift();
-                const second = copy.shift();
-                if (first === 42 && second === true) return 1;
-                if (first === false && second === 17) return 2;
-                return 3;
-            """.trimIndent(),
-        ),
-        ReplayCase(
-            name = "$type concat wraps scalar primitives",
-            parameters = "values: $type[]",
-            maxResult = 3,
-            body = """
-                if (values.length !== 1) return 0;
-                const copy = values.concat(true);
-                if (copy[1] !== true) return -1;
-                if (copy[0] === 42) return 1;
-                if (copy[0] === false) return 2;
-                return 3;
-            """.trimIndent(),
-        ),
-        ReplayCase(
-            name = "$type empty pop returns undefined and retains length",
-            parameters = "values: $type[]",
-            maxResult = 1,
-            body = """
-                if (values.length !== 0) return 0;
-                const result = values.pop();
-                return result === undefined && values.length === 0 ? 1 : -1;
-            """.trimIndent(),
-        ),
-    )
-
-    private fun pairCases(): List<ReplayCase> = buildList {
-        val literals = listOf("42", "true", "false", "null", "undefined", "'left'")
-        for (type in listOf("any", "unknown")) {
-            for (first in literals) {
-                for (second in literals) {
-                    // Unconstrained string equality is not modeled yet; write string slots before shifting.
-                    val writes = listOf(first, second).mapIndexedNotNull { index, literal ->
-                        if (literal == "'left'") "values[$index] = $literal;" else null
-                    }.joinToString(separator = "\n")
-                    val label = if (writes.isEmpty()) "input pair" else "pair with written string"
-                    val maxResult = if (first == "'left'" && second == "'left'") 1 else 2
-                    add(
-                        ReplayCase(
-                            name = "$type $label $first then $second",
-                            parameters = "values: $type[]",
-                            maxResult = maxResult,
-                            body = """
-                                if (values.length !== 2) return 0;
-                                $writes
-                                const first = values.shift();
-                                const second = values.shift();
-                                return first === $first && second === $second ? 1 : 2;
-                            """.trimIndent(),
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    private fun typedCases(): List<ReplayCase> = buildList {
-        for ((type, literal) in listOf("number" to "42", "boolean" to "true")) {
-            add(
-                ReplayCase(
-                    name = "homogeneous $type",
-                    parameters = "values: $type[]",
-                    maxResult = 2,
-                    body = """
-                        if (values.length !== 2) return 0;
-                        const first = values.shift();
-                        return first === $literal && values[0] === $literal ? 1 : 2;
-                    """.trimIndent(),
-                )
-            )
-        }
-        add(
-            ReplayCase(
-                name = "written homogeneous string",
-                parameters = "values: string[]",
-                maxResult = 1,
-                body = """
-                    if (values.length !== 2) return 0;
-                    values[0] = 'left';
-                    values[1] = 'right';
-                    return values.shift() === 'left' && values[0] === 'right' ? 1 : 2;
-                """.trimIndent(),
-            )
-        )
-        add(
-            ReplayCase(
-                name = "written symbolic union",
-                parameters = "values: (number | boolean)[]",
-                maxResult = 1,
-                body = """
-                    if (values.length !== 2) return 0;
-                    values[0] = 42;
-                    values[1] = true;
-                    return values.shift() === 42 && values[0] === true ? 1 : 2;
-                """.trimIndent(),
-            )
-        )
-        for (type in listOf("number", "boolean")) {
-            for (aliasType in listOf("any", "unknown")) {
-                add(
-                    ReplayCase(
-                        name = "symbolic $type array through $aliasType alias",
-                        parameters = "values: $type[]",
-                        maxResult = if (type == "number") 2 else 1,
-                        body = """
-                            if (values.length !== 2) return 0;
-                            const alias: $aliasType[] = values;
-                            const first = values[0];
-                            const second = values[1];
-                            return alias.shift() === first && values[0] === second && alias.length === 1 ? 1 : 2;
-                        """.trimIndent(),
-                    )
-                )
-            }
-        }
-        add(
-            ReplayCase(
-                name = "symbolic object array preserves references",
-                parameters = "values: ReplayElement[]",
-                maxResult = 2,
-                body = """
-                    if (values.length !== 2) return 0;
-                    const first = values[0];
-                    const second = values[1];
-                    if (first == null || second == null) return 2;
-                    return values.shift() === first && values[0] === second ? 1 : 3;
-                """.trimIndent(),
-            )
-        )
-    }
-
-    private fun renderSource(cases: List<ReplayCase>): String = buildString {
+    private fun renderSource(cases: List<ArrayShiftReplayCase>): String = buildString {
         appendLine("class ReplayElement {}")
         appendLine("class ArrayShiftReplay {")
         cases.forEachIndexed { index, case ->
@@ -502,14 +202,6 @@ class TsArrayShiftReplayTest {
         }
         else -> error("Unsupported replay value: $value")
     }
-
-    private data class ReplayCase(
-        val name: String,
-        val parameters: String,
-        val maxResult: Int,
-        val body: String,
-        val compatibility: Boolean = false,
-    )
 
     private companion object {
         const val JS_SAME_VALUE = """

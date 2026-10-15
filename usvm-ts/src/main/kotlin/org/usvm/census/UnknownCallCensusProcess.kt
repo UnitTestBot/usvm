@@ -71,6 +71,8 @@ internal fun boundedProcessOutput(
 
     var process: Process? = null
     var outputReader: Thread? = null
+    var completedNormally = false
+    val observedDescendants = linkedSetOf<ProcessHandle>()
     try {
         val processStart = TimeSource.Monotonic.markNow()
         val startedProcess = ProcessBuilder(command)
@@ -89,13 +91,14 @@ internal fun boundedProcessOutput(
         }
         outputReader = startedOutputReader
 
-        val remaining = timeout - processStart.elapsedNow()
-        val completed = remaining > Duration.ZERO && startedProcess.waitFor(
-            remaining.inWholeMilliseconds.coerceAtLeast(minimumValue = 1),
-            TimeUnit.MILLISECONDS,
+        val completed = waitForProcessWhileObservingDescendants(
+            process = startedProcess,
+            processStart = processStart,
+            timeout = timeout,
+            observedDescendants = observedDescendants,
         )
         if (!completed) {
-            terminateProcessTreeBestEffort(startedProcess)
+            terminateProcessTreeBestEffort(startedProcess, observedDescendants)
             closeProcessOutputBestEffort(startedProcess)
             joinBestEffort(startedOutputReader, PROCESS_TERMINATION_GRACE)
             return BoundedProcessOutput.TimedOut
@@ -106,22 +109,57 @@ internal fun boundedProcessOutput(
             timeout = timeout - processStart.elapsedNow(),
         )
         if (!outputRead) {
+            terminateProcessTreeBestEffort(startedProcess, observedDescendants)
             closeProcessOutputBestEffort(startedProcess)
             joinBestEffort(startedOutputReader, PROCESS_TERMINATION_GRACE)
             return BoundedProcessOutput.TimedOut
         }
 
         outputCollector.failure?.let { throw it }
-        return BoundedProcessOutput.Completed(
+        val completedOutput = BoundedProcessOutput.Completed(
             exitCode = startedProcess.exitValue(),
             output = outputCollector.output(),
             truncated = outputCollector.truncated,
         )
+        completedNormally = true
+        return completedOutput
     } finally {
-        process?.takeIf(Process::isAlive)?.let(::terminateProcessTreeBestEffort)
+        val startedProcess = process
+        if (!completedNormally && startedProcess != null) {
+            val hasLiveObservedDescendants = observedDescendants.any(ProcessHandle::isAlive)
+            if (startedProcess.isAlive || hasLiveObservedDescendants) {
+                terminateProcessTreeBestEffort(startedProcess, observedDescendants)
+            }
+        }
         process?.let(::closeProcessOutputBestEffort)
         outputReader?.takeIf(Thread::isAlive)?.let { reader ->
             joinBestEffort(reader, PROCESS_TERMINATION_GRACE)
+        }
+    }
+}
+
+private fun waitForProcessWhileObservingDescendants(
+    process: Process,
+    processStart: TimeSource.Monotonic.ValueTimeMark,
+    timeout: Duration,
+    observedDescendants: MutableSet<ProcessHandle>,
+): Boolean {
+    while (true) {
+        // Retain handles while the parent is alive; detached children may disappear from later descendant queries.
+        process.toHandle().descendants().use { descendants ->
+            descendants.forEach { descendant -> observedDescendants += descendant }
+        }
+
+        val remaining = timeout - processStart.elapsedNow()
+        if (remaining <= Duration.ZERO) {
+            return false
+        }
+
+        val waitMillis = minOf(remaining, PROCESS_DESCENDANT_POLL_INTERVAL)
+            .inWholeMilliseconds
+            .coerceAtLeast(minimumValue = 1)
+        if (process.waitFor(waitMillis, TimeUnit.MILLISECONDS)) {
+            return true
         }
     }
 }
@@ -190,11 +228,11 @@ private fun closeProcessOutputBestEffort(process: Process) {
     runCatching { process.inputStream.close() }
 }
 
-private fun terminateProcessTree(process: Process) {
+private fun terminateProcessTree(process: Process, observedDescendants: Set<ProcessHandle>) {
     val descendants = process.toHandle().descendants().use { handles ->
         handles.iterator().asSequence().toList()
     }
-    val processTree = listOf(process.toHandle()) + descendants
+    val processTree = listOf(process.toHandle()) + (observedDescendants + descendants)
     processTree.asReversed().forEach(ProcessHandle::destroy)
 
     if (!awaitTermination(processTree, PROCESS_TERMINATION_GRACE)) {
@@ -207,9 +245,9 @@ private fun terminateProcessTree(process: Process) {
     process.waitFor(PROCESS_TERMINATION_GRACE.inWholeMilliseconds, TimeUnit.MILLISECONDS)
 }
 
-private fun terminateProcessTreeBestEffort(process: Process) {
+private fun terminateProcessTreeBestEffort(process: Process, observedDescendants: Set<ProcessHandle>) {
     try {
-        terminateProcessTree(process)
+        terminateProcessTree(process, observedDescendants)
     } catch (_: InterruptedException) {
         Thread.currentThread().interrupt()
         process.destroyForcibly()
@@ -234,4 +272,5 @@ private fun awaitTermination(processes: List<ProcessHandle>, timeout: Duration):
 }
 
 private val PROCESS_TERMINATION_GRACE = 500.milliseconds
+private val PROCESS_DESCENDANT_POLL_INTERVAL = 20.milliseconds
 private const val PROCESS_OUTPUT_BUFFER_BYTES = 8 * 1024

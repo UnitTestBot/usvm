@@ -18,6 +18,8 @@ import {
 } from './namedExports';
 
 import defaultValue from './defaultExport';
+import defaultAfterRenamedReExport from './defaultAliasBeforeExport';
+import namedDefaultFunction from './namedDefaultFunction';
 
 import {
     renamedValue as aliasedValue,
@@ -92,6 +94,10 @@ class Imports {
 
     getDefaultValue(): string {
         return defaultValue;
+    }
+
+    getDefaultAfterRenamedReExport(): number {
+        return defaultAfterRenamedReExport;
     }
 
     getRenamedValue(): number {

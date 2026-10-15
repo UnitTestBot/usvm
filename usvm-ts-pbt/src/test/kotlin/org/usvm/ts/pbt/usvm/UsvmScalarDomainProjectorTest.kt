@@ -11,8 +11,10 @@ import org.usvm.StateCollectionStrategy
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UMachineOptions
+import org.usvm.machine.TsAnalysisStopReason
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
@@ -29,6 +31,7 @@ import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.testResourcePath
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.readStringLength
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -204,21 +207,37 @@ class UsvmScalarDomainProjectorTest {
     private fun analyze(
         method: org.jacodb.ets.model.EtsMethod,
         configure: (TsState) -> Unit,
-    ): Boolean = runCatching {
-        TsMachine(
+    ): Boolean {
+        val analysis = TsMachine(
             scene = scene,
             options = UMachineOptions(
                 solverType = SolverType.YICES,
-                stateCollectionStrategy = StateCollectionStrategy.ALL
+                stateCollectionStrategy = StateCollectionStrategy.ALL,
+                stopOnCoverage = 0,
+                removeCoveredEntryPoints = false,
             ),
             tsOptions = TsOptions(),
         ).use { machine ->
-            machine.analyze(
+            machine.analyzeWithMetadata(
                 methods = listOf(method),
                 configureInitialState = { _, state -> configure(state) },
             )
         }
-    }.isSuccess
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
+        assertFalse(analysis.timedOut)
+        assertFalse(analysis.engineFailed)
+        assertFalse(analysis.unsupportedCall)
+        assertTrue(analysis.unsupportedPaths.isEmpty(), analysis.unsupportedPaths.toString())
+        assertTrue(
+            analysis.states.all { state ->
+                val result = state.methodResult as? TsMethodResult.Success.RegularCall
+                result?.method == method
+            },
+        )
+
+        return analysis.states.isNotEmpty()
+    }
 
     private fun manifest(domain: PropertyDomain, exportName: String) = PropertyManifest(
         propertyId = "usvm.scalar.$exportName",

@@ -6,6 +6,8 @@ import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFileSignature
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsUnclearRefType
@@ -32,6 +34,7 @@ class EtsHierarchy(private val scene: EtsScene) {
 
         val time = measureTimeMillis {
             result = scene.projectAndSdkClasses.associateWith { start ->
+                val visited = mutableSetOf(start)
                 generateSequence(listOf(start)) { classes ->
                     if (classes.isEmpty()) return@generateSequence null
 
@@ -44,7 +47,8 @@ class EtsHierarchy(private val scene: EtsScene) {
                         superClasses.toMutableSet() + resolvedInterfaces // TODO optimize
                     }
 
-                    result.takeIf { it.isNotEmpty() }
+                    val newAncestors = result.filter { visited.add(it) }
+                    newAncestors.takeIf { it.isNotEmpty() }
                 }.flatten().toMutableSet() + scene.sdkClasses.filter { it.name == "Object" }
             }
         }
@@ -88,6 +92,64 @@ class EtsHierarchy(private val scene: EtsScene) {
         return ancestors[clazz] ?: run {
             error("TODO")
         }
+    }
+
+    /** Finds the closest instance declaration, preferring the class chain over interface declarations. */
+    fun nearestInstanceMethod(clazz: EtsClass, methodName: String): EtsMethod? {
+        val classes = ArrayDeque<EtsClass>()
+        val interfaces = ArrayDeque<EtsClass>()
+        val visited = mutableSetOf(clazz)
+        classes.addLast(clazz)
+
+        fun enqueue(target: ArrayDeque<EtsClass>, candidates: Collection<EtsClass>) {
+            for (candidate in candidates.sortedBy { it.signature.toString() }) {
+                if (visited.add(candidate)) target.addLast(candidate)
+            }
+        }
+
+        while (classes.isNotEmpty()) {
+            val current = classes.removeFirst()
+            val method = current.methods.firstOrNull { !it.isStatic && it.name == methodName }
+            if (method != null) return method
+
+            val superClasses = current.superClass?.let(::resolveClassesBySignature).orEmpty()
+            enqueue(classes, superClasses)
+
+            val implementedInterfaces = current.implementedInterfaces.flatMap(::resolveClassesBySignature)
+            enqueue(interfaces, implementedInterfaces)
+        }
+
+        val objectMethod = scene.sdkClasses.asSequence()
+            .filter { it.name == "Object" }
+            .sortedBy { it.signature.toString() }
+            .mapNotNull { sdkObject ->
+                sdkObject.methods.firstOrNull { !it.isStatic && it.name == methodName }
+            }
+            .firstOrNull()
+        if (objectMethod != null) return objectMethod
+
+        while (interfaces.isNotEmpty()) {
+            val current = interfaces.removeFirst()
+            val method = current.methods.firstOrNull { !it.isStatic && it.name == methodName }
+            if (method != null) return method
+
+            val parents = current.implementedInterfaces.flatMap(::resolveClassesBySignature)
+            enqueue(interfaces, parents)
+        }
+
+        return null
+    }
+
+    /** Explicit `super.m()` starts lookup at the declared superclass, not the receiver's override. */
+    fun explicitSuperMethod(receiverClass: EtsClass, callee: EtsMethodSignature): EtsMethod? {
+        val ancestors = getAncestors(receiverClass) - receiverClass
+        val declaredSuperclasses = classesForType(EtsClassType(callee.enclosingClass))
+
+        return declaredSuperclasses.asSequence()
+            .filter(ancestors::contains)
+            .sortedBy { it.signature.toString() }
+            .mapNotNull { nearestInstanceMethod(it, callee.name) }
+            .firstOrNull()
     }
 
     fun getInheritors(clazz: EtsClass): Set<EtsClass> {

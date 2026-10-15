@@ -147,8 +147,7 @@ class ProjectRunner {
 
         val tsOptions = TsOptions()
         TsMachine(scene, machineOptions, tsOptions).use { machine ->
-            val states = machine.analyze(methods)
-            states.let {}
+            machine.analyze(methods)
         }
     }
 
@@ -198,8 +197,7 @@ class ProjectRunner {
 
         val tsOptions = TsOptions()
         TsMachine(scene, machineOptions, tsOptions).use { machine ->
-            val states = machine.analyze(methods)
-            states.let {}
+            machine.analyze(methods)
         }
     }
 

@@ -139,6 +139,13 @@ target set; failures discovered after that freeze remain scheduled failures. The
 target, profile and seed; JVM/frontend startup and original-source replay have separate recorded limits. Readiness
 traverses reachable same-file callees and the initializers triggered by their static-field accesses.
 
+Frozen Calls runs normally record `nativeFrontendRevision` as `bundled:<JacoDB version>`. For an
+`ETS_FRONTEND_DIR` override, run `calls frontend-identity <external-frontend-directory>` after
+building the frontend and copy its `<Git SHA>@sha256:<digest>` output into that manifest field.
+The command checks the checkout and hashes the generated `dist` files; it does not build them.
+The digest pins the actual generated runtime bytes, not the Node environment or a proof that
+those bytes were produced from the recorded source commit.
+
 ### `unknownCallFallback`
 
 The fallback is applied when:

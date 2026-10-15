@@ -19,6 +19,7 @@ import org.usvm.util.getResourcePath
 import java.nio.file.Path
 import kotlin.io.path.readText
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
@@ -336,34 +337,55 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `custom hasInstance is explicitly unsupported`() {
-        val custom = analyze("customHasInstance")
-        val inherited = analyze("inheritedHasInstance")
-        val customField = analyze(methodName = "customHasInstanceField")
-        val inheritedField = analyze(methodName = "inheritedHasInstanceField")
-
-        assertEquals(TsAnalysisStopReason.EXHAUSTED, custom.stopReason)
-        assertTrue(custom.states.isEmpty())
-        assertTrue(custom.unsupportedPaths.any { "Symbol.hasInstance" in it }, "${custom.unsupportedPaths}")
-
-        assertEquals(TsAnalysisStopReason.EXHAUSTED, inherited.stopReason)
-        assertTrue(inherited.states.isEmpty())
-        assertTrue(inherited.unsupportedPaths.any { "Symbol.hasInstance" in it }, "${inherited.unsupportedPaths}")
-
-        assertEquals(TsAnalysisStopReason.EXHAUSTED, customField.stopReason)
-        assertTrue(customField.states.isEmpty())
-        assertTrue(customField.unsupportedPaths.any { "Symbol.hasInstance" in it }, "${customField.unsupportedPaths}")
-
-        assertEquals(TsAnalysisStopReason.EXHAUSTED, inheritedField.stopReason)
-        assertTrue(inheritedField.states.isEmpty())
-        assertTrue(inheritedField.unsupportedPaths.any { "Symbol.hasInstance" in it }, "${inheritedField.unsupportedPaths}")
+    fun `custom hasInstance method class construction is rejected by the frontend`() {
+        assertFrontendRejectedValue(
+            methodName = "customHasInstance",
+            kindName = "NewExpression",
+            text = "new InstanceCustom()",
+        )
 
         replay(listOf(
             "if (new RuntimeInstanceof().customHasInstance() !== false) throw Error('custom hasInstance');",
+        ))
+    }
+
+    @Test
+    fun `inherited hasInstance method constructor value is rejected by the frontend`() {
+        assertFrontendRejectedValue(
+            methodName = "inheritedHasInstance",
+            kindName = "Identifier",
+            text = "InstanceHasInstanceChild",
+        )
+
+        replay(listOf(
             "if (new RuntimeInstanceof().inheritedHasInstance(new InstanceHasInstanceChild()) !== false) " +
                 "throw Error('inherited hasInstance');",
+        ))
+    }
+
+    @Test
+    fun `custom hasInstance field class construction is rejected by the frontend`() {
+        assertFrontendRejectedValue(
+            methodName = "customHasInstanceField",
+            kindName = "NewExpression",
+            text = "new InstanceCustomField()",
+        )
+
+        replay(listOf(
             "if (new RuntimeInstanceof().customHasInstanceField() !== false) " +
                 "throw Error('field hasInstance');",
+        ))
+    }
+
+    @Test
+    fun `inherited hasInstance field constructor value is rejected by the frontend`() {
+        assertFrontendRejectedValue(
+            methodName = "inheritedHasInstanceField",
+            kindName = "Identifier",
+            text = "InstanceHasInstanceFieldChild",
+        )
+
+        replay(listOf(
             "if (new RuntimeInstanceof().inheritedHasInstanceField(new InstanceHasInstanceFieldChild()) !== false) " +
                 "throw Error('inherited field hasInstance');",
         ))
@@ -498,6 +520,32 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `constructor generic default permits inferred number input`() {
+        val methodName = "genericDefaultConstructorParameter"
+        val method = getMethod(methodName = methodName, className = "RuntimeInstanceof")
+
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+            method = method,
+            { input, result -> input is TsTestValue.TsNumber && result.number == 1.0 },
+            invariants = arrayOf({ input, result ->
+                val expected = if (input is TsTestValue.TsNumber) 1.0 else 0.0
+                result.number == expected
+            }),
+        )
+
+        val outcome = analyze(methodName)
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.isEmpty(), "${outcome.unsupportedPaths}")
+        assertTrue(outcome.states.isNotEmpty())
+
+        replay(listOf(
+            "if (new RuntimeInstanceof().genericDefaultConstructorParameter(7) !== 1) " +
+                "throw Error('inferred number despite constructor default');",
+        ))
+    }
+
+    @Test
     fun `constructor arrays have an explicit unsupported outcome`() {
         val methods = listOf("constructorArrayParameter", "constructorNestedArrayParameter")
 
@@ -623,6 +671,27 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
         assertTrue(outcome.unsupportedPaths.any { "constructorParameter" in it }, "${outcome.unsupportedPaths}")
         assertTrue(outcome.states.isNotEmpty())
         outcome.states.forEach { state -> assertIs<TsMethodResult.Success>(state.methodResult) }
+    }
+
+    private fun assertFrontendRejectedValue(methodName: String, kindName: String, text: String) {
+        val method = getMethod(methodName = methodName, className = "RuntimeInstanceof")
+
+        val outcome = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
+            machine.analyzeWithMetadata(methods = listOf(method))
+        }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
+        assertTrue(outcome.states.isEmpty(), methodName)
+        assertFalse(outcome.timedOut, methodName)
+        assertFalse(outcome.engineFailed, methodName)
+        assertFalse(outcome.unsupportedCall, methodName)
+        assertEquals(expected = 1, actual = outcome.unsupportedPaths.size, message = methodName)
+
+        val unsupportedValue = outcome.unsupportedPaths.single()
+        val rejectedExpectedValue =
+            unsupportedValue.startsWith("FRONTEND_UNSUPPORTED_VALUE: Unsupported frontend value: UnsupportedValue") &&
+                "\"kindName\":\"$kindName\"" in unsupportedValue && "\"text\":\"$text\"" in unsupportedValue
+        assertTrue(rejectedExpectedValue, "$methodName: $unsupportedValue")
     }
 
     private fun discoverConstant(methodName: String, expected: Double) {

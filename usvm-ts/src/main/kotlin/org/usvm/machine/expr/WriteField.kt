@@ -12,6 +12,7 @@ import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.USort
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
@@ -243,25 +244,8 @@ fun TsContext.assignToInstanceField(
         }
     }
 
-    if (sort !is TsUnresolvedSort && expr.isFakeObject()) {
-        val fakeType = scope.calcOnState { expr.getFakeType(scope) }
-        val compatibleType = when (sort) {
-            boolSort -> fakeType.boolTypeExpr
-            fp64Sort -> fakeType.fpTypeExpr
-            addressSort -> fakeType.refTypeExpr
-            else -> error("Unsupported field sort: $sort")
-        }
-
-        scope.fork(
-            compatibleType,
-            blockOnFalseState = {
-                terminateAsUnsupported(reason = "Assignment changes runtime sort of field '${field.name}'")
-            },
-        ) ?: return null
-    }
-
-    if (sort !is TsUnresolvedSort && expr.sort != sort && !expr.isFakeObject()) {
-        throw UnsupportedOperationException("Assignment changes runtime sort of field '${field.name}'")
+    if (sort !is TsUnresolvedSort) {
+        ensureCompatibleFieldWriteKind(scope, field.name, sort, expr) ?: return null
     }
 
     // If the field type is unknown, we create a fake object for the expr and assign it.
@@ -296,6 +280,37 @@ fun TsContext.assignToInstanceField(
             }
         }
     }
+}
+
+private fun TsContext.ensureCompatibleFieldWriteKind(
+    scope: TsStepScope,
+    fieldName: String,
+    sort: USort,
+    expr: UExpr<*>,
+): Unit? {
+    if (expr.isFakeObject()) {
+        val fakeType = scope.calcOnState { expr.getFakeType(scope) }
+        val compatibleType = when (sort) {
+            boolSort -> fakeType.boolTypeExpr
+            fp64Sort -> fakeType.fpTypeExpr
+            addressSort -> fakeType.refTypeExpr
+            else -> error("Unsupported field sort: $sort")
+        }
+
+        scope.fork(
+            compatibleType,
+            blockOnFalseState = {
+                terminateAsUnsupported(reason = "Assignment changes runtime sort of field '$fieldName'")
+            },
+        ) ?: return null
+        return Unit
+    }
+
+    if (expr.sort != sort) {
+        throw UnsupportedOperationException("Assignment changes runtime sort of field '$fieldName'")
+    }
+
+    return Unit
 }
 
 internal fun TsExprResolver.handleAssignToStaticField(
@@ -343,8 +358,27 @@ fun TsContext.assignToStaticField(
         }
     } else {
         val lValue = mkFieldLValue(sort, instance, field.name)
+        // A conditional reference can contain a fake value on only one branch.
+        val mayContainFakeValue = expr.sort == addressSort && expr.asExpr(addressSort).hasFakeValueBranch()
+        val value = if (mayContainFakeValue) {
+            expr.toFakeObject(scope)
+        } else {
+            expr
+        }
+        ensureCompatibleFieldWriteKind(scope, field.name, sort, value) ?: return null
+
+        val payload = if (value.isFakeObject()) {
+            when (sort) {
+                boolSort -> value.extractBool(scope)
+                fp64Sort -> value.extractFp(scope)
+                addressSort -> value.extractRef(scope)
+                else -> error("Unsupported field sort: $sort")
+            }
+        } else {
+            value
+        }
         scope.doWithState {
-            memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+            memory.write(lValue, payload.asExpr(lValue.sort), guard = trueExpr)
         }
     }
 }

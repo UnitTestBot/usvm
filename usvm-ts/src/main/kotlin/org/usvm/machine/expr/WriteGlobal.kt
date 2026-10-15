@@ -14,16 +14,12 @@ fun TsContext.writeGlobal(
     name: String,
     expr: UExpr<*>,
 ): Unit? = scope.calcOnState {
-    // Initialize globals in `file` if necessary
     ensureGlobalsInitialized(scope, file) ?: return@calcOnState null
 
-    // Get the globals container object
     val dfltObject = getDfltObject(file)
 
-    // Write the global variable as a field of the globals container object
     val lValue = mkFieldLValue(expr.sort, dfltObject, name)
     memory.write(lValue, expr.cast(), guard = trueExpr)
 
-    // Save the sort of the global variable for future reads
     saveSortForDfltObjectField(file, name, expr.sort)
 }

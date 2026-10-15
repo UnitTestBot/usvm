@@ -394,11 +394,11 @@ export class DateModels {
         seconds = DateModels.toInteger(seconds);
         milliseconds = DateModels.toInteger(milliseconds);
 
-        if (
+        const hasInvalidComponent =
             DateModels.isInvalid(year) || DateModels.isInvalid(month) || DateModels.isInvalid(date) ||
             DateModels.isInvalid(hours) || DateModels.isInvalid(minutes) || DateModels.isInvalid(seconds) ||
-            DateModels.isInvalid(milliseconds)
-        ) {
+            DateModels.isInvalid(milliseconds);
+        if (hasInvalidComponent) {
             return NaN;
         }
 

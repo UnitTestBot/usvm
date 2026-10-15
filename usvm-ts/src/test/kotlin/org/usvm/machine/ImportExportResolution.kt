@@ -130,6 +130,46 @@ class ImportExportResolutionTest {
     }
 
     @Test
+    fun `absolute import chooses project-root path over an earlier nested suffix`() {
+        val nestedFile = createMockFile(
+            signature = EtsFileSignature(projectName = "TestProject", fileName = "app/src/types/index.ts"),
+            exports = emptyList(),
+        )
+        val rootFile = createMockFile(
+            signature = EtsFileSignature(projectName = "TestProject", fileName = "src/types/index.ts"),
+            exports = emptyList(),
+        )
+        val collisionScene = EtsScene(
+            projectFiles = listOf(currentFile, nestedFile, rootFile),
+            sdkFiles = emptyList(),
+            projectName = "TestProject",
+        )
+
+        val result = collisionScene.resolveImport(currentFile, "/src/types/index")
+
+        assertIs<ImportResolutionResult.Success>(result)
+        assertEquals(rootFile, result.file)
+    }
+
+    @Test
+    fun `absolute import accepts a fully absolute file signature`() {
+        val absoluteFile = createMockFile(
+            signature = EtsFileSignature(projectName = "TestProject", fileName = "/src/types/index.ts"),
+            exports = emptyList(),
+        )
+        val absoluteScene = EtsScene(
+            projectFiles = listOf(currentFile, absoluteFile),
+            sdkFiles = emptyList(),
+            projectName = "TestProject",
+        )
+
+        val result = absoluteScene.resolveImport(currentFile, "/src/types/index")
+
+        assertIs<ImportResolutionResult.Success>(result)
+        assertEquals(absoluteFile, result.file)
+    }
+
+    @Test
     @DisplayName("Test import resolution failure")
     fun testImportNotFound() {
         val result = scene.resolveImport(currentFile, "./nonexistent")

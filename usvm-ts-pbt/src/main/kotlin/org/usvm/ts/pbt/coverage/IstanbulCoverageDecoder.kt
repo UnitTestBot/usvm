@@ -2,6 +2,7 @@ package org.usvm.ts.pbt.coverage
 
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.CoverageArtifactKind
 import org.usvm.ts.pbt.backend.CoverageDiagnostic
 import org.usvm.ts.pbt.backend.CoverageProvenance
@@ -9,6 +10,7 @@ import org.usvm.ts.pbt.backend.CoverageScope
 import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
 import org.usvm.ts.pbt.backend.SourceFileCoverage
 import java.nio.file.Files
+import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
 /** Selects relevant report entries and assembles the coverage artifact for one property run. */
@@ -57,7 +59,19 @@ internal class IstanbulCoverageDecoder(
         val fileJson = IstanbulJsonValue(reportEntry, coveragePath)
         val fileObject = fileJson.asObject()
         val reportedPath = fileJson.optionalString(name = "path")
-        val path = normalizeCoveragePath(reportedPath ?: reportKey)
+        val rawPath = reportedPath ?: reportKey
+        val path = try {
+            normalizeCoveragePath(rawPath)
+        } catch (error: InvalidPathException) {
+            val invalidPathLocation = if (reportedPath != null) "$coveragePath.path" else coveragePath
+
+            throw CoverageArtifactException.create(
+                code = PbtDiagnosticCode.COVERAGE_REPORT_INVALID,
+                message = "Istanbul coverage entry has an invalid source path",
+                path = invalidPathLocation,
+                cause = error,
+            )
+        }
 
         if (isGeneratedJavaScriptBelowSourceRoot(path)) {
             diagnostics += sourceMapDiagnostic(path)

@@ -33,7 +33,6 @@ import org.usvm.util.EtsFieldName
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.EtsMethodName
 import org.usvm.util.componentType
-import org.usvm.util.getAllFields
 import org.usvm.util.getAllProperties
 import org.usvm.util.getAllPropertiesCombined
 import org.usvm.util.type
@@ -101,6 +100,8 @@ class TsTypeSystem(
 
         // Identical primitive types are mutually assignable (e.g., number to number).
         if (unwrappedSupertype is EtsPrimitiveType && unwrappedType is EtsPrimitiveType) {
+            if (unwrappedSupertype == unwrappedType) return true
+
             if (unwrappedType is EtsLiteralType) {
                 // Literal types are subtypes of their base primitive (e.g., 'foo' <: string).
                 return when (unwrappedType) {
@@ -174,7 +175,7 @@ class TsTypeSystem(
         // Class and structural types
 
         if (unwrappedSupertype is EtsAuxiliaryType && unwrappedType is EtsAuxiliaryType) {
-            return unwrappedType.properties.all { it in unwrappedSupertype.properties }
+            return unwrappedType.properties.containsAll(unwrappedSupertype.properties)
         }
 
         if (unwrappedSupertype is EtsAuxiliaryType) {
@@ -193,7 +194,7 @@ class TsTypeSystem(
             return classes.any { cls ->
                 val properties = cls.getAllPropertiesCombined(hierarchy)
 
-                return properties.containsAll(unwrappedSupertype.properties)
+                properties.containsAll(unwrappedSupertype.properties)
             }
         }
 
@@ -206,7 +207,7 @@ class TsTypeSystem(
             return superClasses.any { cls ->
                 val properties = cls.getAllPropertiesCombined(hierarchy)
 
-                return properties.containsAll(unwrappedType.properties)
+                properties.containsAll(unwrappedType.properties)
             }
         }
 
@@ -296,9 +297,9 @@ class TsTypeSystem(
                 scene.projectAndSdkClasses
                     .asSequence()
                     .filter { cls ->
-                        cls.getAllFields(hierarchy)
-                            .map { it.name }
-                            .containsAll(t.properties)
+                        val properties = cls.getAllPropertiesCombined(hierarchy)
+
+                        properties.containsAll(t.properties)
                     }
                     .map { it.type }
             }
@@ -306,9 +307,9 @@ class TsTypeSystem(
             is EtsArrayType -> {
                 findSubtypes(t.elementType).map { child ->
                     if (child is EtsArrayType) {
-                        EtsArrayType(child.elementType, child.dimensions + 1)
+                        child.copy(dimensions = child.dimensions + t.dimensions)
                     } else {
-                        EtsArrayType(child, dimensions = 1)
+                        EtsArrayType(child, dimensions = t.dimensions)
                     }
                 }
             }

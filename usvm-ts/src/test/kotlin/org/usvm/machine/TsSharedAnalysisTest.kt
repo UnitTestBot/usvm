@@ -138,6 +138,7 @@ class TsSharedAnalysisTest {
                 assignments++
                 val value = stmt.lhv.accept(simpleValueResolver)
                 val expected = scope.calcOnState { ctx.mkFp(7.0, ctx.fp64Sort) }
+
                 assertEquals(expected, value)
             }
         }

@@ -142,6 +142,15 @@ class RuntimeNew {
         return useNumber ? target.value === 7 : target.value === false;
     }
 
+    returnAddedFieldFromBoxedValue(useNumber: boolean): any {
+        const source: any = { payload: useNumber ? 7 : false };
+        const target: any = { marker: 1 };
+
+        target.value = source.payload;
+
+        return target;
+    }
+
     writeTypedPrimitiveFromBoxedValue(useNumber: boolean): boolean {
         const source: any = { payload: useNumber ? 7 : false };
         const target = new NewTypedFields();

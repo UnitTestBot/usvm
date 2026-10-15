@@ -386,9 +386,17 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         maxArgs: Int,
         state: TsState,
         allowDateCopy: Boolean = false,
-    ): List<NumericDateArgument>? = arguments.take(maxArgs).map { argument ->
-        val resolved = argument.resolved ?: return null
-        numericArgument(state = state, value = resolved, allowDateCopy = allowDateCopy && arguments.size == 1)
+    ): List<NumericDateArgument>? {
+        val numericArguments = mutableListOf<NumericDateArgument>()
+        val copiesSingleDate = allowDateCopy && arguments.size == 1
+        for (argument in arguments.take(maxArgs)) {
+            val resolved = argument.resolved
+            if (resolved == null) return null
+
+            numericArguments += numericArgument(state = state, value = resolved, allowDateCopy = copiesSingleDate)
+        }
+
+        return numericArguments
     }
 
     private fun numericArgument(

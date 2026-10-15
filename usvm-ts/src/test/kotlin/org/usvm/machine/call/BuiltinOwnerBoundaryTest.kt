@@ -57,4 +57,39 @@ class BuiltinOwnerBoundaryTest : TsMethodTestRunner() {
             invariants = arrayOf({ result -> !result.value }),
         )
     }
+
+    @Test
+    fun `project toString methods execute through direct inherited overridden and any references`() {
+        val methods = listOf("declaredToString", "inheritedToString", "overriddenToString", "anyReferenceToString")
+
+        methods.forEach { methodName ->
+            discoverProperties<TsTestValue.TsNumber>(
+                method = getMethod(methodName = methodName, className = "BuiltinOwnerBoundary"),
+                { result -> result.number == 1.0 },
+                invariants = arrayOf({ result -> result.number == 1.0 }),
+            )
+        }
+    }
+
+    @Test
+    fun `ordinary inherited instance method executes the base body`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod(methodName = "inheritedOrdinaryMethod", className = "BuiltinOwnerBoundary"),
+            { result -> result.number == 7.0 },
+            invariants = arrayOf({ result -> result.number == 7.0 }),
+        )
+    }
+
+    @Test
+    fun `explicit super calls use the base body while base typed virtual calls use the override`() {
+        val methods = listOf("explicitSuperCall", "baseTypedVirtualCall")
+
+        methods.forEach { methodName ->
+            discoverProperties<TsTestValue.TsNumber>(
+                method = getMethod(methodName = methodName, className = "BuiltinOwnerBoundary"),
+                { result -> result.number == 12.0 },
+                invariants = arrayOf({ result -> result.number == 12.0 }),
+            )
+        }
+    }
 }

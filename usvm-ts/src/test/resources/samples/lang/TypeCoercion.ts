@@ -29,7 +29,6 @@ class TypeCoercion {
             return 3;
         }
 
-        // a == 0
         return -1;
     }
 

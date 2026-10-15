@@ -28,6 +28,7 @@ internal fun TsContext.iteUnresolvedValue(
         fpTypeExpr = mkIte(condition, trueValue.type.fpTypeExpr, falseValue.type.fpTypeExpr),
         refTypeExpr = mkIte(condition, trueValue.type.refTypeExpr, falseValue.type.refTypeExpr),
     )
+
     return TsUnresolvedValue(
         boolValue = mkIte(condition, trueValue.boolValue, falseValue.boolValue),
         fpValue = mkIte(condition, trueValue.fpValue, falseValue.fpValue),

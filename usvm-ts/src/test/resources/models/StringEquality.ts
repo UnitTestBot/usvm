@@ -103,4 +103,61 @@ class StringEquality {
     nullAndUndefined(): number {
         return null === undefined ? 1 : null == undefined ? 2 : 3;
     }
+
+    loosePrimitiveStringEquals(): number {
+        const one: any = "1";
+
+        if (true == one && one == true && 1 == one && one == 1) return 1;
+        return 2;
+    }
+
+    loosePrimitiveStringNotEquals(): number {
+        const one: any = "1";
+
+        if (true != one || one != true || 1 != one || one != 1) return 2;
+        return 1;
+    }
+
+    loosePrimitiveNullishControls(): number {
+        const nil: any = null;
+        const missing: any = undefined;
+
+        if (true == nil || nil == true || 1 == missing || missing == 1) return 2;
+        if (true != nil && nil != true && 1 != missing && missing != 1) return 1;
+        return 2;
+    }
+
+    looseArrayEqualsEmptyString(): number {
+        const array: any = [];
+
+        return array == "" ? 1 : 2;
+    }
+
+    looseEmptyStringEqualsArray(): number {
+        const array: any = [];
+
+        return "" == array ? 1 : 2;
+    }
+
+    looseArrayNotEqualsEmptyString(): number {
+        const array: any = [];
+
+        return array != "" ? 2 : 1;
+    }
+
+    looseStringOrArray(flag: boolean): number {
+        const value: any = flag ? "" : [];
+
+        return value == "" ? 1 : 2;
+    }
+
+    looseReferenceControls(): number {
+        const left: any = [];
+        const right: any = [];
+        const text: any = "";
+        const nil: any = null;
+
+        if (left != right && left == left && text == "" && nil == undefined) return 1;
+        return 2;
+    }
 }

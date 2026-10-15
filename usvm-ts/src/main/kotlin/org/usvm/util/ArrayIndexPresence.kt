@@ -34,6 +34,14 @@ internal fun TsState.writtenArrayIndexPresence(array: UHeapRef, index: UExpr<TsS
 }
 
 internal fun TsState.deleteKnownArrayIndex(array: UHeapRef, index: UExpr<TsSizeSort>) = with(ctx) {
+    // Deletion can create a hole without changing length or payload storage.
+    if (array is UConcreteHeapRef) {
+        denseInputArrays.remove(array)
+    } else {
+        // A symbolic receiver can alias any recorded dense array.
+        denseInputArrays.clear()
+    }
+
     val initialized = initializedArrayIndices[array].orEmpty()
     initializedArrayIndices += array to initialized.mapValues { (writtenIndex, present) ->
         mkAnd(present, mkNot(mkEq(index, writtenIndex)))
@@ -58,4 +66,28 @@ internal fun TsState.moveInitializedArrayIndices(
         moved[target] = mkOr(moved[target] ?: falseExpr, present)
     }
     initializedArrayIndices += array to moved
+}
+
+/** Copies known own slots into a fresh array; the caller establishes complete destination provenance. */
+internal fun TsState.copyKnownArrayIndexPresence(
+    srcRef: UHeapRef,
+    dstRef: UHeapRef,
+    fromSrc: UExpr<TsSizeSort>,
+    fromDst: UExpr<TsSizeSort>,
+    length: UExpr<TsSizeSort>,
+) = with(ctx) {
+    require(srcRef in knownArrayPropertyPresence) { "Source array has no known own-slot provenance" }
+
+    val fromSrcEnd = mkBvAddExpr(fromSrc, length)
+    val copied = initializedArrayIndices[dstRef].orEmpty().toMutableMap()
+    for ((index, present) in initializedArrayIndices[srcRef].orEmpty()) {
+        val isInCopiedRange = mkAnd(
+            mkBvSignedGreaterOrEqualExpr(index, fromSrc),
+            mkBvSignedLessExpr(index, fromSrcEnd),
+        )
+        val destinationIndex = mkBvAddExpr(fromDst, mkBvSubExpr(index, fromSrc))
+        val copiedPresence = mkAnd(isInCopiedRange, present)
+        copied[destinationIndex] = mkOr(copied[destinationIndex] ?: falseExpr, copiedPresence)
+    }
+    initializedArrayIndices += dstRef to copied
 }

@@ -203,6 +203,10 @@ class RuntimeInstanceof {
         return typeof ctor === "function";
     }
 
+    genericDefaultConstructorParameter<T = typeof InstanceA>(value: T): number {
+        return typeof value === "number" ? 1 : 0;
+    }
+
     constructorTupleParameter(ctors: [typeof InstanceA]): boolean {
         return new InstanceA() instanceof ctors[0];
     }

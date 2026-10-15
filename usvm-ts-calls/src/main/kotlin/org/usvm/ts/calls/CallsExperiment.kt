@@ -89,22 +89,28 @@ internal data class CallsExperimentManifest(
             "Tool revision must identify a clean Git commit"
         }
         require(toolRevision == modelSet.toolRevision) { "Tool and model-set revisions must match" }
+
         val functions = projects.flatMap(CallsProjectCase::functions)
-        require(functions.map(CallsFunctionCase::functionId).distinct().size == functions.size) {
+        val uniqueFunctionIds = functions.map(CallsFunctionCase::functionId).distinct()
+        require(uniqueFunctionIds.size == functions.size) {
             "Function IDs must be unique"
         }
-        require(functions.all { function -> function.sourceFile == function.entryPoint.module }) {
+        val sourceFilesMatchEntryPoints = functions.all { function ->
+            function.sourceFile == function.entryPoint.module
+        }
+        require(sourceFilesMatchEntryPoints) {
             "Function source files must match their replay entry-point modules"
         }
+
         val targets = functions.flatMap(CallsFunctionCase::targets)
-        require(targets.map(CallsSourceTarget::targetId).distinct().size == targets.size) {
+        val uniqueTargetIds = targets.map(CallsSourceTarget::targetId).distinct()
+        require(uniqueTargetIds.size == targets.size) {
             "Target IDs must be unique"
         }
-        require(
-            functions.all { function ->
-                function.targets.all { target -> target.sourcePath == function.sourceFile }
-            },
-        ) {
+        val targetsBelongToFunctionSourceFiles = functions.all { function ->
+            function.targets.all { target -> target.sourcePath == function.sourceFile }
+        }
+        require(targetsBelongToFunctionSourceFiles) {
             "Every target must belong to its function source file"
         }
     }
@@ -267,12 +273,12 @@ internal object CallsBuildIdentity {
     }
 
     val toolRevision: String by lazy {
-        checkNotNull(properties.getProperty("tool.revision")).takeIf(String::isNotBlank)
+        properties.getProperty("tool.revision")?.takeIf(String::isNotBlank)
             ?: error("Missing tool revision in calls build identity")
     }
 
     val nativeFrontendRevision: String by lazy {
-        checkNotNull(properties.getProperty("native.frontend.revision")).takeIf(String::isNotBlank)
+        properties.getProperty("native.frontend.revision")?.takeIf(String::isNotBlank)
             ?: error("Missing native frontend revision in calls build identity")
     }
 }
@@ -282,6 +288,8 @@ internal class CallsExperimentRunner(
     private val targetReplayer: CallsTargetReplayer,
     private val runtimeToolRevision: String = CallsBuildIdentity.toolRevision,
     private val eventRecordWriter: ((Path, CallsRawRecord) -> Unit)? = null,
+    private val sourceCheckoutVerifier: (Path, String) -> Unit = ::verifyCallsGitCheckout,
+    private val frontendRuntimeVerifier: (String) -> Unit = ::verifyCallsExternalFrontendRuntime,
 ) {
     fun run(
         manifest: CallsExperimentManifest,
@@ -348,6 +356,15 @@ internal class CallsExperimentRunner(
                 resultRows = resultRows,
             ),
         )
+
+        manifest.projects.forEach { project ->
+            val sourceRoot = manifestDirectory.resolve(project.sourceRoot).normalize().toRealPath()
+            sourceCheckoutVerifier(sourceRoot, project.revision)
+        }
+        if (!manifest.nativeFrontendRevision.startsWith("bundled:")) {
+            frontendRuntimeVerifier(manifest.nativeFrontendRevision)
+        }
+
         Files.move(
             partialOutput,
             rawOutput,
@@ -415,6 +432,8 @@ internal class CallsExperimentRunner(
         profile: CallsExperimentProfile,
         appendUnknownCall: (CallsRawRecord) -> Unit,
     ): CallsTargetResult {
+        sourceCheckoutVerifier(sourceRoot, project.revision)
+
         val request = CallsSymbolicSearchRequest(
             sourceRoot = sourceRoot,
             project = project,
@@ -443,14 +462,19 @@ internal class CallsExperimentRunner(
             ),
         )
         eventWrites.requireComplete()
+        sourceCheckoutVerifier(sourceRoot, project.revision)
+
         val replay = symbolic.inputs?.let { inputs ->
-            targetReplayer.replay(
+            val replayResult = targetReplayer.replay(
                 sourceRoots = listOf(sourceRoot),
                 entryPoint = function.entryPoint,
                 inputs = inputs,
                 target = target,
                 timeoutMillis = manifest.perTargetBudgetMillis,
             )
+            sourceCheckoutVerifier(sourceRoot, project.revision)
+
+            replayResult
         }
 
         return CallsTargetResult(
@@ -543,16 +567,17 @@ internal object CallsRawResultsReader {
         require(results.all { result -> result.experimentId == metadata.experimentId }) {
             "Result experiment ID does not match metadata"
         }
-        require(
-            results.all { result ->
-                val identity = targetIdentities[Triple(result.projectId, result.functionId, result.targetId)]
-                identity != null &&
-                    result.revision == identity.revision &&
-                    result.development == identity.development &&
-                    result.siteId == identity.siteId &&
-                    result.targetMode == identity.targetMode
-            },
-        ) { "Result target identity does not match metadata" }
+        val resultsMatchTargetIdentities = results.all { result ->
+            val identity = targetIdentities[Triple(result.projectId, result.functionId, result.targetId)]
+            identity != null &&
+                result.revision == identity.revision &&
+                result.development == identity.development &&
+                result.siteId == identity.siteId &&
+                result.targetMode == identity.targetMode
+        }
+
+        require(resultsMatchTargetIdentities) { "Result target identity does not match metadata" }
+
         val resultKeys = results.map { result ->
             ResultKey(
                 projectId = result.projectId,

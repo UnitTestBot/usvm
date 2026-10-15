@@ -9,13 +9,24 @@ import org.jacodb.ets.model.EtsUnclearRefType
 /** Resolved own or inherited data-field metadata for a declared receiver type. */
 data class InputPropertyDeclaration(val type: EtsType, val optional: Boolean)
 
+/** Keep absent fields distinct from declarations that cannot be resolved consistently. */
+sealed interface InputPropertyResolution {
+    data class Declared(val property: InputPropertyDeclaration) : InputPropertyResolution
+
+    /** No matching instance field exists for any resolved receiver candidate. */
+    data object Absent : InputPropertyResolution
+
+    /** The receiver or its candidate field declarations cannot be resolved consistently. */
+    data object Unresolved : InputPropertyResolution
+}
+
 /** Resolve receiver-local metadata; independent declarations must agree on type and optionality. */
-fun declaredInstanceProperty(
+fun resolveInstanceProperty(
     type: EtsType?,
     name: String,
     hierarchy: EtsHierarchy,
-): InputPropertyDeclaration? {
-    if (type !is EtsClassType && type !is EtsUnclearRefType) return null
+): InputPropertyResolution {
+    if (type !is EtsClassType && type !is EtsUnclearRefType) return InputPropertyResolution.Unresolved
 
     val declarations = hierarchy.classesForType(type).map { receiver ->
         val fieldOwners = hierarchy.getAncestors(receiver).filter { owner ->
@@ -29,13 +40,29 @@ fun declaredInstanceProperty(
         val nearestOwners = owners.filter { owner ->
             owners.none { descendant -> owner != descendant && owner in hierarchy.getAncestors(descendant) }
         }
-        nearestOwners.flatMap { owner -> owner.fields.filter { !it.isStatic && it.name == name } }
+        val nearestFields = nearestOwners.flatMap { owner ->
+            owner.fields.filter { field -> !field.isStatic && field.name == name }
+        }
+        val nearestDeclarations = nearestFields
             .map { field ->
                 InputPropertyDeclaration(field.type, optional = (field as? EtsFieldImpl)?.isOptional == true)
             }
             .distinct()
-            .singleOrNull()
+        when (nearestDeclarations.size) {
+            0 -> InputPropertyResolution.Absent
+            1 -> InputPropertyResolution.Declared(nearestDeclarations.single())
+            else -> InputPropertyResolution.Unresolved
+        }
     }
-    // An unresolved receiver may denote several classes. Keep metadata only when every candidate agrees.
-    return declarations.distinct().singleOrNull()
+    // An unresolved receiver may denote several classes. Every candidate must agree on one outcome.
+    return declarations.distinct().singleOrNull() ?: InputPropertyResolution.Unresolved
+}
+
+fun declaredInstanceProperty(
+    type: EtsType?,
+    name: String,
+    hierarchy: EtsHierarchy,
+): InputPropertyDeclaration? = when (val resolution = resolveInstanceProperty(type, name, hierarchy)) {
+    is InputPropertyResolution.Declared -> resolution.property
+    InputPropertyResolution.Absent, InputPropertyResolution.Unresolved -> null
 }

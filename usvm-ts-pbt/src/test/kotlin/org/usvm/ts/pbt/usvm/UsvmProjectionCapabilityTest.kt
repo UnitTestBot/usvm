@@ -32,17 +32,42 @@ class UsvmProjectionCapabilityTest {
     @Test
     fun `reports scalar fidelity and type mismatches`() {
         val cases = listOf(
-            Case(BooleanDomain, "acceptsBoolean", ProjectionLevel.EXACT, emptyList()),
-            Case(IntegerDomain(min = -2, max = 3), "acceptsNumber", ProjectionLevel.EXACT, emptyList()),
-            Case(NumberDomain(allowNaN = false), "acceptsNumber", ProjectionLevel.EXACT, emptyList()),
-            Case(StringDomain(maxLength = 4), "acceptsString", ProjectionLevel.EXACT, emptyList()),
             Case(
-                ConstantDomain(JsConcreteValue.Boolean(value = true)),
-                "acceptsBoolean",
-                ProjectionLevel.EXACT,
-                emptyList(),
+                domain = BooleanDomain,
+                exportName = "acceptsBoolean",
+                level = ProjectionLevel.EXACT,
+                diagnosticPaths = emptyList(),
             ),
-            Case(IntegerDomain(), "acceptsString", ProjectionLevel.UNSUPPORTED, listOf("inputs[0].domain")),
+            Case(
+                domain = IntegerDomain(min = -2, max = 3),
+                exportName = "acceptsNumber",
+                level = ProjectionLevel.EXACT,
+                diagnosticPaths = emptyList(),
+            ),
+            Case(
+                domain = NumberDomain(allowNaN = false),
+                exportName = "acceptsNumber",
+                level = ProjectionLevel.EXACT,
+                diagnosticPaths = emptyList(),
+            ),
+            Case(
+                domain = StringDomain(maxLength = 4),
+                exportName = "acceptsString",
+                level = ProjectionLevel.EXACT,
+                diagnosticPaths = emptyList(),
+            ),
+            Case(
+                domain = ConstantDomain(JsConcreteValue.Boolean(value = true)),
+                exportName = "acceptsBoolean",
+                level = ProjectionLevel.EXACT,
+                diagnosticPaths = emptyList(),
+            ),
+            Case(
+                domain = IntegerDomain(),
+                exportName = "acceptsString",
+                level = ProjectionLevel.UNSUPPORTED,
+                diagnosticPaths = listOf("inputs[0].domain"),
+            ),
         )
 
         cases.forEach { case ->
@@ -110,8 +135,8 @@ class UsvmProjectionCapabilityTest {
             domain = OptionalDomain(ArrayDomain(IntegerDomain(), minLength = 1, maxLength = 1)),
             exportName = "acceptsOptionalNumberArray",
         )
-        val caughtDirect = resolve(IntegerDomain(), "catchesDirectThrow")
-        val caughtHelper = resolve(IntegerDomain(), "catchesHelperThrow")
+        val caughtDirect = resolve(domain = IntegerDomain(), exportName = "catchesDirectThrow")
+        val caughtHelper = resolve(domain = IntegerDomain(), exportName = "catchesHelperThrow")
         val preconditionManifest = manifest(
             domain = IntegerDomain(),
             predicateExport = "acceptsNumber",

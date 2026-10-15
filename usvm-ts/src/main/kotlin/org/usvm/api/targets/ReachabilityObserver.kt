@@ -27,6 +27,8 @@ class ReachabilityObserver : UMachineObserver<TsState> {
     }
 
     override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
+        if (!stateReachable) return
+
         state.targets
             .filter { it is TsReachabilityTarget }
             .forEach { target ->

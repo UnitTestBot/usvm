@@ -53,7 +53,7 @@ private fun EtsMethod.projectCallees(
     sourceFiles: Set<EtsFileSignature>,
 ): Sequence<EtsMethod> = cfg.stmts.asSequence()
     .flatMap { statement ->
-        val directCallees = runCatching { graph.callees(statement).toList() }.getOrDefault(emptyList())
+        val directCallees = graph.callees(statement).toList()
         val pointerCallees = statement.walkEntities().filterIsInstance<EtsPtrCallExpr>().flatMap { call ->
             val signature = (call.ptr.type as? EtsFunctionType)?.signature ?: return@flatMap emptyList()
             graph.cp.projectClasses.filter { owner -> owner.signature == signature.enclosingClass }
@@ -80,16 +80,6 @@ private fun EtsMethod.projectStaticInitializers(
                 ?.methods
                 ?.singleOrNull { it.name == DEFAULT_ARK_METHOD_NAME }
     }
-
-internal fun callsIrReadinessIssue(
-    method: EtsMethod,
-    graph: TsGraph,
-    source: String,
-): CallsIrReadinessIssue? = callsIrReadinessIssue(
-    method = method,
-    graph = graph,
-    sourceByFile = mapOf(method.signature.enclosingClass.file to source),
-)
 
 private fun EtsMethod.irReadinessIssue(
     source: String,

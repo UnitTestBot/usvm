@@ -154,6 +154,18 @@ jobs:
       - name: Run TS PBT integration baseline
         run: env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend ./gradlew :usvm-ts-pbt:check :usvm-ts-fast-check:check
 
+      - name: Upload Gradle reports
+        if: (!cancelled())
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-reports-ts-pbt
+          path: |
+            usvm-ts-pbt/build/test-results/**/*.xml
+            usvm-ts-pbt/build/reports/tests/
+            usvm-ts-fast-check/build/test-results/**/*.xml
+            usvm-ts-fast-check/build/reports/tests/
+          retention-days: 1
+
   lint:
     runs-on: ubuntu-latest
     steps:

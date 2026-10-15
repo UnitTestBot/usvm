@@ -112,7 +112,9 @@ internal class EtsCoverageMapper(
         val expectedBranchArmCount = branchSuccessorOrder.armCount
         val requiredBranchShape =
             "an if branch with exactly $expectedBranchArmCount ordered coverage arms"
-        if (coverage.type != ISTANBUL_IF_BRANCH_TYPE || coverage.arms.size != expectedBranchArmCount) {
+        val hasUnsupportedBranchShape =
+            coverage.type != ISTANBUL_IF_BRANCH_TYPE || coverage.arms.size != expectedBranchArmCount
+        if (hasUnsupportedBranchShape) {
             val diagnostic = EtsMappingDiagnostic(
                 code = PbtDiagnosticCode.MAPPING_BRANCH_SHAPE_UNSUPPORTED,
                 message = "EtsIR branch mapping requires $requiredBranchShape",
@@ -133,7 +135,9 @@ internal class EtsCoverageMapper(
             .filter { candidate -> location.path in candidate.canonicalPaths }
             .map { candidate -> candidate.statements.filterIsInstance<EtsIfStmt>() }
         val conditionsInSourceFile = conditionGroupsInSourceFile.flatten()
-        if (conditionsInSourceFile.isNotEmpty() && conditionsInSourceFile.none { it.location.origin != null }) {
+        val conditionsLackSourceOrigins =
+            conditionsInSourceFile.isNotEmpty() && conditionsInSourceFile.none { it.location.origin != null }
+        if (conditionsLackSourceOrigins) {
             val diagnostic = EtsMappingDiagnostic(
                 code = PbtDiagnosticCode.MAPPING_SOURCE_ORIGINS_UNSUPPORTED,
                 message = "EtsIR conditions for the covered source file have no source origins",
@@ -153,7 +157,9 @@ internal class EtsCoverageMapper(
             .map { statements -> statements.filter { statement -> statement.hasOriginWithin(location) } }
             .filter { statements -> statements.isNotEmpty() }
         val conditions = conditionGroups.flatten()
-        if (conditions.any { statement -> statement.successorCount() != expectedBranchArmCount }) {
+        val hasUnsupportedCfgSuccessors =
+            conditions.any { statement -> statement.successorCount() != expectedBranchArmCount }
+        if (hasUnsupportedCfgSuccessors) {
             val diagnostic = EtsMappingDiagnostic(
                 code = PbtDiagnosticCode.MAPPING_BRANCH_CFG_UNSUPPORTED,
                 message = "EtsIR branch mapping requires exactly $expectedBranchArmCount ordered CFG successors",
@@ -326,7 +332,9 @@ internal class EtsCoverageMapper(
             .filter { candidate -> location.path in candidate.canonicalPaths }
             .map { candidate -> candidate.statements }
         val statementsInSourceFile = statementGroupsInSourceFile.flatten()
-        if (statementsInSourceFile.isNotEmpty() && statementsInSourceFile.none { it.location.origin != null }) {
+        val statementsLackSourceOrigins =
+            statementsInSourceFile.isNotEmpty() && statementsInSourceFile.none { it.location.origin != null }
+        if (statementsLackSourceOrigins) {
             val diagnostic = EtsMappingDiagnostic(
                 code = PbtDiagnosticCode.MAPPING_SOURCE_ORIGINS_UNSUPPORTED,
                 message = "EtsIR statements for the covered source file have no source origins",
@@ -353,8 +361,9 @@ internal class EtsCoverageMapper(
             .mapNotNull { statement -> statement.location.origin }
             .distinct()
         val containedTargets = containedStatements.map(::EtsStatementTarget)
+        val hasAmbiguousSourceFiles = statementGroupsInSourceFile.size > 1 && containedStatements.isNotEmpty()
         val mapping = when {
-            statementGroupsInSourceFile.size > 1 && containedStatements.isNotEmpty() -> {
+            hasAmbiguousSourceFiles -> {
                 ambiguousStatementMapping(location, containedStatements)
             }
 

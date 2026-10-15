@@ -373,8 +373,11 @@ class TsMachine(
             if (unsupportedReason != null) {
                 unsupportedPaths += unsupportedReason
             } else {
-                initialStates[method] = interpreter.getInitialState(method, targets) {
+                val initialState = interpreter.getInitialStateOrNull(method, targets) {
                     configureInitialState(method, this)
+                }
+                if (initialState != null) {
+                    initialStates[method] = initialState
                 }
             }
         }

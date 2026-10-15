@@ -173,7 +173,7 @@ class DeleteProperty {
     }
 
     deleteObjectLiteralMethod(): number {
-        const object = { method(): number { return 7; } };
+        const object = { method: function (): number { return 7; } };
         delete object.method;
         return object.method === undefined ? 1 : 0;
     }

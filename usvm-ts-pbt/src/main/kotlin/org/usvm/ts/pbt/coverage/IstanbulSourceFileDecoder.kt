@@ -47,13 +47,13 @@ internal class IstanbulSourceFileDecoder(
             hitsName = "s",
         )
 
-        return coverageMap.ids.map { statementId ->
+        return coverageMap.entries.map { entry ->
             checkBudget()
-            val location = coverageMap.location(statementId).asRange()
-            val hitCount = coverageMap.hitCount(statementId).asHitCount()
+            val location = coverageMap.location(entry).asRange()
+            val hitCount = coverageMap.hitCount(entry).asHitCount()
 
             StatementCoverage(
-                statementId = statementId,
+                statementId = entry.id,
                 location = location,
                 hits = hitCount,
             )
@@ -66,29 +66,29 @@ internal class IstanbulSourceFileDecoder(
             hitsName = "f",
         )
 
-        return coverageMap.ids.map { functionId ->
+        return coverageMap.entries.map { entry ->
             checkBudget()
             decodeFunction(
-                functionId = functionId,
+                entry = entry,
                 coverageMap = coverageMap,
             )
         }
     }
 
     private fun decodeFunction(
-        functionId: Int,
+        entry: CoverageEntry,
         coverageMap: CoverageMap,
     ): FunctionCoverage {
-        val functionJson = coverageMap.location(functionId)
+        val functionJson = coverageMap.location(entry)
         val functionName = functionJson.optionalString(name = "name")
             ?.ifBlank { ANONYMOUS_FUNCTION_NAME }
             ?: ANONYMOUS_FUNCTION_NAME
         val declaration = functionJson.required(name = "decl").asRange()
         val body = functionJson.required(name = "loc").asRange()
-        val hitCount = coverageMap.hitCount(functionId).asHitCount()
+        val hitCount = coverageMap.hitCount(entry).asHitCount()
 
         return FunctionCoverage(
-            functionId = functionId,
+            functionId = entry.id,
             name = functionName,
             declaration = declaration,
             body = body,
@@ -102,21 +102,21 @@ internal class IstanbulSourceFileDecoder(
             hitsName = "b",
         )
 
-        return coverageMap.ids.map { branchId ->
+        return coverageMap.entries.map { entry ->
             checkBudget()
             decodeBranch(
-                branchId = branchId,
+                entry = entry,
                 coverageMap = coverageMap,
             )
         }
     }
 
     private fun decodeBranch(
-        branchId: Int,
+        entry: CoverageEntry,
         coverageMap: CoverageMap,
     ): BranchCoverage {
-        val branchJson = coverageMap.location(branchId)
-        val branchHitsJson = coverageMap.hitCount(branchId)
+        val branchJson = coverageMap.location(entry)
+        val branchHitsJson = coverageMap.hitCount(entry)
         val branchArms = decodeBranchArms(branchJson, branchHitsJson)
 
         val type = branchJson.requiredString(name = "type")
@@ -130,7 +130,7 @@ internal class IstanbulSourceFileDecoder(
         }
 
         return BranchCoverage(
-            branchId = branchId,
+            branchId = entry.id,
             type = type,
             location = location,
             arms = arms,
@@ -176,13 +176,22 @@ internal class IstanbulSourceFileDecoder(
             )
         }
 
-        val ids = locations.keys.map { id ->
+        val seenIds = mutableSetOf<Int>()
+        val entries = locations.keys.map { key ->
             checkBudget()
-            parseCoverageId(id)
-        }.sorted()
+            val id = parseCoverageId(value = key, locationsPath = locationsJson.path)
+            if (!seenIds.add(id)) {
+                throw IstanbulJsonValue.invalidReport(
+                    message = "Duplicate numeric coverage ID $id",
+                    path = "${locationsJson.path}[$key]",
+                )
+            }
+
+            CoverageEntry(id = id, key = key)
+        }.sortedBy { entry -> entry.id }
 
         return CoverageMap(
-            ids = ids,
+            entries = entries,
             locations = locations,
             hits = hits,
             locationsPath = locationsJson.path,
@@ -190,38 +199,36 @@ internal class IstanbulSourceFileDecoder(
         )
     }
 
-    private fun parseCoverageId(value: String): Int {
+    private fun parseCoverageId(value: String, locationsPath: String): Int {
         val coverageId = value.toIntOrNull()
 
         return coverageId?.takeIf { id -> id >= 0 }
             ?: throw IstanbulJsonValue.invalidReport(
                 message = "Coverage ID must be a non-negative integer",
-                path = value,
+                path = "$locationsPath[$value]",
             )
     }
 
+    private data class CoverageEntry(val id: Int, val key: String)
+
     private data class CoverageMap(
-        val ids: List<Int>,
+        val entries: List<CoverageEntry>,
         val locations: JsonObject,
         val hits: JsonObject,
         val locationsPath: String,
         val hitsPath: String,
     ) {
-        fun location(id: Int): IstanbulJsonValue {
-            val key = id.toString()
-
+        fun location(entry: CoverageEntry): IstanbulJsonValue {
             return IstanbulJsonValue(
-                value = locations.getValue(key),
-                path = "$locationsPath[$key]",
+                value = locations.getValue(entry.key),
+                path = "$locationsPath[${entry.key}]",
             )
         }
 
-        fun hitCount(id: Int): IstanbulJsonValue {
-            val key = id.toString()
-
+        fun hitCount(entry: CoverageEntry): IstanbulJsonValue {
             return IstanbulJsonValue(
-                value = hits.getValue(key),
-                path = "$hitsPath[$key]",
+                value = hits.getValue(entry.key),
+                path = "$hitsPath[${entry.key}]",
             )
         }
     }

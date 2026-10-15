@@ -32,9 +32,9 @@ class TypeStream {
         if (virtualInvokeResult == 100) {
             return 1;
         } else if (virtualInvokeResult == 200) {
-            return 2; // unreachable
+            return 2;
         } else if (virtualInvokeResult == 300) {
-            return 3; // unreachable
+            return 3;
         }
         return -1; // unreachable
     }

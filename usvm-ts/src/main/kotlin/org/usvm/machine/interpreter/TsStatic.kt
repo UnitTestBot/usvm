@@ -2,7 +2,6 @@ package org.usvm.machine.interpreter
 
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsClass
-import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
@@ -16,26 +15,25 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
-import org.usvm.util.mkFieldLValue
 
 private val logger = KotlinLogging.logger {}
+private object StaticFieldsInitializedFlag
 
 private fun mkStaticFieldsInitializedFlag(
     instance: UHeapRef,
-    clazz: EtsClassSignature,
-): UFieldLValue<String, UBoolSort> {
-    return mkFieldLValue(instance.ctx.boolSort, instance, "__initialized__")
+): UFieldLValue<*, UBoolSort> {
+    return UFieldLValue(instance.ctx.boolSort, instance, StaticFieldsInitializedFlag)
 }
 
 internal fun TsState.isInitialized(clazz: EtsClass): Boolean {
     val instance = getStaticInstance(clazz)
-    val initializedFlag = mkStaticFieldsInitializedFlag(instance, clazz.signature)
+    val initializedFlag = mkStaticFieldsInitializedFlag(instance)
     return memory.read(initializedFlag).isTrue
 }
 
 internal fun TsState.markStaticsInitialized(clazz: EtsClass) {
     val instance = getStaticInstance(clazz)
-    val initializedFlag = mkStaticFieldsInitializedFlag(instance, clazz.signature)
+    val initializedFlag = mkStaticFieldsInitializedFlag(instance)
     memory.write(initializedFlag, ctx.trueExpr, guard = ctx.trueExpr)
 }
 

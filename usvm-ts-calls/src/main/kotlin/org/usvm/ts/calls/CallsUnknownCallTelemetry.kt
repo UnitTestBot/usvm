@@ -89,6 +89,7 @@ internal fun callsRuntimeLimitationEventSink(
     appendAndFlush: (CallsRuntimeLimitationRecord) -> Unit,
 ): (TsRuntimeFeatureLimitationEvent) -> Unit {
     var eventIndex = 0
+
     return { event ->
         eventIndex++
         val record = CallsRuntimeLimitationRecord(

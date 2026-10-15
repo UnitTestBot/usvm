@@ -39,15 +39,16 @@ class Less {
     }
 
     lessRefs(a: object, b: object): boolean {
+        // Relational comparison converts objects to primitives before comparing their values.
         if (a < b) {
-            return true; // Reference comparison, not value
+            return true;
         }
 
         if (b < a) {
-            return false; // Reference comparison, not value
+            return false;
         }
 
-        return false; // Return false if they are equal
+        return false;
     }
 
     lessUnknown(a, b): boolean {

@@ -140,6 +140,36 @@ class PropertyValidationTest {
         assertTrue(validatePropertyDefinition(validDefinition(IntegerDomain(-5, 5))).isValid)
     }
 
+    @Test
+    fun `identifier ignorable control characters are invalid in input and export names`() {
+        val valid = validDefinition(IntegerDomain())
+        val invalidInput = valid.copy(inputs = listOf(PropertyInput(name = "a\u0001b", domain = IntegerDomain())))
+        val invalidExport = valid.copy(predicate = valid.predicate.copy(exportName = "a\u0001b"))
+
+        assertEquals(
+            listOf("input.name.invalid"),
+            validatePropertyDefinition(invalidInput).diagnostics.map { it.code },
+        )
+        assertEquals(
+            listOf("entrypoint.export.invalid"),
+            validatePropertyDefinition(invalidExport).diagnostics.map { it.code },
+        )
+    }
+
+    @Test
+    fun `JavaScript identifier joiners remain valid after the first character`() {
+        val valid = validDefinition(IntegerDomain())
+
+        listOf("a\u200Cb", "a\u200Db").forEach { name ->
+            val withJoiner = valid.copy(
+                inputs = listOf(PropertyInput(name = name, domain = IntegerDomain())),
+                predicate = valid.predicate.copy(exportName = name),
+            )
+
+            assertTrue(validatePropertyDefinition(withJoiner).isValid)
+        }
+    }
+
     private fun validDefinition(domain: PropertyDomain) = PropertyDefinition(
         id = PropertyId("valid.id"),
         inputs = listOf(PropertyInput("value", domain)),

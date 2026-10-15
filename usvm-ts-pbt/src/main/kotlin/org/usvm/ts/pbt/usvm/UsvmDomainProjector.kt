@@ -21,6 +21,7 @@ import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
+import org.usvm.ts.pbt.backend.ProjectionLevel
 import org.usvm.ts.pbt.mapping.EtsInputBinding
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.ArrayIndexGenerator
@@ -87,7 +88,7 @@ class UsvmDomainProjector(
                 path = path,
                 options = options,
             )
-            require(capability.level != org.usvm.ts.pbt.backend.ProjectionLevel.UNSUPPORTED) {
+            require(capability.level != ProjectionLevel.UNSUPPORTED) {
                 capability.diagnostics.joinToString { diagnostic -> diagnostic.message }
             }
         }

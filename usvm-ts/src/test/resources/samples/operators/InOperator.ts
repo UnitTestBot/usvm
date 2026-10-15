@@ -37,7 +37,7 @@ class InOperator {
     }
 
     hasOwnConstructorMethod(value: number): number {
-        const obj = { constructor() {} };
+        const obj = { constructor: function () {} };
         return "constructor" in obj ? 1 : -1;
     }
 

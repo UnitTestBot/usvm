@@ -3,24 +3,28 @@ package org.usvm.machine.expr
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStaticCallExpr
 import org.jacodb.ets.model.EtsValue
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
+import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.UExpr
 import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 
 internal fun TsExprResolver.tryApproximateStaticCall(
     expr: EtsStaticCallExpr,
 ): TsExprApproximationResult {
-    // Mock `$r` calls
-    if (expr.callee.name == "\$r") {
+    val owner = expr.callee.enclosingClass
+    val ownerName = owner.name
+    val isUnresolvedGlobal = ownerName == UNKNOWN_CLASS_NAME
+    val isTopLevelFunction = ownerName == DEFAULT_ARK_CLASS_NAME && owner.namespace == null
+
+    if (expr.callee.name == "\$r" && (isUnresolvedGlobal || isTopLevelFunction)) {
         return from(handleR())
     }
 
-    // Handle `Number(...)` calls
-    if (expr.callee.name == "Number") {
+    if (expr.callee.name == "Number" && isUnresolvedGlobal) {
         return from(handleNumberConverter(expr.args))
     }
 
-    // Handle `Boolean(...)` calls
-    if (expr.callee.name == "Boolean") {
+    if (expr.callee.name == "Boolean" && isUnresolvedGlobal) {
         return from(handleBooleanConverter(expr))
     }
 
@@ -28,8 +32,11 @@ internal fun TsExprResolver.tryApproximateStaticCall(
 }
 
 internal fun TsExprResolver.tryApproximateResolvedFunctionCall(method: EtsMethod): TsExprApproximationResult {
-    // Match the selected function, not its mutable source binding or alias name.
-    if (method.name == "\$r") {
+    // Match the selected top-level function, not its mutable source binding or alias name.
+    val owner = method.enclosingClass?.signature
+    val isTopLevelFunction = owner?.name == DEFAULT_ARK_CLASS_NAME && owner.namespace == null
+    val isResourceLookup = method.name == "\$r" && isTopLevelFunction
+    if (isResourceLookup) {
         return from(handleR())
     }
 

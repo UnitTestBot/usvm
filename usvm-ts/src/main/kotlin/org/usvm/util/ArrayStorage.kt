@@ -124,7 +124,7 @@ internal fun TsState.isUnmodifiedDenseInputArray(
         memory.getRegion(elementRegionId) === snapshot.elementRegion
 }
 
-/** In-range payload writes preserve density; unsupported deletions stop before stale values can escape. */
+/** In-range payload writes preserve density; own-slot deletion revokes this proof. */
 internal fun TsState.hasDenseArrayShape(array: UConcreteHeapRef, type: EtsArrayType): Boolean = with(ctx) {
     val snapshot = denseInputArrays[array] ?: return false
     if (snapshot.type != type) return false

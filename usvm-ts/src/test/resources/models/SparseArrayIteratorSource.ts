@@ -132,10 +132,12 @@ export class SparseArrayIteratorSource {
     }
 
     static sourceObjectLookalike(): number {
-        const Object = { setPrototypeOf(values: any[], prototype: any) { return values; } };
+        const Object = { setPrototypeOf: function (values: any[], prototype: any) { return values; } };
         const values = [, 7];
+
         Object.setPrototypeOf(values, { 0: 9 });
         const copy = [...values];
+
         return copy[0] === undefined && copy[1] === 7 ? 1 : 0;
     }
 

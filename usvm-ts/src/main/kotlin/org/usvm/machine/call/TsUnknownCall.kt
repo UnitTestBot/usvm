@@ -50,7 +50,11 @@ data class TsUnknownCallValue(
 /** Takes the meaningful values from arguments already evaluated by the caller. */
 internal fun TsUnknownCall.resolvedInstanceInputs(maxArgumentCount: Int): List<UExpr<*>>? {
     val resolvedReceiver = receiver?.resolved ?: return null
-    val resolvedArguments = arguments.take(maxArgumentCount).map { argument -> argument.resolved ?: return null }
+    val resolvedArguments = mutableListOf<UExpr<*>>()
+    for (argument in arguments.take(maxArgumentCount)) {
+        val resolvedArgument = argument.resolved ?: return null
+        resolvedArguments += resolvedArgument
+    }
 
     return listOf(resolvedReceiver) + resolvedArguments
 }

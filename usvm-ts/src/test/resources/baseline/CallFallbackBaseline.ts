@@ -9,6 +9,12 @@ declare class ExternalStatic {
     static external(): void;
 }
 
+class UnrelatedStatic {
+    static missingBareCall(): number {
+        return 127;
+    }
+}
+
 declare class ExternalOverloads {
     static convert(value: number): number;
     static convert(value: string): string;
@@ -134,6 +140,21 @@ class CallFallbackBaseline {
     unresolvedStaticCallPrunes(): number {
         ExternalStatic.external();
         return 104;
+    }
+
+    unresolvedBareCallDoesNotUseClassStatic(): number {
+        missingBareCall();
+        return 128;
+    }
+
+    unresolvedBareCallDoesNotUseSdkNamespace(): number {
+        missingNamespaceCall();
+        return 136;
+    }
+
+    unresolvedBareCallDoesNotUseSdkModule(): number {
+        missingModuleCall();
+        return 138;
     }
 
     unresolvedVirtualCallPrunes(receiver: ExternalReceiver): number {

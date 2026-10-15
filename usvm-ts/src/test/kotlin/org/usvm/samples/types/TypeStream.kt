@@ -17,6 +17,7 @@ class TypeStream : TsMethodTestRunner() {
     @Test
     fun `test ancestor instanceof`() {
         val method = getMethod("instanceOf")
+
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             { x, r ->
@@ -43,6 +44,7 @@ class TypeStream : TsMethodTestRunner() {
     @Test
     fun `test virtual invoke on an ancestor`() {
         val method = getMethod("virtualInvokeOnAncestor")
+
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             { x, r ->

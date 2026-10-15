@@ -243,17 +243,17 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
 
     private val fillAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
         val inputs = call.resolvedInstanceInputs(
-            maxArgumentCount = call.arguments.size,
+            maxArgumentCount = MAX_FILL_ARGUMENTS,
         ) ?: return@TsEtsIrUnknownCallModelInputAdapter null
         val arguments = inputs.drop(1)
-        if (arguments.isEmpty() || arguments.size > MAX_FILL_ARGUMENTS) {
+        if (arguments.isEmpty()) {
             return@TsEtsIrUnknownCallModelInputAdapter null
         }
-        if (
-            arguments.drop(1).any { value ->
-                value != state.ctx.mkUndefinedValue() && value.sort != state.ctx.fp64Sort
-            }
-        ) {
+
+        val hasUnsupportedIndex = arguments.drop(1).any { value ->
+            value != state.ctx.mkUndefinedValue() && value.sort != state.ctx.fp64Sort
+        }
+        if (hasUnsupportedIndex) {
             return@TsEtsIrUnknownCallModelInputAdapter null
         }
 
@@ -268,13 +268,13 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
 
     private val sliceAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
         val inputs = call.resolvedInstanceInputs(
-            maxArgumentCount = call.arguments.size,
+            maxArgumentCount = 2,
         ) ?: return@TsEtsIrUnknownCallModelInputAdapter null
         val arguments = inputs.drop(1)
-        if (arguments.size > 2 || arguments.any { value ->
-                value != state.ctx.mkUndefinedValue() && value.sort != state.ctx.fp64Sort
-            }
-        ) {
+        val hasUnsupportedIndex = arguments.any { value ->
+            value != state.ctx.mkUndefinedValue() && value.sort != state.ctx.fp64Sort
+        }
+        if (hasUnsupportedIndex) {
             return@TsEtsIrUnknownCallModelInputAdapter null
         }
 
@@ -285,10 +285,6 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             ?.takeUnless { it == state.ctx.mkUndefinedValue() }
             ?: state.ctx.mkFpInf(signBit = false, state.ctx.fp64Sort)
         listOf(inputs.first(), start, end)
-    }
-
-    private val noArgumentsAdapter = TsEtsIrUnknownCallModelInputAdapter { _, call ->
-        if (call.arguments.isEmpty()) call.resolvedInstanceInputs(maxArgumentCount = call.arguments.size) else null
     }
 
     private val arrayConstructorAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
@@ -363,7 +359,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             sourceModel(
                 id = "ts.array.reverse",
                 methodName = "reverse",
-                inputAdapter = noArgumentsAdapter,
+                inputAdapter = receiverOnlyAdapter,
                 domainGuard = TsArraySlotPrimitives.reverseDomain,
             ),
             sourceModel(

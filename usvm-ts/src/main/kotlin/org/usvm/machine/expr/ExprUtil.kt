@@ -138,23 +138,31 @@ private fun TsState.referenceTruthy(ref: UHeapRef): UBoolExpr = with(ctx) {
     mkAnd(nonNullish, mkImplies(isString, stringIsNonEmpty))
 }
 
+private fun TsState.unsupportedTruthinessCondition(expr: UExpr<out USort>): UBoolExpr = with(ctx) {
+    val hasFakeResultBranches = expr.sort == addressSort && expr.asExpr(addressSort).hasFakeValueBranch()
+    if (expr is UIteExpr<*> && hasFakeResultBranches) {
+        val trueUnsupported = unsupportedTruthinessCondition(expr.trueBranch)
+        val falseUnsupported = unsupportedTruthinessCondition(expr.falseBranch)
+
+        return@with mkIte(expr.condition, trueUnsupported, falseUnsupported)
+    }
+
+    val (ref, activeGuard) = when {
+        expr.isFakeObject() -> {
+            val type = expr.getFakeType(memory)
+            memory.read(getIntermediateRefLValue(expr.address)) to type.refTypeExpr
+        }
+
+        expr.sort == addressSort -> expr.asExpr(addressSort) to trueExpr
+        else -> return@with falseExpr
+    }
+
+    mkAnd(activeGuard, mkNotNullOrUndefined(ref), stringTypeCondition(ref), mkNot(hasStringBacking(ref)))
+}
+
 /** Validate the execution path separately from constructing its boolean expression. */
 fun TsStepScope.ensureTruthinessSupported(expr: UExpr<out USort>): Unit? {
-    val unsupportedString = calcOnState {
-        with(ctx) {
-            val (ref, activeGuard) = when {
-                expr.isFakeObject() -> {
-                    val type = expr.getFakeType(memory)
-                    memory.read(getIntermediateRefLValue(expr.address)) to type.refTypeExpr
-                }
-
-                expr.sort == addressSort -> expr.asExpr(addressSort) to trueExpr
-                else -> return@calcOnState falseExpr
-            }
-
-            mkAnd(activeGuard, mkNotNullOrUndefined(ref), stringTypeCondition(ref), mkNot(hasStringBacking(ref)))
-        }
-    }
+    val unsupportedString = calcOnState { unsupportedTruthinessCondition(expr) }
     if (unsupportedString.isFalse) return Unit
 
     val supported = calcOnState { ctx.mkNot(unsupportedString) }
@@ -168,6 +176,14 @@ fun TsContext.mkTruthyExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,
 ): UBoolExpr = scope.calcOnState {
+    val hasFakeResultBranches = expr.sort == addressSort && expr.asExpr(addressSort).hasFakeValueBranch()
+    if (expr is UIteExpr<*> && hasFakeResultBranches) {
+        val trueTruthy = mkTruthyExpr(expr.trueBranch, scope)
+        val falseTruthy = mkTruthyExpr(expr.falseBranch, scope)
+
+        return@calcOnState mkIte(expr.condition, trueTruthy, falseTruthy)
+    }
+
     if (expr.isFakeObject()) {
         val falseBranchGround = makeSymbolicPrimitive(boolSort)
 
@@ -227,20 +243,94 @@ fun TsContext.mkTruthyExpr(
     }
 }
 
+private fun TsState.numericConversionSupported(expr: UExpr<out USort>): UBoolExpr = with(ctx) {
+    if (expr.isFakeObject()) {
+        val type = expr.getFakeType(memory)
+        val reference = expr.extractRef(memory)
+        val referenceSupported = numericConversionSupported(reference)
+        val supportedReferenceKind = mkAnd(type.refTypeExpr, referenceSupported)
+
+        return@with mkOr(type.fpTypeExpr, type.boolTypeExpr, supportedReferenceKind)
+    }
+
+    if (expr.sort == fp64Sort || expr.sort == boolSort) {
+        return@with trueExpr
+    }
+
+    if (expr is UIteExpr<*>) {
+        val trueSupported = numericConversionSupported(expr.trueBranch)
+        val falseSupported = numericConversionSupported(expr.falseBranch)
+
+        return@with mkIte(expr.condition, trueSupported, falseSupported)
+    }
+
+    val reference = expr.asExpr(addressSort)
+    val lengthBound = boundedStringBackingRefs[reference]
+    val hasModeledStringConversion = lengthBound != null && lengthBound in 0..1
+    if (hasModeledStringConversion) {
+        return@with trueExpr
+    }
+
+    mkIsNullOrUndefined(reference)
+}
+
+/** Converts modeled primitives and bounded strings, retaining unmodeled alternatives as unsupported paths. */
 fun TsContext.mkNumericExpr(
+    expr: UExpr<out USort>,
+    scope: TsStepScope,
+): UExpr<KFp64Sort> = mkNumericExprWithGuard(expr = expr, scope = scope, activeGuard = trueExpr)
+
+/** Keeps unsupported outcomes local to the numeric alternative being constructed by a caller. */
+internal fun TsContext.mkNumericExprWithGuard(
+    expr: UExpr<out USort>,
+    scope: TsStepScope,
+    activeGuard: UBoolExpr,
+): UExpr<KFp64Sort> {
+    // Preserve the existing error boundary for sorts outside TypeScript runtime values.
+    when (expr.sort) {
+        boolSort, fp64Sort, addressSort -> Unit
+        else -> return mkNumericExprUnchecked(expr, scope)
+    }
+
+    val supported = scope.calcOnState {
+        val valueSupported = numericConversionSupported(expr)
+
+        mkOr(mkNot(activeGuard), valueSupported)
+    }
+    if (supported.isTrue) {
+        return mkNumericExprUnchecked(expr, scope)
+    }
+
+    val unsupportedReason = "Numeric conversion needs a modeled StringToNumber or ToPrimitive conversion"
+    val currentSupported = scope.fork(supported, blockOnFalseState = {
+        terminateAsUnsupported(reason = unsupportedReason)
+    })
+    if (currentSupported == null) {
+        throw UnsupportedOperationException(unsupportedReason)
+    }
+
+    return mkNumericExprUnchecked(expr, scope)
+}
+
+private fun TsContext.mkNumericExprUnchecked(
     expr: UExpr<out USort>,
     scope: TsStepScope,
 ): UExpr<KFp64Sort> {
     if (expr.isFakeObject()) {
         val type = expr.getFakeType(scope)
+        val isNumber = type.fpTypeExpr
+        val number = expr.extractFp(scope)
+        val isBoolean = type.boolTypeExpr
+        val boolean = expr.extractBool(scope)
+        val booleanNumber = mkNumericExprUnchecked(boolean, scope)
+        val reference = expr.extractRef(scope)
+        val referenceNumber = mkNumericExprUnchecked(reference, scope)
+        val nonNumber = mkIte(isBoolean, booleanNumber, referenceNumber)
+
         return mkIte(
-            condition = type.fpTypeExpr,
-            trueBranch = expr.extractFp(scope),
-            falseBranch = mkIte(
-                condition = type.boolTypeExpr,
-                trueBranch = mkNumericExpr(expr.extractBool(scope), scope),
-                falseBranch = mkNumericExpr(expr.extractRef(scope), scope)
-            )
+            condition = isNumber,
+            trueBranch = number,
+            falseBranch = nonNumber,
         )
     }
 
@@ -274,8 +364,8 @@ fun TsContext.mkNumericExpr(
     }
 
     if (expr is UIteExpr<*>) {
-        val trueNumber = mkNumericExpr(expr.trueBranch, scope)
-        val falseNumber = mkNumericExpr(expr.falseBranch, scope)
+        val trueNumber = mkNumericExprUnchecked(expr.trueBranch, scope)
+        val falseNumber = mkNumericExprUnchecked(expr.falseBranch, scope)
 
         return mkIte(expr.condition, trueNumber, falseNumber)
     }
@@ -285,19 +375,18 @@ fun TsContext.mkNumericExpr(
         return codeUnitNumber
     }
 
-    // TODO: ToPrimitive, then ToNumber again
-    // TODO: probably we need to implement Object (Ref/Fake) -> Number conversion here directly, without ToPrimitive
+    // TODO: Model general StringToNumber and ToPrimitive conversion (https://github.com/UnitTestBot/usvm/issues/280).
+    // The public support guard excludes unmodeled reference alternatives from the selected result.
+    val reference = expr.asExpr(addressSort)
+    val nullValue = mkTsNullValue()
+    val isNull = mkEq(reference, nullValue)
+    val zero = mkFp(0.0, fp64Sort)
+    val nan = mkFp64NaN()
 
-    // TODO incorrect implementation, returns some number that is not equal to 0 and NaN
-    //      https://github.com/UnitTestBot/usvm/issues/280
     return mkIte(
-        condition = mkEq(expr.asExpr(addressSort), mkTsNullValue()),
-        trueBranch = mkFp(0.0, fp64Sort),
-        falseBranch = mkIte(
-            mkEq(expr.asExpr(addressSort), mkUndefinedValue()),
-            mkFp64NaN(),
-            mkFp64NaN()
-        )
+        condition = isNull,
+        trueBranch = zero,
+        falseBranch = nan,
     )
 }
 
@@ -305,6 +394,14 @@ fun TsContext.mkNullishExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,
 ): UBoolExpr {
+    val hasFakeResultBranches = expr.sort == addressSort && expr.asExpr(addressSort).hasFakeValueBranch()
+    if (expr is UIteExpr<*> && hasFakeResultBranches) {
+        val trueNullish = mkNullishExpr(expr.trueBranch, scope)
+        val falseNullish = mkNullishExpr(expr.falseBranch, scope)
+
+        return mkIte(expr.condition, trueNullish, falseNullish)
+    }
+
     // Handle fake objects specially
     if (expr.isFakeObject()) {
         val fakeType = expr.getFakeType(scope)
@@ -324,7 +421,6 @@ fun TsContext.mkNullishExpr(
         return mkIsNullOrUndefined(ref)
     }
 
-    // Non-reference types (numbers, booleans, strings) are never nullish
     return mkFalse()
 }
 

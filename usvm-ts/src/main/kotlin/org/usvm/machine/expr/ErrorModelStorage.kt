@@ -29,7 +29,7 @@ private val builtInErrorSignatures = setOf(builtInErrorSignature, builtInTypeErr
 /** Matches exact SDK identities and the interpreter's own TypeError, excluding source class shadows. */
 internal fun EtsType.isModeledErrorType(): Boolean =
     this == EtsClassType(signature = builtInErrorSignature) ||
-        this == EtsClassType(signature = EtsClassSignature.UNKNOWN.copy(name = "TypeError")) ||
+        this == EtsClassType(signature = builtInTypeErrorSignature) ||
         this == TS_TYPE_ERROR_TYPE
 
 internal const val ERROR_NAME_STORAGE_FIELD = "__usvmErrorName"

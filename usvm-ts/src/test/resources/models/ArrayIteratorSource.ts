@@ -113,7 +113,8 @@ export class ArrayIteratorSource {
     }
 
     static stringNamedLookalike(): number {
-        const values: any = { "Symbol.iterator"() { return [7]; } };
+        const values: any = { "Symbol.iterator": function () { return [7]; } };
+
         return [...values].length;
     }
 

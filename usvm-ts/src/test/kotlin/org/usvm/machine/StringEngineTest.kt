@@ -63,7 +63,7 @@ class StringEngineTest : TsMethodTestRunner() {
                         state.pathConstraints += mkEq(unit, mkBv(0xd800, bv16Sort))
                         input = state.mkStringFromCodeUnits(length = length, codeUnits = listOf(unit))
                         state.memory.write(
-                            mkRegisterStackLValue(addressSort, 1),
+                            mkRegisterStackLValue(addressSort, idx = 1),
                             input.asExpr(addressSort),
                             guard = trueExpr,
                         )
@@ -72,8 +72,11 @@ class StringEngineTest : TsMethodTestRunner() {
             )
 
             val state = states.single()
+
             assertEquals("\ud800", state.resolveStringValue(input, model = state.models.single(), maxLength = 1))
+
             val decoded = TsTestResolver().resolve(method, state).returnValue
+
             assertEquals("\ud800", assertIs<TsTestValue.TsString>(decoded).value)
         }
     }

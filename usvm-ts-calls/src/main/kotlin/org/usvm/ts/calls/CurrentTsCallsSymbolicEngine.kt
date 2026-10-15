@@ -30,7 +30,10 @@ import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.contains
+import java.nio.ByteBuffer
+import java.nio.file.Files
 import java.nio.file.Path
+import java.security.MessageDigest
 import kotlin.time.TimeSource
 
 private val logger = KotlinLogging.logger {}
@@ -112,7 +115,6 @@ internal class CurrentTsCallsSymbolicEngine(
     private val verifiedProjects = mutableMapOf<Path, String>()
     private val preparedSources = mutableMapOf<Pair<Path, Path>, CallsSourceProject>()
     private var preparedTarget: Pair<CallsSymbolicPreflightRequest, CallsTargetPreparation>? = null
-    private var verifiedNativeFrontendIdentity: String? = null
 
     override fun search(request: CallsSymbolicSearchRequest): CallsSymbolicSearchResult {
         val startedAt = TimeSource.Monotonic.markNow()
@@ -209,7 +211,7 @@ internal class CurrentTsCallsSymbolicEngine(
             machineObserver = targetObserver,
             observer = interpreterObserver,
         ).use { machine ->
-            val outcome = machine.analyzeWithOutcome(
+            val outcome = machine.analyzeWithMetadata(
                 methods = listOf(method),
                 configureInitialState = { _, state -> symbolicInputs.initialize(state) },
             )
@@ -217,6 +219,7 @@ internal class CurrentTsCallsSymbolicEngine(
                 states = targetObserver.reachedStates,
                 stopReason = outcome.stopReason,
                 unsupportedPaths = outcome.unsupportedPaths,
+                unsupportedCall = outcome.unsupportedCall,
             )
         }
         val states = analysis.states
@@ -224,9 +227,17 @@ internal class CurrentTsCallsSymbolicEngine(
             val status = when (analysis.stopReason) {
                 TsAnalysisStopReason.EXHAUSTED -> {
                     when {
-                        interpreterObserver.runtimeLimitations.isNotEmpty() -> CallsSymbolicStatus.RUNTIME_LIMITATION
-                        analysis.unsupportedPaths.isNotEmpty() -> CallsSymbolicStatus.UNSUPPORTED
-                        else -> CallsSymbolicStatus.UNREACHED
+                        interpreterObserver.runtimeLimitations.isNotEmpty() -> {
+                            CallsSymbolicStatus.RUNTIME_LIMITATION
+                        }
+
+                        analysis.unsupportedPaths.isNotEmpty() || analysis.unsupportedCall -> {
+                            CallsSymbolicStatus.UNSUPPORTED
+                        }
+
+                        else -> {
+                            CallsSymbolicStatus.UNREACHED
+                        }
                     }
                 }
                 // The machine options above disable every stop condition except the per-target timeout.
@@ -278,9 +289,14 @@ internal class CurrentTsCallsSymbolicEngine(
     private fun prepareSafely(request: CallsSymbolicPreflightRequest): CallsTargetPreparation {
         val cached = preparedTarget
         val cachedRevisionMatches = verifiedProjects[request.sourceRoot] == request.project.revision
-        if (cached?.first == request && cachedRevisionMatches) return cached.second
-
-        val preparation = runCatching { prepare(request) }.getOrElse { error ->
+        val preparation = runCatching {
+            if (cached?.first == request && cachedRevisionMatches) {
+                verifyNativeFrontend(expectedRevision = request.expectedNativeFrontendRevision)
+                cached.second
+            } else {
+                prepare(request)
+            }
+        }.getOrElse { error ->
             CallsTargetPreparation.Rejected(
                 status = CallsSymbolicStatus.TOOL_ERROR,
                 reasonCode = CallsSymbolicPreflightReasonCode.FRONTEND_OR_PREFLIGHT_ERROR,
@@ -305,11 +321,12 @@ internal class CurrentTsCallsSymbolicEngine(
 
     @Suppress("LongMethod")
     private fun prepareFunctionSupported(request: CallsFunctionPreflightRequest): CallsFunctionPreparation {
-        callsSymbolicInputPreflight(request.function.inputs)?.let { diagnostic ->
+        val inputDomainDiagnostic = callsSymbolicInputPreflight(request.function.inputs)
+        if (inputDomainDiagnostic != null) {
             return CallsFunctionPreparation.Rejected(
                 status = CallsSymbolicStatus.UNSUPPORTED,
                 reasonCode = CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED,
-                diagnostic = diagnostic,
+                diagnostic = inputDomainDiagnostic,
             )
         }
 
@@ -320,7 +337,8 @@ internal class CurrentTsCallsSymbolicEngine(
                 cache = verifiedProjects,
             )
         }
-        verifyNativeFrontendOnce(expectedRevision = request.expectedNativeFrontendRevision)
+
+        verifyNativeFrontend(expectedRevision = request.expectedNativeFrontendRevision)
 
         val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
         require(source.startsWith(request.sourceRoot)) { "Function source escapes its frozen source root" }
@@ -441,11 +459,12 @@ internal class CurrentTsCallsSymbolicEngine(
         val method = function.method
         val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
         val sourceText = java.nio.file.Files.readString(source)
-        callsTargetCoordinateDiagnostic(source = sourceText, target = request.target)?.let { diagnostic ->
+        val targetCoordinateDiagnostic = callsTargetCoordinateDiagnostic(source = sourceText, target = request.target)
+        if (targetCoordinateDiagnostic != null) {
             return CallsTargetPreparation.Rejected(
                 status = CallsSymbolicStatus.UNMAPPED,
                 reasonCode = CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNMAPPED,
-                diagnostic = diagnostic,
+                diagnostic = targetCoordinateDiagnostic,
             )
         }
 
@@ -525,8 +544,8 @@ internal class CurrentTsCallsSymbolicEngine(
 
     private fun exactTargetCandidates(method: EtsMethod, target: CallsSourceTarget): List<EtsStmt> =
         method.cfg.stmts.filter { statement ->
-            val origin = statement.location.origin ?: return@filter false
-            origin.startOffset == target.startOffset &&
+            val origin = statement.location.origin
+            origin != null && origin.startOffset == target.startOffset &&
                 origin.endOffset == target.endOffset &&
                 origin.startLine == target.start.line &&
                 origin.startColumn == target.start.column &&
@@ -553,8 +572,8 @@ internal class CurrentTsCallsSymbolicEngine(
         }
 
         val containingReturns = method.cfg.stmts.filterIsInstance<EtsReturnStmt>().filter { statement ->
-            val origin = statement.location.origin ?: return@filter false
-            origin.startOffset <= expressionStart && origin.endOffset >= expressionEnd
+            val origin = statement.location.origin
+            origin != null && origin.startOffset <= expressionStart && origin.endOffset >= expressionEnd
         }
         val smallestContainingRange = containingReturns.minOfOrNull { statement ->
             val origin = requireNotNull(statement.location.origin)
@@ -571,8 +590,8 @@ internal class CurrentTsCallsSymbolicEngine(
         }
 
         val containingStatements = method.cfg.stmts.filter { statement ->
-            val origin = statement.location.origin ?: return@filter false
-            origin.startOffset <= expressionStart && origin.endOffset >= expressionEnd
+            val origin = statement.location.origin
+            origin != null && origin.startOffset <= expressionStart && origin.endOffset >= expressionEnd
         }
         val smallestStatementRange = containingStatements.minOfOrNull { statement ->
             val origin = requireNotNull(statement.location.origin)
@@ -621,7 +640,7 @@ internal class CurrentTsCallsSymbolicEngine(
         diagnostic = diagnostic,
     )
 
-    internal fun verifyNativeFrontendOnce(expectedRevision: String) {
+    internal fun verifyNativeFrontend(expectedRevision: String) {
         val configuredScript = environment("ETS_FRONTEND_SCRIPT")
         require(configuredScript == null) {
             "ETS_FRONTEND_SCRIPT must be unset so the frozen native frontend runtime is used"
@@ -630,11 +649,13 @@ internal class CurrentTsCallsSymbolicEngine(
             require(environment("ETS_FRONTEND_DIR") == null) {
                 "ETS_FRONTEND_DIR must be unset when the bundled native frontend is selected"
             }
+            require(System.getProperty(ETS_FRONTEND_DIR_PROPERTY) == null) {
+                "$ETS_FRONTEND_DIR_PROPERTY must be unset when the bundled native frontend is selected"
+            }
             require(expectedRevision == bundledNativeFrontendRevision) {
                 "Bundled native frontend revision $expectedRevision does not match running build " +
                     bundledNativeFrontendRevision
             }
-            verifiedNativeFrontendIdentity = expectedRevision
             return
         }
 
@@ -642,13 +663,7 @@ internal class CurrentTsCallsSymbolicEngine(
             "ETS_FRONTEND_DIR is required to verify the frozen native frontend revision"
         }
         val frontendDirectory = Path.of(configuredFrontend).toRealPath()
-        val expectedIdentity = "$frontendDirectory@$expectedRevision"
-        if (verifiedNativeFrontendIdentity == expectedIdentity) {
-            return
-        }
-
-        verifyCallsGitCheckout(frontendDirectory, expectedRevision)
-        verifiedNativeFrontendIdentity = expectedIdentity
+        verifyCallsExternalFrontendRuntime(frontendDirectory, expectedRevision)
     }
 
     private fun verifyGitCheckoutOnce(
@@ -753,10 +768,12 @@ internal class CurrentTsCallsSymbolicEngine(
         val states: List<TsState>,
         val stopReason: TsAnalysisStopReason,
         val unsupportedPaths: List<String>,
+        val unsupportedCall: Boolean,
     )
 
     private companion object {
         const val BUNDLED_FRONTEND_PREFIX: String = "bundled:"
+        const val ETS_FRONTEND_DIR_PROPERTY: String = "ets.frontend.dir"
     }
 }
 
@@ -783,8 +800,8 @@ internal data class SourceStatementEntry(
 
 internal fun sourceStatementEntry(method: EtsMethod, target: CallsSourceTarget): SourceStatementEntry? {
     val loweringRegion = method.cfg.stmts.filter { statement ->
-        val origin = statement.location.origin ?: return@filter false
-        origin.startOffset >= target.startOffset && origin.endOffset <= target.endOffset
+        val origin = statement.location.origin
+        origin != null && origin.startOffset >= target.startOffset && origin.endOffset <= target.endOffset
     }
     val loweringRegionSet = loweringRegion.toSet()
     if (loweringRegionSet.isEmpty()) {
@@ -800,8 +817,8 @@ internal fun sourceStatementEntry(method: EtsMethod, target: CallsSourceTarget):
         predecessor !in loweringRegionSet
     }
     val outsideOriginsAreBeforeTarget = outsidePredecessors.all { predecessor ->
-        val origin = predecessor.location.origin ?: return@all false
-        origin.endOffset <= target.startOffset
+        val origin = predecessor.location.origin
+        origin != null && origin.endOffset <= target.startOffset
     }
     if (!outsideOriginsAreBeforeTarget) {
         return null
@@ -836,6 +853,87 @@ internal fun verifyCallsGitCheckout(checkout: Path, expectedRevision: String) {
     }
     runCallsGit(checkout, "diff", "--quiet", "HEAD", "--")
 }
+
+internal fun verifyCallsExternalFrontendRuntime(expectedIdentity: String) {
+    val configuredFrontend = requireNotNull(System.getenv("ETS_FRONTEND_DIR")) {
+        "ETS_FRONTEND_DIR is required to verify the frozen native frontend runtime"
+    }
+    val frontendDirectory = Path.of(configuredFrontend).toRealPath()
+    verifyCallsExternalFrontendRuntime(frontendDirectory, expectedIdentity)
+}
+
+internal fun verifyCallsExternalFrontendRuntime(frontendDirectory: Path, expectedIdentity: String) {
+    val match = requireNotNull(EXTERNAL_FRONTEND_IDENTITY.matchEntire(expectedIdentity)) {
+        "External native frontend identity must be <40-character Git SHA>@sha256:<64-character runtime digest>"
+    }
+    val expectedRevision = match.groupValues[1]
+    val expectedDigest = match.groupValues[2]
+
+    verifyCallsGitCheckout(frontendDirectory, expectedRevision)
+    val actualDigest = callsExternalFrontendRuntimeDigest(frontendDirectory)
+    require(actualDigest == expectedDigest) {
+        "External native frontend runtime digest differs from frozen identity for $frontendDirectory"
+    }
+}
+
+internal fun callsExternalFrontendIdentity(frontendDirectory: Path): String {
+    val realDirectory = frontendDirectory.toRealPath()
+    val revision = runCallsGit(realDirectory, "rev-parse", "HEAD").trim()
+    verifyCallsGitCheckout(realDirectory, revision)
+    return "$revision@sha256:${callsExternalFrontendRuntimeDigest(realDirectory)}"
+}
+
+private fun callsExternalFrontendRuntimeDigest(frontendDirectory: Path): String {
+    val dist = frontendDirectory.resolve("dist")
+    require(Files.isDirectory(dist)) { "External native frontend dist directory is missing: $dist" }
+
+    val files = Files.walk(dist).use { paths ->
+        paths.iterator().asSequence()
+            .filter(::isCallsExternalFrontendRuntimeFile)
+            .sortedBy { path -> dist.relativize(path).toString().replace('\\', '/') }
+            .toList()
+    }
+    require(dist.resolve("index.js") in files) { "External native frontend dist is missing index.js: $dist" }
+
+    val digest = MessageDigest.getInstance("SHA-256")
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    for (file in files) {
+        val relativePath = dist.relativize(file).toString().replace('\\', '/')
+        val nameBytes = relativePath.toByteArray(Charsets.UTF_8)
+        val fileSize = Files.size(file)
+        digest.update(ByteBuffer.allocate(Int.SIZE_BYTES).putInt(nameBytes.size).array())
+        digest.update(nameBytes)
+        digest.update(ByteBuffer.allocate(Long.SIZE_BYTES).putLong(fileSize).array())
+
+        var bytesRead = 0L
+        Files.newInputStream(file).use { input ->
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+                bytesRead += count
+            }
+        }
+        require(bytesRead == fileSize) { "External native frontend dist changed while hashing: $file" }
+    }
+
+    return digest.digest().joinToString(separator = "") { byte ->
+        "%02x".format(byte.toInt() and UNSIGNED_BYTE_MASK)
+    }
+}
+
+private fun isCallsExternalFrontendRuntimeFile(path: Path): Boolean {
+    require(!Files.isSymbolicLink(path)) { "External native frontend dist contains a symlink: $path" }
+    val isDirectory = Files.isDirectory(path)
+    if (!isDirectory) {
+        require(Files.isRegularFile(path)) { "External native frontend dist contains a non-file: $path" }
+    }
+
+    return !isDirectory
+}
+
+private const val UNSIGNED_BYTE_MASK = 0xff
+private val EXTERNAL_FRONTEND_IDENTITY = Regex("([0-9a-f]{40})@sha256:([0-9a-f]{64})")
 
 internal fun runCallsGit(checkout: Path, vararg arguments: String): String {
     val process = ProcessBuilder(listOf("git", "-C", checkout.toString()) + arguments)

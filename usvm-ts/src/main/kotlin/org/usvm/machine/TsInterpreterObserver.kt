@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallExpr
 import org.jacodb.ets.model.EtsCallStmt
@@ -13,6 +14,8 @@ import org.usvm.machine.expr.TsSimpleValueResolver
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.statistics.UInterpreterObserver
+
+private val logger = KotlinLogging.logger {}
 
 @Suppress("unused")
 interface TsInterpreterObserver : UInterpreterObserver {
@@ -42,7 +45,10 @@ interface TsInterpreterObserver : UInterpreterObserver {
         // default empty implementation
     }
 
-    /** Reports a satisfiable path stopped at an explicit runtime modeling boundary. */
+    /**
+     * Reports a satisfiable path stopped at an explicit runtime modeling boundary.
+     * Callback failures are logged without changing the path outcome.
+     */
     fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
         // default empty implementation
     }
@@ -117,6 +123,15 @@ interface TsInterpreterObserver : UInterpreterObserver {
     ) {
         // default empty implementation
     }
+}
+
+internal fun TsInterpreterObserver.onRuntimeFeatureLimitationSafely(event: TsRuntimeFeatureLimitationEvent) {
+    runCatching { onRuntimeFeatureLimitation(event) }
+        .onFailure { error ->
+            logger.warn(error) {
+                "Runtime feature limitation observer failed while recording an event"
+            }
+        }
 }
 
 /** A feasible execution path stopped because the runtime model deliberately omits [reason]. */

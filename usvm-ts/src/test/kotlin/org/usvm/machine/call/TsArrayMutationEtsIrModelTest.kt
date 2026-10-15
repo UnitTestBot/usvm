@@ -122,6 +122,30 @@ class TsArrayMutationEtsIrModelTest {
     }
 
     @Test
+    fun `array models evaluate and ignore extra arguments`() {
+        val cases = mapOf(
+            "sliceIgnoresExtraString" to (12.0 to "ts.array.slice"),
+            "sliceEvaluatesIgnoredArgument" to (1237.0 to "ts.array.slice"),
+            "fillIgnoresExtraString" to (993.0 to "ts.array.fill"),
+            "reverseIgnoresExtraString" to (321.0 to "ts.array.reverse"),
+        )
+
+        for ((methodName, expected) in cases) {
+            val result = analyze(
+                methodName = methodName,
+                denseInputs = listOf(listOf(1.0, 2.0, 3.0)),
+            )
+
+            assertEquals(expected.first, result.singleNumber(), methodName)
+            assertTrue(expected.second in result.modelIds, "$methodName: ${result.events}")
+            assertTrue(
+                result.events.none { event -> event.decision is TsUnknownCallDecision.ResidualFallback },
+                "$methodName: ${result.events}",
+            )
+        }
+    }
+
+    @Test
     fun `reverse without a slot presence or dense input proof remains residual`() {
         val result = analyze(methodName = "unprovenReverseUsesResidual")
 

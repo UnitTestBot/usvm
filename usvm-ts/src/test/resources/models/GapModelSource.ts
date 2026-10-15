@@ -213,4 +213,24 @@ export class GapModelSource {
             throw array[0];
         }, 0);
     }
+
+    splitReverseKeepsDenseValues(): boolean {
+        const values = "a,b".split(",");
+        values.reverse();
+        return values[0] === "b" && values[1] === "a";
+    }
+
+    reduceAfterDenseSlotDeletion(): number {
+        const values = "a,b".split(",");
+        values.reverse();
+        delete values[1];
+        return values.reduce((count, _value) => count + 1, 0);
+    }
+
+    sliceAfterDenseSlotDeletion(): string[] {
+        const values = "a,b".split(",");
+        values.reverse();
+        delete values[1];
+        return values.slice();
+    }
 }

@@ -6,7 +6,9 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStaticCallExpr
 import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
@@ -19,7 +21,11 @@ import org.usvm.api.targets.TsReachabilityTarget
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.call.TsCompatibilityUnknownCallDispatcher
+import org.usvm.machine.call.TsUnknownCall
+import org.usvm.machine.call.TsUnknownCallDispatcher
+import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.util.getResourcePath
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -52,6 +58,56 @@ class CallFallbackBaselineTest {
     fun `an unresolved static call prunes the state`() {
         val scene = sceneWithout("ExternalStatic")
         assertFalse(reachesReturn("unresolvedStaticCallPrunes", scene))
+    }
+
+    @Test
+    fun `an unresolved bare call does not execute a same named class static`() {
+        val call = callExpression("unresolvedBareCallDoesNotUseClassStatic")
+        val classReturn = returnStatement(fullScene, "missingBareCall", className = "UnrelatedStatic")
+        val reached = assertUnknownStaticDispatch("unresolvedBareCallDoesNotUseClassStatic")
+
+        assertIs<EtsStaticCallExpr>(call)
+        assertFalse(classReturn in reached)
+        assertFalse(returnStatement(fullScene, "unresolvedBareCallDoesNotUseClassStatic") in reached)
+    }
+
+    @Test
+    fun `an unresolved bare call does not execute a same named SDK namespace function`() {
+        val sdkFile = loadEtsFileAutoConvert(
+            getResourcePath("/samples/lang/StaticOverloads.ts"),
+            provider = EtsIrProvider.TS_FRONTEND,
+        )
+        val scene = EtsScene(projectFiles = listOf(sourceFile), sdkFiles = listOf(sdkFile))
+        val call = callExpression("unresolvedBareCallDoesNotUseSdkNamespace")
+        val namespaceMethods = sdkFile.namespaces.flatMap { namespace ->
+            namespace.allClasses.flatMap { clazz -> clazz.methods }
+        }
+
+        val reached = assertUnknownStaticDispatch("unresolvedBareCallDoesNotUseSdkNamespace", scene)
+
+        assertTrue(namespaceMethods.any { it.name == "missingNamespaceCall" })
+        assertIs<EtsStaticCallExpr>(call)
+        assertFalse(returnStatement(scene, "unresolvedBareCallDoesNotUseSdkNamespace") in reached)
+    }
+
+    @Test
+    fun `an unresolved bare call does not execute an SDK module export`() {
+        val sdkFile = loadEtsFileAutoConvert(
+            getResourcePath("/samples/lang/StaticOverloads.ts"),
+            provider = EtsIrProvider.TS_FRONTEND,
+        )
+        val scene = EtsScene(projectFiles = listOf(sourceFile), sdkFiles = listOf(sdkFile))
+        val call = callExpression("unresolvedBareCallDoesNotUseSdkModule")
+        val rootMethods = sdkFile.classes
+            .single { it.name == DEFAULT_ARK_CLASS_NAME }
+            .methods
+
+        val reached = assertUnknownStaticDispatch("unresolvedBareCallDoesNotUseSdkModule", scene)
+
+        assertTrue(sdkFile.exportInfos.any { it.name == "missingModuleCall" })
+        assertTrue(rootMethods.any { it.name == "missingModuleCall" })
+        assertIs<EtsStaticCallExpr>(call)
+        assertFalse(returnStatement(scene, "unresolvedBareCallDoesNotUseSdkModule") in reached)
     }
 
     @Test
@@ -190,6 +246,7 @@ class CallFallbackBaselineTest {
         methodName: String,
         scene: EtsScene = fullScene,
         tsOptions: TsOptions = TsOptions(),
+        unknownCallDispatcher: TsUnknownCallDispatcher = TsCompatibilityUnknownCallDispatcher,
     ): Set<EtsStmt> {
         val method = method(scene, methodName)
         val returnStatement = returnStatement(scene, methodName)
@@ -201,11 +258,29 @@ class CallFallbackBaselineTest {
             options = machineOptions,
             tsOptions = tsOptions,
             machineObserver = ReachabilityObserver(),
-            unknownCallDispatcher = TsCompatibilityUnknownCallDispatcher,
+            unknownCallDispatcher = unknownCallDispatcher,
         ).use { machine ->
             machine.analyze(listOf(method), listOf(initialTarget))
                 .flatMapTo(mutableSetOf()) { state -> state.pathNode.allStatements }
         }
+    }
+
+    private fun assertUnknownStaticDispatch(
+        methodName: String,
+        scene: EtsScene = fullScene,
+    ): Set<EtsStmt> {
+        val calls = mutableListOf<TsUnknownCall>()
+        val dispatcher = TsUnknownCallDispatcher { scope, call ->
+            calls += call
+            TsCompatibilityUnknownCallDispatcher.dispatch(scope, call)
+        }
+
+        val reached = reachedStatements(methodName, scene, unknownCallDispatcher = dispatcher)
+
+        val dispatched = calls.single()
+        assertEquals(TsUnknownCallFailureReason.STATIC_METHOD_NOT_FOUND, dispatched.failureReason)
+        assertEquals(callExpression(methodName), dispatched.callSite.callExpr)
+        return reached
     }
 
     private fun returnStatement(

@@ -3,9 +3,9 @@ package org.usvm.census
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonPrimitive
 
 internal const val CENSUS_SCHEMA_VERSION = 2
 
@@ -57,7 +57,30 @@ internal data class UnknownCallCensusLimits(
 internal data class UnknownCallCensusSummary(
     val schemaVersion: Int = CENSUS_SCHEMA_VERSION,
     val profiles: Map<String, UnknownCallCensusProfileSummary>,
+    val input: UnknownCallCensusInput,
 )
+
+@Serializable
+internal data class UnknownCallCensusInput(
+    val completeness: UnknownCallCensusCompleteness,
+    val issues: List<UnknownCallCensusInputIssue>,
+)
+
+@Serializable
+internal enum class UnknownCallCensusCompleteness { COMPLETE, PARTIAL }
+
+@Serializable
+internal enum class UnknownCallCensusInputIssue {
+    MISSING_RUN_START,
+    MISSING_RUN_RESULT,
+    INVALID_RUN_START,
+    INVALID_RUN_RESULT,
+    DUPLICATE_RUN_START,
+    DUPLICATE_RUN_RESULT,
+    OUT_OF_ORDER_MARKERS,
+    DATA_OUTSIDE_RUN,
+    UNSUPPORTED_DATA_SCHEMA,
+}
 
 @Serializable
 internal data class UnknownCallCensusProfileSummary(
@@ -88,13 +111,51 @@ internal data class UnknownCallCensusIssue(
 internal object UnknownCallCensusAggregator {
     fun summarize(lines: Sequence<String>): UnknownCallCensusSummary {
         val profiles = linkedMapOf<String, ProfileAccumulator>()
+        val inputIssues = linkedSetOf<UnknownCallCensusInputIssue>()
+        var runStartSeen = false
+        var runResultSeen = false
+        var dataSeen = false
+        var startedAt: String? = null
 
-        lines.filter(String::isNotBlank).forEachIndexed { index, line ->
+        lines.forEachIndexed { index, line ->
+            if (line.isBlank()) return@forEachIndexed
+
             val record = censusJson.parseToJsonElement(line) as? JsonObject
                 ?: error("Raw census record ${index + 1} is not a JSON object")
             val kind = record.requiredString("kind", index)
-            if (kind == "run_start" || kind == "run_result") {
-                return@forEachIndexed
+            when (kind) {
+                "run_start" -> {
+                    if (runStartSeen) inputIssues += UnknownCallCensusInputIssue.DUPLICATE_RUN_START
+                    if (dataSeen || runResultSeen) inputIssues += UnknownCallCensusInputIssue.OUT_OF_ORDER_MARKERS
+                    val markerStartedAt = record.optionalString("startedAt")
+                    val validSchema = record.optionalInt("schemaVersion") == CENSUS_SCHEMA_VERSION
+                    if (!validSchema || markerStartedAt.isNullOrBlank()) {
+                        inputIssues += UnknownCallCensusInputIssue.INVALID_RUN_START
+                    }
+                    startedAt = markerStartedAt
+                    runStartSeen = true
+                    return@forEachIndexed
+                }
+                "run_result" -> {
+                    if (runResultSeen) inputIssues += UnknownCallCensusInputIssue.DUPLICATE_RUN_RESULT
+                    if (!runStartSeen) inputIssues += UnknownCallCensusInputIssue.OUT_OF_ORDER_MARKERS
+                    val validSchema = record.optionalInt("schemaVersion") == CENSUS_SCHEMA_VERSION
+                    val completed = record.optionalString("status") == "completed"
+                    val matchingStart = record.optionalString("startedAt") == startedAt && !startedAt.isNullOrBlank()
+                    val hasFinish = !record.optionalString("finishedAt").isNullOrBlank()
+                    val validRunResult = validSchema && completed && matchingStart && hasFinish
+                    if (!validRunResult) {
+                        inputIssues += UnknownCallCensusInputIssue.INVALID_RUN_RESULT
+                    }
+                    runResultSeen = true
+                    return@forEachIndexed
+                }
+            }
+
+            dataSeen = true
+            if (!runStartSeen || runResultSeen) inputIssues += UnknownCallCensusInputIssue.DATA_OUTSIDE_RUN
+            if (record.optionalInt("schemaVersion") != CENSUS_SCHEMA_VERSION) {
+                inputIssues += UnknownCallCensusInputIssue.UNSUPPORTED_DATA_SCHEMA
             }
 
             val profile = record.requiredString("profile", index)
@@ -108,8 +169,21 @@ internal object UnknownCallCensusAggregator {
             }
         }
 
+        if (!runStartSeen) inputIssues += UnknownCallCensusInputIssue.MISSING_RUN_START
+        if (!runResultSeen) inputIssues += UnknownCallCensusInputIssue.MISSING_RUN_RESULT
+
+        val completeness = if (inputIssues.isEmpty()) {
+            UnknownCallCensusCompleteness.COMPLETE
+        } else {
+            UnknownCallCensusCompleteness.PARTIAL
+        }
         val summaries = profiles.toSortedMap().mapValues { (_, accumulator) -> accumulator.toSummary() }
-        return UnknownCallCensusSummary(profiles = summaries)
+        val input = UnknownCallCensusInput(completeness = completeness, issues = inputIssues.toList())
+
+        return UnknownCallCensusSummary(
+            profiles = summaries,
+            input = input,
+        )
     }
 }
 
@@ -150,7 +224,11 @@ private class ProfileAccumulator {
     fun addMethodResult(record: JsonObject, index: Int) {
         val projectId = record.requiredString("projectId", index)
         val functionId = record.requiredString("functionId", index)
-        val status = record.requiredString("status", index)
+        val rawStatus = record.requiredString("status", index)
+        val matchingStatus = MethodStatus.entries.firstOrNull { it.serializedName == rawStatus }
+        val status = requireNotNull(matchingStatus) {
+            "Raw census line ${index + 1} has unsupported method_result status '$rawStatus'"
+        }
         val issue = UnknownCallCensusIssue(
             projectId = projectId,
             functionId = functionId,
@@ -161,19 +239,22 @@ private class ProfileAccumulator {
         projects += projectId
         functions += functionId
         when (status) {
-            "completed" -> completedFunctions += functionId
-            "partial" -> {
+            MethodStatus.COMPLETED -> completedFunctions += functionId
+            MethodStatus.PARTIAL -> {
                 partialFunctions += functionId
                 partials += issue
             }
-            "timeout" -> timeouts += issue
-            "tool_error" -> errors += issue
+            MethodStatus.TIMEOUT -> timeouts += issue
+            MethodStatus.TOOL_ERROR -> errors += issue
         }
     }
 
     fun addProjectResult(record: JsonObject, index: Int) {
         val projectId = record.requiredString("projectId", index)
         val status = record.requiredString("status", index)
+        require(status in projectResultStatuses) {
+            "Raw census line ${index + 1} has unsupported project_result status '$status'"
+        }
         val issue = UnknownCallCensusIssue(
             projectId = projectId,
             message = record.optionalString("error"),
@@ -181,6 +262,7 @@ private class ProfileAccumulator {
 
         projects += projectId
         when (status) {
+            "completed" -> Unit
             "timeout" -> timeouts += issue
             "tool_error" -> errors += issue
         }
@@ -204,6 +286,8 @@ private class ProfileAccumulator {
     )
 }
 
+private val projectResultStatuses = setOf("completed", "timeout", "tool_error")
+
 private val issueComparator = compareBy<UnknownCallCensusIssue>(
     UnknownCallCensusIssue::projectId,
     { it.functionId.orEmpty() },
@@ -217,6 +301,8 @@ private fun MutableMap<String, Int>.increment(key: String) {
 private fun JsonObject.requiredString(name: String, recordIndex: Int): String =
     optionalString(name) ?: error("Raw census record ${recordIndex + 1} has no string '$name'")
 
-private fun JsonObject.optionalString(name: String): String? = get(name)?.jsonPrimitive?.contentOrNull
+private fun JsonObject.optionalString(name: String): String? =
+    (get(name) as? JsonPrimitive)?.takeIf(JsonPrimitive::isString)?.contentOrNull
 
-private fun JsonObject.optionalInt(name: String): Int? = get(name)?.jsonPrimitive?.intOrNull
+private fun JsonObject.optionalInt(name: String): Int? =
+    (get(name) as? JsonPrimitive)?.takeUnless(JsonPrimitive::isString)?.intOrNull

@@ -68,6 +68,27 @@ export class ArrayMutationEtsIr {
             + values.length;
     }
 
+    sliceIgnoresExtraString(values: number[]): number {
+        const result = values.slice(0, 2, "ignored");
+        return result[0] * 10 + result[1];
+    }
+
+    sliceEvaluatesIgnoredArgument(values: number[]): number {
+        let extraEffect = 0;
+        const result = values.slice(0, 2, extraEffect = 7);
+        return result[0] * 1000 + result[1] * 100 + values[2] * 10 + extraEffect;
+    }
+
+    fillIgnoresExtraString(values: number[]): number {
+        values.fill(9, 0, 2, "ignored");
+        return values[0] * 100 + values[1] * 10 + values[2];
+    }
+
+    reverseIgnoresExtraString(values: number[]): number {
+        values.reverse("ignored");
+        return values[0] * 100 + values[1] * 10 + values[2];
+    }
+
     concatDense(values: number[], other: number[]): number {
         const result = values.concat(other);
         return result.length * 10000

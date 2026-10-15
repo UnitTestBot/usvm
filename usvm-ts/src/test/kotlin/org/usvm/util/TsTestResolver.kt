@@ -162,17 +162,9 @@ class TsTestResolver {
                     }
 
                     is EtsStringType -> {
-                        val concreteRef = evaluateInModel(res.value) as? UConcreteHeapRef
-                        if (concreteRef != null && isAllocatedConcreteHeapRef(concreteRef)) {
-                            val stringValue = ctx.getStringConstantValue(concreteRef)
-                            if (stringValue != null) {
-                                TsTestValue.TsException.StringException(stringValue)
-                            } else {
-                                TsTestValue.TsException.UnknownException
-                            }
-                        } else {
-                            TsTestValue.TsException.UnknownException
-                        }
+                        val stringValue = resolveModeledString(res.value)
+                        stringValue?.let { TsTestValue.TsException.StringException(it.value) }
+                            ?: TsTestValue.TsException.UnknownException
                     }
 
                     else -> {
@@ -263,6 +255,29 @@ open class TsTestStateResolver(
 
             else -> TODO("Unsupported sort: ${expr.sort}")
         }
+    }
+
+    fun resolveModeledString(expr: UExpr<out USort>): TsTestValue.TsString? {
+        if (expr.sort != ctx.addressSort) return null
+
+        val heapRef = expr.asExpr(ctx.addressSort)
+        val concreteRef = evaluateInModel(heapRef) as? UConcreteHeapRef ?: return null
+        if (concreteRef.address == 0) return null
+
+        val constantValue = ctx.getStringConstantValue(concreteRef)
+        if (constantValue != null) return TsTestValue.TsString(constantValue)
+
+        val runtimeType = if (concreteRef.isAllocated) {
+            finalStateMemory.typeStreamOf(concreteRef).first()
+        } else {
+            model.typeStreamOf(concreteRef).first()
+        }
+        if (runtimeType != EtsStringType) return null
+
+        val hasBoundedBacking = heapRef in stringLengthBounds || concreteRef in stringLengthBounds
+        if (!hasBoundedBacking) return null
+
+        return resolveString(heapRef, concreteRef)
     }
 
     private fun resolveTsValue(
@@ -400,7 +415,7 @@ open class TsTestStateResolver(
     }
 
     fun resolveThisInstance(): TsTestValue {
-        val ref = mkRegisterStackLValue(ctx.addressSort, 0) // TODO check for statics
+        val ref = mkRegisterStackLValue(ctx.addressSort, idx = 0) // TODO check for statics
         return resolveLValue(ref)
     }
 
@@ -606,7 +621,7 @@ open class TsTestStateResolver(
                 properties.remove(name)
             } else if (name !in properties) {
                 val sort = propertyState?.writtenObjectLiteralFieldSorts?.get(ref to name) ?: addressSort
-                properties[name] = resolveLValue(mkFieldLValue(sort, heapRef, name))
+                properties[name] = resolveObjectFieldValue(ref, heapRef, name, sort)
             }
         }
     }
@@ -617,8 +632,15 @@ open class TsTestStateResolver(
         name: String,
         type: EtsType,
         initial: Boolean = false,
+    ): TsTestValue = resolveObjectFieldValue(ref, heapRef, name, ctx.typeToSort(type), initial)
+
+    private fun resolveObjectFieldValue(
+        ref: UConcreteHeapRef,
+        heapRef: UHeapRef,
+        name: String,
+        sort: USort,
+        initial: Boolean = false,
     ): TsTestValue = with(ctx) {
-        val sort = typeToSort(type)
         val valueMemory = if (initial) model else memory
         val valueRef = if (initial || resolveMode == ResolveMode.MODEL) ref else heapRef
         if (sort !is TsUnresolvedSort) {
