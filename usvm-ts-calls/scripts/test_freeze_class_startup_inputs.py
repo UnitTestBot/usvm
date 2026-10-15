@@ -113,6 +113,49 @@ class StartupFreezeTest(unittest.TestCase):
         self.assertTrue(original['noUncheckedSideEffectImports'])
         self.assertEqual(['es2024', 'dom'], original['lib'])
 
+    def test_frontend_reports_node20_and_rewrite_option_without_changing_them(self):
+        original = {'module': 'node20', 'moduleResolution': 'nodenext', 'noEmit': True,
+                    'rewriteRelativeImportExtensions': True}
+        environment = {'version': '5.4.5', 'options': ['module', 'moduleResolution', 'noEmit'], 'libs': [],
+                       'enumOptions': {'module': ['commonjs', 'node16', 'nodenext', 'preserve'],
+                                       'moduleResolution': ['node16', 'nodenext']}}
+
+        projected, evidence = freeze.project_frontend_options(original, environment)
+
+        self.assertEqual(original, projected)
+        self.assertEqual('UNSUPPORTED', evidence['status'])
+        unsupported = {item['option']: item for item in evidence['unsupportedCompatibilityBoundaries']}
+        self.assertEqual({'module', 'rewriteRelativeImportExtensions'}, set(unsupported))
+        self.assertEqual('option-value', unsupported['module']['kind'])
+        self.assertEqual('node20', unsupported['module']['original'])
+        self.assertEqual('option-name', unsupported['rewriteRelativeImportExtensions']['kind'])
+        self.assertTrue(unsupported['rewriteRelativeImportExtensions']['original'])
+        self.assertTrue(all(item['reasonCode'] == 'FRONTEND_COMPILER_OPTION_UNSUPPORTED'
+                            for item in unsupported.values()))
+
+    def test_frontend_accepts_supported_enum_values_case_insensitively(self):
+        original = {'module': 'ESNext', 'moduleResolution': 'NodeNext', 'noEmit': True}
+        environment = {'version': '5.4.5', 'options': ['module', 'moduleResolution', 'noEmit'], 'libs': [],
+                       'enumOptions': {'module': ['commonjs', 'esnext', 'nodenext'],
+                                       'moduleResolution': ['node16', 'nodenext']}}
+
+        projected, evidence = freeze.project_frontend_options(original, environment)
+
+        self.assertEqual(original, projected)
+        self.assertEqual('COMPATIBLE', evidence['status'])
+        self.assertEqual([], evidence['unsupportedCompatibilityBoundaries'])
+
+    def test_frontend_inventory_records_actual_compiler_enum_values(self):
+        compiler = INSPECTOR.parents[2] / 'node_modules' / 'typescript'
+
+        environment = freeze.frontend_environment(compiler)
+
+        self.assertIn('module', environment['options'])
+        self.assertIn('commonjs', environment['enumOptions']['module'])
+        self.assertIn('nodenext', environment['enumOptions']['moduleResolution'])
+        self.assertEqual(freeze.digest((compiler / 'lib' / 'typescript.js').read_bytes()),
+                         environment['compilerSha256'])
+
     def test_failed_installation_remains_explicit_incomplete_row(self):
         with tempfile.TemporaryDirectory(prefix='calls-startup-failure-') as temporary:
             directory = Path(temporary).resolve()

@@ -40,7 +40,8 @@ def materialized_name(name):
 def frontend_environment(module):
     script = ('const ts=require(process.argv[1]); const lib=ts.optionDeclarations.find(o=>o.name==="lib"); '
               'process.stdout.write(JSON.stringify({version:ts.version,options:ts.optionDeclarations.map(o=>o.name),'
-              'libs:[...lib.element.type.keys()]}));')
+              'libs:[...lib.element.type.keys()],enumOptions:Object.fromEntries('
+              'ts.optionDeclarations.filter(o=>o.type instanceof Map).map(o=>[o.name,[...o.type.keys()]]))}));')
     value = json.loads(subprocess.check_output(['node', '-e', script, str(module)], text=True))
     compiler = module / 'lib' / 'typescript.js' if module.is_dir() else module
     value['compilerSha256'] = digest(compiler.read_bytes())
@@ -67,8 +68,23 @@ def project_frontend_options(original, environment):
             boundaries.append({'kind': 'type-library-environment', 'option': 'lib', 'original': libs,
                                'projected': updated, 'reason': 'Frontend declaration library; no runtime emulation claimed'})
             projected['lib'] = updated
+    unsupported_options = sorted(set(projected) - supported)
+    unsupported = [{'reasonCode': 'FRONTEND_COMPILER_OPTION_UNSUPPORTED', 'kind': 'option-name',
+                    'option': name, 'original': projected[name], 'frontendVersion': environment['version']}
+                   for name in unsupported_options]
+    for name, values in environment.get('enumOptions', {}).items():
+        if name not in projected or name not in supported:
+            continue
+        value = projected[name]
+        supported_value = isinstance(value, str) and value.lower() in {item.lower() for item in values}
+        if not supported_value:
+            unsupported.append({'reasonCode': 'FRONTEND_COMPILER_OPTION_UNSUPPORTED', 'kind': 'option-value',
+                                'option': name, 'original': value, 'supportedValues': values,
+                                'frontendVersion': environment['version']})
     return projected, {'environment': environment, 'boundaries': boundaries,
-                       'unprojectedUnsupportedOptions': sorted(set(projected) - supported)}
+                       'unprojectedUnsupportedOptions': unsupported_options,
+                       'unsupportedCompatibilityBoundaries': unsupported,
+                       'status': 'UNSUPPORTED' if unsupported else 'COMPATIBLE'}
 
 
 def inspect_case(case, receipt_path, inspector, output, timeout, environment=None, tool_proof=None):

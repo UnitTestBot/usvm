@@ -49,6 +49,20 @@ For example, `lib: ["es2024"]` can use the frontend's `esnext` declarations; thi
 not emulate ES2024 runtime operations. Unknown semantic/emission options are preserved
 for explicit frontend diagnostics. Checked and native replay configs are unchanged.
 
+Frontend compatibility also checks option names and enum values against that exact
+compiler's inventory. The receipt records `frontendCompilerProjection.status` and
+`unsupportedCompatibilityBoundaries` with typed
+`FRONTEND_COMPILER_OPTION_UNSUPPORTED` reasons. This is detection only: unsupported
+semantic/emission options and enum values remain unchanged. In particular, TypeScript
+5.4.5 cannot accept Utilityjs's `module: "node20"` or
+`rewriteRelativeImportExtensions`; `noEmit` does not prove those settings harmless.
+The former controls Node module/interoperability semantics, while the latter also
+affects semantic diagnostics and derived import-extension options. This change does
+not make `DisjointSet` start: it requires genuine frontend support for those options
+or a compatible compiler upgrade. An acquired graph can still have unsupported
+frontend compatibility, and `COMPATIBLE` is only an inventory check, not proof of
+successful IR generation or symbolic support.
+
 `acquisitionComplete` proves the frozen per-class graph, including explicit opaque
 boundaries. Genuine machine class entry, useful candidate values and class-only
 replay-checked coverage are later, distinct checks. Keep all original rows in those
