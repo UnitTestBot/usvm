@@ -2,10 +2,12 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import path from 'node:path'
 import ts from 'typescript'
+import { resolveStartupRuntime, type RuntimeImportKind, type StartupRuntimeBoundary, type StartupRuntimeResolution } from './startup-runtime-resolution.js'
 
 export interface FrozenModuleResolution {
   inputSha256: Record<string, string>
   tsconfig: string
+  runtimeBoundaries?: StartupRuntimeBoundary[]
 }
 
 /** A bounded, offline runtime source resolver. Declaration files never stand in for executable code. */
@@ -16,13 +18,15 @@ export class FrozenModuleResolver {
   private readonly aliases = new Map<string, string>()
   private readonly edges = new Map<string, Map<string, string>>()
   private readonly configStack = new Set<string>()
+  private usedStartupResolution = false
+  private readonly startupBoundaries = new Map<string, StartupRuntimeBoundary>()
   private pathsDirectory: string | undefined
   private readonly resolutionHost: ts.ModuleResolutionHost
 
   constructor(private readonly root: string, entry: string) {
     const preparedConfig = path.join(root, '.usvm-frozen.tsconfig.json')
     const config = existsSync(preparedConfig) ? preparedConfig
-      : this.ancestors(path.dirname(entry)).map(directory => path.join(directory, 'tsconfig.json')).find(existsSync)
+      : this.ancestors(path.dirname(entry)).flatMap(directory => ['tsconfig.json', 'tsconfig.jsonc'].map(name => path.join(directory, name))).find(existsSync)
     this.rawOptions = config ? this.readConfig(config) : {
       target: 'ES2022', module: 'ESNext', moduleResolution: 'Node10', allowImportingTsExtensions: true,
     }
@@ -100,13 +104,45 @@ export class FrozenModuleResolver {
     return target
   }
 
+  resolveStartup(specifier: string, from: string, importKind: RuntimeImportKind = 'import'): StartupRuntimeResolution {
+    this.usedStartupResolution = true
+    const result = resolveStartupRuntime(this.root, this.options, specifier, from, importKind,
+      file => this.inputs.add(this.checkedPath(file)))
+    if (result.kind === 'boundary') {
+      this.startupBoundaries.set(`${from}\0${specifier}\0${importKind}`, result.boundary)
+      if (result.boundary.runtimeFile) this.recordMetadata(path.join(this.root, result.boundary.runtimeFile))
+      return result
+    }
+    const target = result.file
+    this.recordMetadata(target)
+    const bindings = this.edges.get(from) ?? new Map<string, string>()
+    bindings.set(specifier, target)
+    this.edges.set(from, bindings)
+    if (!specifier.startsWith('.')) {
+      const previous = this.aliases.get(specifier)
+      if (previous && previous !== target) throw new Error(`Context-dependent runtime alias is unsupported: ${specifier}`)
+      this.aliases.set(specifier, target)
+    }
+    return result
+  }
+
+  recordDynamicStartupBoundary(from: string, importKind: RuntimeImportKind, startOffset: number, expression: string): void {
+    const source = this.checkedPath(from)
+    this.usedStartupResolution = true
+    this.inputs.add(source)
+    this.startupBoundaries.set(`${source}\0dynamic\0${startOffset}`, {
+      sourceFile: path.relative(this.root, source).split(path.sep).join('/'),
+      specifier: '<unresolved dynamic target>', importKind, kind: 'dynamic-module', startOffset, expression,
+    })
+  }
+
   resolvedModule(specifier: string, from: string): ts.ResolvedModule | undefined {
     const target = this.edges.get(from)?.get(specifier)
     return target ? { resolvedFileName: target, isExternalLibraryImport: false } : undefined
   }
 
   freeze(files: string[]): FrozenModuleResolution | undefined {
-    if (this.inputs.size === 0 && this.aliases.size === 0) return undefined
+    if (this.inputs.size === 0 && this.aliases.size === 0 && this.startupBoundaries.size === 0) return undefined
     const allInputs = [...new Set([...this.inputs, ...files.map(file => path.join(this.root, file))])].sort()
     const inputSha256 = Object.fromEntries(allInputs.map(file => [
       path.relative(this.root, file).split(path.sep).join('/'),
@@ -114,11 +150,13 @@ export class FrozenModuleResolver {
     ]))
     const paths = Object.fromEntries([...this.aliases].sort(([a], [b]) => a.localeCompare(b)).map(([specifier, target]) =>
       [specifier, [path.relative(this.root, target).split(path.sep).join('/')]]))
-    const compilerOptions = { ...this.rawOptions, baseUrl: '.', paths,
+    const compilerOptions = { ...this.rawOptions, ...(this.usedStartupResolution ? { allowJs: true } : {}), baseUrl: '.', paths,
       types: [], noEmit: true, allowImportingTsExtensions: true }
     // This config deliberately roots only the inspected runtime closure; inherited include/exclude
     // cannot add unrelated project files to the coverage frontend.
-    return { inputSha256, tsconfig: JSON.stringify({ compilerOptions, files }, null, 2) + '\n' }
+    const resolution: FrozenModuleResolution = { inputSha256, tsconfig: JSON.stringify({ compilerOptions, files }, null, 2) + '\n' }
+    if (this.startupBoundaries.size > 0) resolution.runtimeBoundaries = [...this.startupBoundaries.values()]
+    return resolution
   }
 
   private resolvePackage(specifier: string, from: string): string | undefined {
