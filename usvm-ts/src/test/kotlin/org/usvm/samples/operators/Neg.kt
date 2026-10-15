@@ -23,8 +23,10 @@ class Neg : TsMethodTestRunner() {
                 a.isNaN() && r.isNaN()
             },
             { a, r ->
-                // -0 = -0
-                (a eq 0) && (r eq -0.0)
+                val isZeroInput = a.number == 0.0
+                val expected = -a.number
+
+                isZeroInput && r.number.toRawBits() == expected.toRawBits()
             },
             { a, r ->
                 // -positive number = negative number
@@ -38,6 +40,8 @@ class Neg : TsMethodTestRunner() {
                 { a, r ->
                     if (a.isNaN()) {
                         r.isNaN()
+                    } else if (a.number == 0.0) {
+                        r.number.toRawBits() == (-a.number).toRawBits()
                     } else {
                         r.number eq -a.number
                     }
@@ -57,7 +61,7 @@ class Neg : TsMethodTestRunner() {
             },
             { a, r ->
                 // -false = -0
-                !a.value && (r eq 0)
+                !a.value && r.number.toRawBits() == (-0.0).toRawBits()
             },
         )
     }
@@ -81,7 +85,7 @@ class Neg : TsMethodTestRunner() {
             method = method,
             { r ->
                 // -null = -0
-                r eq 0
+                r.number.toRawBits() == (-0.0).toRawBits()
             },
         )
     }
@@ -94,11 +98,11 @@ class Neg : TsMethodTestRunner() {
             method = method,
             { a, r ->
                 // -"" = -0
-                a.value == "" && (r eq 0.0)
+                a.value == "" && r.number.toRawBits() == (-0.0).toRawBits()
             },
             { a, r ->
                 // -"0" = -0
-                a.value == "0" && (r eq 0.0)
+                a.value == "0" && r.number.toRawBits() == (-0.0).toRawBits()
             },
             { a, r ->
                 // -"1" = -1
