@@ -13,6 +13,8 @@ import org.usvm.statistics.UMachineObserver
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 
 @Serializable
 internal data class CallsClassRawIrPoint(
@@ -58,6 +60,14 @@ internal data class CallsClassRawAnalysis(
     val budgetMillis: Long,
     val analysisElapsedMillis: Long,
     val budgetOverrunMillis: Long,
+    val timingSchemaVersion: Int = 0,
+    val analysisSetupElapsedMillis: Long = 0,
+    val searchElapsedMillis: Long = 0,
+    val remainingStateDrainMillis: Long = 0,
+    /** Snapshot work overlaps search or drain; it is not an additional phase. */
+    val searchSnapshotElapsedNanos: Long = 0,
+    val drainSnapshotElapsedNanos: Long = 0,
+    val journalFinalizeMillis: Long = 0,
     val timeQuantumMillis: Long,
     val collectedStatesLimit: Int? = null,
     val profile: CallsExperimentProfile,
@@ -120,6 +130,20 @@ internal class ClassRawAnalysisObserver(
     private var solverNanos = 0L
     private var quantumCount = 0L
     private var quantumOverruns = 0L
+    private var searchStarted: TimeMark? = null
+    private var searchElapsedMillis = 0L
+    private var draining = false
+    private var remainingStateDrainMillis = 0L
+    private var searchSnapshotNanos = 0L
+    private var drainSnapshotNanos = 0L
+
+    override fun onMachineStarted() {
+        searchStarted = TimeSource.Monotonic.markNow()
+    }
+
+    override fun onMachineStopped() {
+        searchElapsedMillis = searchStarted?.elapsedNow()?.inWholeMilliseconds ?: 0
+    }
 
     fun recordOriginalEntry(stmt: EtsStmt) {
         val point = stmt.toClassRawIrPoint(sourceFile = sourceFile)
@@ -180,9 +204,16 @@ internal class ClassRawAnalysisObserver(
 
     /** Drain only after analyzeWithMetadata has computed its real stop reason. */
     fun retainRemainingStates(selector: UPathSelector<TsState>?) {
-        selector?.drain()?.forEach { state ->
-            remainingStates++
-            saveSnapshot(state = state, outcome = "SUSPENDED")
+        val started = TimeSource.Monotonic.markNow()
+        draining = true
+        try {
+            selector?.drain()?.forEach { state ->
+                remainingStates++
+                saveSnapshot(state = state, outcome = "SUSPENDED")
+            }
+        } finally {
+            remainingStateDrainMillis = started.elapsedNow().inWholeMilliseconds
+            draining = false
         }
     }
 
@@ -198,6 +229,7 @@ internal class ClassRawAnalysisObserver(
     }
 
     private fun saveSnapshot(state: TsState, outcome: String) {
+        val started = TimeSource.Monotonic.markNow()
         val saved = runCatching {
             snapshots.append { reference ->
                 val stmt = state.lastStmt
@@ -236,11 +268,20 @@ internal class ClassRawAnalysisObserver(
                 )
             }
         }
+        val elapsedNanos = started.elapsedNow().inWholeNanoseconds
+        if (draining) {
+            drainSnapshotNanos += elapsedNanos
+        } else {
+            searchSnapshotNanos += elapsedNanos
+        }
     }
 
     fun result(manifest: CallsClassStartManifest, analysisElapsedMillis: Long): CallsClassRawAnalysis {
         val encodedUniverse = encodeCallsArtifact(universe).toByteArray(Charsets.UTF_8)
+        val finalizeStarted = TimeSource.Monotonic.markNow()
         val journals = snapshots.finish()
+        val journalFinalizeMillis = finalizeStarted.elapsedNow().inWholeMilliseconds
+
         // Exploratory execution may retain interpreter failures as terminal states.
         // Such a failure must still invalidate this diagnostic denominator.
         check(universeViolations.isEmpty()) {
@@ -250,7 +291,14 @@ internal class ClassRawAnalysisObserver(
         return CallsClassRawAnalysis(
             budgetMillis = manifest.budgetMillis,
             analysisElapsedMillis = analysisElapsedMillis,
-            budgetOverrunMillis = (analysisElapsedMillis - manifest.budgetMillis).coerceAtLeast(0),
+            budgetOverrunMillis = (searchElapsedMillis - manifest.budgetMillis).coerceAtLeast(0),
+            timingSchemaVersion = 1,
+            analysisSetupElapsedMillis = (analysisElapsedMillis - searchElapsedMillis).coerceAtLeast(0),
+            searchElapsedMillis = searchElapsedMillis,
+            remainingStateDrainMillis = remainingStateDrainMillis,
+            searchSnapshotElapsedNanos = searchSnapshotNanos,
+            drainSnapshotElapsedNanos = drainSnapshotNanos,
+            journalFinalizeMillis = journalFinalizeMillis,
             timeQuantumMillis = manifest.timeQuantumMillis,
             profile = manifest.profile,
             seed = manifest.seed,
