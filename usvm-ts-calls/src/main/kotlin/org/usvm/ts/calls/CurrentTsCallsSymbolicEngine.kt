@@ -329,6 +329,7 @@ internal class CurrentTsCallsSymbolicEngine(
                 cache = verifiedProjects,
             )
         }
+
         verifyNativeFrontend(expectedRevision = request.expectedNativeFrontendRevision)
 
         val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
