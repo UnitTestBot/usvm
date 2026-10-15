@@ -211,7 +211,7 @@ internal class CurrentTsCallsSymbolicEngine(
             machineObserver = targetObserver,
             observer = interpreterObserver,
         ).use { machine ->
-            val outcome = machine.analyzeWithOutcome(
+            val outcome = machine.analyzeWithMetadata(
                 methods = listOf(method),
                 configureInitialState = { _, state -> symbolicInputs.initialize(state) },
             )
@@ -219,6 +219,7 @@ internal class CurrentTsCallsSymbolicEngine(
                 states = targetObserver.reachedStates,
                 stopReason = outcome.stopReason,
                 unsupportedPaths = outcome.unsupportedPaths,
+                unsupportedCall = outcome.unsupportedCall,
             )
         }
         val states = analysis.states
@@ -227,7 +228,7 @@ internal class CurrentTsCallsSymbolicEngine(
                 TsAnalysisStopReason.EXHAUSTED -> {
                     when {
                         interpreterObserver.runtimeLimitations.isNotEmpty() -> CallsSymbolicStatus.RUNTIME_LIMITATION
-                        analysis.unsupportedPaths.isNotEmpty() -> CallsSymbolicStatus.UNSUPPORTED
+                        analysis.unsupportedPaths.isNotEmpty() || analysis.unsupportedCall -> CallsSymbolicStatus.UNSUPPORTED
                         else -> CallsSymbolicStatus.UNREACHED
                     }
                 }
@@ -758,6 +759,7 @@ internal class CurrentTsCallsSymbolicEngine(
         val states: List<TsState>,
         val stopReason: TsAnalysisStopReason,
         val unsupportedPaths: List<String>,
+        val unsupportedCall: Boolean,
     )
 
     private companion object {

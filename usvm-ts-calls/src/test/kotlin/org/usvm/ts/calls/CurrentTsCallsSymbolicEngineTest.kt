@@ -1,6 +1,7 @@
 package org.usvm.ts.calls
 
 import org.usvm.machine.call.TsUnknownCallEvent
+import org.usvm.machine.call.TsUnknownCallOutcome
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.JsNumber
@@ -14,6 +15,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 internal class CurrentTsCallsSymbolicEngineTest : CurrentTsCallsSymbolicEngineTestSupport() {
@@ -498,6 +500,36 @@ internal class CurrentTsCallsSymbolicEngineTest : CurrentTsCallsSymbolicEngineTe
         assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
         assertTrue(unknownCalls.any { event -> event.callee.name == "now" })
         fixture.assertReplayConfirmed(assertNotNull(result.inputs, result.toString()))
+    }
+
+    @Test
+    fun `stopped residual call before source target is unsupported`() {
+        val fixture = fixture(
+            source = """
+                export const stoppedNativeDate = (value: number): boolean => {
+                  if (value === 0 && Date.now() > 0) {
+                    return true;
+                  }
+                  return false;
+                };
+            """.trimIndent(),
+            exportName = "stoppedNativeDate",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+
+        val preflight = fixture.preflight()
+        val unknownCalls = mutableListOf<TsUnknownCallEvent>()
+        val result = fixture.search(
+            modelIds = emptySet(),
+            profile = CallsExperimentProfile.FROZEN_STOP,
+            unknownCallEventSink = unknownCalls::add,
+        )
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, preflight.status, preflight.toString())
+        assertTrue(unknownCalls.any { event -> event.outcome == TsUnknownCallOutcome.PATH_STOPPED })
+        assertEquals(CallsSymbolicStatus.UNSUPPORTED, result.status, result.toString())
+        assertNull(result.inputs)
     }
 
     @Test
