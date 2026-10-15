@@ -28,8 +28,10 @@ import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
+import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.utils.callExpr
 import org.usvm.StepResult
 import org.usvm.StepScope
@@ -80,7 +82,7 @@ import org.usvm.types.TypesResult
 import org.usvm.types.single
 import org.usvm.util.executableOverloadImplementation
 import org.usvm.util.mkFieldLValue
-import org.usvm.util.resolveDeclaredConstructor
+import org.usvm.util.resolveDeclaredInitialization
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.type
 
@@ -254,6 +256,21 @@ class TsInterpreter(
         }
         val receiver = instance.asExpr(addressSort)
 
+        val isInitialization = callee.name == CONSTRUCTOR_NAME || callee.name == INSTANCE_INIT_METHOD_NAME
+        val usesDeclaredInitialization = !stmt.targetCaptured && isInitialization
+        if (usesDeclaredInitialization) {
+            // Construction and field initialization retain their lexical owner for symbolic entry receivers.
+            // Virtual lookup would select the derived initializer or recursively select its constructor.
+            val initializer = stmt.resolveDeclaredInitialization(graph.hierarchy)
+            if (initializer == null) {
+                unknownCallDispatcher.dispatch(scope, stmt, Reason.VIRTUAL_METHOD_NOT_FOUND, receiver)
+                return
+            }
+
+            scope.doWithState { newStmt(stmt.toConcrete(initializer)) }
+            return
+        }
+
         val concreteMethods: MutableList<EtsMethod> = mutableListOf()
 
         if (isAllocatedConcreteHeapRef(receiver)) {
@@ -284,12 +301,6 @@ class TsInterpreter(
                 )
 
                 scope.doWithState { newStmt(concreteCall) }
-                return
-            }
-
-            val constructor = stmt.resolveDeclaredConstructor(graph.hierarchy)
-            if (constructor != null) {
-                scope.doWithState { newStmt(stmt.toConcrete(constructor)) }
                 return
             }
 
