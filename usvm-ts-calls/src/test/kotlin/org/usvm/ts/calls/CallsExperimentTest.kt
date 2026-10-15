@@ -4,6 +4,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.usvm.SolverType
@@ -15,8 +16,10 @@ import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -655,6 +658,63 @@ class CallsExperimentTest {
     }
 
     @Test
+    fun `summarize rejects its raw input as output without changing it`(@TempDir directory: Path) {
+        val rawInput = directory.resolve("results.jsonl")
+        writeCompletedRawFixture(rawInput)
+        val originalBytes = Files.readAllBytes(rawInput)
+
+        val failure = assertFailsWith<IllegalArgumentException> {
+            main(arrayOf("summarize", rawInput.toString(), rawInput.toString()))
+        }
+
+        assertEquals("Summary output must differ from raw input", failure.message)
+        assertContentEquals(originalBytes, Files.readAllBytes(rawInput))
+    }
+
+    @Test
+    fun `summarize rejects a link to its raw input without changing it`(@TempDir directory: Path) {
+        val rawInput = directory.resolve("results.jsonl")
+        writeCompletedRawFixture(rawInput)
+        val alias = directory.resolve("raw-alias.jsonl")
+        val linkCreated = try {
+            Files.createSymbolicLink(alias, rawInput)
+            true
+        } catch (_: UnsupportedOperationException) {
+            false
+        } catch (_: IOException) {
+            false
+        } catch (_: SecurityException) {
+            false
+        }
+
+        assumeTrue(linkCreated, "Symbolic links are unavailable")
+        val originalBytes = Files.readAllBytes(rawInput)
+
+        val failure = assertFailsWith<IllegalArgumentException> {
+            main(arrayOf("summarize", rawInput.toString(), alias.toString()))
+        }
+
+        assertEquals("Summary output must differ from raw input", failure.message)
+        assertContentEquals(originalBytes, Files.readAllBytes(rawInput))
+    }
+
+    @Test
+    fun `summarize replaces a distinct existing summary`(@TempDir directory: Path) {
+        val rawInput = directory.resolve("results.jsonl")
+        writeCompletedRawFixture(rawInput)
+        val originalBytes = Files.readAllBytes(rawInput)
+        val output = directory.resolve("summary.json")
+        Files.writeString(output, "stale summary")
+
+        main(arrayOf("summarize", rawInput.toString(), output.toString()))
+
+        val summary = CallsExperimentJson.json.decodeFromString<CallsExperimentSummary>(Files.readString(output))
+        assertEquals("fixture", summary.experimentId)
+        assertEquals(4, summary.resultRows)
+        assertContentEquals(originalBytes, Files.readAllBytes(rawInput))
+    }
+
+    @Test
     fun `aggregator counts each profile from raw rows without collapsing outcome stages`(@TempDir directory: Path) {
         val rawOutput = directory.resolve("results.jsonl")
         val statuses = mapOf(
@@ -841,6 +901,37 @@ class CallsExperimentTest {
                 CallsExperimentJson.json.encodeToString<CallsRawRecord>(record)
             },
         )
+    }
+
+    private fun writeCompletedRawFixture(path: Path) {
+        val row = targetResult(inputs = listOf(JsConcreteValue.Boolean(value = true)))
+        val target = CallsRunTargetIdentity(
+            projectId = row.projectId,
+            revision = row.revision,
+            development = row.development,
+            functionId = row.functionId,
+            targetId = row.targetId,
+            siteId = row.siteId,
+            targetMode = row.targetMode,
+        )
+        val metadata = CallsRunMetadata(
+            experimentId = row.experimentId,
+            toolRevision = FIXTURE_TOOL_REVISION,
+            nativeFrontendRevision = "bundled:test",
+            modelSet = CallsModelSetIdentity(ids = emptySet(), toolRevision = FIXTURE_TOOL_REVISION),
+            profiles = CallsExperimentProfile.entries,
+            seeds = listOf(row.seed),
+            commonEligibleTargets = 1,
+            targets = listOf(target),
+        )
+        val completion = CallsRunCompletion(experimentId = row.experimentId, resultRows = CallsExperimentProfile.entries.size)
+        val records: List<CallsRawRecord> = buildList {
+            add(metadata)
+            CallsExperimentProfile.entries.forEach { profile -> add(row.copy(profile = profile)) }
+            add(completion)
+        }
+
+        writeRecords(path, records)
     }
 
     private fun selector(seed: Long, profile: CallsExperimentProfile) = CallsWitnessSelector(

@@ -83,6 +83,9 @@ private fun summarize(args: List<String>) {
     val rawInput = Path.of(args[0]).toAbsolutePath().normalize()
     val output = Path.of(args[1]).toAbsolutePath().normalize()
     val summary = CallsExperimentAggregator.summarize(rawInput)
+    val outputIsRawInput = rawInput == output || (Files.exists(output) && Files.isSameFile(rawInput, output))
+    require(!outputIsRawInput) { "Summary output must differ from raw input" }
+
     val json = Json {
         encodeDefaults = true
         explicitNulls = false
