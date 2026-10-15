@@ -22,17 +22,20 @@ import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsVoidType
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
+import org.usvm.SolverType
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.UHeapRef
+import org.usvm.UMachineOptions
 import org.usvm.USort
 import org.usvm.api.GlobalFieldValue
 import org.usvm.api.TsParametersState
 import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
+import org.usvm.api.evalTypeEquals
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
@@ -40,6 +43,7 @@ import org.usvm.isAllocated
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
 import org.usvm.machine.TS_TYPE_ERROR_TYPE
+import org.usvm.machine.TsComponents
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TrackedObjectProperty
 import org.usvm.machine.expr.TsUnresolvedSort
@@ -47,18 +51,23 @@ import org.usvm.machine.expr.deletedFieldLValue
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.expr.extractInt
 import org.usvm.machine.expr.initialPropertyPresenceLValue
+import org.usvm.machine.expr.mkNotNullOrUndefined
 import org.usvm.machine.expr.readInputPropertyValue
 import org.usvm.machine.expr.toConcreteBoolValue
 import org.usvm.machine.expr.writtenPropertyLValue
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.state.symbolicStringBackingConstraint
+import org.usvm.machine.types.TsTypeSystem
 import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
+import org.usvm.solver.USatResult
 import org.usvm.types.first
+import kotlin.time.Duration
 
 /** A satisfying state lacks the modeled data needed to emit a concrete witness. */
 class TsUnsupportedWitnessException(message: String) : IllegalStateException(message)
@@ -66,7 +75,55 @@ class TsUnsupportedWitnessException(message: String) : IllegalStateException(mes
 class TsTestResolver {
     private val resolvedLValuesToFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf()
 
-    fun resolve(method: EtsMethod, state: TsState): TsTest = with(state.ctx) {
+    fun resolve(method: EtsMethod, state: TsState): TsTest {
+        val witnessState = completeStringWitnessState(state)
+        return resolvePrepared(method = method, state = witnessState)
+    }
+
+    private fun completeStringWitnessState(state: TsState): TsState {
+        var missing = unbackedModelStrings(state)
+        if (missing.isEmpty()) return state
+
+        // Complete one concrete witness on a copy; analysis paths and unsupported operations stay unchanged.
+        val witness = state.clone()
+        val components = TsComponents(
+            typeSystem = state.ctx.typeSystem<EtsType>() as TsTypeSystem,
+            options = UMachineOptions(solverType = SolverType.YICES, solverTimeout = Duration.INFINITE),
+        )
+        try {
+            val solver = components.mkSolver(state.ctx)
+            while (missing.isNotEmpty()) {
+                for (ref in missing) {
+                    witness.pathConstraints += witness.memory.types.evalTypeEquals(ref, EtsStringType)
+                    witness.pathConstraints += witness.ctx.mkNotNullOrUndefined(ref)
+                    witness.pathConstraints += witness.symbolicStringBackingConstraint(ref)
+                    witness.boundedStringBackingRefs += ref to witness.maxStringLength
+                }
+
+                val result = solver.check(witness.pathConstraints)
+                if (result !is USatResult) {
+                    throw TsUnsupportedWitnessException("Cannot complete symbolic string witness: $result")
+                }
+                witness.models = listOf(result.model)
+                missing = unbackedModelStrings(witness)
+            }
+        } finally {
+            components.close()
+        }
+        return witness
+    }
+
+    private fun unbackedModelStrings(state: TsState): List<UHeapRef> = with(state.ctx) {
+        val model = state.models.first()
+        state.symbolicStringCandidates.filter { ref ->
+            val concrete = model.eval(ref) as UConcreteHeapRef
+            val nonNullish = model.eval(mkNotNullOrUndefined(ref)).isTrue
+            ref !in state.boundedStringBackingRefs && nonNullish &&
+                !concrete.isAllocated && model.typeStreamOf(concrete).first() == EtsStringType
+        }
+    }
+
+    private fun resolvePrepared(method: EtsMethod, state: TsState): TsTest = with(state.ctx) {
         val model = state.models.first()
         val memory = state.memory
 
