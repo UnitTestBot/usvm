@@ -227,9 +227,17 @@ internal class CurrentTsCallsSymbolicEngine(
             val status = when (analysis.stopReason) {
                 TsAnalysisStopReason.EXHAUSTED -> {
                     when {
-                        interpreterObserver.runtimeLimitations.isNotEmpty() -> CallsSymbolicStatus.RUNTIME_LIMITATION
-                        analysis.unsupportedPaths.isNotEmpty() || analysis.unsupportedCall -> CallsSymbolicStatus.UNSUPPORTED
-                        else -> CallsSymbolicStatus.UNREACHED
+                        interpreterObserver.runtimeLimitations.isNotEmpty() -> {
+                            CallsSymbolicStatus.RUNTIME_LIMITATION
+                        }
+
+                        analysis.unsupportedPaths.isNotEmpty() || analysis.unsupportedCall -> {
+                            CallsSymbolicStatus.UNSUPPORTED
+                        }
+
+                        else -> {
+                            CallsSymbolicStatus.UNREACHED
+                        }
                     }
                 }
                 // The machine options above disable every stop condition except the per-target timeout.
@@ -880,14 +888,10 @@ private fun callsExternalFrontendRuntimeDigest(frontendDirectory: Path): String 
     require(Files.isDirectory(dist)) { "External native frontend dist directory is missing: $dist" }
 
     val files = Files.walk(dist).use { paths ->
-        paths.iterator().asSequence().filter { path ->
-            require(!Files.isSymbolicLink(path)) { "External native frontend dist contains a symlink: $path" }
-            val isDirectory = Files.isDirectory(path)
-            if (!isDirectory) {
-                require(Files.isRegularFile(path)) { "External native frontend dist contains a non-file: $path" }
-            }
-            !isDirectory
-        }.sortedBy { path -> dist.relativize(path).toString().replace('\\', '/') }.toList()
+        paths.iterator().asSequence()
+            .filter(::isCallsExternalFrontendRuntimeFile)
+            .sortedBy { path -> dist.relativize(path).toString().replace('\\', '/') }
+            .toList()
     }
     require(dist.resolve("index.js") in files) { "External native frontend dist is missing index.js: $dist" }
 
@@ -913,9 +917,22 @@ private fun callsExternalFrontendRuntimeDigest(frontendDirectory: Path): String 
         require(bytesRead == fileSize) { "External native frontend dist changed while hashing: $file" }
     }
 
-    return digest.digest().joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and 0xff) }
+    return digest.digest().joinToString(separator = "") { byte ->
+        "%02x".format(byte.toInt() and UNSIGNED_BYTE_MASK)
+    }
 }
 
+private fun isCallsExternalFrontendRuntimeFile(path: Path): Boolean {
+    require(!Files.isSymbolicLink(path)) { "External native frontend dist contains a symlink: $path" }
+    val isDirectory = Files.isDirectory(path)
+    if (!isDirectory) {
+        require(Files.isRegularFile(path)) { "External native frontend dist contains a non-file: $path" }
+    }
+
+    return !isDirectory
+}
+
+private const val UNSIGNED_BYTE_MASK = 0xff
 private val EXTERNAL_FRONTEND_IDENTITY = Regex("([0-9a-f]{40})@sha256:([0-9a-f]{64})")
 
 internal fun runCallsGit(checkout: Path, vararg arguments: String): String {

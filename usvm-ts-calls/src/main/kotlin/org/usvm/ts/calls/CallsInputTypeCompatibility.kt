@@ -93,12 +93,7 @@ private fun PropertyDomain.inputTypeLimitation(
             this is StringDomain || constant is JsConcreteValue.String
         }
         is EtsNumberLiteralType -> {
-            when {
-                this is NumberDomain -> !allowNaN && min.toDouble() == type.value && max.toDouble() == type.value
-                this is IntegerDomain -> min.toDouble() == type.value && max.toDouble() == type.value
-                constant is JsConcreteValue.Number -> constant.toDouble() == type.value
-                else -> false
-            }
+            matchesNumberLiteral(type, constant)
         }
         is EtsStringLiteralType -> {
             val matchesEmptyStringDomain = this is StringDomain &&
@@ -177,6 +172,16 @@ private fun PropertyDomain.inputTypeLimitation(
     return if (compatible) null else "$path: frozen domain $this is not supported for declared type $type"
 }
 
+private fun PropertyDomain.matchesNumberLiteral(
+    type: EtsNumberLiteralType,
+    constant: JsConcreteValue?,
+): Boolean = when {
+    this is NumberDomain -> !allowNaN && min.toDouble() == type.value && max.toDouble() == type.value
+    this is IntegerDomain -> min.toDouble() == type.value && max.toDouble() == type.value
+    constant is JsConcreteValue.Number -> constant.toDouble() == type.value
+    else -> false
+}
+
 private fun PropertyDomain.intersectionTypeLimitation(
     type: EtsIntersectionType,
     genericParameters: Map<String, EtsGenericType>,
@@ -239,10 +244,14 @@ private fun EtsType.intersectionMembers(
     genericParameters: Map<String, EtsGenericType>,
     visitedGenerics: Set<String>,
 ): List<EtsType> = when (this) {
-    is EtsIntersectionType -> types.flatMap { member ->
-        member.intersectionMembers(genericParameters, visitedGenerics)
+    is EtsIntersectionType -> {
+        types.flatMap { member ->
+            member.intersectionMembers(genericParameters, visitedGenerics)
+        }
     }
-    is EtsAliasType -> originalType.intersectionMembers(genericParameters, visitedGenerics)
+    is EtsAliasType -> {
+        originalType.intersectionMembers(genericParameters, visitedGenerics)
+    }
     is EtsGenericType -> {
         if (typeName in visitedGenerics) {
             listOf(this)
@@ -251,7 +260,9 @@ private fun EtsType.intersectionMembers(
             upperBound.intersectionMembers(genericParameters, visitedGenerics + typeName)
         }
     }
-    else -> listOf(this)
+    else -> {
+        listOf(this)
+    }
 }
 
 private fun PropertyDomain.objectFieldTypeLimitation(
