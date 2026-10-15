@@ -208,9 +208,13 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
         if (remainingMillis() <= 0L) return null
 
         val scene = loadEtsProjectAutoConvert(directory, provider = EtsIrProvider.TS_FRONTEND)
+        if (remainingMillis() <= 0L) return null
+
         val manifest = compiled.definition.toManifest()
         val mapping = PropertyEtsMapper(scene = scene, sourceRoots = sourceRoots).map(manifest, concrete?.coverage)
-        val remainingBudgetMillis = remainingMillis().coerceAtLeast(0L)
+        val remainingBudgetMillis = remainingMillis()
+        if (remainingBudgetMillis <= 0L) return null
+
         val finalReplayReserveMillis = remainingBudgetMillis / FINAL_REPLAY_BUDGET_DIVISOR
         val searchBudgetMillis = remainingBudgetMillis - finalReplayReserveMillis
         fun symbolicRemainingMillis(): Long = remainingMillis() - finalReplayReserveMillis
