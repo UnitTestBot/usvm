@@ -398,13 +398,6 @@ class TsContext(
         return scope.calcOnState { extractRef(memory) }
     }
 
-    // This is an identifier for a special function representing the 'resolve' function used in promises.
-    // It is not a real function in the code, but we need it to handle promise resolution.
-    val resolveFunctionRef: UConcreteHeapRef = allocateConcreteRef()
-
-    // This is an identifier for a special function representing the 'reject' function used in promises.
-    // It is not a real function in the code, but we need it to handle promise rejection.
-    val rejectFunctionRef: UConcreteHeapRef = allocateConcreteRef()
 }
 
 class Constants {

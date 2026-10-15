@@ -114,21 +114,36 @@ class TsInterpreter(
         val result = state.methodResult
         val isEntryPointGuardResult = stmt is TsEntryPointGuardResultStmt
         if (result is TsMethodResult.TsException && !isEntryPointGuardResult) {
-            scope.doWithState {
-                val catchers = stmt.location.method.cfg.catchers(stmt)
-                val catcher = catchers.singleOrNull()
-                if (catcher != null) {
+            val catcher = stmt.location.method.cfg.catchers(stmt).singleOrNull()
+            if (catcher != null) {
+                scope.doWithState {
                     caughtException = result.value
                     methodResult = TsMethodResult.NoCall
                     newStmt(catcher)
-                    return@doWithState
                 }
+                return scope.stepResult()
+            }
 
+            val throwingMethod = state.callStack.lastMethod()
+            val rejectedPromise = if (throwingMethod.isAsync) {
+                ctx.createSettledPromise(
+                    scope = scope,
+                    value = result.value,
+                    settlement = PromiseState.REJECTED,
+                )
+            } else {
+                null
+            }
+            scope.doWithState {
                 leaveUnknownCallModelIfReturning()
                 val returnSite = callStack.pop()
                 if (callStack.isNotEmpty()) {
                     memory.stack.pop()
                     popLocalToSortStack()
+                }
+
+                if (rejectedPromise != null) {
+                    methodResult = TsMethodResult.Success.RegularCall(rejectedPromise, throwingMethod)
                 }
 
                 if (returnSite != null) {
@@ -527,9 +542,23 @@ class TsInterpreter(
             ?.let { exprResolver.resolve(it) ?: return }
             ?: ctx.mkUndefinedValue()
 
-        scope.doWithState {
-            returnValue(valueToReturn)
+        returnFromMethod(scope, valueToReturn)
+    }
+
+    private fun returnFromMethod(scope: TsStepScope, value: UExpr<*>) {
+        val method = scope.calcOnState { callStack.lastMethod() }
+        val returnedValue = if (method.isAsync) {
+            ctx.ensureSupportedAsyncFulfillment(scope, value, graph.hierarchy)
+            ctx.createSettledPromise(
+                scope = scope,
+                value = value,
+                settlement = PromiseState.FULFILLED,
+            )
+        } else {
+            value
         }
+
+        scope.doWithState { returnValue(returnedValue) }
     }
 
     private fun assignTo(
@@ -738,7 +767,7 @@ class TsInterpreter(
     private fun visitNopStmt(scope: TsStepScope, stmt: EtsNopStmt) {
         val successors = graph.successors(stmt).toList()
         when (successors.size) {
-            0 -> scope.doWithState { returnValue(ctx.mkUndefinedValue()) }
+            0 -> returnFromMethod(scope, ctx.mkUndefinedValue())
             1 -> scope.doWithState { newStmt(successors.single()) }
             else -> error("A NOP statement must not have multiple successors")
         }

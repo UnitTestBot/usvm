@@ -121,10 +121,12 @@ import org.usvm.machine.onRuntimeFeatureLimitationSafely
 import org.usvm.machine.call.TsUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.dispatch
+import org.usvm.machine.interpreter.PromiseCallback
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.getGlobals
 import org.usvm.machine.interpreter.getResolvedValue
+import org.usvm.machine.interpreter.isDefinitelyNonThenable
 import org.usvm.machine.interpreter.isResolved
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
@@ -615,34 +617,59 @@ class TsExprResolver(
     override fun visit(expr: EtsAwaitExpr): UExpr<out USort>? = with(ctx) {
         val arg = resolve(expr.arg) ?: return null
 
+        val awaited = if (arg.isFakeObject()) {
+            arg.extractSingleValueFromFakeObjectOrNull(scope)
+                ?: throw UnsupportedOperationException("Awaiting a value with symbolic runtime kind is not modeled")
+        } else {
+            arg
+        }
+
         // Awaiting primitives does nothing.
-        if (arg.sort != addressSort) {
-            return arg
+        if (awaited.sort != addressSort) {
+            return awaited
         }
         // ...including null/undefined
-        if (arg == mkTsNullValue() || arg == mkUndefinedValue()) {
-            return arg
+        if (awaited == mkTsNullValue() || awaited == mkUndefinedValue()) {
+            return awaited
         }
 
-        val promise = arg.asExpr(addressSort)
-        check(isAllocatedConcreteHeapRef(promise)) {
-            "Promise instance should be allocated, but it is not: $promise"
+        val promise = awaited.asExpr(addressSort)
+        if (!isAllocatedConcreteHeapRef(promise)) {
+            throw UnsupportedOperationException("Awaiting a symbolic object or thenable is not modeled")
         }
 
-        val promiseState = scope.calcOnState {
-            promiseState[promise] ?: PromiseState.PENDING
+        val registeredState = scope.calcOnState { promiseState[promise] }
+        val registeredExecutor = scope.calcOnState { promiseExecutor[promise] }
+        if (registeredState == null && registeredExecutor == null) {
+            if (isDefinitelyNonThenable(scope, promise, hierarchy)) {
+                return promise
+            }
+
+            throw UnsupportedOperationException("Awaiting an unmodeled object or thenable is not supported")
         }
+
+        val promiseState = registeredState ?: PromiseState.PENDING
 
         val isResolved = scope.calcOnState { isResolved(promise) }
+        val methodResult = scope.calcOnState { methodResult }
+        val completedExecutorResult = methodResult as? TsMethodResult.Success.RegularCall
+        val returnedFromThisExecutor = completedExecutorResult?.method == registeredExecutor &&
+            registeredExecutor != null
+        if (returnedFromThisExecutor) {
+            if (!isResolved) {
+                throw UnsupportedOperationException("Awaited Promise executor returned before settling $promise")
+            }
+
+            scope.doWithState { this.methodResult = TsMethodResult.NoCall }
+        }
+
         return if (!isResolved) {
             // If the promise is not resolved yet, we need to call the executor to resolve it.
             check(promiseState == PromiseState.PENDING) {
                 "Promise state should be PENDING, but it is $promiseState for $promise"
             }
-            val executor = scope.calcOnState {
-                promiseExecutor[promise]
-                    ?: error("Await expression should have a promise executor, but it is not set for $promise")
-            }
+            val executor = registeredExecutor
+                ?: error("Await expression should have a promise executor, but it is not set for $promise")
             check(executor.cfg.stmts.isNotEmpty())
 
             val args: MutableList<UExpr<*>> = mutableListOf()
@@ -657,14 +684,22 @@ class TsExprResolver(
                 args += mkUndefinedValue()
             }
             if (params.isNotEmpty()) {
-                args += resolveFunctionRef
+                val resolveCallback = allocateConcreteRef()
+                args += resolveCallback
                 scope.doWithState {
-                    setBoundThis(resolveFunctionRef, promise)
+                    registerPromiseCallback(
+                        resolveCallback,
+                        PromiseCallback(promise = promise, settlement = PromiseState.FULFILLED),
+                    )
                 }
                 if (params.size >= 2) {
-                    args += rejectFunctionRef
+                    val rejectCallback = allocateConcreteRef()
+                    args += rejectCallback
                     scope.doWithState {
-                        setBoundThis(rejectFunctionRef, promise)
+                        registerPromiseCallback(
+                            rejectCallback,
+                            PromiseCallback(promise = promise, settlement = PromiseState.REJECTED),
+                        )
                     }
                     if (params.size >= 3) {
                         error(
@@ -1291,34 +1326,19 @@ class TsExprResolver(
                 if (captured != null) return handleCapturedInstanceCall(expr, captured)
 
                 if (isAllocatedConcreteHeapRef(ptr)) {
-                    // Handle 'resolve' and 'reject' function call
-                    if (ptr === resolveFunctionRef || ptr === rejectFunctionRef) {
-                        val promise = scope.calcOnState {
-                            boundThis[ptr] ?: error("No bound 'this' for ptr: $ptr")
-                        }
-                        check(isAllocatedConcreteHeapRef(promise)) {
-                            "Promise instance should be allocated, but it is not: $promise"
-                        }
-                        val newState = when (ptr) {
-                            resolveFunctionRef -> PromiseState.FULFILLED
-                            rejectFunctionRef -> PromiseState.REJECTED
-                            else -> error("Unexpected ptr: $ptr")
-                        }
+                    val callback = scope.calcOnState { promiseCallbacks[ptr] }
+                    if (callback != null) {
                         check(expr.args.size == 1) {
-                            "${
-                                when (ptr) {
-                                    resolveFunctionRef -> "resolve"
-                                    rejectFunctionRef -> "reject"
-                                    else -> error("Unexpected ptr: $ptr")
-                                }
-                            }() should have exactly one argument, but got ${expr.args.size}"
+                            "Promise settlement callback should have exactly one argument, but got ${expr.args.size}"
                         }
                         val value = resolve(expr.args.single()) ?: return null
                         val fakeValue = value.toFakeObject(scope)
                         scope.doWithState {
-                            markResolved(promise.asExpr(addressSort))
-                            setPromiseState(promise, newState)
-                            setResolvedValue(promise.asExpr(addressSort), fakeValue)
+                            if (!isResolved(callback.promise)) {
+                                markResolved(callback.promise)
+                                setPromiseState(callback.promise, callback.settlement)
+                                setResolvedValue(callback.promise, fakeValue)
+                            }
                         }
                         return mkUndefinedValue()
                     }

@@ -34,6 +34,7 @@ import org.usvm.machine.expr.TsArrayIterator
 import org.usvm.machine.expr.TsCapturedInstanceCall
 import org.usvm.machine.expr.TsIteratorResult
 import org.usvm.machine.expr.TsStringIterator
+import org.usvm.machine.interpreter.PromiseCallback
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
@@ -81,6 +82,7 @@ class TsState(
     var discoveredCallees: UPersistentHashMap<Pair<EtsStmt, Int>, EtsBlockCfg> = persistentHashMapOf(),
     var promiseState: UPersistentHashMap<UConcreteHeapRef, PromiseState> = persistentHashMapOf(),
     var promiseExecutor: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
+    internal var promiseCallbacks: UPersistentHashMap<UConcreteHeapRef, PromiseCallback> = persistentHashMapOf(),
     var methodToRef: UPersistentHashMap<EtsMethod, UConcreteHeapRef> = persistentHashMapOf(),
     var associatedFunction: UPersistentHashMap<UConcreteHeapRef, TsFunction> = persistentHashMapOf(),
     var capturedInstanceCalls: UPersistentHashMap<UConcreteHeapRef, TsCapturedInstanceCall> = persistentHashMapOf(),
@@ -247,6 +249,10 @@ class TsState(
         promiseExecutor = promiseExecutor.put(promise, method, ownership)
     }
 
+    internal fun registerPromiseCallback(ref: UConcreteHeapRef, callback: PromiseCallback) {
+        promiseCallbacks = promiseCallbacks.put(ref, callback, ownership)
+    }
+
     fun getMethodRef(
         method: EtsMethod,
         thisInstance: UHeapRef? = null,
@@ -353,6 +359,7 @@ class TsState(
             discoveredCallees = discoveredCallees,
             promiseState = promiseState,
             promiseExecutor = promiseExecutor,
+            promiseCallbacks = promiseCallbacks,
             methodToRef = methodToRef,
             associatedFunction = associatedFunction,
             capturedInstanceCalls = capturedInstanceCalls,

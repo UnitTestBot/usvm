@@ -12,6 +12,50 @@ class Async : TsMethodTestRunner() {
     override val scene: EtsScene = loadScene(tsPath)
 
     @Test
+    fun `await plain object preserves identity`() {
+        val method = getMethod("awaitPlainObject")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 1 },
+            invariants = arrayOf({ result -> result.number > 0 }),
+        )
+    }
+
+    @Test
+    fun `nested promise callbacks retain their owners`() {
+        val method = getMethod("awaitNestedPromises")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 1 },
+            invariants = arrayOf({ result -> result.number > 0 }),
+        )
+    }
+
+    @Test
+    fun `async return is represented by a promise`() {
+        val method = getMethod("asyncValueIsPromise")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 1 },
+            invariants = arrayOf({ result -> result.number > 0 }),
+        )
+    }
+
+    @Test
+    fun `async throw rejects after call returns`() {
+        val method = getMethod("asyncThrowRejectsAfterCall")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 1 },
+            invariants = arrayOf({ result -> result.number > 0 }),
+        )
+    }
+
+    @Test
     fun `await resolving promise`() {
         val method = getMethod("awaitResolvingPromise")
         discoverProperties<TsTestValue.TsNumber>(

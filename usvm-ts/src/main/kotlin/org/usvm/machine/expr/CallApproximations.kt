@@ -17,7 +17,6 @@ import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.api.allocateConcreteRef
 import org.usvm.api.initializeArray
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.memcpy
@@ -36,8 +35,7 @@ import org.usvm.machine.call.hasBuiltinGlobalOwner
 import org.usvm.machine.call.intrinsic.TsDateEtsIrModelFamily
 import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
-import org.usvm.machine.interpreter.markResolved
-import org.usvm.machine.interpreter.setResolvedValue
+import org.usvm.machine.interpreter.createSettledPromise
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
@@ -491,7 +489,6 @@ private fun TsExprResolver.handlePromiseConstructor(expr: EtsInstanceCallExpr): 
 }
 
 private fun TsExprResolver.handlePromiseResolveReject(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
-    val promise = allocateConcreteRef()
     val newState = when (expr.callee.name) {
         "resolve" -> PromiseState.FULFILLED
         "reject" -> PromiseState.REJECTED
@@ -501,13 +498,7 @@ private fun TsExprResolver.handlePromiseResolveReject(expr: EtsInstanceCallExpr)
         "Promise.${expr.callee.name}() should have exactly one argument, but got ${expr.args.size}"
     }
     val value = resolve(expr.args.single()) ?: return null
-    val fakeValue = value.toFakeObject(scope)
-    scope.doWithState {
-        markResolved(promise)
-        setPromiseState(promise, newState)
-        setResolvedValue(promise, fakeValue)
-    }
-    promise
+    createSettledPromise(scope = scope, value = value, settlement = newState)
 }
 
 private fun TsExprResolver.handleMathFloor(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
