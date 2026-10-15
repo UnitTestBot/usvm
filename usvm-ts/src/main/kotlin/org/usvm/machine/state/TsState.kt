@@ -90,6 +90,8 @@ class TsState(
     var capturedInstanceCalls: UPersistentHashMap<UConcreteHeapRef, TsCapturedInstanceCall> = persistentHashMapOf(),
     internal var arrayIterators: Map<UConcreteHeapRef, TsArrayIterator> = emptyMap(),
     internal var stringIterators: Map<UConcreteHeapRef, TsStringIterator> = emptyMap(),
+    /** Intrinsic literal allocations; null until their constant constructor arguments are initialized. */
+    internal var regularExpressions: Map<UConcreteHeapRef, String?> = emptyMap(),
     internal var iteratorResults: Map<UConcreteHeapRef, TsIteratorResult> = emptyMap(),
     internal var knownArrayPropertyPresence: Set<UHeapRef> = emptySet(),
     internal var unsupportedIteratorArrays: Set<UHeapRef> = emptySet(),
@@ -377,6 +379,7 @@ class TsState(
             arrayIterators = arrayIterators,
             iteratorResults = iteratorResults,
             stringIterators = stringIterators,
+            regularExpressions = regularExpressions,
             initializedArrayIndices = initializedArrayIndices,
             unsupportedIteratorArrays = unsupportedIteratorArrays,
             knownArrayPropertyPresence = knownArrayPropertyPresence,

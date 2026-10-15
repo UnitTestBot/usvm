@@ -10,6 +10,7 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -189,6 +190,13 @@ fun TsContext.assignToInstanceField(
 ): Unit? {
     // Unwrap to get non-fake reference.
     val unwrappedInstance = resolveHeapRef(scope, instance.unwrapRef(scope)) ?: return null
+    val intrinsicRegExp = unwrappedInstance is UConcreteHeapRef && scope.calcOnState {
+        unwrappedInstance in regularExpressions
+    }
+    if (intrinsicRegExp) {
+        return writeRegExpField(scope, unwrappedInstance as UConcreteHeapRef, field.name, expr)
+    }
+
     if (isDateModelTimestamp(scope = scope, instance = unwrappedInstance, field = field)) {
         val timestamp = dateModelTimestampLValue(unwrappedInstance)
         return scope.doWithState {
