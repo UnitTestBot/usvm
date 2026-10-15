@@ -99,7 +99,7 @@ internal class CallsObjectInputsTest : CurrentTsCallsSymbolicEngineTestSupport()
                 }
             """.trimIndent(),
             exportName = "accepts",
-            inputs = listOf(PropertyInput(name = "input", domain = ObjectDomain(mapOf("value" to NumberDomain()))),
+            inputs = listOf(PropertyInput(name = "input", domain = ObjectDomain(mapOf("value" to NumberDomain())))),
             targetStatement = "return true;",
         )
 

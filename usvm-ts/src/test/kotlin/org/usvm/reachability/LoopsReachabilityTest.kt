@@ -19,7 +19,6 @@ import org.usvm.machine.TsMachineAnalysisResult
 import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.util.getResourcePath
-import org.usvm.util.mkRegisterStackLValue
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -129,7 +128,7 @@ class LoopsReachabilityTest {
                 methods = listOf(method),
                 configureInitialState = { _, state ->
                     with(state.ctx) {
-                        val input = state.memory.read(mkRegisterStackLValue(fp64Sort, idx = 1))
+                        val input = state.memory.stack.readRegister(index = 1, sort = fp64Sort)
                         state.pathConstraints += mkEq(input, mkFp64(start))
                     }
                 },

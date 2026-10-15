@@ -205,10 +205,12 @@ class UsvmCollectionDomainProjectorTest {
         assertFalse(analysis.engineFailed)
         assertFalse(analysis.unsupportedCall)
         assertTrue(analysis.unsupportedPaths.isEmpty(), analysis.unsupportedPaths.toString())
-        assertTrue(analysis.states.all { state ->
-            val result = state.methodResult as? TsMethodResult.Success.RegularCall
-            result?.method == method
-        })
+        assertTrue(
+            analysis.states.all { state ->
+                val result = state.methodResult as? TsMethodResult.Success.RegularCall
+                result?.method == method
+            },
+        )
 
         return analysis.states.isNotEmpty()
     }

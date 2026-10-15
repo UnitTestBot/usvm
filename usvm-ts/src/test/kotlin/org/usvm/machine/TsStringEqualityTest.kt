@@ -157,6 +157,7 @@ class TsStringEqualityTest : TsMethodTestRunner() {
             val analysis = TsMachine(
                 scene,
                 options = analysisOptions.copy(stateCollectionStrategy = StateCollectionStrategy.ALL),
+                tsOptions = tsOptions,
             ).use { machine ->
                 machine.analyzeWithOutcome(listOf(method))
             }
@@ -177,6 +178,7 @@ class TsStringEqualityTest : TsMethodTestRunner() {
         val conditionalAnalysis = TsMachine(
             scene,
             options = analysisOptions.copy(stateCollectionStrategy = StateCollectionStrategy.ALL),
+            tsOptions = tsOptions,
         ).use { machine ->
             machine.analyzeWithOutcome(listOf(conditional))
         }
