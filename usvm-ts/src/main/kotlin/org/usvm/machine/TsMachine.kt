@@ -114,8 +114,14 @@ class TsMachine(
         }
         ?: scene
     private val runtimeScene = analysisScene.withCoreRuntimeSdk()
+    private val applicationAndSdkClasses = scene.projectClasses + runtimeScene.sdkClasses
     private val graph = TsGraph(runtimeScene)
-    private val typeSystem = TsTypeSystem(runtimeScene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
+    private val typeSystem = TsTypeSystem(
+        scene = runtimeScene,
+        typeOperationsTimeout = 1.seconds,
+        hierarchy = graph.hierarchy,
+        applicationAndSdkClasses = applicationAndSdkClasses,
+    )
     private val components = TsComponents(
         typeSystem = typeSystem,
         options = options,
@@ -125,7 +131,7 @@ class TsMachine(
         scene = runtimeScene,
         components = components,
         // Model bodies are reachable only through their dispatcher and its domain guards.
-        applicationAndSdkClasses = scene.projectClasses + runtimeScene.sdkClasses,
+        applicationAndSdkClasses = applicationAndSdkClasses,
         dateNowMilliseconds = tsOptions.dateNowMilliseconds,
     )
     private val failureTrackingUnknownCallObserver = FailureTrackingUnknownCallObserver(observer)

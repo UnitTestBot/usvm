@@ -3,6 +3,7 @@ package org.usvm.machine.state
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBlockCfg
 import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
@@ -183,6 +184,14 @@ class TsState(
 
     fun isUnknownCallModelActive(modelId: String): Boolean =
         activeUnknownCallModels.any { (activeModelId, _) -> activeModelId == modelId }
+
+    /** A source helper may execute only under the dispatcher-owned frame from the same artifact. */
+    internal fun isUnknownCallModelFileActive(owner: EtsClassSignature): Boolean {
+        val file = owner.file
+        return activeUnknownCallModels.any { (_, depth) ->
+            callStack[depth - 1].method.signature.enclosingClass.file == file
+        }
+    }
 
     fun enterUnknownCallModel(modelId: String) {
         val entryCallDepth = callStack.size + 1
