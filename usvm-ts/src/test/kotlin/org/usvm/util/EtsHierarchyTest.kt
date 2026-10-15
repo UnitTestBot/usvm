@@ -113,7 +113,11 @@ class EtsHierarchyTest {
         val base = clazz(name = "Base", superClass = root.signature)
         val left = clazz(name = "Left", interfaces = listOf(root.signature))
         val right = clazz(name = "Right", interfaces = listOf(root.signature))
-        val leaf = clazz(name = "Leaf", superClass = base.signature, interfaces = listOf(left.signature, right.signature))
+        val leaf = clazz(
+            name = "Leaf",
+            superClass = base.signature,
+            interfaces = listOf(left.signature, right.signature),
+        )
         val sdkObject = clazz(name = "Object", fileName = "lib.es5.d.ts")
         val hierarchy = hierarchy(classes = listOf(leaf, base, left, right, root), sdkClasses = listOf(sdkObject))
 
