@@ -2,6 +2,7 @@ package org.usvm.machine.call
 
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
@@ -14,6 +15,7 @@ import org.usvm.api.TsTestValue
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.util.TsTestResolver
 import org.usvm.util.assertNodeReplay
 import org.usvm.util.getResourcePath
@@ -214,6 +216,50 @@ class TsDateEtsIrModelTest {
     @Test
     fun `timezone offset of an invalid Date is NaN`() {
         assertNaN(methodName = "invalidTimezoneOffset")
+    }
+
+    @Test
+    fun `time getters preserve negative clipped boundaries invalid dates and positive zero`() {
+        val expectedValues = mapOf(
+            "timeFieldsBeforeEpoch" to 345_599_999.0,
+            "timeFieldsEpoch" to 345_600_000.0,
+            "timeFieldsMinimum" to 172_800_000.0,
+            "timeFieldsMaximum" to 518_400_000.0,
+            "timeFieldsFraction" to 345_540_000.0,
+        )
+
+        for ((name, expected) in expectedValues) {
+            assertNumber(methodName = name, expected = expected)
+        }
+        assertNaN(methodName = "timeFieldsInvalid")
+
+        replayDateArguments(
+            assertions = expectedValues.map { (name, expected) -> "Object.is(example.$name(), $expected)" } +
+                "Number.isNaN(example.timeFieldsInvalid())",
+        )
+    }
+
+    @Test
+    fun `time getters avoid calendar decomposition`() {
+        var calendarSteps = 0
+        var totalSteps = 0
+        val observer = object : TsInterpreterObserver {
+            override fun onStatementEntered(stmt: EtsStmt, scope: TsStepScope) {
+                totalSteps++
+                val methodName = stmt.location.method.name
+                if (methodName == "parts" || methodName == "civilFromDays") calendarSteps++
+            }
+        }
+
+        val states = TsMachine(
+            scene = scene,
+            options = machineOptions,
+            tsOptions = TsOptions(),
+            observer = observer,
+        ).use { machine -> machine.analyze(listOf(method("timeFieldsBeforeEpoch"))) }
+
+        assertEquals(expected = 1, actual = states.size)
+        assertEquals(expected = 0, actual = calendarSteps, message = "Executed $totalSteps instructions")
     }
 
     @Test
