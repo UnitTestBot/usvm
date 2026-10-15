@@ -8,8 +8,8 @@ import java.nio.file.Path
 import java.util.zip.GZIPInputStream
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class CallsClassRawSnapshotStoreTest {
@@ -42,7 +42,10 @@ class CallsClassRawSnapshotStoreTest {
             assertTrue(states.complete)
             assertTrue(expressions.complete)
             assertEquals(callsArtifactSha256(Files.readAllBytes(directory.resolve(states.path))), states.sha256)
-            assertEquals(callsArtifactSha256(Files.readAllBytes(directory.resolve(expressions.path))), expressions.sha256)
+            assertEquals(
+                callsArtifactSha256(Files.readAllBytes(directory.resolve(expressions.path))),
+                expressions.sha256,
+            )
             val restoredTerms = readJournal<CallsClassRawSymbolicExpression>(expressions.path)
             assertEquals(terms.map { it.toString() }, restoredTerms.map { it.diagnostic })
             val restoredStates = readJournal<CallsClassRawStateSnapshot>(states.path)

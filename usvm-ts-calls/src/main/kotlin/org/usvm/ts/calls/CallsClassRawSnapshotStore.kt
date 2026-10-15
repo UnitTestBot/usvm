@@ -44,7 +44,7 @@ internal class CallsClassRawSnapshotStore(output: Path) {
 
     fun append(snapshot: ((KExpr<*>) -> Long) -> CallsClassRawStateSnapshot) {
         check(!failed) { "A previous raw snapshot write failed; journals are incomplete" }
-        try {
+        runCatching {
             var state: CallsClassRawStateSnapshot? = null
             expressionJournal.appendBatch { writer ->
                 var added = 0L
@@ -73,10 +73,7 @@ internal class CallsClassRawSnapshotStore(output: Path) {
                 writer.appendLine(encodeCallsArtifact(saved))
                 1L
             }
-        } catch (failure: Throwable) {
-            failed = true
-            throw failure
-        }
+        }.onFailure { failed = true }.getOrThrow()
     }
 
     fun finish(): Pair<CallsClassRawJournalMetadata, CallsClassRawJournalMetadata> {
@@ -100,7 +97,7 @@ internal class CallsClassRawGzipJournal(private val path: Path) {
 
     fun appendBatch(write: (BufferedWriter) -> Long) {
         check(!closed && !failed) { "Raw journal is closed or incomplete" }
-        try {
+        runCatching {
             val sink = object : FilterOutputStream(Channels.newOutputStream(output)) {
                 override fun close() = flush()
                 override fun write(bytes: ByteArray, offset: Int, length: Int) = out.write(bytes, offset, length)
@@ -109,10 +106,7 @@ internal class CallsClassRawGzipJournal(private val path: Path) {
             val added = gzip.bufferedWriter(Charsets.UTF_8).use { writer -> write(writer) }
             output.force(true)
             records += added
-        } catch (failure: Throwable) {
-            failed = true
-            throw failure
-        }
+        }.onFailure { failed = true }.getOrThrow()
     }
 
     fun finish(complete: Boolean): CallsClassRawJournalMetadata {
@@ -133,8 +127,12 @@ internal class CallsClassRawGzipJournal(private val path: Path) {
             path = path.fileName.toString(),
             records = records,
             compressedBytes = Files.size(path),
-            sha256 = digest.digest().joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and 0xff) },
+            sha256 = digest.digest().joinToString(separator = "") { byte ->
+                "%02x".format(byte.toInt() and UNSIGNED_BYTE_MASK)
+            },
             complete = complete && !failed,
         )
     }
 }
+
+private const val UNSIGNED_BYTE_MASK = 0xff
