@@ -567,16 +567,17 @@ internal object CallsRawResultsReader {
         require(results.all { result -> result.experimentId == metadata.experimentId }) {
             "Result experiment ID does not match metadata"
         }
-        require(
-            results.all { result ->
-                val identity = targetIdentities[Triple(result.projectId, result.functionId, result.targetId)]
-                identity != null &&
-                    result.revision == identity.revision &&
-                    result.development == identity.development &&
-                    result.siteId == identity.siteId &&
-                    result.targetMode == identity.targetMode
-            },
-        ) { "Result target identity does not match metadata" }
+        val resultsMatchTargetIdentities = results.all { result ->
+            val identity = targetIdentities[Triple(result.projectId, result.functionId, result.targetId)]
+            identity != null &&
+                result.revision == identity.revision &&
+                result.development == identity.development &&
+                result.siteId == identity.siteId &&
+                result.targetMode == identity.targetMode
+        }
+
+        require(resultsMatchTargetIdentities) { "Result target identity does not match metadata" }
+
         val resultKeys = results.map { result ->
             ResultKey(
                 projectId = result.projectId,
