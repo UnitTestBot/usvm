@@ -29,23 +29,24 @@ import org.usvm.machine.types.initialInputType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
+import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
+import org.usvm.solver.UUnsatResult
 import org.usvm.targets.UTargetsSet
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.type
-import org.usvm.utils.ensureSat
 
 private val logger = KotlinLogging.logger {}
 
-internal fun createInitialState(
+internal fun createInitialStateOrNull(
     ctx: TsContext,
     graph: TsGraph,
     options: TsOptions,
     method: EtsMethod,
     targets: List<TsTarget>,
     configureState: TsState.() -> Unit = {},
-): TsState = with(ctx) {
+): TsState? = with(ctx) {
     val state = TsState(
         ctx = ctx,
         ownership = MutabilityOwnership(),
@@ -153,18 +154,22 @@ internal fun createInitialState(
 
     state.configureState()
 
-    state.initializeModel(method)
+    val feasible = state.initializeModel(method)
+    if (!feasible) return@with null
 
     state
 }
 
-private fun TsState.initializeModel(method: EtsMethod) {
+private fun TsState.initializeModel(method: EtsMethod): Boolean {
     val solver = ctx.solver<EtsType>()
     val solverResult = solver.check(pathConstraints)
-    if (solverResult is UUnknownResult) {
-        throw TsInitialStateSolverUnknownException(method)
-    }
+    return when (solverResult) {
+        is USatResult -> {
+            models = listOf(solverResult.model)
+            true
+        }
 
-    val model = solverResult.ensureSat().model
-    models = listOf(model)
+        is UUnsatResult -> false
+        is UUnknownResult -> throw TsInitialStateSolverUnknownException(method)
+    }
 }

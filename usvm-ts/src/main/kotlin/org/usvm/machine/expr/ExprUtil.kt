@@ -318,14 +318,19 @@ private fun TsContext.mkNumericExprUnchecked(
 ): UExpr<KFp64Sort> {
     if (expr.isFakeObject()) {
         val type = expr.getFakeType(scope)
+        val isNumber = type.fpTypeExpr
+        val number = expr.extractFp(scope)
+        val isBoolean = type.boolTypeExpr
+        val boolean = expr.extractBool(scope)
+        val booleanNumber = mkNumericExprUnchecked(boolean, scope)
+        val reference = expr.extractRef(scope)
+        val referenceNumber = mkNumericExprUnchecked(reference, scope)
+        val nonNumber = mkIte(isBoolean, booleanNumber, referenceNumber)
+
         return mkIte(
-            condition = type.fpTypeExpr,
-            trueBranch = expr.extractFp(scope),
-            falseBranch = mkIte(
-                condition = type.boolTypeExpr,
-                trueBranch = mkNumericExprUnchecked(expr.extractBool(scope), scope),
-                falseBranch = mkNumericExprUnchecked(expr.extractRef(scope), scope)
-            )
+            condition = isNumber,
+            trueBranch = number,
+            falseBranch = nonNumber,
         )
     }
 
@@ -372,10 +377,16 @@ private fun TsContext.mkNumericExprUnchecked(
 
     // TODO: Model general StringToNumber and ToPrimitive conversion (https://github.com/UnitTestBot/usvm/issues/280).
     // The public support guard excludes unmodeled reference alternatives from the selected result.
+    val reference = expr.asExpr(addressSort)
+    val nullValue = mkTsNullValue()
+    val isNull = mkEq(reference, nullValue)
+    val zero = mkFp(0.0, fp64Sort)
+    val nan = mkFp64NaN()
+
     return mkIte(
-        condition = mkEq(expr.asExpr(addressSort), mkTsNullValue()),
-        trueBranch = mkFp(0.0, fp64Sort),
-        falseBranch = mkFp64NaN(),
+        condition = isNull,
+        trueBranch = zero,
+        falseBranch = nan,
     )
 }
 

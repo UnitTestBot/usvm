@@ -127,7 +127,11 @@ interface TsInterpreterObserver : UInterpreterObserver {
 
 internal fun TsInterpreterObserver.onRuntimeFeatureLimitationSafely(event: TsRuntimeFeatureLimitationEvent) {
     runCatching { onRuntimeFeatureLimitation(event) }
-        .onFailure { error -> logger.warn(error) { "Runtime feature limitation observer failed while recording an event" } }
+        .onFailure { error ->
+            logger.warn(error) {
+                "Runtime feature limitation observer failed while recording an event"
+            }
+        }
 }
 
 /** A feasible execution path stopped because the runtime model deliberately omits [reason]. */

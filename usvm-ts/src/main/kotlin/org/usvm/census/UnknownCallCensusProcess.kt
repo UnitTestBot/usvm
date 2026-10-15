@@ -124,12 +124,11 @@ internal fun boundedProcessOutput(
         completedNormally = true
         return completedOutput
     } finally {
-        if (!completedNormally) {
-            process?.let { startedProcess ->
-                val hasLiveObservedDescendants = observedDescendants.any(ProcessHandle::isAlive)
-                if (startedProcess.isAlive || hasLiveObservedDescendants) {
-                    terminateProcessTreeBestEffort(startedProcess, observedDescendants)
-                }
+        val startedProcess = process
+        if (!completedNormally && startedProcess != null) {
+            val hasLiveObservedDescendants = observedDescendants.any(ProcessHandle::isAlive)
+            if (startedProcess.isAlive || hasLiveObservedDescendants) {
+                terminateProcessTreeBestEffort(startedProcess, observedDescendants)
             }
         }
         process?.let(::closeProcessOutputBestEffort)
@@ -157,7 +156,8 @@ private fun waitForProcessWhileObservingDescendants(
         }
 
         val waitMillis = minOf(remaining, PROCESS_DESCENDANT_POLL_INTERVAL)
-            .inWholeMilliseconds.coerceAtLeast(minimumValue = 1)
+            .inWholeMilliseconds
+            .coerceAtLeast(minimumValue = 1)
         if (process.waitFor(waitMillis, TimeUnit.MILLISECONDS)) {
             return true
         }

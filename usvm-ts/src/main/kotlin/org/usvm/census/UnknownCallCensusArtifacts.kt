@@ -143,7 +143,8 @@ internal object UnknownCallCensusAggregator {
                     val completed = record.optionalString("status") == "completed"
                     val matchingStart = record.optionalString("startedAt") == startedAt && !startedAt.isNullOrBlank()
                     val hasFinish = !record.optionalString("finishedAt").isNullOrBlank()
-                    if (!validSchema || !completed || !matchingStart || !hasFinish) {
+                    val validRunResult = validSchema && completed && matchingStart && hasFinish
+                    if (!validRunResult) {
                         inputIssues += UnknownCallCensusInputIssue.INVALID_RUN_RESULT
                     }
                     runResultSeen = true
@@ -177,9 +178,11 @@ internal object UnknownCallCensusAggregator {
             UnknownCallCensusCompleteness.PARTIAL
         }
         val summaries = profiles.toSortedMap().mapValues { (_, accumulator) -> accumulator.toSummary() }
+        val input = UnknownCallCensusInput(completeness = completeness, issues = inputIssues.toList())
+
         return UnknownCallCensusSummary(
             profiles = summaries,
-            input = UnknownCallCensusInput(completeness = completeness, issues = inputIssues.toList()),
+            input = input,
         )
     }
 }

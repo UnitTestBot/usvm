@@ -45,6 +45,7 @@ import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsLtEqExpr
 import org.jacodb.ets.model.EtsLtExpr
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsMulExpr
 import org.jacodb.ets.model.EtsNegExpr
@@ -117,7 +118,6 @@ import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsOptions
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
-import org.usvm.machine.onRuntimeFeatureLimitationSafely
 import org.usvm.machine.call.TsUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.dispatch
@@ -130,6 +130,7 @@ import org.usvm.machine.interpreter.isDefinitelyNonThenable
 import org.usvm.machine.interpreter.isResolved
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
+import org.usvm.machine.onRuntimeFeatureLimitationSafely
 import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.runtimeFunctionType
@@ -672,50 +673,7 @@ class TsExprResolver(
                 ?: error("Await expression should have a promise executor, but it is not set for $promise")
             check(executor.cfg.stmts.isNotEmpty())
 
-            val args: MutableList<UExpr<*>> = mutableListOf()
-
-            // Executor lambda does not have 'this', so we fill it with 'undefined':
-            args += mkUndefinedValue()
-
-            val params = executor.parameters.toMutableList()
-            if (params.isNotEmpty() && params[0].type is EtsLexicalEnvType) {
-                params.removeFirst()
-                // TODO: handle closures
-                args += mkUndefinedValue()
-            }
-            if (params.isNotEmpty()) {
-                val resolveCallback = allocateConcreteRef()
-                args += resolveCallback
-                scope.doWithState {
-                    registerPromiseCallback(
-                        resolveCallback,
-                        PromiseCallback(promise = promise, settlement = PromiseState.FULFILLED),
-                    )
-                }
-                if (params.size >= 2) {
-                    val rejectCallback = allocateConcreteRef()
-                    args += rejectCallback
-                    scope.doWithState {
-                        registerPromiseCallback(
-                            rejectCallback,
-                            PromiseCallback(promise = promise, settlement = PromiseState.REJECTED),
-                        )
-                    }
-                    if (params.size >= 3) {
-                        error(
-                            "Promise executor should have at most 3 parameters" +
-                                " (closures, resolve, reject), but got ${params.size}"
-                        )
-                    }
-                }
-            }
-            scope.doWithState {
-                pushSortsForActualArguments(args)
-                memory.stack.push(args.toTypedArray(), executor.localsCount)
-                registerCallee(currentStatement, executor.cfg)
-                callStack.push(executor, currentStatement)
-                newStmt(executor.cfg.stmts.first())
-            }
+            invokePromiseExecutor(promise, executor)
             null
         } else {
             when (promiseState) {
@@ -752,6 +710,54 @@ class TsExprResolver(
                     null
                 }
             }
+        }
+    }
+
+    private fun invokePromiseExecutor(promise: UConcreteHeapRef, executor: EtsMethod) = with(ctx) {
+        val args: MutableList<UExpr<*>> = mutableListOf()
+
+        // Executor lambda does not have 'this', so we fill it with 'undefined':
+        args += mkUndefinedValue()
+
+        val params = executor.parameters.toMutableList()
+        if (params.isNotEmpty() && params[0].type is EtsLexicalEnvType) {
+            params.removeFirst()
+            // TODO: handle closures
+            args += mkUndefinedValue()
+        }
+        if (params.isNotEmpty()) {
+            val resolveCallback = allocateConcreteRef()
+            args += resolveCallback
+            scope.doWithState {
+                registerPromiseCallback(
+                    resolveCallback,
+                    PromiseCallback(promise = promise, settlement = PromiseState.FULFILLED),
+                )
+            }
+            if (params.size >= 2) {
+                val rejectCallback = allocateConcreteRef()
+                args += rejectCallback
+                scope.doWithState {
+                    registerPromiseCallback(
+                        rejectCallback,
+                        PromiseCallback(promise = promise, settlement = PromiseState.REJECTED),
+                    )
+                }
+                if (params.size >= 3) {
+                    error(
+                        "Promise executor should have at most 3 parameters" +
+                            " (closures, resolve, reject), but got ${params.size}"
+                    )
+                }
+            }
+        }
+
+        scope.doWithState {
+            pushSortsForActualArguments(args)
+            memory.stack.push(args.toTypedArray(), executor.localsCount)
+            registerCallee(currentStatement, executor.cfg)
+            callStack.push(executor, currentStatement)
+            newStmt(executor.cfg.stmts.first())
         }
     }
 

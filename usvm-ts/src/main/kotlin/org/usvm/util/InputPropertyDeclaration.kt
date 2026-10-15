@@ -12,7 +12,11 @@ data class InputPropertyDeclaration(val type: EtsType, val optional: Boolean)
 /** Keep absent fields distinct from declarations that cannot be resolved consistently. */
 sealed interface InputPropertyResolution {
     data class Declared(val property: InputPropertyDeclaration) : InputPropertyResolution
+
+    /** No matching instance field exists for any resolved receiver candidate. */
     data object Absent : InputPropertyResolution
+
+    /** The receiver or its candidate field declarations cannot be resolved consistently. */
     data object Unresolved : InputPropertyResolution
 }
 

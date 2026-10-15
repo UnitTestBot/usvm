@@ -21,19 +21,20 @@ fun buildEtsMethod(
     returnType: EtsType,
     program: ProgramBuilder.() -> Unit,
 ): EtsMethod {
+    val signature = EtsMethodSignature(
+        enclosingClass = enclosingClass.signature,
+        name = name,
+        parameters = parameters.mapIndexed { index, (parameterName, type) ->
+            EtsMethodParameter(
+                index = index,
+                name = parameterName,
+                type = type,
+            )
+        },
+        returnType = returnType,
+    )
     val method = EtsMethodImpl(
-        signature = EtsMethodSignature(
-            enclosingClass = enclosingClass.signature,
-            name = name,
-            parameters = parameters.mapIndexed { index, (parameterName, type) ->
-                EtsMethodParameter(
-                    index = index,
-                    name = parameterName,
-                    type = type,
-                )
-            },
-            returnType = returnType,
-        )
+        signature = signature,
     )
 
     val dslProgram = program(program)

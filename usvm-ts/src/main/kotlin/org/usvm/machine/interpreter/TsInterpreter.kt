@@ -114,7 +114,9 @@ class TsInterpreter(
         val result = state.methodResult
         val isEntryPointGuardResult = stmt is TsEntryPointGuardResultStmt
         if (result is TsMethodResult.TsException && !isEntryPointGuardResult) {
-            val catcher = stmt.location.method.cfg.catchers(stmt).singleOrNull()
+            val catcher = stmt.location.method.cfg
+                .catchers(stmt)
+                .singleOrNull()
             if (catcher != null) {
                 scope.doWithState {
                     caughtException = result.value
@@ -800,7 +802,18 @@ class TsInterpreter(
         method: EtsMethod,
         targets: List<TsTarget>,
         configureState: TsState.() -> Unit = {},
-    ): TsState = createInitialState(ctx, graph, options, method, targets, configureState)
+    ): TsState {
+        val initialState = getInitialStateOrNull(method, targets, configureState)
+        return checkNotNull(initialState) {
+            "Initial constraints are infeasible for ${method.signature}"
+        }
+    }
+
+    internal fun getInitialStateOrNull(
+        method: EtsMethod,
+        targets: List<TsTarget>,
+        configureState: TsState.() -> Unit = {},
+    ): TsState? = createInitialStateOrNull(ctx, graph, options, method, targets, configureState)
 
     // TODO: expand with interpreter implementation
     private val EtsStmt.nextStmt: EtsStmt?

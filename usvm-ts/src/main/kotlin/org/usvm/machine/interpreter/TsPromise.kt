@@ -13,8 +13,8 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
-import org.usvm.machine.expr.objectLiteralClass
 import org.usvm.machine.expr.ensureNoPrototypeMutation
+import org.usvm.machine.expr.objectLiteralClass
 import org.usvm.machine.state.TsState
 import org.usvm.types.singleOrNull
 import org.usvm.util.EtsHierarchy
@@ -28,6 +28,7 @@ enum class PromiseState {
     REJECTED;
 }
 
+/** A settlement callback queued for a modeled Promise. */
 data class PromiseCallback(
     val promise: UConcreteHeapRef,
     val settlement: PromiseState,
@@ -96,21 +97,23 @@ internal fun TsContext.existingPromiseOrEnsureNonThenable(
     if (actualValue == mkTsNullValue() || actualValue == mkUndefinedValue()) return null
 
     val reference = actualValue.asExpr(addressSort)
-    if (!isAllocatedConcreteHeapRef(reference)) {
-        throw UnsupportedOperationException("$operation requires unmodeled thenable assimilation")
+    val concreteReference = isAllocatedConcreteHeapRef(reference)
+    if (concreteReference) {
+        val registeredPromise = scope.calcOnState {
+            promiseState[reference] != null || promiseExecutor[reference] != null
+        }
+        if (registeredPromise) return reference
+
+        val definitelyNonThenable = isDefinitelyNonThenable(scope, reference, hierarchy)
+        if (definitelyNonThenable) return null
     }
 
-    val registeredPromise = scope.calcOnState {
-        promiseState[reference] != null || promiseExecutor[reference] != null
+    val assimilationFailure = if (concreteReference) {
+        "may require unmodeled thenable assimilation"
+    } else {
+        "requires unmodeled thenable assimilation"
     }
-    if (registeredPromise) {
-        return reference
-    }
-    if (!isDefinitelyNonThenable(scope, reference, hierarchy)) {
-        throw UnsupportedOperationException("$operation may require unmodeled thenable assimilation")
-    }
-
-    return null
+    throw UnsupportedOperationException("$operation $assimilationFailure")
 }
 
 internal const val RESOLVED_FIELD = "__resolved__"

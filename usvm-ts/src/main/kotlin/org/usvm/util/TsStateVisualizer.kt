@@ -18,6 +18,7 @@ import kotlin.io.path.writeText
 private val logger = KotlinLogging.logger {}
 
 class TsStateVisualizer : TsInterpreterObserver, UMachineObserver<TsState> {
+    @Suppress("TooGenericExceptionCaught")
     override fun onStatePeeked(state: TsState) {
         try {
             state.renderGraph()
@@ -30,6 +31,7 @@ class TsStateVisualizer : TsInterpreterObserver, UMachineObserver<TsState> {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            // Rendering is optional; graph, filesystem, and process failures must not affect symbolic execution.
             logger.warn(e) { "Could not visualize state at ${state.currentStatement}" }
         }
     }

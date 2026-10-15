@@ -34,7 +34,7 @@ internal fun TsExprResolver.tryApproximateStaticCall(
 internal fun TsExprResolver.tryApproximateResolvedFunctionCall(method: EtsMethod): TsExprApproximationResult {
     // Match the selected top-level function, not its mutable source binding or alias name.
     val owner = method.enclosingClass?.signature
-    val isTopLevelFunction = owner?.name == DEFAULT_ARK_CLASS_NAME && owner?.namespace == null
+    val isTopLevelFunction = owner?.name == DEFAULT_ARK_CLASS_NAME && owner.namespace == null
     val isResourceLookup = method.name == "\$r" && isTopLevelFunction
     if (isResourceLookup) {
         return from(handleR())

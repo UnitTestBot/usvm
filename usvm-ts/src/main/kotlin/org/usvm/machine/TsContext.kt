@@ -397,7 +397,6 @@ class TsContext(
     fun UConcreteHeapRef.extractRef(scope: TsStepScope): UHeapRef {
         return scope.calcOnState { extractRef(memory) }
     }
-
 }
 
 class Constants {
