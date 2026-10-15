@@ -34,12 +34,14 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
             Files.createDirectories(dependency.parent)
             Files.writeString(dependency, content)
         }
+
         runGit(sourceRoot, "init")
         runGit(sourceRoot, "config", "user.name", "USVM Tests")
         runGit(sourceRoot, "config", "user.email", "usvm@example.test")
         runGit(sourceRoot, "add", ".")
         runGit(sourceRoot, "commit", "-m", "fixture")
         val revision = runGit(sourceRoot, "rev-parse", "HEAD").trim()
+
         val targetStart = source.indexOf(targetStatement)
         check(targetStart >= 0) { "Missing target statement: $targetStatement" }
         val targetEnd = targetStart + targetStatement.length
@@ -49,6 +51,7 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
             }
                 ?: error("Missing return expression inside target: $expression")
         }
+
         val target = CallsSourceTarget(
             targetId = "$exportName#$targetStatement",
             siteId = "$exportName:$targetStart:$targetEnd",
@@ -61,6 +64,7 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
             returnExpressionStartOffset = returnExpressionStart,
             returnExpressionEndOffset = returnExpressionStart?.plus(requireNotNull(returnExpression).length),
         )
+
         val function = CallsFunctionCase(
             functionId = exportName,
             sourceFile = sourceFileName,
@@ -68,6 +72,7 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
             inputs = inputs,
             targets = listOf(target),
         )
+
         val project = CallsProjectCase(
             projectId = exportName,
             revision = revision,
@@ -90,6 +95,7 @@ internal open class CurrentTsCallsSymbolicEngineTestSupport {
             .start()
         val output = process.inputStream.bufferedReader().use { it.readText() }
         check(process.waitFor() == 0) { "Git ${arguments.joinToString()} failed: $output" }
+
         return output
     }
 
