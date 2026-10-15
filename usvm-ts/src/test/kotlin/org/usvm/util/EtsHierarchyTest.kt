@@ -108,6 +108,21 @@ class EtsHierarchyTest {
     }
 
     @Test
+    fun `ancestors retain receiver-first breadth-first order across diamonds and cycles`() {
+        val root = clazz(name = "Root", interfaces = listOf(signature(name = "Leaf")))
+        val base = clazz(name = "Base", superClass = root.signature)
+        val left = clazz(name = "Left", interfaces = listOf(root.signature))
+        val right = clazz(name = "Right", interfaces = listOf(root.signature))
+        val leaf = clazz(name = "Leaf", superClass = base.signature, interfaces = listOf(left.signature, right.signature))
+        val sdkObject = clazz(name = "Object", fileName = "lib.es5.d.ts")
+        val hierarchy = hierarchy(classes = listOf(leaf, base, left, right, root), sdkClasses = listOf(sdkObject))
+
+        val ancestors = hierarchy.getAncestors(leaf).toList()
+
+        assertEquals(listOf(leaf, base, left, right, root, sdkObject), ancestors)
+    }
+
+    @Test
     fun `missing exact signature still fails instead of choosing another file`() {
         val parent = clazz(name = "Shared", fileName = "first.ts")
         val leaf = clazz(name = "Leaf", superClass = signature(name = "Shared", fileName = "missing.ts"))

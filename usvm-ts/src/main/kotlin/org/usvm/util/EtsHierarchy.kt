@@ -47,7 +47,8 @@ class EtsHierarchy(private val scene: EtsScene) {
     }
 
     private fun collectAncestors(start: EtsClass): Set<EtsClass> {
-        val result = hashSetOf<EtsClass>()
+        // Virtual dispatch selects the first ancestor declaring the requested method.
+        val result = linkedSetOf<EtsClass>()
         val pending = ArrayDeque<EtsClass>()
         pending.add(start)
 
