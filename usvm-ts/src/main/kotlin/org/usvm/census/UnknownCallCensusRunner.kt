@@ -177,7 +177,7 @@ internal class UnknownCallCensusRunner(
                     put("rawEvents", rawEvents)
                     put("durationMillis", projectStart.elapsedNow().inWholeMilliseconds)
                     if (projectTimedOut) {
-                        put("error", "Project timeout reached before all selected methods were analyzed")
+                        put("error", "Project time budget exhausted")
                     }
                 }
             )
