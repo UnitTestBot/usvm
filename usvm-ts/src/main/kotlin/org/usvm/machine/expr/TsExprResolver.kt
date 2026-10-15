@@ -586,6 +586,7 @@ class TsExprResolver(
 
     private fun prototypeFallbackReason(instance: UHeapRef, operand: EtsInstanceFieldRef): String? {
         val name = operand.field.name
+        if (ctx.isIntrinsicDateConstructorProperty(scope, instance, name)) return null
         if (name in OBJECT_PROTOTYPE_PROPERTIES) {
             return "Deleting '$name' requires unsupported Object.prototype lookup"
         }
@@ -1222,7 +1223,12 @@ class TsExprResolver(
     }
 
     private fun runtimeInstanceof(objectType: EtsRefType, checkType: EtsRefType): UBoolExpr = with(ctx) {
-        val objectClass = hierarchy.classesForType(objectType).singleOrNull()
+        val runtimeType = if (objectType == intrinsicDateInstanceType) {
+            EtsClassType(intrinsicDateConstructorSignature)
+        } else {
+            objectType
+        }
+        val objectClass = hierarchy.classesForType(runtimeType).singleOrNull()
             ?: throw UnsupportedOperationException("Unknown instanceof receiver class: $objectType")
         val constructorClass = hierarchy.classesForType(checkType).singleOrNull()
             ?: throw UnsupportedOperationException("Unknown instanceof constructor class: $checkType")
@@ -1569,6 +1575,10 @@ class TsExprResolver(
     private fun constructRuntimeClass(constructorValue: EtsValue): UExpr<out USort>? = with(ctx) {
         val constructorType = resolveRuntimeConstructor(constructorValue, operation = RuntimeConstructorOperation.NEW)
             ?: return@with null
+        if (constructorType.signature == intrinsicDateConstructorSignature) {
+            return@with scope.calcOnState { memory.allocConcrete(intrinsicDateInstanceType) }
+        }
+
         val clazz = scene.projectClasses.singleOrNull { it.signature == constructorType.signature }
             ?: throw UnsupportedOperationException("Unknown new project class: ${constructorType.signature}")
 

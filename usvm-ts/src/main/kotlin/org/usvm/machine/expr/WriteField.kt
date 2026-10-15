@@ -91,6 +91,7 @@ internal fun TsExprResolver.handleAssignToInstanceField(
     checkUndefinedOrNullPropertyRead(scope, rawInstance, field.name) ?: return null
     val instance = resolveHeapRef(scope, rawInstance) ?: return null
     if (!ensureSupportedArrayPrototypeAccess(instance, field.name)) return null
+    ensureSupportedDatePrototypeAccess(instance, field.name)
 
     val storageType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) }
     if (storageType == EtsStringType) {
