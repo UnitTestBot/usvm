@@ -32,6 +32,12 @@ class TsPrimitiveOwnerBoundaryTest {
         assertForeignHelperResidual("foreignArray")
     }
 
+    @Test
+    fun `foreign declarations cannot use string predicate or range helpers`() {
+        assertForeignHelperResidual("foreignWhitespace")
+        assertForeignHelperResidual("foreignStringRange")
+    }
+
     private fun assertForeignHelperResidual(methodName: String) {
         val method = scene.projectClasses.single { it.name == "ForeignPrimitiveHelpers" }
             .methods

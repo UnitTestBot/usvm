@@ -19,12 +19,15 @@ import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.call.loadBundledEtsIrUnknownCallModelArtifact
 import org.usvm.machine.call.resolvedInstanceInputs
 import org.usvm.machine.expr.mkEcmaScriptToUint32
+import org.usvm.machine.expr.mkEcmaScriptWhitespace
 import org.usvm.machine.state.TsState
 import org.usvm.sizeSort
+import org.usvm.util.copyStringRange
 import org.usvm.util.mkStringBackingElementLValue
 import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.mkStringBackingLengthLValue
 import org.usvm.util.stringFromCodeUnit
+import org.usvm.util.stringLength
 
 /** Built-in String algorithms implemented by ordinary TypeScript bodies. */
 internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
@@ -359,6 +362,16 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 arity = 1,
                 implementation = ::stringFromCodeUnit,
             ),
+            primitiveModel(
+                methodName = "isWhitespace",
+                arity = 1,
+                implementation = ::stringIsWhitespace,
+            ),
+            primitiveModel(
+                methodName = "copyNormalizedRange",
+                arity = 3,
+                implementation = ::stringCopyNormalizedRange,
+            ),
         )
     }
 
@@ -382,20 +395,25 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 add("ts.array.primitive.allocateStrings")
                 add("ts.array.primitive.truncateDense")
             }
-            val convertsCase = methodName in setOf("toUpperCase", "toLowerCase")
-            if (convertsCase) {
+            if (methodName != "charAt" && methodName != "slice" && methodName != "substring") {
                 add(PRIMITIVE_CODE_UNIT_AT_ID)
+            }
+            if (methodName in setOf("toUpperCase", "toLowerCase", "replaceAll")) {
                 add(PRIMITIVE_FROM_CODE_UNIT_ID)
-            } else {
+            }
+            if (methodName in setOf("trim", "trimStart", "trimEnd")) {
+                add(PRIMITIVE_IS_WHITESPACE_ID)
+            }
+            if (methodName in setOf("slice", "substring", "split", "trim", "trimStart", "trimEnd", "replaceAll")) {
+                add(PRIMITIVE_COPY_NORMALIZED_RANGE_ID)
+            }
+            val normalizesPosition = methodName in setOf(
+                "charAt", "charCodeAt", "indexOf", "includes", "slice", "substring",
+                "startsWith", "endsWith", "lastIndexOf",
+            )
+            if (normalizesPosition) {
                 add(MATH_FLOOR_MODEL_ID)
-                if (methodName == "charCodeAt") {
-                    add(PRIMITIVE_CODE_UNIT_AT_ID)
-                }
             }
-            if (methodName in setOf("trim", "trimStart", "trimEnd", "replaceAll")) {
-                add(PRIMITIVE_CODE_UNIT_AT_ID)
-            }
-            if (methodName == "replaceAll") add(PRIMITIVE_FROM_CODE_UNIT_ID)
         },
     )
 
@@ -499,6 +517,70 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         )
     }
 
+    private fun stringIsWhitespace(
+        state: TsState,
+        inputs: List<UExpr<*>>,
+    ): TsUnknownCallModelExecution? = with(state.ctx) {
+        val code = inputs.singleOrNull()?.takeIf { it.sort == fp64Sort }?.asExpr(fp64Sort) ?: return null
+        // The owning source models pass only values read from their UTF-16 backing.
+        val codeUnit = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = code,
+            bvSize = bv16Sort.sizeBits.toInt(),
+            isSigned = false,
+        ).asExpr(bv16Sort)
+
+        singleSuccessor(state = state, guard = trueExpr, result = mkEcmaScriptWhitespace(codeUnit))
+    }
+
+    private fun stringCopyNormalizedRange(
+        state: TsState,
+        inputs: List<UExpr<*>>,
+    ): TsUnknownCallModelExecution? = with(state.ctx) {
+        val receiver = inputs.getOrNull(0)?.takeIf { it.sort == addressSort }?.asExpr(addressSort) ?: return null
+        val fpFrom = inputs.getOrNull(1)?.takeIf { it.sort == fp64Sort }?.asExpr(fp64Sort) ?: return null
+        val fpTo = inputs.getOrNull(2)?.takeIf { it.sort == fp64Sort }?.asExpr(fp64Sort) ?: return null
+        val hasBacking = receiver in state.boundedStringBackingRefs && !receiver.hasFakeValueBranch()
+        if (!hasBacking) return null
+
+        val startIndex = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = fpFrom,
+            bvSize = sizeSort.sizeBits.toInt(),
+            isSigned = true,
+        ).asExpr(sizeSort)
+        val endIndex = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = fpTo,
+            bvSize = sizeSort.sizeBits.toInt(),
+            isSigned = true,
+        ).asExpr(sizeSort)
+        val integralBounds = listOf(fpFrom to startIndex, fpTo to endIndex).map { (number, index) ->
+            val converted = mkBvToFpExpr(
+                sort = fp64Sort,
+                roundingMode = fpRoundingModeSortDefaultValue(),
+                value = index.cast(),
+                signed = true,
+            )
+            mkFpEqualExpr(number, converted)
+        }
+        val receiverIsString = state.memory.types.evalTypeEquals(receiver, EtsStringType)
+        val boundsAreIntegral = mkAnd(integralBounds)
+        val nonNegativeStart = mkBvSignedGreaterOrEqualExpr(startIndex, mkBv(0))
+        val orderedBounds = mkBvSignedLessOrEqualExpr(startIndex, endIndex)
+        val receiverLength = state.stringLength(receiver)
+        val endWithinLength = mkBvSignedLessOrEqualExpr(endIndex, receiverLength)
+        val guard = mkAnd(receiverIsString, boundsAreIntegral, nonNegativeStart, orderedBounds, endWithinLength)
+        val successor = TsUnknownCallModelSuccessor(
+            guard = guard,
+            completion = TsUnknownCallModelCompletion.Normal {
+                copyStringRange(receiver = receiver, from = startIndex, to = endIndex)
+            },
+        )
+
+        TsUnknownCallModelExecution(successors = listOf(successor), residualGuard = mkNot(guard))
+    }
+
     private fun singleSuccessor(
         state: TsState,
         guard: org.usvm.UBoolExpr,
@@ -517,6 +599,8 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
 
     private const val PRIMITIVE_CODE_UNIT_AT_ID = "ts.string.primitive.codeUnitAt"
     private const val PRIMITIVE_FROM_CODE_UNIT_ID = "ts.string.primitive.fromCodeUnit"
+    private const val PRIMITIVE_IS_WHITESPACE_ID = "ts.string.primitive.isWhitespace"
+    private const val PRIMITIVE_COPY_NORMALIZED_RANGE_ID = "ts.string.primitive.copyNormalizedRange"
     private const val MATH_FLOOR_MODEL_ID = "ts.math.floor"
     private const val MAX_ASCII_CASE_LENGTH = 16
     private const val ASCII_MAX_CODE_UNIT = 0x7f

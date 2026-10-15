@@ -828,7 +828,10 @@ class TsExprResolver(
                             guard = trueExpr,
                         )
                         memory.write(mkStringBackingLengthLValue(resultChars), resultLength, guard = trueExpr)
-                        boundedStringBackingRefs += result to options.maxArraySize
+                        val leftBound = boundedStringBackingRefs.getValue(left)
+                        val rightBound = boundedStringBackingRefs.getValue(right)
+                        val resultBound = minOf(options.maxArraySize.toLong(), leftBound.toLong() + rightBound)
+                        boundedStringBackingRefs += result to resultBound.toInt()
 
                         memory.memcpy(
                             srcRef = leftChars,
