@@ -85,7 +85,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 } else {
                     val elementSort = typeToSort(receiverType.componentType)
                     val hasNoMissingSlots = array is UConcreteHeapRef &&
-                        state.isUnmodifiedDenseInputArray(array, receiverType)
+                        state.hasDenseArrayShape(array, receiverType)
                     val excludesMissingSlot = when {
                         searchElement == mkUndefinedValue() &&
                             (
