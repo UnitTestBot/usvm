@@ -4,7 +4,6 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
 
 MODULE_PATH = Path(__file__).with_name('acquire-class-projects.py')
 SPEC = importlib.util.spec_from_file_location('acquisition', MODULE_PATH)
@@ -97,6 +96,22 @@ class AcquisitionTest(unittest.TestCase):
             self.assertIn('failure evidence', log.read_text())
             with self.assertRaisesRegex(RuntimeError, 'exited 3'):
                 acquisition.check_command(record)
+
+    def test_workspace_build_requires_an_original_script_inside_the_project(self):
+        with tempfile.TemporaryDirectory(prefix='calls-workspace-build-') as temporary:
+            root = Path(temporary).resolve()
+            package = root / 'packages/helper'
+            package.mkdir(parents=True)
+            (package / 'package.json').write_text('{"scripts":{"build":"tsc"}}')
+
+            directory, script = acquisition.original_build_script(root, 'packages/helper#build')
+
+            self.assertEqual(package, directory)
+            self.assertEqual('build', script)
+            with self.assertRaisesRegex(ValueError, 'No original package script'):
+                acquisition.original_build_script(root, 'packages/helper#publish')
+            with self.assertRaisesRegex(ValueError, 'escapes'):
+                acquisition.original_build_script(root, '../other#build')
 
     def test_declared_package_manager_wins_over_inferred_lock_and_is_pinned(self):
         with tempfile.TemporaryDirectory(prefix='calls-manager-') as temporary:

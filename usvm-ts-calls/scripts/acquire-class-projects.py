@@ -145,7 +145,7 @@ def run_recorded(command, root, log, timeout):
             exit_code = None
     record = {'command': command, 'exitCode': exit_code, 'timedOut': timed_out,
               'elapsedMillis': round((time.monotonic() - started) * 1000),
-              'logSha256': sha256(log.read_bytes()), 'logPath': str(log)}
+              'logSha256': sha256(log.read_bytes()), 'logPath': str(log), 'workingDirectory': str(root)}
     return record
 
 
@@ -181,6 +181,20 @@ def verify_snapshot(root, expected):
         raise ValueError('Acquired runtime/config/dependency snapshot changed')
 
 
+def original_build_script(root, specification):
+    directory_name, script = specification.split('#', 1) if '#' in specification else ('.', specification)
+    relative = Path(directory_name)
+    if relative.is_absolute() or '..' in relative.parts:
+        raise ValueError('Build script directory escapes original project')
+    directory = (root / relative).resolve()
+    if not directory.is_relative_to(root.resolve()):
+        raise ValueError('Build script directory escapes original project')
+    package = json.loads((directory / 'package.json').read_text(encoding='utf-8'))
+    if script not in package.get('scripts', {}):
+        raise ValueError(f'No original package script named {script} in {directory_name}')
+    return directory, script
+
+
 def acquire_project(project, output, install, overrides, scripts, timeout):
     destination = output / project['projectId']
     destination.mkdir(parents=True, exist_ok=False)
@@ -211,11 +225,9 @@ def acquire_project(project, output, install, overrides, scripts, timeout):
                                                     checkout, destination / 'install.log', timeout))
             check_command(receipt['commands'][-1])
             receipt['phase'] = 'INSTALLED'
-        package = json.loads((checkout / 'package.json').read_text(encoding='utf-8'))
-        for index, script in enumerate(scripts):
-            if script not in package.get('scripts', {}):
-                raise ValueError(f'No original package script named {script}')
-            receipt['commands'].append(run_recorded(command + ['run', script], checkout,
+        for index, specification in enumerate(scripts):
+            directory, script = original_build_script(checkout, specification)
+            receipt['commands'].append(run_recorded(command + ['run', script], directory,
                                                     destination / f'build-{index}.log', timeout))
             check_command(receipt['commands'][-1])
         # Builds may add ignored/generated files, but they cannot silently alter original source.
@@ -247,7 +259,7 @@ def main():
     parser.add_argument('--project-id', action='append', default=[])
     parser.add_argument('--skip-install', action='store_true')
     parser.add_argument('--manager-version', action='append', default=[], metavar='NAME=VERSION')
-    parser.add_argument('--build-script', action='append', default=[], metavar='PROJECT=SCRIPT')
+    parser.add_argument('--build-script', action='append', default=[], metavar='PROJECT=[DIRECTORY#]SCRIPT')
     parser.add_argument('--jobs', type=int, default=3)
     parser.add_argument('--timeout-seconds', type=int, default=1800)
     arguments = parser.parse_args()
