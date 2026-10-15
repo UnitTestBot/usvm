@@ -19,6 +19,11 @@ private val logger = KotlinLogging.logger {}
 
 @Suppress("unused")
 interface TsInterpreterObserver : UInterpreterObserver {
+    /** Called inside the interpreter after step preparation, immediately before statement dispatch. */
+    fun onStatementEntered(stmt: EtsStmt, scope: TsStepScope) {
+        // default empty implementation
+    }
+
     /** Each completed selector turn, including the final partial turn and repeated turns of one entry point. */
     fun onEntryPointTimeQuantum(event: TsEntryPointTimeQuantumEvent) {
         // default empty implementation
