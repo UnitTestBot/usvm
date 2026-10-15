@@ -35,7 +35,9 @@ internal fun startupIrFingerprint(case: CallsClassStartCase): String {
 }
 
 internal fun startupIrFiles(root: Path): Map<String, String> = Files.walk(root).use { paths ->
-    paths.filter { Files.isRegularFile(it) }.sorted().toList().associate { file ->
+    val regularFiles = paths.filter { Files.isRegularFile(it) }.sorted()
+
+    regularFiles.iterator().asSequence().associate { file ->
         root.relativize(file).toString() to callsArtifactSha256(Files.readAllBytes(file))
     }
 }
