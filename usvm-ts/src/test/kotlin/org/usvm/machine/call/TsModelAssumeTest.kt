@@ -58,6 +58,9 @@ class TsModelAssumeTest {
                 requiredModelIds = setOf(TsModelAssume.id),
             )
         } + TsModelAssume,
+        selection = TsUnknownCallModelSelection.Only(
+            setOf("test.assume.always", "test.assume.never", "test.assume.gated", "test.assume.positive")
+        ),
     )
 
     @Test

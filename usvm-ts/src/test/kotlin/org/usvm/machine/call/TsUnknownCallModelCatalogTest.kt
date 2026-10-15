@@ -14,6 +14,7 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.call.intrinsic.TsArrayShiftIntrinsicModel
 import org.usvm.machine.call.intrinsic.TsErrorEtsIrModelFamily
+import org.usvm.machine.call.intrinsic.TsModelAssume
 import org.usvm.machine.call.intrinsic.TsNumericIntrinsicModelFamily
 import org.usvm.machine.state.TsState
 import kotlin.test.Test
@@ -213,6 +214,7 @@ class TsUnknownCallModelCatalogTest {
             TsNumericIntrinsicModelFamily.MATH_ROUND_ID,
             TsNumericIntrinsicModelFamily.MATH_SQRT_ID,
             TsNumericIntrinsicModelFamily.MATH_TRUNC_ID,
+            TsModelAssume.id,
             TsNumericIntrinsicModelFamily.NUMBER_IS_FINITE_ID,
             TsNumericIntrinsicModelFamily.NUMBER_IS_INTEGER_ID,
             TsNumericIntrinsicModelFamily.NUMBER_IS_NAN_ID,
