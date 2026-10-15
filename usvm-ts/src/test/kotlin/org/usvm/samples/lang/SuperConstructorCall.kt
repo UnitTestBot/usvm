@@ -128,7 +128,7 @@ class SuperConstructorCall : TsMethodTestRunner() {
             assertTrue(states.isEmpty())
         }
 
-        assertEquals(TsUnknownCallFailureReason.VIRTUAL_METHOD_NOT_FOUND, calls.single().failureReason)
+        assertEquals(TsUnknownCallFailureReason.RECEIVER_CLASS_NOT_FOUND, calls.single().failureReason)
         assertEquals(expected = "constructor", actual = calls.single().callee.name)
     }
 

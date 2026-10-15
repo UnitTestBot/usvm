@@ -272,7 +272,10 @@ class TsInterpreter(
             }
             val initializer = stmt.resolveDeclaredInitialization(graph.hierarchy, allocatedType)
             if (initializer == null) {
-                unknownCallDispatcher.dispatch(scope, stmt, Reason.VIRTUAL_METHOD_NOT_FOUND, receiver)
+                val ownerType = allocatedType ?: EtsClassType(callee.enclosingClass)
+                val ownerIsMissing = graph.hierarchy.classesForType(ownerType).isEmpty()
+                val reason = if (ownerIsMissing) Reason.RECEIVER_CLASS_NOT_FOUND else Reason.VIRTUAL_METHOD_NOT_FOUND
+                unknownCallDispatcher.dispatch(scope, stmt, reason, receiver)
                 return
             }
 
