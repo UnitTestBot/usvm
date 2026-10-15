@@ -156,12 +156,14 @@ class CallsClassStartSmokeTest {
         assertEquals(30_000L, raw.budgetMillis)
         assertEquals(null, raw.collectedStatesLimit)
         assertTrue(raw.stoppedPrefixStates > 0)
-        assertEquals(raw.stoppedPrefixStates, raw.stoppedPrefixSnapshots.size.toLong())
+        assertTrue(raw.stateSnapshots.records >= raw.stoppedPrefixStates)
+        assertTrue(raw.stateSnapshots.complete)
+        assertTrue(raw.symbolicExpressions.complete)
         assertTrue(raw.sourceMappedIrUniverse.isNotEmpty())
         assertTrue(raw.sourceMappedIrEntered.isNotEmpty())
         assertTrue(raw.sourceMappedIrUniverse.containsAll(raw.sourceMappedIrEntered))
         assertTrue(raw.stateSnapshotFailures.isEmpty(), raw.stateSnapshotFailures.toString())
-        assertTrue(Files.isRegularFile(directory.resolve("output/states.jsonl")))
+        assertTrue(Files.isRegularFile(directory.resolve("output/states.jsonl.gz")))
     }
 
     @Test

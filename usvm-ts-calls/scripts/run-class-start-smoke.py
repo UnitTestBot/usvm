@@ -128,11 +128,15 @@ def child_result(child, receipt, case, fingerprint):
             result['unknownCalls'] = read(journal)
         elif (child / 'unknown-calls.jsonl').exists():
             result['unknownCalls'] = [json.loads(line) for line in (child / 'unknown-calls.jsonl').read_text().splitlines()]
-        if (child / 'states.jsonl').exists():
-            result['durableStateSnapshotsPath'] = str(child / 'states.jsonl')
     else:
         stage = 'CHILD_TIMEOUT' if receipt.get('timedOut') else 'CHILD_EXIT_FAILURE'
         result = failure_result(case, fingerprint, stage, f'Child did not produce result: {receipt}')
+    for filename in ('states.jsonl.gz', 'states.jsonl'):
+        if (child / filename).is_file():
+            result['durableStateSnapshotsPath'] = str(child / filename)
+            break
+    if (child / 'expressions.jsonl.gz').is_file():
+        result['durableSymbolicExpressionsPath'] = str(child / 'expressions.jsonl.gz')
     validate_result(result, case, fingerprint)
     return result
 

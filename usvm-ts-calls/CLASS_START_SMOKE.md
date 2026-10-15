@@ -101,8 +101,16 @@ catalog and runtime bytes are frozen before any profile runs.
 Unlike diagnostic startup, interpreter step failures are retained through the machine's failure
 metadata while other paths continue. Returned, exceptional, unsupported terminal, stopped-prefix,
 and remaining queued states are counted separately. Diagnostic snapshots retain method provenance,
-statement text, symbolic result, and path constraints in `states.jsonl`; snapshot failures remain
-explicit. Remaining states are drained after the machine has computed its actual stop reason.
+statement text, symbolic result, and complete ordered path constraints. Each snapshot is streamed to
+`child/states.jsonl.gz`; `constraintIds` and `symbolicResultId` refer to the exact diagnostic strings in
+`child/expressions.jsonl.gz`. Expression identity is interned across states, so a shared constraint is
+rendered once without truncating its contents or reducing the set of states. The final result contains
+only journal references, SHA-256, compressed sizes, record counts, and completion flags; no snapshots
+are embedded a second time. Journals contain concatenated complete gzip members, flushed and fsynced
+before each state is acknowledged. Standard streaming gzip readers decode them in order. A killed
+child retains its earlier completed members; a missing final result or a false completion flag remains
+an incomplete measurement. Snapshot failures remain explicit. Remaining states are drained after the
+machine has computed its actual stop reason.
 Unknown-call events are appended to `unknown-calls.jsonl`. These diagnostic snapshots are not concrete
 native witnesses or resumable machine states.
 

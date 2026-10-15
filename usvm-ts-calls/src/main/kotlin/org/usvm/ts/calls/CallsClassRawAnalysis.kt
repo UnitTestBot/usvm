@@ -45,10 +45,10 @@ internal data class CallsClassRawStateSnapshot(
     val statementIndex: Int,
     val statement: String,
     val callStack: List<String>,
-    val constraints: List<String>,
+    val constraintIds: List<Long>,
     val modelCount: Int,
     val resultKind: String,
-    val symbolicResult: String? = null,
+    val symbolicResultId: Long? = null,
     val unsupportedReason: String? = null,
 )
 
@@ -79,9 +79,8 @@ internal data class CallsClassRawAnalysis(
     val sourceMappedIrUniverse: List<CallsClassRawIrPoint>,
     val sourceMappedIrEntered: List<CallsClassRawIrPoint>,
     val statementUniverseSha256: String,
-    val terminalStateSnapshots: List<CallsClassRawStateSnapshot>,
-    val stoppedPrefixSnapshots: List<CallsClassRawStateSnapshot>,
-    val remainingStateSnapshots: List<CallsClassRawStateSnapshot>,
+    val stateSnapshots: CallsClassRawJournalMetadata,
+    val symbolicExpressions: CallsClassRawJournalMetadata,
     val proof: String = "Symbolic source-mapped IR entry only; " +
         "diagnostic state metadata is not a native replay witness",
 )
@@ -93,9 +92,7 @@ internal class ClassRawAnalysisObserver(
     private val output: Path,
 ) : UMachineObserver<TsState> {
     private val entered = linkedSetOf<CallsClassRawIrPoint>()
-    private val terminal = mutableListOf<CallsClassRawStateSnapshot>()
-    private val stopped = mutableListOf<CallsClassRawStateSnapshot>()
-    private val remaining = mutableListOf<CallsClassRawStateSnapshot>()
+    private val snapshots = CallsClassRawSnapshotStore(output = output)
     private val snapshotFailures = mutableListOf<String>()
     private val methodSteps = linkedMapOf<String, Long>()
     private val sourceKinds = linkedMapOf<String, Long>()
@@ -150,19 +147,19 @@ internal class ClassRawAnalysisObserver(
                 "OTHER_REACHABLE"
             }
         }
-        saveSnapshot(state = state, outcome = outcome, destination = terminal)
+        saveSnapshot(state = state, outcome = outcome)
     }
 
     fun recordStoppedPrefix(state: TsState, reason: String) {
         stoppedStates++
-        saveSnapshot(state = state, outcome = "STOPPED_PREFIX: $reason", destination = stopped)
+        saveSnapshot(state = state, outcome = "STOPPED_PREFIX: $reason")
     }
 
     /** Drain only after analyzeWithMetadata has computed its real stop reason. */
     fun retainRemainingStates(selector: UPathSelector<TsState>?) {
         selector?.drain()?.forEach { state ->
             remainingStates++
-            saveSnapshot(state = state, outcome = "SUSPENDED", destination = remaining)
+            saveSnapshot(state = state, outcome = "SUSPENDED")
         }
     }
 
@@ -177,59 +174,49 @@ internal class ClassRawAnalysisObserver(
         if (event.elapsed > event.requested) quantumOverruns++
     }
 
-    private fun saveSnapshot(state: TsState, outcome: String, destination: MutableList<CallsClassRawStateSnapshot>) {
-        val snapshot = runCatching {
-            val stmt = state.lastStmt
-            val result = state.methodResult
-            CallsClassRawStateSnapshot(
-                stateId = state.id.toString(),
-                outcome = outcome,
-                entryMethod = state.entrypoint.signature.toString(),
-                currentMethod = stmt.location.method.signature.toString(),
-                statementIndex = stmt.location.index,
-                statement = stmt.toString(),
-                callStack = state.callStack.map { it.method.signature.toString() },
-                constraints = state.pathConstraints.constraintSequence().map { it.toString() }.toList(),
-                modelCount = state.models.size,
-                resultKind = result::class.java.simpleName,
-                symbolicResult = when (result) {
-                    is TsMethodResult.Success -> result.value.toString()
-                    is TsMethodResult.TsException -> result.value.toString()
-                    else -> null
-                },
-                unsupportedReason = state.unsupportedReason,
-            )
+    private fun saveSnapshot(state: TsState, outcome: String) {
+        val saved = runCatching {
+            snapshots.append { reference ->
+                val stmt = state.lastStmt
+                val result = state.methodResult
+                CallsClassRawStateSnapshot(
+                    stateId = state.id.toString(),
+                    outcome = outcome,
+                    entryMethod = state.entrypoint.signature.toString(),
+                    currentMethod = stmt.location.method.signature.toString(),
+                    statementIndex = stmt.location.index,
+                    statement = stmt.toString(),
+                    callStack = state.callStack.map { it.method.signature.toString() },
+                    constraintIds = state.pathConstraints.constraintSequence().map(reference).toList(),
+                    modelCount = state.models.size,
+                    resultKind = result::class.java.simpleName,
+                    symbolicResultId = when (result) {
+                        is TsMethodResult.Success -> reference(result.value)
+                        is TsMethodResult.TsException -> reference(result.value)
+                        else -> null
+                    },
+                    unsupportedReason = state.unsupportedReason,
+                )
+            }
         }
-        snapshot.fold(
-            onSuccess = {
-                destination += it
-                val saved = runCatching {
-                    Files.writeString(
-                        output.resolve("states.jsonl"),
-                        encodeCallsArtifact(it) + "\n",
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.APPEND,
-                    )
-                }
-                saved.exceptionOrNull()?.let { failure ->
-                    snapshotFailures += "${state.id}/$outcome: ${failure::class.java.name}: ${failure.message}"
-                }
-            },
-            onFailure = {
-                val diagnostic = "${state.id}/$outcome: ${it::class.java.name}: ${it.message}"
-                snapshotFailures += diagnostic
+        saved.exceptionOrNull()?.let { failure ->
+            val diagnostic = "${state.id}/$outcome: ${failure::class.java.name}: ${failure.message}"
+            snapshotFailures += diagnostic
+            // A journal failure must remain visible even when this diagnostic write also fails.
+            runCatching {
                 Files.writeString(
                     output.resolve("state-snapshot-failures.jsonl"),
                     encodeCallsArtifact(mapOf("failure" to diagnostic)) + "\n",
                     StandardOpenOption.CREATE,
                     StandardOpenOption.APPEND,
                 )
-            },
-        )
+            }
+        }
     }
 
     fun result(manifest: CallsClassStartManifest, analysisElapsedMillis: Long): CallsClassRawAnalysis {
         val encodedUniverse = encodeCallsArtifact(universe).toByteArray(Charsets.UTF_8)
+        val journals = snapshots.finish()
         return CallsClassRawAnalysis(
             budgetMillis = manifest.budgetMillis,
             analysisElapsedMillis = analysisElapsedMillis,
@@ -256,9 +243,8 @@ internal class ClassRawAnalysisObserver(
             sourceMappedIrUniverse = universe,
             sourceMappedIrEntered = entered.toList(),
             statementUniverseSha256 = callsArtifactSha256(encodedUniverse),
-            terminalStateSnapshots = terminal,
-            stoppedPrefixSnapshots = stopped,
-            remainingStateSnapshots = remaining,
+            stateSnapshots = journals.first,
+            symbolicExpressions = journals.second,
         )
     }
 

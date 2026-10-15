@@ -114,6 +114,9 @@ def summarize(output, manifests):
                          'sourceMappedIrUniverseSha256': raw['statementUniverseSha256'] if raw is not None else None,
                          'nativeClassCoverage': None, 'receipt': str(path),
                          'durableStateSnapshotsPath': result.get('durableStateSnapshotsPath'),
+                         'durableSymbolicExpressionsPath': result.get('durableSymbolicExpressionsPath'),
+                         'stateSnapshotJournal': raw.get('stateSnapshots') if raw is not None else None,
+                         'symbolicExpressionJournal': raw.get('symbolicExpressions') if raw is not None else None,
                          'diagnostic': result.get('diagnostic')})
         if len(universe_hashes) > 1:
             raise ValueError(f'Source-mapped IR universe changed between profiles: {case["identity"]}')

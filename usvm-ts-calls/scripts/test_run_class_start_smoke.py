@@ -83,6 +83,8 @@ class StartupIntegrityTest(unittest.TestCase):
             progress.update(initialStates=1, originalTargetStatementsEntered=1,
                             targetStatementEntered=True, started=True)
             smoke.save(directory / 'progress.json', progress)
+            (directory / 'states.jsonl.gz').write_bytes(b'preserved-compressed-states')
+            (directory / 'expressions.jsonl.gz').write_bytes(b'preserved-compressed-values')
 
             result = smoke.child_result(directory, {'timedOut': True}, case, 'frozen')
 
@@ -91,6 +93,8 @@ class StartupIntegrityTest(unittest.TestCase):
             self.assertTrue(result['timedOut'])
             self.assertFalse(result['engineFailed'])
             self.assertEqual('STARTED_WITH_LIMITATION', result['startupStatus'])
+            self.assertEqual(str(directory / 'states.jsonl.gz'), result['durableStateSnapshotsPath'])
+            self.assertEqual(str(directory / 'expressions.jsonl.gz'), result['durableSymbolicExpressionsPath'])
 
 
 if __name__ == '__main__':
