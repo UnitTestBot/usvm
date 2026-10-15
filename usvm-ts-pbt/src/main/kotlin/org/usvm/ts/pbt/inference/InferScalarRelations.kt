@@ -54,6 +54,7 @@ fun inferScalarRelations(
         omittedInvocations = omittedInvocations,
         droppedInvocations = observations.droppedInvocations,
         droppedPoints = observations.droppedPoints,
+        property = property,
     )
 }
 
@@ -179,7 +180,7 @@ private fun ScalarObservationPair.isAssertionPair(property: PropertyDefinition):
         leftOperand?.source == left.source && rightOperand?.source == right.source
 }
 
-private fun PropertyPointEvent.matches(point: PropertyObservationPoint): Boolean =
+internal fun PropertyPointEvent.matches(point: PropertyObservationPoint): Boolean =
     assertionId == point.assertionId && operandId == point.operandId && source == point.source &&
         callSite == point.callSite && kind == point.kind && inputIndex == point.inputIndex && occurrence == 0
 

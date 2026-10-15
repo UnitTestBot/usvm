@@ -1,6 +1,7 @@
 package org.usvm.ts.pbt.inference
 
 import org.usvm.ts.pbt.model.JsConcreteValue
+import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.observation.ObservationBuildStatus
 import org.usvm.ts.pbt.observation.PropertyInvocationObservation
@@ -73,4 +74,5 @@ data class ScalarRelationInference(
     val omittedInvocations: Int,
     val droppedInvocations: Int,
     val droppedPoints: Int,
+    val property: PropertyDefinition,
 )
