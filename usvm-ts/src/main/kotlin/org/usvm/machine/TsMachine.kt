@@ -305,11 +305,8 @@ class TsMachine(
             stopStrategy = stopStrategy,
         )
 
-        val stopReason = if (pathSelector.isEmpty()) {
-            TsAnalysisStopReason.EXHAUSTED
-        } else {
-            TsAnalysisStopReason.STOPPED
-        }
+        val exhausted = pathSelector.isEmpty()
+        val stopReason = if (exhausted) TsAnalysisStopReason.EXHAUSTED else TsAnalysisStopReason.STOPPED
 
         return TsMachineAnalysisResult(
             states = statesCollector.collectedStates,
@@ -373,11 +370,17 @@ class TsMachine(
         infeasibleEntryPoints = infeasibleEntryPoints,
     )
 
+    private data class InitialStatesResult(
+        val initialStates: Map<EtsMethod, TsState>,
+        val unsupportedPaths: MutableSet<String>,
+        val infeasibleEntryPoints: List<String>,
+    )
+
     private fun createInitialStates(
         methods: List<EtsMethod>,
         targets: List<TsTarget>,
         configureInitialState: (EtsMethod, TsState) -> Unit,
-    ): Triple<Map<EtsMethod, TsState>, MutableSet<String>, List<String>> {
+    ): InitialStatesResult {
         val initialStates = mutableMapOf<EtsMethod, TsState>()
         val unsupportedPaths = mutableSetOf<String>()
         val infeasibleEntryPoints = mutableListOf<String>()
@@ -401,7 +404,11 @@ class TsMachine(
             }
         }
 
-        return Triple(initialStates, unsupportedPaths, infeasibleEntryPoints)
+        return InitialStatesResult(
+            initialStates = initialStates,
+            unsupportedPaths = unsupportedPaths,
+            infeasibleEntryPoints = infeasibleEntryPoints,
+        )
     }
 
     override fun close() {
