@@ -35,22 +35,7 @@ class EtsHierarchy(private val scene: EtsScene) {
 
         val time = measureTimeMillis {
             result = scene.projectAndSdkClasses.associateWith { start ->
-                val visited = mutableSetOf(start)
-                generateSequence(listOf(start)) { classes ->
-                    if (classes.isEmpty()) return@generateSequence null
-
-                    val result = classes.flatMap { current ->
-                        val superClasses = current.superClass?.let { resolveClassesBySignature(it) }.orEmpty()
-                        val interfaces = current.implementedInterfaces
-
-                        val resolvedInterfaces = interfaces.flatMap { resolveClassesBySignature(it) }
-
-                        superClasses.toMutableSet() + resolvedInterfaces // TODO optimize
-                    }
-
-                    val newAncestors = result.filter { visited.add(it) }
-                    newAncestors.takeIf { it.isNotEmpty() }
-                }.flatten().toMutableSet() + scene.sdkClasses.filter { it.name == "Object" }
+                collectAncestors(start) + scene.sdkClasses.filter { it.name == "Object" }
             }
         }
 
@@ -59,6 +44,27 @@ class EtsHierarchy(private val scene: EtsScene) {
         }
 
         return@lazy result
+    }
+
+    private fun collectAncestors(start: EtsClass): Set<EtsClass> {
+        val result = hashSetOf<EtsClass>()
+        val pending = ArrayDeque<EtsClass>()
+        pending.add(start)
+
+        while (pending.isNotEmpty()) {
+            val current = pending.removeFirst()
+            val firstVisit = result.add(current)
+            if (!firstVisit) continue
+
+            val superClasses = current.superClass?.let { resolveClassesBySignature(it) }.orEmpty()
+            pending.addAll(superClasses)
+
+            current.implementedInterfaces.forEach { signature ->
+                pending.addAll(resolveClassesBySignature(signature))
+            }
+        }
+
+        return result
     }
 
     private fun resolveClassesBySignature(superClassSignature: EtsClassSignature): Collection<EtsClass> {
