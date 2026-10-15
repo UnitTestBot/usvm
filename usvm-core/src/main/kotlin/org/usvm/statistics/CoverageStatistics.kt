@@ -16,13 +16,7 @@ import java.util.concurrent.ConcurrentHashMap
 class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement, *, *, State>>(
     methods: Set<Method>,
     private val applicationGraph: ApplicationGraph<Method, Statement>,
-) : UMachineObserver<State>, CoverageTargets<Statement> {
-
-    override val uncoveredTargets: Collection<Statement>
-        get() = getUncoveredStatements()
-
-    override var revision: Long = 0
-        private set
+) : UMachineObserver<State> {
 
     private val onStatementCoveredObservers: MutableSet<(State, Method, Statement) -> Unit> = ConcurrentHashMap.newKeySet()
 
@@ -62,7 +56,6 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
         uncoveredStatements[method] = methodStatements
         totalUncoveredStatements += methodStatements.size
         coveredStatements[method] = hashSetOf()
-        if (methodStatements.isNotEmpty()) revision++
     }
 
     private fun computeCoverage(covered: Int, uncovered: Int): Float {
@@ -140,7 +133,6 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
 
             totalUncoveredStatements--
             totalCoveredStatements++
-            revision++
             coveredStatements.getValue(method).add(statement)
             onStatementCoveredObservers.forEach { it(state, method, statement) }
         }

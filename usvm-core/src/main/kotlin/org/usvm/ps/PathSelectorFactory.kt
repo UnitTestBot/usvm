@@ -13,7 +13,6 @@ import org.usvm.merging.CloseStatesSearcherImpl
 import org.usvm.merging.MergingPathSelector
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.CoverageTargets
 import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.statistics.distances.CallStackDistanceCalculator
@@ -37,7 +36,6 @@ private fun <Method, Statement, Target, State> createPathSelector(
     cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
     callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
     loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>? = { null },
-    coverageTargetsFactory: () -> CoverageTargets<Statement>? = coverageStatisticsFactory,
 ): UPathSelector<State>
     where Target : UTarget<Statement, Target>,
           State : UState<*, Method, Statement, *, Target, State> {
@@ -68,24 +66,18 @@ private fun <Method, Statement, Target, State> createPathSelector(
             PathSelectionStrategy.FORK_DEPTH -> createForkDepthPathSelector()
             PathSelectionStrategy.FORK_DEPTH_RANDOM -> createForkDepthPathSelector(random)
 
-            PathSelectionStrategy.CLOSEST_TO_UNCOVERED,
-            PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM,
-            -> {
-                val coverageTargets = requireNotNull(coverageTargetsFactory()) {
-                    "Coverage targets are required for closest to uncovered path selector"
-                }
-                val cfgStatistics = requireNotNull(cfgStatisticsFactory()) {
-                    "CFG statistics is required for closest to uncovered path selector"
-                }
-                val selectorRandom = if (strategy == PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM) random else null
+            PathSelectionStrategy.CLOSEST_TO_UNCOVERED -> createClosestToUncoveredPathSelector(
+                requireNotNull(coverageStatisticsFactory()) { "Coverage statistics is required for closest to uncovered path selector" },
+                requireNotNull(cfgStatisticsFactory()) { "CFG statistics is required for closest to uncovered path selector" },
+                applicationGraph
+            )
 
-                createClosestToUncoveredPathSelector(
-                    coverageTargets = coverageTargets,
-                    cfgStatistics = cfgStatistics,
-                    applicationGraph = applicationGraph,
-                    random = selectorRandom,
-                )
-            }
+            PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM -> createClosestToUncoveredPathSelector(
+                requireNotNull(coverageStatisticsFactory()) { "Coverage statistics is required for closest to uncovered path selector" },
+                requireNotNull(cfgStatisticsFactory()) { "CFG statistics is required for closest to uncovered path selector" },
+                applicationGraph,
+                random
+            )
 
             PathSelectionStrategy.TARGETED -> createTargetedPathSelector<Method, Statement, Target, State>(
                 requireNotNull(cfgStatisticsFactory()) { "CFG statistics is required for targeted path selector" },
@@ -153,7 +145,6 @@ private fun <Method, Statement, Target, State> createPathSelector(
     return selector
 }
 
-/** [coverageTargetsFactory] overrides closest-to-uncovered goals, leaving reported coverage unchanged. */
 fun <Method, Statement, Target, State> createPathSelector(
     initialState: State,
     options: UMachineOptions,
@@ -162,7 +153,6 @@ fun <Method, Statement, Target, State> createPathSelector(
     cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
     callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
     loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>? = { null },
-    coverageTargetsFactory: () -> CoverageTargets<Statement>? = coverageStatisticsFactory,
 ): UPathSelector<State> where Target : UTarget<Statement, Target>, State : UState<*, Method, Statement, *, Target, State> =
     createPathSelector(
         listOf(initialState),
@@ -171,11 +161,9 @@ fun <Method, Statement, Target, State> createPathSelector(
         coverageStatisticsFactory,
         cfgStatisticsFactory,
         callGraphStatisticsFactory,
-        loopStatisticFactory,
-        coverageTargetsFactory,
+        loopStatisticFactory
     )
 
-/** External goals are shared by the entry points; coverage statistics still own reporting and stop conditions. */
 fun <Method, Statement, Target, State> createPathSelector(
     initialStates: Map<Method, State>,
     options: UMachineOptions,
@@ -185,7 +173,6 @@ fun <Method, Statement, Target, State> createPathSelector(
     cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
     callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
     loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>? = { null },
-    coverageTargetsFactory: () -> CoverageTargets<Statement>? = coverageStatisticsFactory,
 ): UPathSelector<State> where Target : UTarget<Statement, Target>, State : UState<*, Method, Statement, *, Target, State> {
     val hasSingleEntryPoint = initialStates.size == 1
     val hasUnlimitedScheduling = options.timeout == Duration.INFINITE &&
@@ -198,8 +185,7 @@ fun <Method, Statement, Target, State> createPathSelector(
             coverageStatisticsFactory,
             cfgStatisticsFactory,
             callGraphStatisticsFactory,
-            loopStatisticFactory,
-            coverageTargetsFactory,
+            loopStatisticFactory
         )
     }
 
@@ -216,8 +202,7 @@ fun <Method, Statement, Target, State> createPathSelector(
             coverageStatisticsFactory,
             cfgStatisticsFactory,
             callGraphStatisticsFactory,
-            loopStatisticFactory,
-            coverageTargetsFactory,
+            loopStatisticFactory
         )
 
     val coverageStatistics = coverageStatisticsFactory()
@@ -327,35 +312,29 @@ private fun <State : UState<*, *, *, *, *, State>> createDepthPathSelector(rando
     )
 }
 
-/** Uses cached CFG distances within the active call stack and refreshes priorities after goal changes. */
-fun <Method, Statement, State : UState<*, Method, Statement, *, *, State>> createClosestToUncoveredPathSelector(
-    coverageTargets: CoverageTargets<Statement>,
+private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State>> createClosestToUncoveredPathSelector(
+    coverageStatistics: CoverageStatistics<Method, Statement, State>,
     cfgStatistics: CfgStatistics<Method, Statement>,
     applicationGraph: ApplicationGraph<Method, Statement>,
     random: Random? = null,
 ): UPathSelector<State> {
-    fun createDistanceCalculator() = CallStackDistanceCalculator(
-        targets = coverageTargets.uncoveredTargets,
+    val distanceCalculator = CallStackDistanceCalculator(
+        targets = coverageStatistics.getUncoveredStatements(),
         cfgStatistics = cfgStatistics,
-        applicationGraph = applicationGraph,
+        applicationGraph
     )
-    var distanceCalculator = createDistanceCalculator()
-    var revision = coverageTargets.revision
 
-    fun calculateDistance(state: State): UInt {
-        if (revision != coverageTargets.revision) {
-            distanceCalculator = createDistanceCalculator()
-            revision = coverageTargets.revision
-        }
-
-        return distanceCalculator.calculateDistance(state.currentStatement, state.callStack)
+    coverageStatistics.addOnCoveredObserver { _, method, statement ->
+        distanceCalculator.removeTarget(
+            method,
+            statement
+        )
     }
 
     if (random == null) {
         return WeightedPathSelector(
             priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
-            weighter = ::calculateDistance,
-            weightRevision = { coverageTargets.revision },
+            weighter = { distanceCalculator.calculateDistance(it.currentStatement, it.callStack) }
         )
     }
 
@@ -363,11 +342,10 @@ fun <Method, Statement, State : UState<*, Method, Statement, *, *, State>> creat
         priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
         weighter = {
             1.0 / max(
-                calculateDistance(it).toDouble(),
+                distanceCalculator.calculateDistance(it.currentStatement, it.callStack).toDouble(),
                 1.0
             )
-        },
-        weightRevision = { coverageTargets.revision },
+        }
     )
 }
 
