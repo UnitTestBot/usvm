@@ -128,6 +128,9 @@ internal fun TsContext.resolveField(
 ): UExpr<*>? {
     checkNotFake(instance)
     val receiver = resolveHeapRef(scope, instance) ?: return null
+    val intrinsicRegExp = receiver is UConcreteHeapRef && scope.calcOnState { receiver in regularExpressions }
+    if (intrinsicRegExp) return readRegExpField(scope, receiver as UConcreteHeapRef, field.name)
+
     if (isDateModelTimestamp(scope = scope, instance = receiver, field = field)) {
         val timestamp = dateModelTimestampLValue(receiver)
         return scope.calcOnState { memory.read(timestamp) }

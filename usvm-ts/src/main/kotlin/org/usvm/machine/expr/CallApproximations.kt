@@ -153,6 +153,9 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     val instance = stmt.instance
     if (!ensureSupportedObjectMutation(stmt)) return TsExprApproximationResult.ResolveFailure
 
+    val regularExpression = tryApproximateRegExpCall(stmt)
+    if (regularExpression !is TsExprApproximationResult.NoApproximation) return regularExpression
+
     val iterator = tryApproximateBuiltinIteratorCall(stmt)
     if (iterator !is TsExprApproximationResult.NoApproximation) return iterator
 
