@@ -8,6 +8,7 @@ import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.usvm.util.ImportResolutionResult
@@ -16,15 +17,17 @@ import org.usvm.util.abort
 import org.usvm.util.getResourcePathOrNull
 import org.usvm.util.normalizeRelativePath
 import org.usvm.util.resolveImport
-import org.usvm.util.resolveSymbol
+import org.usvm.util.resolveImportInfo
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 private val logger = KotlinLogging.logger {}
 
+/** Reports resolution outcomes for an optional demo project without assuming every external import is available. */
+@Tag("manual")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@DisplayName("Import Resolution Tests")
+@DisplayName("Demo_Photos import resolution diagnostics")
 class ImportResolverTest {
 
     companion object {
@@ -90,9 +93,9 @@ class ImportResolverTest {
     }
 
     @Test
-    @DisplayName("Test file-level import resolution with real imports from project files")
-    fun testFileImportResolver() {
-        println("\n--- Testing file-level import resolver ---")
+    @DisplayName("Report file-level import resolution across project files")
+    fun reportFileImportResolution() {
+        println("\n--- Reporting file-level import resolution ---")
 
         val allFiles = scene.projectFiles
         var totalImports = 0
@@ -141,15 +144,13 @@ class ImportResolverTest {
             println("File resolution success rate: $successRate%")
         }
 
-        // Assert that we found some imports and some were successful
         assertTrue(totalImports > 0, "Should find at least some imports in the project files")
-        // Note: We don't assert on success rate as it depends on the availability of imported files
     }
 
     @Test
-    @DisplayName("Test complete symbol resolution with real imports matching actual exports")
-    fun testSymbolResolver() {
-        println("\n--- Testing complete symbol resolver ---")
+    @DisplayName("Report symbol resolution across project imports")
+    fun reportSymbolResolution() {
+        println("\n--- Reporting symbol resolution ---")
 
         val allFiles = scene.projectFiles
         var totalSymbols = 0
@@ -169,13 +170,9 @@ class ImportResolverTest {
                 imports.forEach { importInfo ->
                     totalSymbols++
 
-                    when (val result =
-                        scene.resolveSymbol(
-                            currentFile = currentFile,
-                            importPath = importInfo.from,
-                            symbolName = importInfo.name,
-                            importType = importInfo.type,
-                        )) {
+                    val result = scene.resolveImportInfo(currentFile, importInfo)
+
+                    when (result) {
                         is SymbolResolutionResult.Success -> {
                             successfulSymbols++
                             val exportInfo = result.exportInfo
@@ -226,15 +223,13 @@ class ImportResolverTest {
             println("Complete symbol resolution success rate: $symbolSuccessRate%")
         }
 
-        // Assert that we found some symbols to resolve
         assertTrue(totalSymbols > 0, "Should find at least some symbols to resolve in the project files")
-        // Note: We don't assert on success rate as it depends on the availability of matching exports
     }
 
     @Test
-    @DisplayName("Test common import patterns and path normalization")
-    fun testCommonImportPatterns() {
-        println("\n--- Testing common import patterns ---")
+    @DisplayName("Report common import probes and check path normalization")
+    fun reportCommonImportPatterns() {
+        println("\n--- Reporting common import probes ---")
 
         Assumptions.assumeTrue(
             scene.projectFiles.isNotEmpty(),
@@ -244,7 +239,7 @@ class ImportResolverTest {
         val testFile = scene.projectFiles.first()
         println("Using test file: ${testFile.signature.fileName}")
 
-        // Test cases for different import types
+        // Probe paths may be absent from the optional demo project.
         val testCases = mapOf(
             "System Library Imports" to listOf(
                 "@ohos.router",
