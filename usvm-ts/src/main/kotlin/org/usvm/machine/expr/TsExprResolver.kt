@@ -713,7 +713,22 @@ class TsExprResolver(
         }
     }
 
-    private fun invokePromiseExecutor(promise: UConcreteHeapRef, executor: EtsMethod) = with(ctx) {
+    private fun invokePromiseExecutor(promise: UConcreteHeapRef, executor: EtsMethod) {
+        val args = buildPromiseExecutorArguments(promise, executor)
+
+        scope.doWithState {
+            pushSortsForActualArguments(args)
+            memory.stack.push(args.toTypedArray(), executor.localsCount)
+            registerCallee(currentStatement, executor.cfg)
+            callStack.push(executor, currentStatement)
+            newStmt(executor.cfg.stmts.first())
+        }
+    }
+
+    private fun buildPromiseExecutorArguments(
+        promise: UConcreteHeapRef,
+        executor: EtsMethod,
+    ): List<UExpr<*>> = with(ctx) {
         val args: MutableList<UExpr<*>> = mutableListOf()
 
         // Executor lambda does not have 'this', so we fill it with 'undefined':
@@ -725,6 +740,7 @@ class TsExprResolver(
             // TODO: handle closures
             args += mkUndefinedValue()
         }
+
         if (params.isNotEmpty()) {
             val resolveCallback = allocateConcreteRef()
             args += resolveCallback
@@ -734,31 +750,27 @@ class TsExprResolver(
                     PromiseCallback(promise = promise, settlement = PromiseState.FULFILLED),
                 )
             }
-            if (params.size >= 2) {
-                val rejectCallback = allocateConcreteRef()
-                args += rejectCallback
-                scope.doWithState {
-                    registerPromiseCallback(
-                        rejectCallback,
-                        PromiseCallback(promise = promise, settlement = PromiseState.REJECTED),
-                    )
-                }
-                if (params.size >= 3) {
-                    error(
-                        "Promise executor should have at most 3 parameters" +
-                            " (closures, resolve, reject), but got ${params.size}"
-                    )
-                }
+        }
+
+        if (params.size >= 2) {
+            val rejectCallback = allocateConcreteRef()
+            args += rejectCallback
+            scope.doWithState {
+                registerPromiseCallback(
+                    rejectCallback,
+                    PromiseCallback(promise = promise, settlement = PromiseState.REJECTED),
+                )
             }
         }
 
-        scope.doWithState {
-            pushSortsForActualArguments(args)
-            memory.stack.push(args.toTypedArray(), executor.localsCount)
-            registerCallee(currentStatement, executor.cfg)
-            callStack.push(executor, currentStatement)
-            newStmt(executor.cfg.stmts.first())
+        if (params.size >= 3) {
+            error(
+                "Promise executor should have at most 3 parameters" +
+                    " (closures, resolve, reject), but got ${params.size}"
+            )
         }
+
+        args
     }
 
     override fun visit(expr: EtsYieldExpr): UExpr<out USort>? {

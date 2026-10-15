@@ -1,5 +1,6 @@
 package org.usvm.machine.expr
 
+import io.ksmt.expr.KFp64Value
 import io.ksmt.expr.KFpRoundingMode
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
@@ -27,6 +28,7 @@ import org.usvm.collection.array.UArrayRegion
 import org.usvm.collection.array.UArrayRegionId
 import org.usvm.getIntValue
 import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.machine.TsContext
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
@@ -38,6 +40,7 @@ import org.usvm.machine.call.hasBuiltinGlobalOwner
 import org.usvm.machine.call.intrinsic.TsDateEtsIrModelFamily
 import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
+import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.createSettledPromise
 import org.usvm.machine.interpreter.existingPromiseOrEnsureNonThenable
 import org.usvm.machine.state.TsMethodResult
@@ -153,19 +156,8 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     val iterator = tryApproximateBuiltinIteratorCall(stmt)
     if (iterator !is TsExprApproximationResult.NoApproximation) return iterator
 
-    // The model catalog has no toString target; project methods still need normal dispatch.
     if (expr.callee.name == "toString") {
-        if (unknownCallDispatcher is TsUnknownCallModelDispatcher) {
-            if (hasProjectToStringTarget(stmt)) return TsExprApproximationResult.NoApproximation
-
-            dispatchLegacyInstanceCall(stmt)
-            return TsExprApproximationResult.ResolveFailure
-        }
-
-        if (expr.args.isNotEmpty()) {
-            logger.warn { "toString() should have no arguments, but got ${expr.args.size}" }
-        }
-        return from(mkStringConstant("I am a string", scope))
+        return handleToStringCall(stmt)
     }
 
     // Handle `.valueOf()` method calls
@@ -208,6 +200,22 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     }
 
     return TsExprApproximationResult.NoApproximation
+}
+
+private fun TsExprResolver.handleToStringCall(stmt: TsVirtualMethodCallStmt): TsExprApproximationResult = with(ctx) {
+    // The model catalog has no toString target; project methods still need normal dispatch.
+    if (unknownCallDispatcher is TsUnknownCallModelDispatcher) {
+        if (hasProjectToStringTarget(stmt)) return TsExprApproximationResult.NoApproximation
+
+        dispatchLegacyInstanceCall(stmt)
+        return TsExprApproximationResult.ResolveFailure
+    }
+
+    val expr = stmt.call
+    if (expr.args.isNotEmpty()) {
+        logger.warn { "toString() should have no arguments, but got ${expr.args.size}" }
+    }
+    return from(mkStringConstant("I am a string", scope))
 }
 
 private fun TsExprResolver.tryApproximateArrayCall(
@@ -785,13 +793,27 @@ private fun TsExprResolver.handleArrayFill(
         }
     }
 
+    val nonNegativeEndBound = nonNegativeArrayFillEndBound(end, endBv)
+
     val fillValue = ArrayFillValue(
         nativeValue = nativeValue,
         boxedValue = boxedValue,
         hasResolvedElementSort = hasResolvedElementSort,
         usesBoxedValue = usesBoxedValue,
     )
-    fillArrayRange(arrayType, elementSort, array, fillValue, startBv, endBv)
+    fillArrayRange(arrayType, elementSort, array, fillValue, startBv, endBv, nonNegativeEndBound)
+}
+
+private fun TsContext.nonNegativeArrayFillEndBound(end: UExpr<*>, endBv: UExpr<TsSizeSort>): Int? {
+    val integerEnd = getIntValue(endBv)
+    if (integerEnd != null) return integerEnd.takeIf { it >= 0 }
+
+    val fpEnd = (end as? KFp64Value)?.value ?: return null
+    val isExactNonNegativeInteger = fpEnd.isFinite() && fpEnd >= 0.0 &&
+        fpEnd <= Int.MAX_VALUE.toDouble() && fpEnd % 1.0 == 0.0
+    if (!isExactNonNegativeInteger) return null
+
+    return fpEnd.toInt()
 }
 
 private data class ArrayFillValue(
@@ -808,6 +830,7 @@ private fun TsExprResolver.fillArrayRange(
     fillValue: ArrayFillValue,
     startBv: UExpr<TsSizeSort>,
     endBv: UExpr<TsSizeSort>,
+    nonNegativeEndBound: Int?,
 ): UExpr<*>? = with(ctx) {
     scope.calcOnState {
         val descriptor = arrayDescriptorOf(arrayType)
@@ -832,10 +855,11 @@ private fun TsExprResolver.fillArrayRange(
         }
         scope.assert(withinCapacity) ?: return@calcOnState null
 
-        val tempSize = getIntValue(fillLength)?.coerceAtLeast(0) ?: ARRAY_FILL_MAX_SIZE
+        val concreteFillLength = getIntValue(fillLength)
+        val maximumFillLength = nonNegativeEndBound?.coerceAtMost(ARRAY_FILL_MAX_SIZE) ?: ARRAY_FILL_MAX_SIZE
+        val tempSize = concreteFillLength?.coerceAtLeast(0) ?: maximumFillLength
         val hasKnownOwnSlots = array in knownArrayPropertyPresence
         val concreteStart = getIntValue(from)
-        val concreteFillLength = getIntValue(fillLength)
         if (hasKnownOwnSlots && (concreteStart == null || concreteFillLength == null)) {
             logger.warn { "Array.fill() cannot preserve symbolic own-slot presence in the legacy path" }
             return@calcOnState null
@@ -1233,16 +1257,17 @@ private fun TsExprResolver.handleArrayConcat(
     val elementSort = typeToSort(arrayType.componentType)
     val arrayTypes = mutableListOf<EtsArrayType?>()
     for ((index, arg) in stmt.args.withIndex()) {
-        if (arg.sort == addressSort) {
-            val ref = arg.asExpr(addressSort)
-            // A fake or an untyped reference may itself contain an array; spreading requires runtime dispatch.
-            if (ref.hasFakeValueBranch()) return TsExprApproximationResult.NoApproximation
-            val type = scope.calcOnState { arrayStorageType(ref, stmt.call.args[index].type) }
-            if (typeToSort(type) is TsUnresolvedSort) return TsExprApproximationResult.NoApproximation
-            arrayTypes += type as? EtsArrayType
-        } else {
+        if (arg.sort != addressSort) {
             arrayTypes += null
+            continue
         }
+
+        val ref = arg.asExpr(addressSort)
+        // A fake or an untyped reference may itself contain an array; spreading requires runtime dispatch.
+        if (ref.hasFakeValueBranch()) return TsExprApproximationResult.NoApproximation
+        val type = scope.calcOnState { arrayStorageType(ref, stmt.call.args[index].type) }
+        if (typeToSort(type) is TsUnresolvedSort) return TsExprApproximationResult.NoApproximation
+        arrayTypes += type as? EtsArrayType
     }
     val hasIncompatibleElementSort = arrayTypes.withIndex().any { (index, type) ->
         if (type != null) {
@@ -1268,16 +1293,7 @@ private fun TsExprResolver.handleArrayConcat(
     if (hasMixedPresence) return TsExprApproximationResult.NoApproximation
 
     val originalLength = scope.calcOnState { memory.read(mkArrayLengthLValue(array, arrayType)) }
-    val argumentLengths = scope.calcOnState {
-        arrayTypes.mapIndexed { index, type ->
-            if (type == null) {
-                mkBv(1)
-            } else {
-                val ref = stmt.args[index].asExpr(addressSort)
-                memory.read(mkArrayLengthLValue(ref, type))
-            }
-        }
-    }
+    val argumentLengths = scope.calcOnState { readConcatArgumentLengths(stmt.args, arrayTypes) }
     var resultLength = originalLength
     for (length in argumentLengths) {
         resultLength = mkBvAddExpr(resultLength, length)
@@ -1297,28 +1313,17 @@ private fun TsExprResolver.handleArrayConcat(
                 preserveKnownPresence = preserveKnownPresence,
             )
 
-            var copiedLength = originalLength
-            stmt.args.forEachIndexed { index, arg ->
-                val argType = arrayTypes[index]
-                if (argType != null) {
-                    val ref = arg.asExpr(addressSort)
-                    val length = argumentLengths[index]
-                    copyConcatArraySource(
-                        srcRef = ref,
-                        dstRef = resultArray,
-                        arrayType = argType,
-                        fromDst = copiedLength,
-                        length = length,
-                        preserveKnownPresence = preserveKnownPresence,
-                    )
-                    copiedLength = mkBvAddExpr(copiedLength, length)
-                } else {
-                    val newLength = mkBvAddExpr(copiedLength, mkBv(1))
-                    memory.write(mkArrayLengthLValue(resultArray, arrayType), newLength, guard = trueExpr)
-                    assignToArrayIndex(scope, resultArray, copiedLength, arg, arrayType) ?: return@calcOnState null
-                    copiedLength = newLength
-                }
-            }
+            copyConcatArrayArguments(
+                scope = scope,
+                arguments = stmt.args,
+                arrayTypes = arrayTypes,
+                argumentLengths = argumentLengths,
+                resultArray = resultArray,
+                arrayType = arrayType,
+                originalLength = originalLength,
+                preserveKnownPresence = preserveKnownPresence,
+            ) ?: return@calcOnState null
+
             memory.write(mkArrayLengthLValue(resultArray, arrayType), resultLength, guard = trueExpr)
             if (preserveKnownPresence) {
                 knownArrayPropertyPresence += resultArray
@@ -1327,6 +1332,54 @@ private fun TsExprResolver.handleArrayConcat(
             resultArray
         }
     )
+}
+
+private fun TsState.readConcatArgumentLengths(
+    arguments: List<UExpr<*>>,
+    arrayTypes: List<EtsArrayType?>,
+): List<UExpr<TsSizeSort>> = with(ctx) {
+    arrayTypes.mapIndexed { index, type ->
+        if (type == null) {
+            mkBv(1)
+        } else {
+            val ref = arguments[index].asExpr(addressSort)
+            memory.read(mkArrayLengthLValue(ref, type))
+        }
+    }
+}
+
+private fun TsState.copyConcatArrayArguments(
+    scope: TsStepScope,
+    arguments: List<UExpr<*>>,
+    arrayTypes: List<EtsArrayType?>,
+    argumentLengths: List<UExpr<TsSizeSort>>,
+    resultArray: UHeapRef,
+    arrayType: EtsArrayType,
+    originalLength: UExpr<TsSizeSort>,
+    preserveKnownPresence: Boolean,
+): Unit? = with(ctx) {
+    var copiedLength = originalLength
+    arguments.forEachIndexed { index, arg ->
+        val argType = arrayTypes[index]
+        if (argType != null) {
+            val ref = arg.asExpr(addressSort)
+            val length = argumentLengths[index]
+            copyConcatArraySource(
+                srcRef = ref,
+                dstRef = resultArray,
+                arrayType = argType,
+                fromDst = copiedLength,
+                length = length,
+                preserveKnownPresence = preserveKnownPresence,
+            )
+            copiedLength = mkBvAddExpr(copiedLength, length)
+        } else {
+            val newLength = mkBvAddExpr(copiedLength, mkBv(1))
+            memory.write(mkArrayLengthLValue(resultArray, arrayType), newLength, guard = trueExpr)
+            assignToArrayIndex(scope, resultArray, copiedLength, arg, arrayType) ?: return null
+            copiedLength = newLength
+        }
+    }
 }
 
 private fun TsState.copyConcatArraySource(
