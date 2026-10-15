@@ -455,8 +455,8 @@ private fun TsExprResolver.handleBooleanConstructor(expr: EtsInstanceCallExpr): 
     }
     val arg = resolve(expr.args.single()) ?: return null
 
-    val truthy = mkTruthyExpr(arg, scope)
     scope.ensureTruthinessSupported(arg) ?: return null
+    val truthy = mkTruthyExpr(arg, scope)
 
     truthy
 }

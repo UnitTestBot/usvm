@@ -24,6 +24,7 @@ import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.state.prepareStringBacking
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.types.single
@@ -162,6 +163,7 @@ private fun TsState.unsupportedTruthinessCondition(expr: UExpr<out USort>): UBoo
 
 /** Validate the execution path separately from constructing its boolean expression. */
 fun TsStepScope.ensureTruthinessSupported(expr: UExpr<out USort>): Unit? {
+    prepareTruthinessStringBacking(expr) ?: return null
     val unsupportedString = calcOnState { unsupportedTruthinessCondition(expr) }
     if (unsupportedString.isFalse) return Unit
 
@@ -169,6 +171,41 @@ fun TsStepScope.ensureTruthinessSupported(expr: UExpr<out USort>): Unit? {
     return fork(supported, blockOnFalseState = {
         terminateAsUnsupported(reason = "Truthiness needs a modeled string backing for dynamic references")
     })
+}
+
+private fun TsStepScope.prepareTruthinessStringBacking(
+    expr: UExpr<out USort>,
+    activeGuard: UBoolExpr = calcOnState { ctx.trueExpr },
+): Unit? {
+    val context = calcOnState { ctx }
+    val hasFakeBranches = with(context) {
+        expr.sort == addressSort && expr.asExpr(addressSort).hasFakeValueBranch()
+    }
+    if (expr is UIteExpr<*> && hasFakeBranches) {
+        val trueGuard = context.mkAnd(activeGuard, expr.condition)
+        val falseGuard = context.mkAnd(activeGuard, context.mkNot(expr.condition))
+        prepareTruthinessStringBacking(expr.trueBranch, trueGuard) ?: return null
+        return prepareTruthinessStringBacking(expr.falseBranch, falseGuard)
+    }
+
+    val isFake = with(context) { expr.isFakeObject() }
+    if (isFake) {
+        val fakeValue = expr as UConcreteHeapRef
+        val (reference, referenceGuard) = calcOnState {
+            with(ctx) {
+                val type = fakeValue.getFakeType(memory)
+                val guard = mkAnd(activeGuard, type.refTypeExpr)
+
+                memory.read(getIntermediateRefLValue(fakeValue.address)) to guard
+            }
+        }
+        return prepareStringBacking(reference, referenceGuard)
+    }
+    if (expr.sort == context.addressSort) {
+        return prepareStringBacking(expr.asExpr(context.addressSort), activeGuard)
+    }
+
+    return Unit
 }
 
 /** Construct a condition; call [ensureTruthinessSupported] before executing with it. */
