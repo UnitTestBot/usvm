@@ -22,6 +22,8 @@ import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.memcpy
 import org.usvm.api.readArrayIndex
 import org.usvm.api.typeStreamOf
+import org.usvm.collection.array.UArrayRegion
+import org.usvm.collection.array.UArrayRegionId
 import org.usvm.getIntValue
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
@@ -823,23 +825,37 @@ private fun TsExprResolver.handleArrayFill(
 
         if (hasResolvedElementSort) {
             initializeTypedArrayOverrides(array)
-            memory.initializeArray(
-                tempArray,
-                TsTypedArrayStorage.HAS_BOXED_VALUE,
-                boolSort,
-                sizeSort,
-                (0 until tempSize).asSequence().map { if (usesBoxedValue) trueExpr else falseExpr },
-            )
+
+            fun <Sort : USort> initializeTempMetadata(
+                type: TsTypedArrayStorage,
+                sort: Sort,
+                values: List<UExpr<Sort>>,
+            ) {
+                val regionId = UArrayRegionId<TsTypedArrayStorage, Sort, TsSizeSort>(type, sort)
+                val region = memory.getRegion(regionId)
+                check(region is UArrayRegion<TsTypedArrayStorage, Sort, TsSizeSort>) {
+                    "Cannot initialize typed array metadata in $region"
+                }
+
+                val initialized = region.initializeAllocatedArray(
+                    address = tempArray.address,
+                    arrayType = type,
+                    sort = sort,
+                    content = values,
+                    operationGuard = trueExpr,
+                    ownership = memory.ownership,
+                )
+                memory.setRegion(regionId, initialized)
+            }
+
+            val hasBoxedValue = if (usesBoxedValue) trueExpr else falseExpr
+            val overrideValues = List(tempSize) { hasBoxedValue }
+            initializeTempMetadata(TsTypedArrayStorage.HAS_BOXED_VALUE, boolSort, overrideValues)
 
             if (usesBoxedValue) {
                 val boxedFillValue = checkNotNull(boxedValue)
-                memory.initializeArray(
-                    tempArray,
-                    TsTypedArrayStorage.BOXED_VALUE,
-                    addressSort,
-                    sizeSort,
-                    (0 until tempSize).asSequence().map { boxedFillValue },
-                )
+                val boxedValues = List(tempSize) { boxedFillValue }
+                initializeTempMetadata(TsTypedArrayStorage.BOXED_VALUE, addressSort, boxedValues)
             }
         }
 

@@ -747,7 +747,7 @@ class TsExprResolver(
                     }
                     scope.doWithState {
                         // TODO: create proper exception
-                        methodResult = TsMethodResult.TsException(reason, EtsStringType)
+                        this.methodResult = TsMethodResult.TsException(reason, EtsStringType)
                     }
                     null
                 }
