@@ -12,6 +12,4 @@ internal fun testResourcePath(name: String): Path {
     return Path.of(resource.toURI())
 }
 
-internal fun testResourcesRoot(): Path = requireNotNull(testResourcePath("/properties").parent)
-
 private object TestResourceMarker
