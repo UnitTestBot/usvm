@@ -40,6 +40,12 @@ internal class FastCheckProcessTransport(
     private val shutdownGraceMillis: Long,
     private val useProcessSupervisor: Boolean = true,
 ) {
+    private val shutdownReserveMillis = if (useProcessSupervisor) {
+        shutdownGraceMillis + FORCED_TERMINATION_RESERVE_MILLIS
+    } else {
+        FORCED_TERMINATION_RESERVE_MILLIS
+    }
+
     init {
         require(maxRequestBytes > 0) { "Maximum request size must be positive" }
         require(maxStdoutBytes > 0) { "Maximum stdout size must be positive" }
@@ -84,6 +90,10 @@ internal class FastCheckProcessTransport(
         require(timeoutMillis > 0) { "Process timeout must be positive" }
         require(command.isNotEmpty()) { "Supervised command must not be empty" }
         requireRequestWithinLimit(request, description)
+
+        if (useProcessSupervisor && timeoutMillis <= shutdownReserveMillis) {
+            return timedOut(description, reportedTimeoutMillis)
+        }
 
         val deadlineNanos = deadlineAfter(timeoutMillis)
         val managedProcess = startProcess(command, description)
@@ -177,7 +187,7 @@ internal class FastCheckProcessTransport(
             tasks.forEach { task -> task.throwIfFailed(description) }
 
             val remainingMillis = remainingMillis(deadlineNanos)
-            if (remainingMillis <= FORCED_TERMINATION_RESERVE_MILLIS) {
+            if (remainingMillis <= shutdownReserveMillis) {
                 return false
             }
 
@@ -207,7 +217,7 @@ internal class FastCheckProcessTransport(
             if (ioCompleted) break
 
             val remainingMillis = remainingMillis(deadlineNanos)
-            if (remainingMillis <= FORCED_TERMINATION_RESERVE_MILLIS) {
+            if (remainingMillis <= shutdownReserveMillis) {
                 return false
             }
 

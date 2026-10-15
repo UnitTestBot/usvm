@@ -24,6 +24,18 @@ import kotlin.test.assertTrue
 
 class FastCheckWitnessTimeoutTest {
     @Test
+    fun `short replay budget reserves shutdown before starting a supervised adapter`() {
+        val client = FastCheckProcessClient(
+            nodeExecutable = "definitely-not-a-node-executable",
+            adapterEntryPoint = Path.of("unused"),
+        )
+
+        val result = client.witness(request = request(), remainingMillis = { 250L })
+
+        assertIs<FastCheckOperationResult.TimedOut>(result)
+    }
+
+    @Test
     fun `expired replay budget returns timeout without starting a process`() {
         val client = FastCheckProcessClient(
             nodeExecutable = "definitely-not-a-node-executable",
@@ -97,13 +109,89 @@ class FastCheckWitnessTimeoutTest {
             setInterval(() => {}, 1000);
             """.trimIndent(),
         )
-        val client = FastCheckProcessClient(adapterEntryPoint = adapter)
+        val executionBudgetMillis = 500L
+        val shutdownGraceMillis = 250L
+        val client = FastCheckProcessClient(adapterEntryPoint = adapter, shutdownGraceMillis = shutdownGraceMillis)
 
         try {
-            val result = client.witness(request = request(), remainingMillis = { 500L })
+            val result = client.witness(
+                request = request(),
+                remainingMillis = { executionBudgetMillis + shutdownGraceMillis },
+            )
 
             assertIs<FastCheckOperationResult.TimedOut>(result)
             assertTrue(Files.isRegularFile(pidFile), "The supervised adapter did not start")
+            val pid = pidFile.readText().toLong()
+            assertFalse(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false))
+        } finally {
+            directory.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `witness timeout lets its command complete cleanup within the existing shutdown grace`() {
+        val directory = createTempDirectory(prefix = "witness-timeout-cleanup-")
+        val adapter = directory.resolve("adapter.mjs")
+        val pidFile = directory.resolve("pid")
+        val cleanupFile = directory.resolve("cleaned")
+        adapter.writeText(
+            """
+            import { writeFileSync } from 'node:fs';
+            writeFileSync(${jsString(pidFile.toString())}, String(process.pid));
+            process.on('SIGTERM', () => setTimeout(() => {
+                writeFileSync(${jsString(cleanupFile.toString())}, 'cleaned');
+                process.exit(0);
+            }, 50));
+            setInterval(() => {}, 1000);
+            """.trimIndent(),
+        )
+        val client = FastCheckProcessClient(adapterEntryPoint = adapter, shutdownGraceMillis = 250)
+
+        try {
+            val result = client.witness(request = request(), remainingMillis = { 1_000L })
+
+            assertIs<FastCheckOperationResult.TimedOut>(result)
+            assertTrue(Files.isRegularFile(pidFile), "The supervised adapter did not start")
+            assertTrue(Files.isRegularFile(cleanupFile), "Timeout skipped the configured graceful shutdown")
+            val pid = pidFile.readText().toLong()
+            assertFalse(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false))
+        } finally {
+            directory.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `direct transport timeout still terminates and waits for its own process`() {
+        val directory = createTempDirectory(prefix = "direct-timeout-")
+        val adapter = directory.resolve("adapter.mjs")
+        val pidFile = directory.resolve("pid")
+        adapter.writeText(
+            """
+            import { writeFileSync } from 'node:fs';
+            writeFileSync(${jsString(pidFile.toString())}, String(process.pid));
+            setInterval(() => {}, 1000);
+            """.trimIndent(),
+        )
+        val transport = FastCheckProcessTransport(
+            nodeExecutable = "node",
+            maxRequestBytes = 1_024,
+            maxStdoutBytes = 1_024,
+            maxStderrBytes = 1_024,
+            shutdownGraceMillis = 250,
+            useProcessSupervisor = false,
+        )
+
+        try {
+            val result = transport.invokeWithResult(
+                command = listOf("node", adapter.toString()),
+                request = "{}",
+                timeoutMillis = 500,
+                reportedTimeoutMillis = 500,
+                description = "direct timeout adapter",
+            )
+
+            assertIs<FastCheckOperationResult.TimedOut>(result)
+            assertTrue(Files.isRegularFile(pidFile), "The direct adapter did not start")
             val pid = pidFile.readText().toLong()
             assertFalse(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false))
         } finally {
