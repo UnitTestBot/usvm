@@ -244,10 +244,12 @@ internal class FastCheckWitnessCoordinator(
 
         val target = candidate.target
         val binding = target.binding
+        val declaredCheck = property.assertions.any { assertion -> assertion.id == target.id }
+        val diagnosticCheck = property.predicate.checkResultExportName != null && declaredCheck
         val validCheck = target.role != WitnessRole.PROPERTY || if (binding == null) {
-            property.assertions.isEmpty() && target.id == property.predicate.exportName
+            diagnosticCheck || property.assertions.isEmpty() && target.id == property.predicate.exportName
         } else {
-            binding.pointId == target.id && property.assertions.any { assertion -> assertion.id == target.id }
+            binding.pointId == target.id && declaredCheck
         }
         if (!validCheck) return WitnessReplayStatus.UNSUPPORTED_REPLAY
 
@@ -423,7 +425,9 @@ internal class FastCheckWitnessCoordinator(
 
         fun sameTarget(actual: WitnessNativeReplay, expected: WitnessNativeReplay): Boolean =
             actual.admission == WitnessAdmission.ADMITTED && actual.targetMatched &&
-                actual.outcome == expected.outcome && actual.failure?.errorName == expected.failure?.errorName
+                actual.outcome == expected.outcome && actual.failure?.checkId == expected.failure?.checkId &&
+                actual.failure?.errorName == expected.failure?.errorName &&
+                actual.failure?.message == expected.failure?.message
 
         fun classify(replay: WitnessNativeReplay, candidate: ExternalWitnessCandidate): WitnessReplayStatus = when {
             replay.diagnostic == FastCheckDiagnosticCode.ENTRY_POINT_SOURCE_HASH_MISMATCH ->

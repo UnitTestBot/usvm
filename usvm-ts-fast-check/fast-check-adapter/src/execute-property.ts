@@ -8,6 +8,7 @@ import {
 import {
   EntryPointInvocationError,
   isNamedCheckFailure,
+  type NamedCheckFailure,
   type ExecutionKind,
   loadEntryPoint,
   verifySourceHash,
@@ -461,23 +462,28 @@ function failureDetails(details: RunDetails<[JsConcreteValue[]]>): FastCheckFail
     : details.errorInstance;
 
   if (isNamedCheckFailure(error)) {
-    const description = error.exception === undefined
-      ? describePropertyFailure(error)
-      : describePropertyFailure(error.exception.value);
-    return {
-      kind: 'property',
-      ...description,
-      checkId: error.checkId,
-      ...(error.exception === undefined ? {
-        actual: encodeJsValue(error.actual),
-        expected: encodeJsValue(error.expected),
-      } : {}),
-    };
+    return describeNamedCheckFailure(error);
   }
 
   return {
     kind: 'property',
     ...describePropertyFailure(error),
+  };
+}
+
+export function describeNamedCheckFailure(error: NamedCheckFailure): FastCheckFailureDetails {
+  const description = error.exception === undefined
+    ? describePropertyFailure(error)
+    : describePropertyFailure(error.exception.value);
+
+  return {
+    kind: 'property',
+    ...description,
+    checkId: error.checkId,
+    ...(error.exception === undefined ? {
+      actual: encodeJsValue(error.actual),
+      expected: encodeJsValue(error.expected),
+    } : {}),
   };
 }
 
