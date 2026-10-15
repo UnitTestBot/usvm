@@ -9,10 +9,14 @@ import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.usvm.CoverageZone
+import org.usvm.StateCollectionStrategy
 import org.usvm.api.TsTestValue
+import org.usvm.machine.TsMachine
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -60,6 +64,31 @@ class EtsDeclarationMergingTest : TsMethodTestRunner() {
             assertSame(runtime, resolved.single())
             assertEquals(2, orderedScene.projectClasses.size)
         }
+    }
+
+    @Test
+    fun `an explicit class coverage target selects the merged source runtime class`() {
+        val declarations = scene.projectClasses.filter { it.name == "DeclarationMergedEntry" }
+        val runtime = declarations.single { it.category == EtsClassCategory.CLASS }
+        val method = runtime.methods.single { it.name == "classify" }
+        val classOptions = options.copy(
+            coverageZone = CoverageZone.CLASS,
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = 0,
+        )
+
+        val result = TsMachine(
+            scene = scene,
+            options = classOptions,
+            tsOptions = tsOptions.copy(classCoverageTargets = setOf(runtime.signature)),
+        ).use { machine ->
+            machine.analyzeWithMetadata(methods = listOf(method))
+        }
+
+        assertFalse(result.engineFailed)
+        assertEquals(2, result.states.size)
+        assertTrue(result.states.all { it.entrypoint == method })
+        assertEquals(2, scene.projectClasses.count { it.signature == runtime.signature })
     }
 
     @Test

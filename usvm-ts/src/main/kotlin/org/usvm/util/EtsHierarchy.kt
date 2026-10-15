@@ -24,22 +24,10 @@ class EtsHierarchy(private val scene: EtsScene) {
             .mapValues { (_, classes) ->
                 classes
                     .groupBy { it.signature }
-                    .mapValues { (_, declarations) -> resolveDeclaration(declarations) }
+                    .mapValues { (_, declarations) -> canonicalClassDeclarations(declarations).single() }
                     .let { HashMap(it) }
             }
             .let { HashMap(it) }
-    }
-
-    /** Class/interface declaration merging augments a type without adding another runtime class. */
-    private fun resolveDeclaration(declarations: List<EtsClass>): EtsClass {
-        val runtimeClass = declarations.singleOrNull { it.category == EtsClassCategory.CLASS }
-        val hasOnlyInterfaceAugmentations = declarations.all {
-            it === runtimeClass || it.category == EtsClassCategory.INTERFACE
-        }
-        val isClassInterfaceMerge = runtimeClass != null && hasOnlyInterfaceAugmentations
-        if (isClassInterfaceMerge) return requireNotNull(runtimeClass)
-
-        return declarations.single()
     }
 
     private val ancestors: Map<EtsClass, Set<EtsClass>> by lazy {
@@ -203,6 +191,18 @@ class EtsHierarchy(private val scene: EtsScene) {
             ),
         )
     }
+}
+
+/** Class/interface declaration merging augments a type without adding another runtime class. */
+internal fun canonicalClassDeclarations(declarations: List<EtsClass>): List<EtsClass> {
+    val runtimeClass = declarations.singleOrNull { it.category == EtsClassCategory.CLASS }
+    val hasOnlyInterfaceAugmentations = declarations.all {
+        it === runtimeClass || it.category == EtsClassCategory.INTERFACE
+    }
+    val isClassInterfaceMerge = runtimeClass != null && hasOnlyInterfaceAugmentations
+    if (isClassInterfaceMerge) return listOf(requireNotNull(runtimeClass))
+
+    return declarations
 }
 
 fun ClassName.nameWithoutGenerics(): ClassName {
