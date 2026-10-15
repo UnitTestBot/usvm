@@ -132,7 +132,9 @@ class TsTypeSystemTest {
             val clazz = EtsClassImpl(
                 signature = classSignature,
                 fields = listOf(
-                    EtsFieldImpl(EtsFieldSignature(enclosingClass = classSignature, name = fieldName, type = EtsNumberType)),
+                    EtsFieldImpl(
+                        EtsFieldSignature(enclosingClass = classSignature, name = fieldName, type = EtsNumberType),
+                    ),
                 ),
                 methods = emptyList(),
             )

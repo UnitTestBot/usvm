@@ -6,8 +6,8 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsType
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
-import org.usvm.UIteExpr
 import org.usvm.UExpr
+import org.usvm.UIteExpr
 import org.usvm.UMachineOptions
 import org.usvm.USort
 import org.usvm.collections.immutable.internal.MutabilityOwnership

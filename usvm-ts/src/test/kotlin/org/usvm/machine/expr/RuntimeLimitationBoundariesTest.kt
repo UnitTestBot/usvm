@@ -158,7 +158,10 @@ class RuntimeLimitationBoundariesTest : TsMethodTestRunner() {
 
     @Test
     fun `unmodeled binary numeric conversion stops while a stored numeric sibling returns`() {
-        assertUnsupportedNumericSibling(methodName = "unsupportedNumericBinaryConversionOrSupportedSibling", expected = 6.0)
+        assertUnsupportedNumericSibling(
+            methodName = "unsupportedNumericBinaryConversionOrSupportedSibling",
+            expected = 6.0,
+        )
     }
 
     @Test

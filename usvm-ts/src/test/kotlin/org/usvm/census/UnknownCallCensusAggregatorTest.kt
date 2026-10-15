@@ -1,8 +1,8 @@
 package org.usvm.census
 
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class UnknownCallCensusAggregatorTest {
@@ -110,7 +110,8 @@ class UnknownCallCensusAggregatorTest {
     @Test
     fun `unsupported current method and project statuses report raw line and value`() {
         val cases = listOf(
-            methodRecord(functionId = "project:file:fn", status = "future_method") to "method_result status 'future_method'",
+            methodRecord(functionId = "project:file:fn", status = "future_method") to
+                "method_result status 'future_method'",
             projectRecord(projectId = "project", status = "future_project") to "project_result status 'future_project'",
         )
 
@@ -128,7 +129,8 @@ class UnknownCallCensusAggregatorTest {
         """{"kind":"run_start","schemaVersion":$schemaVersion,"startedAt":"2026-10-15T00:00:00Z"}"""
 
     private fun runResult(schemaVersion: Int = 2, status: String = "completed"): String =
-        """{"kind":"run_result","schemaVersion":$schemaVersion,"startedAt":"2026-10-15T00:00:00Z","finishedAt":"2026-10-15T00:01:00Z","status":"$status"}"""
+        """{"kind":"run_result","schemaVersion":$schemaVersion,"startedAt":"2026-10-15T00:00:00Z",""" +
+            """"finishedAt":"2026-10-15T00:01:00Z","status":"$status"}"""
 
     private fun unknownCallRecord(siteId: String, failureReason: String): String = """
         {

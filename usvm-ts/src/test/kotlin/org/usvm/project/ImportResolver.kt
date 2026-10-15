@@ -38,19 +38,19 @@ class ImportResolverTest {
 
     @BeforeAll
     fun setupScene() {
-        println("\n--- Setting up scene for import resolution tests ---")
+        logger.info { "\n--- Setting up scene for import resolution tests ---" }
         scene = run {
             val path = TEST_PROJECT_PATH
-            println("Loading project from resources: $path")
+            logger.info { "Loading project from resources: $path" }
             val projectPath = getResourcePathOrNull(path)
             if (projectPath == null) {
                 logger.warn { "Project '$path' not found in resources. Ensure the project is available." }
                 abort()
             }
 
-            println("Loading project from path: $projectPath")
+            logger.info { "Loading project from path: $projectPath" }
             val projectScene = loadEtsProjectAutoConvert(projectPath)
-            println("Project loaded: ${projectScene.projectName} with ${projectScene.projectFiles.size} files")
+            logger.info { "Project loaded: ${projectScene.projectName} with ${projectScene.projectFiles.size} files" }
             assertTrue(
                 projectScene.projectFiles.isNotEmpty(),
                 "No project files found in the project at '$path'. Ensure the project is correctly set up."
@@ -63,16 +63,16 @@ class ImportResolverTest {
                 "/sdk/ohos/5.0.1.111/ets/kits",
                 "/sdk/typescript",
             ).map {
-                println("Loading SDK from resource: $it")
+                logger.info { "Loading SDK from resource: $it" }
                 val sdkPath = getResourcePathOrNull(it)
                 assertNotNull(
                     sdkPath,
                     "SDK path '$it' not found in resources. Ensure the SDK is available."
                 )
 
-                println("Loading SDK from path: $sdkPath")
+                logger.info { "Loading SDK from path: $sdkPath" }
                 val sdkScene = loadEtsProjectAutoConvert(sdkPath, useArkAnalyzerTypeInference = null)
-                println("SDK loaded: ${sdkScene.projectName} with ${sdkScene.projectFiles.size} files")
+                logger.info { "SDK loaded: ${sdkScene.projectName} with ${sdkScene.projectFiles.size} files" }
                 assertTrue(
                     sdkScene.projectFiles.isNotEmpty(),
                     "No SDK files found in the SDK at '$it'. Ensure the SDK is correctly set up."
@@ -81,7 +81,7 @@ class ImportResolverTest {
                 sdkScene
             }
 
-            println("Merging project and SDK files...")
+            logger.info { "Merging project and SDK files..." }
             EtsScene(
                 projectFiles = projectScene.projectFiles,
                 sdkFiles = sdks.flatMap { it.projectFiles },
@@ -89,13 +89,15 @@ class ImportResolverTest {
             )
         }
 
-        println("Scene loaded with ${scene.projectFiles.size} project files and ${scene.sdkFiles.size} SDK files")
+        logger.info {
+            "Scene loaded with ${scene.projectFiles.size} project files and ${scene.sdkFiles.size} SDK files"
+        }
     }
 
     @Test
     @DisplayName("Report file-level import resolution across project files")
     fun reportFileImportResolution() {
-        println("\n--- Reporting file-level import resolution ---")
+        logger.info { "\n--- Reporting file-level import resolution ---" }
 
         val allFiles = scene.projectFiles
         var totalImports = 0
@@ -107,9 +109,9 @@ class ImportResolverTest {
             val imports = currentFile.importInfos
 
             if (imports.isEmpty()) {
-                println("\n[${index + 1}/${allFiles.size}] File: $fileName (no imports)")
+                logger.info { "\n[${index + 1}/${allFiles.size}] File: $fileName (no imports)" }
             } else {
-                println("\n[${index + 1}/${allFiles.size}] File: $fileName (${imports.size} imports)")
+                logger.info { "\n[${index + 1}/${allFiles.size}] File: $fileName (${imports.size} imports)" }
 
                 imports.forEach { importInfo ->
                     totalImports++
@@ -117,31 +119,31 @@ class ImportResolverTest {
                     when (val result = scene.resolveImport(currentFile, importInfo.from)) {
                         is ImportResolutionResult.Success -> {
                             successfulImports++
-                            println(
+                            logger.info {
                                 "  ✅ '${importInfo.name}' from '${importInfo.from}' -> '${result.file.signature.fileName}'" +
                                     " (type: ${importInfo.type})"
-                            )
+                            }
                         }
 
                         is ImportResolutionResult.NotFound -> {
                             failedImports++
-                            println(
+                            logger.info {
                                 "  ❌ '${importInfo.name}' from '${importInfo.from}' -> ${result.reason}" +
                                     " (type: ${importInfo.type})"
-                            )
+                            }
                         }
                     }
                 }
             }
         }
 
-        println("\n--- File Import Resolution Summary ---")
-        println("Total imports found: $totalImports")
-        println("Successfully resolved files: $successfulImports")
-        println("Failed to resolve files: $failedImports")
+        logger.info { "\n--- File Import Resolution Summary ---" }
+        logger.info { "Total imports found: $totalImports" }
+        logger.info { "Successfully resolved files: $successfulImports" }
+        logger.info { "Failed to resolve files: $failedImports" }
         if (totalImports > 0) {
             val successRate = (successfulImports.toDouble() / totalImports * 100).toInt()
-            println("File resolution success rate: $successRate%")
+            logger.info { "File resolution success rate: $successRate%" }
         }
 
         assertTrue(totalImports > 0, "Should find at least some imports in the project files")
@@ -150,7 +152,7 @@ class ImportResolverTest {
     @Test
     @DisplayName("Report symbol resolution across project imports")
     fun reportSymbolResolution() {
-        println("\n--- Reporting symbol resolution ---")
+        logger.info { "\n--- Reporting symbol resolution ---" }
 
         val allFiles = scene.projectFiles
         var totalSymbols = 0
@@ -163,9 +165,9 @@ class ImportResolverTest {
             val imports = currentFile.importInfos
 
             if (imports.isEmpty()) {
-                println("\n[${index + 1}/${allFiles.size}] File: '$fileName' (no imports)")
+                logger.info { "\n[${index + 1}/${allFiles.size}] File: '$fileName' (no imports)" }
             } else {
-                println("\n[${index + 1}/${allFiles.size}] File: '$fileName' (${imports.size} imports)")
+                logger.info { "\n[${index + 1}/${allFiles.size}] File: '$fileName' (${imports.size} imports)" }
 
                 imports.forEach { importInfo ->
                     totalSymbols++
@@ -176,36 +178,36 @@ class ImportResolverTest {
                         is SymbolResolutionResult.Success -> {
                             successfulSymbols++
                             val exportInfo = result.exportInfo
-                            println(
+                            logger.info {
                                 "  🎯 '${importInfo.name}' from '${importInfo.from}' -> '${result.file.signature.fileName}'" +
                                     " exports: ${getExportDescription(exportInfo)} (import type: ${importInfo.type})"
-                            )
+                            }
                         }
 
                         is SymbolResolutionResult.FileNotFound -> {
                             fileNotFoundSymbols++
-                            println(
+                            logger.info {
                                 "  📁❌ '${importInfo.name}' from '${importInfo.from}' -> ${result.reason}" +
                                     " (import type: ${importInfo.type})"
-                            )
+                            }
                         }
 
                         is SymbolResolutionResult.SymbolNotFound -> {
                             symbolNotFoundSymbols++
-                            println(
+                            logger.info {
                                 "  🔍❌ '${importInfo.name}' from '${importInfo.from}' -> ${result.reason}" +
                                     " (import type: ${importInfo.type})"
-                            )
+                            }
                             val availableExports = result.file.exportInfos
                             if (availableExports.isNotEmpty()) {
                                 val exportNames = availableExports.map { it.name }.take(5)
-                                println(
+                                logger.info {
                                     "      Available exports: ${
                                         exportNames.joinToString(", ")
                                     }${
                                         if (availableExports.size > 5) " ..." else ""
                                     }"
-                                )
+                                }
                             }
                         }
                     }
@@ -213,14 +215,14 @@ class ImportResolverTest {
             }
         }
 
-        println("\n--- Complete Symbol Resolution Summary ---")
-        println("Total symbols to resolve: $totalSymbols")
-        println("Successfully resolved symbols: $successfulSymbols")
-        println("File not found: $fileNotFoundSymbols")
-        println("Symbol not found in file: $symbolNotFoundSymbols")
+        logger.info { "\n--- Complete Symbol Resolution Summary ---" }
+        logger.info { "Total symbols to resolve: $totalSymbols" }
+        logger.info { "Successfully resolved symbols: $successfulSymbols" }
+        logger.info { "File not found: $fileNotFoundSymbols" }
+        logger.info { "Symbol not found in file: $symbolNotFoundSymbols" }
         if (totalSymbols > 0) {
             val symbolSuccessRate = (successfulSymbols.toDouble() / totalSymbols * 100).toInt()
-            println("Complete symbol resolution success rate: $symbolSuccessRate%")
+            logger.info { "Complete symbol resolution success rate: $symbolSuccessRate%" }
         }
 
         assertTrue(totalSymbols > 0, "Should find at least some symbols to resolve in the project files")
@@ -229,7 +231,7 @@ class ImportResolverTest {
     @Test
     @DisplayName("Report common import probes and check path normalization")
     fun reportCommonImportPatterns() {
-        println("\n--- Reporting common import probes ---")
+        logger.info { "\n--- Reporting common import probes ---" }
 
         Assumptions.assumeTrue(
             scene.projectFiles.isNotEmpty(),
@@ -237,7 +239,7 @@ class ImportResolverTest {
         )
 
         val testFile = scene.projectFiles.first()
-        println("Using test file: ${testFile.signature.fileName}")
+        logger.info { "Using test file: ${testFile.signature.fileName}" }
 
         // Probe paths may be absent from the optional demo project.
         val testCases = mapOf(
@@ -269,24 +271,24 @@ class ImportResolverTest {
         var successfulImports = 0
 
         testCases.forEach { (category, imports) ->
-            println("\n$category:")
+            logger.info { "\n$category:" }
             imports.forEach { importPath ->
                 totalTestedImports++
                 when (val result = scene.resolveImport(testFile, importPath)) {
                     is ImportResolutionResult.Success -> {
                         successfulImports++
-                        println("  ✓ '$importPath' resolved to '${result.file.signature.fileName}'")
+                        logger.info { "  ✓ '$importPath' resolved to '${result.file.signature.fileName}'" }
                     }
 
                     is ImportResolutionResult.NotFound -> {
-                        println("  ✗ '$importPath' failed: ${result.reason}")
+                        logger.info { "  ✗ '$importPath' failed: ${result.reason}" }
                     }
                 }
             }
         }
 
         // Test path normalization
-        println("\nPath Normalization Tests:")
+        logger.info { "\nPath Normalization Tests:" }
         val normalizationTests = listOf(
             "./a/../b" to "b",
             "a/./b" to "a/b",
@@ -300,25 +302,25 @@ class ImportResolverTest {
             val result = normalizeRelativePath(input)
             val status = if (result == expected) "✓" else "✗"
             if (result == expected) correctNormalizations++
-            println("  $status '$input' -> '$result' (expected: '$expected')")
+            logger.info { "  $status '$input' -> '$result' (expected: '$expected')" }
         }
 
         // Summary statistics
-        println("\n--- Summary ---")
-        println("Project files: ${scene.projectFiles.size}")
-        println("SDK files: ${scene.sdkFiles.size}")
-        println("Total files: ${scene.projectAndSdkClasses.size}")
-        println("Total imports in project files: ${scene.projectFiles.sumOf { it.importInfos.size }}")
+        logger.info { "\n--- Summary ---" }
+        logger.info { "Project files: ${scene.projectFiles.size}" }
+        logger.info { "SDK files: ${scene.sdkFiles.size}" }
+        logger.info { "Total files: ${scene.projectAndSdkClasses.size}" }
+        logger.info { "Total imports in project files: ${scene.projectFiles.sumOf { it.importInfos.size }}" }
 
         val projectFilesByExtension = scene.projectFiles.groupBy {
             it.signature.fileName.substringAfterLast(".", "no-ext")
         }
-        println("Project files by extension: ${projectFilesByExtension.mapValues { it.value.size }}")
+        logger.info { "Project files by extension: ${projectFilesByExtension.mapValues { it.value.size }}" }
 
         val sdkFilesByExtension = scene.sdkFiles.groupBy {
             it.signature.fileName.substringAfterLast(".", "no-ext")
         }
-        println("SDK files by extension: ${sdkFilesByExtension.mapValues { it.value.size }}")
+        logger.info { "SDK files by extension: ${sdkFilesByExtension.mapValues { it.value.size }}" }
 
         // Assertions
         assertTrue(scene.projectFiles.isNotEmpty(), "Should have at least one project file")

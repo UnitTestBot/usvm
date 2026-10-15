@@ -247,7 +247,9 @@ class TsContextFactoryTest {
     @Test
     fun `primitive intersections share storage and mixed or empty intersections stay unresolved`() {
         val numberIntersection = EtsIntersectionType(types = listOf(EtsNumberType, EtsNumberLiteralType(value = 7.0)))
-        val booleanIntersection = EtsIntersectionType(types = listOf(EtsBooleanType, EtsBooleanLiteralType(value = true)))
+        val booleanIntersection = EtsIntersectionType(
+            types = listOf(EtsBooleanType, EtsBooleanLiteralType(value = true)),
+        )
         val elementTypes = listOf(
             numberIntersection,
             alias(name = "Intersection", originalType = numberIntersection),

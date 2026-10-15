@@ -8,8 +8,8 @@ import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStaticCallExpr
 import org.jacodb.ets.model.EtsStmt
-import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
+import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
