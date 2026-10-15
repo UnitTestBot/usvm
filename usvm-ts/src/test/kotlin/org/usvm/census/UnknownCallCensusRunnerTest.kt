@@ -126,6 +126,45 @@ class UnknownCallCensusRunnerTest {
     }
 
     @Test
+    fun `bounded process output terminates an observed child after its parent exits`() {
+        val temporaryRoot = createTempDirectory("census-process-test-")
+        val childPidFile = temporaryRoot.resolve("child.pid")
+        try {
+            val start = TimeSource.Monotonic.markNow()
+            val result = boundedProcessOutput(
+                command = listOf(
+                    "sh",
+                    "-c",
+                    // A timing window lets the polling loop observe the child before its parent exits.
+                    "sleep 30 & child=\$!; printf %s \"\$child\" > \"\$1\"; sleep 0.2",
+                    "census-exited-parent-test",
+                    childPidFile.toString(),
+                ),
+                timeout = 500.milliseconds,
+                maxOutputBytes = 1_024,
+            )
+
+            assertEquals(BoundedProcessOutput.TimedOut, result)
+            assertTrue(start.elapsedNow() < 3.seconds)
+
+            val childPid = Files.readString(childPidFile).toLong()
+            val childIsAlive = ProcessHandle.of(childPid)
+                .map(ProcessHandle::isAlive)
+                .orElse(false)
+            assertFalse(childIsAlive)
+        } finally {
+            try {
+                val childPid = runCatching { Files.readString(childPidFile).trim().toLong() }.getOrNull()
+                childPid?.let { pid ->
+                    ProcessHandle.of(pid).ifPresent { child -> child.destroyForcibly() }
+                }
+            } finally {
+                temporaryRoot.toFile().deleteRecursively()
+            }
+        }
+    }
+
+    @Test
     fun `elapsed timeout preserves a partial failure`() {
         val outcome = methodOutcomeAfterTimeoutCheck(
             status = MethodStatus.PARTIAL,
