@@ -41,6 +41,7 @@ import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.stopstrategies.createStopStrategy
 import org.usvm.util.TsStateVisualizer
+import org.usvm.util.canonicalClassDeclarations
 import org.usvm.util.humanReadableSignature
 import kotlin.time.Duration.Companion.seconds
 
@@ -333,7 +334,9 @@ class TsMachine(
                 }
             }
         } else {
-            val classesBySignature = runtimeScene.projectAndSdkClasses.groupBy { owner -> owner.signature }
+            val classesBySignature = runtimeScene.projectAndSdkClasses
+                .groupBy { owner -> owner.signature }
+                .mapValues { (_, declarations) -> canonicalClassDeclarations(declarations) }
             val unresolvedTargets = targets.filter { target -> classesBySignature[target]?.size != 1 }
             require(unresolvedTargets.isEmpty()) {
                 "Class coverage targets must identify one scene class each: $unresolvedTargets"
