@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import zipfile
 
 SMOKE_SCRIPT = Path(__file__).with_name('run-class-start-smoke.py')
 SPEC = importlib.util.spec_from_file_location('startup', SMOKE_SCRIPT)
@@ -18,6 +19,28 @@ EXPECTED_CLASSES = 200
 MINIMUM_STARTS = 180
 BUDGET_MILLIS = 30_000
 SEED = 17
+
+
+def runtime_catalog(calls):
+    catalog = json.loads(subprocess.check_output([str(calls), 'class-catalog'], text=True, timeout=60))
+    resource = 'org/usvm/ts/calls/build.properties'
+    identities = []
+    for jar_path in sorted((calls.parent.parent / 'lib').glob('*.jar')):
+        with zipfile.ZipFile(jar_path) as jar:
+            if resource not in jar.namelist():
+                continue
+            lines = jar.read(resource).decode('utf-8').splitlines()
+            properties = dict(line.split('=', 1) for line in lines if '=' in line and not line.startswith('#'))
+            identities.append(properties)
+    if len(identities) != 1:
+        raise ValueError('Expected exactly one packaged Calls build identity')
+    identity = identities[0]
+    if catalog['toolRevision'] != identity.get('tool.revision'):
+        raise ValueError('Catalog differs from the packaged Calls revision')
+    frontend = identity.get('native.frontend.revision')
+    if not frontend:
+        raise ValueError('Packaged Calls build has no native frontend identity')
+    return {**catalog, 'nativeFrontendRevision': frontend}
 
 
 def verify_startup_gate(manifest, results, fingerprint):
@@ -121,7 +144,7 @@ def main():
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     calls = args.calls.resolve(strict=True)
-    catalog = json.loads(subprocess.check_output([str(calls), 'class-catalog'], text=True, timeout=60))
+    catalog = runtime_catalog(calls)
     runtime = startup.runtime_identity(calls)
     startup_identity = startup.read(args.startup_summary.resolve(strict=True).parent / 'identity.json')
     if startup_identity.get('manifestSha256') != startup.sha(manifest_path) or startup_identity.get('runtime') != runtime:

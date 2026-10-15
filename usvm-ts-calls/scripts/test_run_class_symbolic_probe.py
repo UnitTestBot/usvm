@@ -2,6 +2,8 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+import zipfile
 
 SPEC = importlib.util.spec_from_file_location('probe', Path(__file__).with_name('run-class-symbolic-probe.py'))
 probe = importlib.util.module_from_spec(SPEC)
@@ -9,6 +11,36 @@ SPEC.loader.exec_module(probe)
 
 
 class SymbolicProbeIntegrityTest(unittest.TestCase):
+    def test_real_catalog_schema_gets_frontend_from_packaged_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            calls = directory / 'bin/calls'
+            library = directory / 'lib'
+            library.mkdir()
+            with zipfile.ZipFile(library / 'calls.jar', 'w') as jar:
+                jar.writestr('org/usvm/ts/calls/build.properties',
+                             'tool.revision=frozen-build\nnative.frontend.revision=bundled:frozen-frontend\n')
+
+            with patch.object(probe.subprocess, 'check_output', return_value='{"toolRevision":"frozen-build","ids":["m"]}'):
+                catalog = probe.runtime_catalog(calls)
+
+            self.assertEqual('bundled:frozen-frontend', catalog['nativeFrontendRevision'])
+            self.assertEqual(['m'], catalog['ids'])
+
+    def test_catalog_rejects_mismatched_packaged_build(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            calls = directory / 'bin/calls'
+            library = directory / 'lib'
+            library.mkdir()
+            with zipfile.ZipFile(library / 'calls.jar', 'w') as jar:
+                jar.writestr('org/usvm/ts/calls/build.properties',
+                             'tool.revision=different-build\nnative.frontend.revision=bundled:frozen-frontend\n')
+
+            with patch.object(probe.subprocess, 'check_output', return_value='{"toolRevision":"frozen-build","ids":[]}'):
+                with self.assertRaisesRegex(ValueError, 'packaged Calls revision'):
+                    probe.runtime_catalog(calls)
+
     def gate_fixture(self, qualifying):
         classes = [{'classId': f'c{i}', 'identity': f'original-{i}', 'acquisitionComplete': i < qualifying}
                    for i in range(200)]
