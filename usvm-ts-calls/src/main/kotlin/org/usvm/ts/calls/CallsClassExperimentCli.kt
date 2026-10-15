@@ -435,71 +435,70 @@ private fun replayClassCandidates(
         )
     }
     val scenarios = source.record.scenarios.withIndex().associate { it.value.id to it.index }
-    for (index in search.search.candidates.indices.drop(events.size)) {
-        source.verify()
-        val candidate = search.search.candidates[index]
-        val scenarioId = requireNotNull(candidate.entryPointId)
-        val scenarioIndex = scenarios.getValue(scenarioId)
-        val function = source.record.functions[scenarioIndex]
-        val observations = source.record.observations[scenarioIndex]
-        val replayStarted = TimeSource.Monotonic.markNow()
-        val original = runCatching {
-            OriginalTypeScriptClassReplayer(
-                sourceRoot = source.harness.sourceRoot,
-                function = function,
-                observationFields = observations,
-            ).use { it.replay(inputs = candidate.inputs, timeoutMillis = CLASS_REPLAY_TIMEOUT_MILLIS) }
-        }
-        val instrumentation = source.record.instrumentation
-        val instrumented = runCatching {
-            OriginalTypeScriptClassReplayer(
-                sourceRoot = source.harness.sourceRoot,
-                function = function,
-                observationFields = observations,
-                sourceOverride = instrumentation.instrumentedSource,
-                overrideSourceFile = source.record.classCase.surface.sourceFile,
-                counterGlobalName = instrumentation.hitGlobalName,
-            ).use { it.replay(inputs = candidate.inputs, timeoutMillis = CLASS_REPLAY_TIMEOUT_MILLIS) }
-        }
-        source.verify()
-        val originalValue = original.getOrNull()
-        val instrumentedValue = instrumented.getOrNull()
-        val validation = runCatching {
-            require(originalValue != null && instrumentedValue != null) { "Concrete replay failed" }
-            require(originalValue.inputs == candidate.inputs && instrumentedValue.inputs == candidate.inputs) {
-                "Class replay input snapshot differs from candidate"
+    CallsClassScenarioReplayers(source.harness, source.record.instrumentation).use { replayers ->
+        for (index in search.search.candidates.indices.drop(events.size)) {
+            source.verify()
+            val candidate = search.search.candidates[index]
+            val scenarioId = requireNotNull(candidate.entryPointId)
+            val scenarioIndex = scenarios.getValue(scenarioId)
+            val replayStarted = TimeSource.Monotonic.markNow()
+            val original = runCatching {
+                replayers.replay(
+                    scenarioIndex = scenarioIndex,
+                    inputs = candidate.inputs,
+                    timeoutMillis = CLASS_REPLAY_TIMEOUT_MILLIS,
+                    instrumented = false,
+                )
             }
-            instrumentation.universe.checkedCoveredIds(instrumentedValue.coveredStatementKeys)
-            classCandidateStrictOracle(candidate, originalValue, instrumentedValue)
-        }
-        val failures = listOfNotNull(
-            original.exceptionOrNull()?.let { "original: ${it.message ?: it::class.java.name}" },
-            instrumented.exceptionOrNull()?.let { "instrumented: ${it.message ?: it::class.java.name}" },
-            validation.exceptionOrNull()?.let { "validation: ${it.message ?: it::class.java.name}" },
-        )
-        val replayError = failures.takeIf { it.isNotEmpty() }?.joinToString(separator = "; ")
-        val event = CallsClassReplayEvent(
-            index = index,
-            scenarioId = scenarioId,
-            original = originalValue,
-            instrumented = instrumentedValue,
-            oracle = validation.getOrNull() ?: CallsClassOracleResult(
-                accepted = false,
-                diagnostic = "Concrete replay failed",
-            ),
-            error = replayError,
-            replayElapsedMillis = replayStarted.elapsedNow().inWholeMilliseconds,
-            nativeCoverage = callsClassNativeCoverageAcceptance(
+            val instrumentation = source.record.instrumentation
+            val instrumented = runCatching {
+                replayers.replay(
+                    scenarioIndex = scenarioIndex,
+                    inputs = candidate.inputs,
+                    timeoutMillis = CLASS_REPLAY_TIMEOUT_MILLIS,
+                    instrumented = true,
+                )
+            }
+            source.verify()
+            val originalValue = original.getOrNull()
+            val instrumentedValue = instrumented.getOrNull()
+            val validation = runCatching {
+                require(originalValue != null && instrumentedValue != null) { "Concrete replay failed" }
+                require(originalValue.inputs == candidate.inputs && instrumentedValue.inputs == candidate.inputs) {
+                    "Class replay input snapshot differs from candidate"
+                }
+                instrumentation.universe.checkedCoveredIds(instrumentedValue.coveredStatementKeys)
+                classCandidateStrictOracle(candidate, originalValue, instrumentedValue)
+            }
+            val failures = listOfNotNull(
+                original.exceptionOrNull()?.let { "original: ${it.message ?: it::class.java.name}" },
+                instrumented.exceptionOrNull()?.let { "instrumented: ${it.message ?: it::class.java.name}" },
+                validation.exceptionOrNull()?.let { "validation: ${it.message ?: it::class.java.name}" },
+            )
+            val replayError = failures.takeIf { it.isNotEmpty() }?.joinToString(separator = "; ")
+            val event = CallsClassReplayEvent(
+                index = index,
+                scenarioId = scenarioId,
                 original = originalValue,
                 instrumented = instrumentedValue,
-                universe = instrumentation.universe,
+                oracle = validation.getOrNull() ?: CallsClassOracleResult(
+                    accepted = false,
+                    diagnostic = "Concrete replay failed",
+                ),
                 error = replayError,
-            ),
-            origin = candidate.origin,
-            strictOracleApplicable = candidate.origin == CallsCoverageCandidateOrigin.TERMINATED,
-        )
-        appendCallsJournalDurably(path, encodeCallsArtifact(event))
-        events += event
+                replayElapsedMillis = replayStarted.elapsedNow().inWholeMilliseconds,
+                nativeCoverage = callsClassNativeCoverageAcceptance(
+                    original = originalValue,
+                    instrumented = instrumentedValue,
+                    universe = instrumentation.universe,
+                    error = replayError,
+                ),
+                origin = candidate.origin,
+                strictOracleApplicable = candidate.origin == CallsCoverageCandidateOrigin.TERMINATED,
+            )
+            appendCallsJournalDurably(path, encodeCallsArtifact(event))
+            events += event
+        }
     }
 
     return events

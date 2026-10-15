@@ -2,6 +2,7 @@ package org.usvm.ts.calls
 
 import org.junit.jupiter.api.io.TempDir
 import org.usvm.SolverType
+import org.usvm.ts.pbt.fastcheck.PbtBackendException
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
@@ -59,6 +60,103 @@ class CallsClassHarnessOracleTest {
             assertEquals(JsConcreteValue.Undefined, first.observation.values["result_0"])
             assertEquals(number(3), second.observation.values["state_0_count"])
             assertEquals(number(4), second.observation.values["result_1"])
+        }
+    }
+
+    @Test
+    fun `cached scenario preparation keeps fresh module state inputs and counters for every replay`() {
+        val statefulSource = "let replayRuns = 0;\n" + source.replace(
+            "this.count = start;",
+            "replayRuns++; this.count = start + replayRuns; if (start === 0) this.count += 10;",
+        )
+        Files.writeString(directory.resolve("Counter.ts"), statefulSource)
+        val harness = prepareCallsClassHarness(directory, project(), surface())
+        val instrumentation = CallsClassSourceInstrumentation.create(
+            sourceRoot = directory,
+            sourceFile = "Counter.ts",
+            className = "Counter",
+        )
+
+        val observations = CallsClassScenarioReplayers(harness, instrumentation).use { replayers ->
+            listOf(2, 0, 2).map { start ->
+                val inputs = listOf(number(start))
+                val original = replayers.replay(
+                    scenarioIndex = 0,
+                    inputs = inputs,
+                    timeoutMillis = 20_000,
+                    instrumented = false,
+                )
+                val instrumented = replayers.replay(
+                    scenarioIndex = 0,
+                    inputs = inputs,
+                    timeoutMillis = 20_000,
+                    instrumented = true,
+                )
+
+                assertEquals(inputs, original.inputs)
+                assertEquals(inputs, instrumented.inputs)
+                val nativeCoverage = callsClassNativeCoverageAcceptance(
+                    original,
+                    instrumented,
+                    instrumentation.universe,
+                )
+                assertTrue(nativeCoverage.accepted)
+                original to instrumented
+            }
+        }
+
+        val initialStates = observations.map { it.first.observation.values.getValue("state_0_count") }
+        assertEquals(listOf(number(3), number(11), number(3)), initialStates)
+        assertEquals(observations.first().second.coveredStatementKeys, observations.last().second.coveredStatementKeys)
+        val branchOnlyHits = observations[1].second.coveredStatementKeys - observations[0].second.coveredStatementKeys
+        assertTrue(branchOnlyHits.isNotEmpty())
+    }
+
+    @Test
+    fun `cached replay timeout never returns a preceding observation and next input still succeeds`() {
+        val sourceWithLoop = source.replace(
+            "this.count = start;",
+            "if (start === 1) while (true) {} this.count = start;",
+        )
+        Files.writeString(directory.resolve("Counter.ts"), sourceWithLoop)
+        val harness = prepareCallsClassHarness(directory, project(), surface())
+        val instrumentation = CallsClassSourceInstrumentation.create(
+            sourceRoot = directory,
+            sourceFile = "Counter.ts",
+            className = "Counter",
+        )
+
+        CallsClassScenarioReplayers(harness, instrumentation).use { replayers ->
+            for (instrumented in listOf(false, true)) {
+                val first = replayers.replay(
+                    scenarioIndex = 0,
+                    inputs = listOf(number(2)),
+                    timeoutMillis = 20_000,
+                    instrumented = instrumented,
+                )
+
+                val timeout = assertFailsWith<PbtBackendException> {
+                    replayers.replay(
+                        scenarioIndex = 0,
+                        inputs = listOf(number(1)),
+                        timeoutMillis = 50,
+                        instrumented = instrumented,
+                    )
+                }
+                assertEquals("backend.process.timeout", timeout.code)
+
+                val next = replayers.replay(
+                    scenarioIndex = 0,
+                    inputs = listOf(number(3)),
+                    timeoutMillis = 20_000,
+                    instrumented = instrumented,
+                )
+
+                assertEquals(listOf(number(2)), first.inputs)
+                assertEquals(number(2), first.observation.values.getValue("state_0_count"))
+                assertEquals(listOf(number(3)), next.inputs)
+                assertEquals(number(3), next.observation.values.getValue("state_0_count"))
+            }
         }
     }
 
