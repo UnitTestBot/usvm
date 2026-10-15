@@ -4,7 +4,10 @@ import argparse
 import csv
 import hashlib
 import json
+import os
+import signal
 import subprocess
+import time
 from pathlib import Path
 
 PROFILES = ('EMPTY_STOP', 'EMPTY_FRESH', 'FROZEN_STOP', 'FROZEN_FRESH')
@@ -41,13 +44,42 @@ def freeze(path, value):
 
 def invoke(calls, arguments, log, timeout):
     log.parent.mkdir(parents=True, exist_ok=True)
+    started = time.monotonic()
+    isolated_group = os.name == 'posix'
     with log.open('w', encoding='utf-8') as output:
+        process = subprocess.Popen([str(calls), *map(str, arguments)], stdout=output,
+                                   stderr=subprocess.STDOUT, start_new_session=isolated_group)
+        previous_termination_handler = signal.getsignal(signal.SIGTERM)
+        signal.signal(signal.SIGTERM, lambda signum, frame: sys_exit_for_signal(signum))
         try:
-            result = subprocess.run([str(calls), *map(str, arguments)], stdout=output,
-                                    stderr=subprocess.STDOUT, timeout=timeout, check=False)
-            return {'exitCode': result.returncode, 'log': str(log)}
+            outcome = {'exitCode': process.wait(timeout=timeout), 'log': str(log)}
         except subprocess.TimeoutExpired:
-            return {'exitCode': None, 'timeoutSeconds': timeout, 'log': str(log)}
+            terminate_owned_process(process, isolated_group=isolated_group)
+            outcome = {'exitCode': None, 'timeoutSeconds': timeout, 'log': str(log),
+                       'processGroupKilled': isolated_group}
+        except BaseException:
+            terminate_owned_process(process, isolated_group=isolated_group)
+            raise
+        finally:
+            signal.signal(signal.SIGTERM, previous_termination_handler)
+
+    return {**outcome, 'pid': process.pid, 'processGroupId': process.pid if isolated_group else None,
+            'elapsedMillis': round((time.monotonic() - started) * 1000), 'logSha256': sha(log)}
+
+
+def sys_exit_for_signal(signum):
+    raise SystemExit(128 + signum)
+
+
+def terminate_owned_process(process, isolated_group):
+    try:
+        if isolated_group:
+            os.killpg(process.pid, signal.SIGKILL)
+        else:
+            process.kill()
+    except ProcessLookupError:
+        pass
+    process.wait()
 
 
 def select_classes(ledger, eligible):
