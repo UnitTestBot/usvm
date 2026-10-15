@@ -382,6 +382,9 @@ private fun TsContext.referenceOrStringValueEquals(
     val sameReference = mkHeapRefEq(lhs, rhs)
     if (sameReference.isTrue) return trueExpr
 
+    val comparesNullishConstant = mkIsNullOrUndefined(lhs).isTrue || mkIsNullOrUndefined(rhs).isTrue
+    if (comparesNullishConstant) return sameReference
+
     val equalStringValues = stringValueEquals(lhs, rhs, sameReference, activeGuard, scope) ?: return null
     return mkOr(sameReference, equalStringValues)
 }
