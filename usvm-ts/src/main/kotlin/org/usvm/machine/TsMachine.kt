@@ -83,6 +83,7 @@ class TsMachine(
     unknownCallModels: TsUnknownCallModelCatalog? = null,
     /** Creates an observer with access to the analysis queue, including unsupported terminal states. */
     private val machineObserverFactory: ((UPathSelector<TsState>) -> UMachineObserver<TsState>)? = null,
+    private val deadlineReached: (() -> Boolean)? = null,
 ) : UMachine<TsState>() {
     init {
         val hasCompatibleCoverageScope = tsOptions.classCoverageTargets == null ||
@@ -243,7 +244,7 @@ class TsMachine(
             )
 
             override fun shouldStop(): Boolean {
-                if (options.timeout <= kotlin.time.Duration.ZERO) {
+                if (options.timeout <= kotlin.time.Duration.ZERO || deadlineReached?.invoke() == true) {
                     timedOut = true
                     return true
                 }

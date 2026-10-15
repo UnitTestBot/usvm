@@ -5,6 +5,7 @@ import kotlinx.serialization.decodeFromString
 import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.BranchCoverage
 import org.usvm.ts.pbt.backend.CoverageDiagnostic
+import org.usvm.ts.pbt.backend.CoverageProvenance
 import org.usvm.ts.pbt.backend.CoverageScope
 import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
 import org.usvm.ts.pbt.backend.PropertyRunResult
@@ -68,6 +69,24 @@ internal class FastCheckCoverageSession private constructor(
 
         return result.copy(coverage = artifact.value)
     }
+
+    /** Keeps a completed property result usable when its secondary coverage collection cannot finish. */
+    fun incompleteArtifact(message: String) = PropertyCoverageArtifact(
+        backendId = FastCheckBackend.FAST_CHECK_BACKEND_ID,
+        backendVersion = FastCheckRuntimeMetadata.fastCheckVersion,
+        propertyId = PropertyId(request.manifest.propertyId),
+        provenance = CoverageProvenance(
+            collector = FastCheckRuntimeMetadata.coverageCollector,
+            runtimeId = "node",
+            runtimeVersion = runtimeVersion,
+            sourceRoots = request.sourceRoots,
+            request = requireNotNull(request.coverageRequest),
+        ),
+        files = emptyList(),
+        diagnostics = listOf(
+            CoverageDiagnostic(code = FastCheckDiagnosticCode.COVERAGE_COLLECTION_TIMEOUT, message = message),
+        ),
+    )
 
     fun readArtifact(): FastCheckOperationResult<PropertyCoverageArtifact> {
         val remaining = remainingMillis?.invoke()

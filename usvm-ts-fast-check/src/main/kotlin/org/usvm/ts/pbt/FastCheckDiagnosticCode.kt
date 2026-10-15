@@ -39,6 +39,7 @@ internal object FastCheckDiagnosticCode {
     const val BACKEND_RUNTIME_NOT_FOUND = "backend.runtime.not-found"
 
     const val COVERAGE_COLLECTOR_NOT_FOUND = "coverage.collector.not-found"
+    const val COVERAGE_COLLECTION_TIMEOUT = "coverage.collection.timeout"
     const val COVERAGE_RUNTIME_UNSUPPORTED = "coverage.runtime.unsupported"
     const val COVERAGE_RUNTIME_VERSION_UNAVAILABLE = "coverage.runtime.version-unavailable"
 
