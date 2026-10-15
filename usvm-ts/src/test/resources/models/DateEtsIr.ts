@@ -212,6 +212,19 @@ export class DateEtsIr {
         return copy.getTime();
     }
 
+    private timeFields(timestamp: number): number {
+        const date = new Date(timestamp);
+        return date.getUTCDay() * 86_400_000 + date.getUTCHours() * 3_600_000 +
+            date.getUTCMinutes() * 60_000 + date.getUTCSeconds() * 1_000 + date.getUTCMilliseconds();
+    }
+
+    timeFieldsBeforeEpoch(): number { return this.timeFields(-1); }
+    timeFieldsEpoch(): number { return this.timeFields(-0); }
+    timeFieldsMinimum(): number { return this.timeFields(-8_640_000_000_000_000); }
+    timeFieldsMaximum(): number { return this.timeFields(8_640_000_000_000_000); }
+    timeFieldsFraction(): number { return this.timeFields(-60_000.9); }
+    timeFieldsInvalid(): number { return this.timeFields(NaN); }
+
     foreignReceiverThroughAny(): number {
         const impostor: any = new DateImpostor();
         return impostor.getTime();
