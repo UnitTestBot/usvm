@@ -7,6 +7,7 @@ export function unsupportedModuleInitialization(
   source: ts.SourceFile,
   checker: ts.TypeChecker,
   closure: Set<ts.SourceFile>,
+  evaluationOrder: ReadonlyMap<string, number>,
 ): ts.Statement | undefined {
   const initializer = (expression: ts.Expression, seen = new Set<ts.Node>()): InitializerKind | undefined => {
     if (seen.has(expression)) return undefined
@@ -64,7 +65,11 @@ export function unsupportedModuleInitialization(
     if (!ts.isVariableDeclaration(declaration) || !declaration.initializer
       || !ts.isVariableDeclarationList(declaration.parent)
       || !(declaration.parent.flags & ts.NodeFlags.Const)) return undefined
-    const declaredBeforeUse = declaration.getSourceFile() !== use.getSourceFile() || declaration.end < use.getStart()
+    const declarationFile = declaration.getSourceFile()
+    const useFile = use.getSourceFile()
+    const declaredBeforeUse = declarationFile === useFile
+      ? declaration.end < use.getStart()
+      : evaluationOrder.get(declarationFile.fileName)! < evaluationOrder.get(useFile.fileName)!
     return declaredBeforeUse ? initializer(declaration.initializer, seen) : undefined
   }
 

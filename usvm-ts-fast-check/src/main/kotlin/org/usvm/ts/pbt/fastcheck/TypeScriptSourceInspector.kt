@@ -30,6 +30,17 @@ object TypeScriptSourceInspector {
         return PropertyManifestJson.json.decodeFromString(output)
     }
 
+    /** Resolve the graph for direct symbolic startup; this does not attest initializer execution or replay. */
+    fun startupSourceClosure(sourceRoot: Path, source: Path): TypeScriptLocalSourceClosure {
+        val output = inspect(
+            source = sourceRoot,
+            operation = "inspect-startup-closure",
+            arguments = listOf(source.toString()),
+        )
+
+        return PropertyManifestJson.json.decodeFromString(output)
+    }
+
     fun isExportedExpressionArrowBody(
         source: Path,
         exportName: String,
@@ -153,9 +164,17 @@ data class TypeScriptSourceCapture(
 )
 
 @Serializable
+data class TypeScriptModuleInitializationIssue(
+    val sourceFile: String,
+    val startOffset: Int,
+    val diagnostic: String,
+)
+
+@Serializable
 data class TypeScriptLocalSourceClosure(
     val files: List<String>,
     val resolution: TypeScriptFrozenModuleResolution? = null,
+    val initializationIssues: List<TypeScriptModuleInitializationIssue> = emptyList(),
     val reasonCode: String? = null,
     val diagnostic: String? = null,
 )

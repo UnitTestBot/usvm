@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 import ts from 'typescript'
-import { inspectLocalSourceClosure } from '../src/local-source-closure.js'
+import { inspectLocalSourceClosure, inspectStartupSourceClosure } from '../src/local-source-closure.js'
 
 function workspace(files: Record<string, string>, action: (root: string) => void): void {
   const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'usvm-closure-test-')))
@@ -124,15 +124,15 @@ test('local closure rejects package directory redirection before checking differ
   })
 })
 
-test('local closure rejects a cycle that would split mutable module state in replay', () => {
+test('local closure freezes a runtime cycle without duplicating its entry module', () => {
   workspace({
     'entry.ts': "import { readCount } from './helper'; export let count = 0; "
       + 'export function entry(value: number) { count = value; return readCount() === value; }',
     'helper.ts': "import { count } from './entry'; export function readCount() { return count; }",
   }, root => {
     const result = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
-    assert.equal(result.reasonCode, 'IMPORTED_CALLEES_UNSUPPORTED')
-    assert.match(result.diagnostic!, /Cyclic local module/)
+    assert.equal(result.reasonCode, undefined, result.diagnostic)
+    assert.deepEqual(result.files, ['entry.ts', 'helper.ts'])
   })
 })
 
@@ -449,5 +449,63 @@ test('missing configuration packages and outside-root configuration sources rema
 
     assert.equal(closure.reasonCode, 'IMPORTED_CALLEES_UNSUPPORTED')
     assert.match(closure.diagnostic!, /Missing frozen configuration source/)
+  })
+})
+
+test('cycle initializer aliases may read a dependency that was evaluated first', () => {
+  workspace({
+    'entry.ts': "import { cache } from './helper'; const alias = cache; export function entry() { return alias[0]; }",
+    'helper.ts': "import { entry } from './entry'; export const cache = [7]; export function helper() { return entry(); }",
+  }, root => {
+    const result = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+
+    assert.equal(result.reasonCode, undefined, result.diagnostic)
+    assert.deepEqual(result.files, ['entry.ts', 'helper.ts'])
+  })
+})
+
+test('cycle initializer reads of a later binding retain a temporal-dead-zone gate', () => {
+  workspace({
+    'entry.ts': "import { alias } from './helper'; export const cache = [7]; export function entry() { return alias[0]; }",
+    'helper.ts': "import { cache } from './entry'; export const alias = cache;",
+  }, root => {
+    const result = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+
+    assert.equal(result.reasonCode, 'TOP_LEVEL_INITIALIZATION_UNSUPPORTED')
+    assert.match(result.diagnostic!, /helper\.ts/)
+  })
+})
+
+test('type-only cycles do not introduce runtime graph edges', () => {
+  workspace({
+    'entry.ts': "import type { B } from './helper'; export interface A { b: B }; export function entry() { return 1; }",
+    'helper.ts': "import type { A } from './entry'; export interface B { a: A }",
+  }, root => {
+    assert.deepEqual(inspectLocalSourceClosure(root, path.join(root, 'entry.ts')), { files: ['entry.ts'] })
+  })
+})
+
+
+test('startup graph retains effectful initializer diagnostics while checked admission rejects them', () => {
+  workspace({
+    'entry.ts': "import { helper } from './helper'; export class Subject { value() { return helper(); } }",
+    'helper.ts': 'const cache = Math.random(); export function helper() { return cache; }',
+  }, root => {
+    const checked = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+    const startup = inspectStartupSourceClosure(root, path.join(root, 'entry.ts'))
+
+    assert.equal(checked.reasonCode, 'TOP_LEVEL_INITIALIZATION_UNSUPPORTED')
+    assert.equal(startup.reasonCode, undefined, startup.diagnostic)
+    assert.deepEqual(startup.files, ['entry.ts', 'helper.ts'])
+    assert.equal(startup.initializationIssues!.length, 1)
+    assert.equal(startup.initializationIssues![0]!.sourceFile, 'helper.ts')
+  })
+})
+
+test('startup graph does not count an unresolved dependency as a complete acquisition', () => {
+  workspace({ 'entry.ts': "import { missing } from './missing'; export class Subject { value() { return missing(); } }" }, root => {
+    const startup = inspectStartupSourceClosure(root, path.join(root, 'entry.ts'))
+
+    assert.equal(startup.reasonCode, 'IMPORTED_CALLEES_UNSUPPORTED')
   })
 })

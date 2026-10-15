@@ -23,9 +23,7 @@ import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import java.nio.file.Files
-import java.nio.file.LinkOption
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import java.util.UUID
 
 @Serializable
@@ -178,7 +176,7 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
                     reason = instrumentation.reason,
                 )
             }
-            createOverlay(
+            val tsconfig = createOverlay(
                 sourceRoot = resolved.sourceRoot,
                 overlayRoot = overlayRoot,
                 relativeTarget = resolved.relativeTarget,
@@ -197,9 +195,6 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
                     sourceArgumentCount = inputs.size,
                 ),
             )
-            val replayRoots = sourceRoots.mapIndexed { index, root ->
-                if (index == resolved.sourceRootIndex) overlayRoot else root
-            }
             val replayInputs = inputs.ifEmpty { listOf(JsConcreteValue.Boolean(true)) }
             val property = PropertyDefinition(
                 id = PropertyId("calls.source-target-replay"),
@@ -208,7 +203,7 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
                 },
                 predicate = TypeScriptEntryPoint(module = wrapperName, exportName = REPLAY_EXPORT),
             )
-            val result = FastCheckBackend(sourceRoots = replayRoots).run(
+            val result = FastCheckBackend(sourceRoots = listOf(overlayRoot), tsconfig = tsconfig).run(
                 property = property,
                 configuration = PropertyRunConfiguration(
                     seed = 0,
@@ -280,43 +275,11 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
         overlayRoot: Path,
         relativeTarget: Path,
         instrumentedSource: String,
-    ) {
-        var sourceDirectory = sourceRoot
-        var overlayDirectory = overlayRoot
-        Files.createDirectories(overlayDirectory)
-        relativeTarget.forEachIndexed { index, segment ->
-            Files.newDirectoryStream(sourceDirectory).use { entries ->
-                entries.filter { entry -> entry.fileName != segment }.forEach { entry ->
-                    mirrorEntry(source = entry, target = overlayDirectory.resolve(entry.fileName))
-                }
-            }
-            val last = index == relativeTarget.nameCount - 1
-            if (last) {
-                Files.writeString(overlayDirectory.resolve(segment), instrumentedSource)
-            } else {
-                sourceDirectory = sourceDirectory.resolve(segment)
-                overlayDirectory = overlayDirectory.resolve(segment)
-                Files.createDirectory(overlayDirectory)
-            }
-        }
-    }
-
-    private fun mirrorEntry(source: Path, target: Path) {
-        val linked = runCatching { Files.createSymbolicLink(target, source.toAbsolutePath()) }.isSuccess
-        if (!linked) {
-            copyTree(source = source, target = target)
-        }
-    }
-
-    private fun copyTree(source: Path, target: Path) {
-        if (Files.isDirectory(source, LinkOption.NOFOLLOW_LINKS)) {
-            Files.createDirectory(target)
-            Files.newDirectoryStream(source).use { entries ->
-                entries.forEach { entry -> copyTree(source = entry, target = target.resolve(entry.fileName)) }
-            }
-        } else {
-            Files.copy(source, target, LinkOption.NOFOLLOW_LINKS, StandardCopyOption.COPY_ATTRIBUTES)
-        }
+    ): Path {
+        val closure = checkedCallsSourceClosure(root = sourceRoot, entry = sourceRoot.resolve(relativeTarget))
+        copyCallsSourceClosure(root = sourceRoot, destination = overlayRoot, closure = closure)
+        Files.writeString(overlayRoot.resolve(relativeTarget), instrumentedSource)
+        return writeCallsFrozenTsconfig(root = overlayRoot, resolution = closure.resolution)
     }
 
     private fun deleteTree(root: Path) {
