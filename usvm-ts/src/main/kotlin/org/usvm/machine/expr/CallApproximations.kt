@@ -223,7 +223,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.join() method calls
         if (expr.callee.name == "join") {
-            return from(handleArrayJoin(expr))
+            return from(handleArrayJoin())
         }
 
         // Handle `Array.slice() method calls
@@ -990,13 +990,7 @@ private fun TsExprResolver.handleArrayUnshift(
 }
 
 /** Compatibility approximation used when the source model dispatcher is unavailable. */
-private fun TsExprResolver.handleArrayJoin(
-    expr: EtsInstanceCallExpr,
-): UExpr<*>? = with(ctx) {
-    check(expr.args.size <= 1) {
-        "Array.join() should have at most one argument, but got ${expr.args.size}"
-    }
-
+private fun TsExprResolver.handleArrayJoin(): UExpr<*>? = with(ctx) {
     // For simplicity, we return a symbolic string constant
     // A full implementation would need to handle element conversion and concatenation symbolically
     logger.warn {

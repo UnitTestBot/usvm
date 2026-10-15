@@ -171,6 +171,16 @@ class ArrayMethods : TsMethodTestRunner() {
     }
 
     @Test
+    fun testArrayJoinEvaluatesExtraArgument() {
+        val method = getMethod("arrayJoinEvaluatesExtraArgument")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result.number == 1.0 },
+        )
+    }
+
+    @Test
     fun testArraySlice() {
         val method = getMethod("arraySlice")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(

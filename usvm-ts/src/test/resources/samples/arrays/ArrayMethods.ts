@@ -107,6 +107,15 @@ class ArrayMethods {
         }
     }
 
+    arrayJoinEvaluatesExtraArgument() {
+        const values = [1, 2, 3];
+        let extraArgumentEvaluations = 0;
+
+        const joined = values.join("-", extraArgumentEvaluations++);
+
+        return joined === "joined_array_result" ? extraArgumentEvaluations : -1;
+    }
+
     arraySlice(x: boolean) {
         const arr = [10, 20, 30, 40, 50];
         if (x) {
