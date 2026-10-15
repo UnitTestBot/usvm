@@ -10,6 +10,7 @@ import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
+import org.usvm.api.TsTestValue
 import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
 import org.usvm.api.targets.TsTarget
@@ -18,10 +19,12 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsMachineAnalysisResult
 import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.util.TsTestResolver
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
@@ -93,12 +96,11 @@ class LoopsReachabilityTest {
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "whileLoopBreakReachable" }
-        val returnOne = method.cfg.stmts.filterIsInstance<EtsReturnStmt>().first()
 
         val analysis = analyzeWhileLoopBreak(method, start = 0.0)
 
         assertCompleteWhileLoopAnalysis(analysis)
-        assertFalse(returnOne in analysis.states.flatMap { it.pathNode.allStatements })
+        assertEquals(setOf(0.0), returnedNumbers(method, analysis))
     }
 
     @Test
@@ -106,13 +108,18 @@ class LoopsReachabilityTest {
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "whileLoopBreakReachable" }
-        val returnOne = method.cfg.stmts.filterIsInstance<EtsReturnStmt>().first()
 
         val analysis = analyzeWhileLoopBreak(method, start = 50.0)
 
         assertCompleteWhileLoopAnalysis(analysis)
-        assertTrue(returnOne in analysis.states.flatMap { it.pathNode.allStatements })
+        assertEquals(setOf(1.0), returnedNumbers(method, analysis))
     }
+
+    private fun returnedNumbers(method: EtsMethod, analysis: TsMachineAnalysisResult): Set<Double> =
+        analysis.states.map { state ->
+            val result = TsTestResolver().resolve(method, state).returnValue
+            assertIs<TsTestValue.TsNumber>(result).number
+        }.toSet()
 
     private fun analyzeWhileLoopBreak(method: EtsMethod, start: Double): TsMachineAnalysisResult {
         val exhaustiveOptions = options.copy(

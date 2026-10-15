@@ -41,12 +41,28 @@ class StringRelational {
         return left >= right ? 1 : 2;
     }
 
+    symbolicEqualInclusive(left: string, right: string): number {
+        if (left !== right) {
+            return 0;
+        }
+
+        return left <= right && left >= right ? 1 : 2;
+    }
+
     symbolicLess(left: string, right: string): number {
         return left < right ? 1 : 2;
     }
 
     conditionalLeft(useString: boolean, value: string): number {
         const left: string | number = useString ? value : 1;
-        return left < "b" ? 1 : 2;
+        if (left < "b") {
+            return 1;
+        }
+
+        if (useString) {
+            return 3;
+        }
+
+        return 2;
     }
 }

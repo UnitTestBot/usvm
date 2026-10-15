@@ -1,5 +1,7 @@
 package org.usvm.ts.calls
 
+import org.usvm.machine.call.TsResidualCallPolicy
+import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.ts.pbt.model.ArrayDomain
@@ -13,6 +15,7 @@ import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -178,13 +181,37 @@ internal class CallsObjectInputsTest : CurrentTsCallsSymbolicEngineTestSupport()
             inputs = listOf(PropertyInput(name = "input", domain = ObjectDomain(mapOf("x" to NumberDomain())))),
             targetStatement = "return true;",
         )
+        val plainObjectProperties = mapOf("x" to JsConcreteValue.number(value = 1.0))
+        val plainInput = JsConcreteValue.Object(plainObjectProperties)
         val unknownCalls = mutableListOf<TsUnknownCallEvent>()
 
         val result = fixture.search(modelIds = emptySet(), unknownCallEventSink = unknownCalls::add)
+        val replay = OriginalTypeScriptTargetReplayer().replay(
+            sourceRoots = listOf(fixture.sourceRoot),
+            entryPoint = fixture.function.entryPoint,
+            inputs = listOf(plainInput),
+            target = fixture.target,
+            timeoutMillis = 10_000L,
+        )
 
-        assertEquals(CallsSymbolicStatus.UNREACHED, result.status, result.toString())
+        // The missing-method STOP_PATH is an unsupported search boundary before the return target.
+        assertEquals(CallsSymbolicStatus.UNSUPPORTED, result.status, result.toString())
+        assertFalse(result.solverReached, result.toString())
         assertNull(result.inputs)
-        assertTrue(unknownCalls.any { it.failureReason == TsUnknownCallFailureReason.NO_SUITABLE_VIRTUAL_TARGET })
+
+        val unknownCall = unknownCalls.single()
+        assertEquals("f", unknownCall.callee.name)
+        assertEquals(TsUnknownCallFailureReason.NO_SUITABLE_VIRTUAL_TARGET, unknownCall.failureReason)
+        assertEquals(
+            TsUnknownCallDecision.ResidualFallback(policy = TsResidualCallPolicy.STOP_PATH),
+            unknownCall.decision,
+        )
+
+        assertEquals(CallsReplayStatus.REJECTED, replay.status, replay.toString())
+        val invocation = assertNotNull(replay.invocation, replay.toString())
+        assertFalse(invocation.targetHit)
+        assertEquals("threw", invocation.invocation)
+        assertEquals("TypeError", invocation.errorName)
     }
 
     @Test

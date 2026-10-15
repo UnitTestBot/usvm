@@ -63,7 +63,7 @@ class TsStringRelationalTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `inclusive symbolic string comparisons include equal values`() {
+    fun `inclusive symbolic string comparisons respect ordering`() {
         val comparisons = mapOf<String, (String, String) -> Boolean>(
             "symbolicLessOrEqual" to { left, right -> left <= right },
             "symbolicGreaterOrEqual" to { left, right -> left >= right },
@@ -74,10 +74,7 @@ class TsStringRelationalTest : TsMethodTestRunner() {
 
             discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsNumber>(
                 method = method,
-                { left, right, result -> left.value == right.value && result.number == 1.0 },
-                { left, right, result ->
-                    left.value != right.value && expected(left.value, right.value) && result.number == 1.0
-                },
+                { left, right, result -> expected(left.value, right.value) && result.number == 1.0 },
                 { left, right, result -> !expected(left.value, right.value) && result.number == 2.0 },
                 invariants = arrayOf({ left, right, result ->
                     val expectedResult = if (expected(left.value, right.value)) 1.0 else 2.0
@@ -86,6 +83,22 @@ class TsStringRelationalTest : TsMethodTestRunner() {
                 }),
             )
         }
+    }
+
+    @Test
+    fun `inclusive comparisons accept equal values from distinct string inputs`() {
+        val method = getMethod(methodName = "symbolicEqualInclusive", className = "StringRelational")
+
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsNumber>(
+            method = method,
+            { left, right, result -> left.value == right.value && result.number == 1.0 },
+            { left, right, result -> left.value != right.value && result.number == 0.0 },
+            invariants = arrayOf({ left, right, result ->
+                val expected = if (left.value == right.value) 1.0 else 0.0
+
+                result.number == expected
+            }),
+        )
     }
 
     @Test
@@ -111,10 +124,14 @@ class TsStringRelationalTest : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsString, TsTestValue.TsNumber>(
             method = method,
             { useString, value, result -> useString.value && value.value < "b" && result.number == 1.0 },
-            { useString, value, result -> useString.value && value.value >= "b" && result.number == 2.0 },
+            { useString, value, result -> useString.value && value.value >= "b" && result.number == 3.0 },
             { useString, _, result -> !useString.value && result.number == 2.0 },
             invariants = arrayOf({ useString, value, result ->
-                val expected = if (useString.value && value.value < "b") 1.0 else 2.0
+                val expected = when {
+                    !useString.value -> 2.0
+                    value.value < "b" -> 1.0
+                    else -> 3.0
+                }
 
                 result.number == expected
             }),

@@ -1,12 +1,12 @@
 export class BuiltinOwnerBoundary {
     shadowedMath(): number {
-        const Math = { abs(value: number): number { return value + 79; } };
+        const Math = { abs: function (value: number): number { return value + 79; } };
 
         return Math.abs(-2);
     }
 
     shadowedNumber(): boolean {
-        const Number = { isInteger(_value: number): boolean { return false; } };
+        const Number = { isInteger: function (_value: number): boolean { return false; } };
 
         return Number.isInteger(2);
     }

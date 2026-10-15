@@ -22,6 +22,8 @@ import org.usvm.machine.types.TsTypeSystem
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegistersStack
+import org.usvm.solver.USatResult
+import org.usvm.solver.UUnsatResult
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.boolToFp
 import kotlin.test.assertEquals
@@ -136,9 +138,32 @@ class ExprUtilConditionalValueTest {
 
         assertFalse(conditional.hasFakeValueBranch())
         assertNotNull(supported)
-        assertEquals(falseExpr, truthy)
-        assertEquals(trueExpr, nullish)
-        assertEquals(mkIte(selected, mkFp64(0.0), mkFp64NaN()), numeric)
+
+        val truthyConstraints = state.pathConstraints.clone()
+        truthyConstraints += truthy
+        assertIs<UUnsatResult<*>>(solver<EtsType>().check(truthyConstraints))
+
+        val nonNullishConstraints = state.pathConstraints.clone()
+        nonNullishConstraints += mkNot(nullish)
+        assertIs<UUnsatResult<*>>(solver<EtsType>().check(nonNullishConstraints))
+
+        val nullBranchConstraints = state.pathConstraints.clone()
+        nullBranchConstraints += selected
+        assertIs<USatResult<*>>(solver<EtsType>().check(nullBranchConstraints))
+
+        val wrongNullNumberConstraints = state.pathConstraints.clone()
+        wrongNullNumberConstraints += selected
+        wrongNullNumberConstraints += mkNot(mkFpEqualExpr(numeric, mkFp64(0.0)))
+        assertIs<UUnsatResult<*>>(solver<EtsType>().check(wrongNullNumberConstraints))
+
+        val undefinedBranchConstraints = state.pathConstraints.clone()
+        undefinedBranchConstraints += mkNot(selected)
+        assertIs<USatResult<*>>(solver<EtsType>().check(undefinedBranchConstraints))
+
+        val wrongUndefinedNumberConstraints = state.pathConstraints.clone()
+        wrongUndefinedNumberConstraints += mkNot(selected)
+        wrongUndefinedNumberConstraints += mkNot(mkFpIsNaNExpr(numeric))
+        assertIs<UUnsatResult<*>>(solver<EtsType>().check(wrongUndefinedNumberConstraints))
     }
 
     @Test
@@ -306,7 +331,7 @@ class ExprUtilConditionalValueTest {
         assertEquals(mkFp64(8.0), evaluateSelection(expr = result, selectedValue = true))
         assertNull(state.unsupportedReason)
         assertEquals(
-            "Numeric conversion needs a modeled StringToNumber or ToPrimitive conversion",
+            "Dynamic string addition needs a modeled mixed-kind result",
             unsupported.unsupportedReason,
         )
     }
@@ -349,7 +374,7 @@ class ExprUtilConditionalValueTest {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
         val unmodeledString = state.mkInitializedStringConstant(value = "42")
 
-        val resolved = with(TsBinaryOperator.Add) {
+        val resolved = with(TsBinaryOperator.Sub) {
             ctx.resolve(unmodeledString, mkFp64(1.0), scope, activeGuard = selected)
         }
         val result = assertNotNull(resolved)

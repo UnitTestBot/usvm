@@ -88,7 +88,7 @@ class CallsExperimentTest {
             )
         }
 
-        assertTrue(failure.message.orEmpty().contains("Git diff --quiet failed"))
+        assertTrue(failure.message.orEmpty().contains("Git diff --quiet HEAD -- failed"))
         assertFalse(Files.exists(rawOutput))
     }
 
@@ -120,7 +120,7 @@ class CallsExperimentTest {
             )
         }
 
-        assertTrue(failure.message.orEmpty().contains("Git diff --quiet failed"))
+        assertTrue(failure.message.orEmpty().contains("Git diff --quiet HEAD -- failed"))
         assertFalse(Files.exists(rawOutput))
     }
 

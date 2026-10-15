@@ -1,5 +1,5 @@
 // @ts-expect-error This source binding implements only the method used below.
-const Object: typeof globalThis.Object = { setPrototypeOf(target: any, _prototype: any): any { target[0] = 9; return target; } };
+const Object: typeof globalThis.Object = { setPrototypeOf: function (target: any, _prototype: any): any { target[0] = 9; return target; } };
 
 // @ts-expect-error This source binding implements only the method used below.
 const Array: typeof globalThis.Array = { isArray: (_value: unknown): boolean => false };
