@@ -80,7 +80,9 @@ import org.usvm.machine.state.returnValue
 import org.usvm.sizeSort
 import org.usvm.types.TypesResult
 import org.usvm.types.single
+import org.usvm.types.singleOrNull
 import org.usvm.util.executableOverloadImplementation
+import org.usvm.util.hasConstructorAllocation
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.resolveDeclaredInitialization
 import org.usvm.util.resolveEtsMethods
@@ -261,7 +263,14 @@ class TsInterpreter(
         if (usesDeclaredInitialization) {
             // Construction and field initialization retain their lexical owner for symbolic entry receivers.
             // Virtual lookup would select the derived initializer or recursively select its constructor.
-            val initializer = stmt.resolveDeclaredInitialization(graph.hierarchy)
+            val isNewAllocation = stmt.hasConstructorAllocation(graph)
+            val allocatedType = if (isNewAllocation) {
+                // Dynamic new already selected its constructor before argument evaluation and allocation.
+                scope.calcOnState { memory.typeStreamOf(receiver).singleOrNull() } as? EtsClassType
+            } else {
+                null
+            }
+            val initializer = stmt.resolveDeclaredInitialization(graph.hierarchy, allocatedType)
             if (initializer == null) {
                 unknownCallDispatcher.dispatch(scope, stmt, Reason.VIRTUAL_METHOD_NOT_FOUND, receiver)
                 return
