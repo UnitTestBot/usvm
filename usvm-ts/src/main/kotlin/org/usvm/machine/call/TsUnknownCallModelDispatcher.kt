@@ -3,7 +3,6 @@ package org.usvm.machine.call
 import mu.KotlinLogging
 import org.usvm.UExpr
 import org.usvm.api.makeFreshUnknownCallResult
-import org.usvm.api.mockMethodCall
 import org.usvm.api.setMockMethodCallResult
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.call.intrinsic.TsDateEtsIrModelFamily
@@ -73,8 +72,11 @@ class TsModelUnknownCallDispatcher(
             }
 
             TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN -> {
-                mockMethodCall(scope, call.callee, call.resultType)
-                scope.doWithState { newStmt(call.callSite) }
+                val result = makeFreshUnknownCallResult(scope, call)
+                scope.doWithState {
+                    setMockMethodCallResult(call.callee, result)
+                    newStmt(call.callSite)
+                }
             }
         }
 
@@ -93,7 +95,7 @@ class TsModelUnknownCallDispatcher(
         val freshResidualResult = if (
             residualGuard != null && fallback == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN
         ) {
-            makeFreshUnknownCallResult(scope, call.resultType)
+            makeFreshUnknownCallResult(scope, call)
         } else {
             null
         }
