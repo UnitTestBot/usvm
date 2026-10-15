@@ -426,13 +426,15 @@ function countAt(
 
   const offset = lineLengths.slice(0, generated.line - 1).reduce((sum, length) => sum + length + 1, 0) +
     generated.column;
-  const functions = coverage.script.functions.filter(fn => fn.isBlockCoverage &&
+  const functions = coverage.script.functions.filter(fn =>
     fn.ranges.length > 0 && contains(fn.ranges[0] as V8Range, offset));
   const orderedFunctions = functions.sort((left, right) =>
     rangeLength(left.ranges[0] as V8Range) - rangeLength(right.ranges[0] as V8Range),
   );
   const functionCoverage = orderedFunctions[0];
-  if (functionCoverage === undefined) return undefined;
+  // A non-invoked inner function has no block counters. Its containing script's
+  // counters describe initialization, not execution of that function's body.
+  if (functionCoverage === undefined || !functionCoverage.isBlockCoverage) return undefined;
   if (orderedFunctions[1] !== undefined &&
       rangeLength(orderedFunctions[1].ranges[0] as V8Range) === rangeLength(functionCoverage.ranges[0] as V8Range)) {
     return undefined;

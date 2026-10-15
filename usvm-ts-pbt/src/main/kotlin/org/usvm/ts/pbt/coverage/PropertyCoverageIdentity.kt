@@ -6,12 +6,15 @@ import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
+import java.util.stream.Collectors
 
 /** Snapshots the declared support/oracle and the local TypeScript files used by the concrete runtime. */
 fun captureCoverageIdentity(manifest: PropertyManifest, sourceRoots: List<Path>): PropertyCoverageIdentity {
     val sources = sortedMapOf<String, String>()
     for (root in sourceRoots) {
-        val files = Files.walk(root).use { paths -> paths.filter { isCoverageSource(root, it) }.toList() }
+        val files = Files.walk(root).use { paths ->
+            paths.filter { isCoverageSource(root, it) }.collect(Collectors.toList())
+        }
         for (path in files) {
             sources[path.toRealPath().toString()] = sha256(Files.readAllBytes(path))
         }

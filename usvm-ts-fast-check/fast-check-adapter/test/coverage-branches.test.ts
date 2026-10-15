@@ -333,6 +333,29 @@ for (const value of [-1, 1]) { try { subject(value); } catch {} }
   }
 });
 
+test('an uncalled function cannot inherit exact if counts from its containing script', async () => {
+  const fixture = await runCoverage(`
+function neverCalled(value: number): number {
+  let result = 0;
+  if (value > 0) { result = 1; }
+  return result;
+}
+function subject(value: number): number {
+  if (value > 0) { return 1; } else { return 2; }
+}
+subject(1);
+`);
+  try {
+    const report = await convertV8IfBranches(fixture.raw, [fixture.root]);
+
+    assert.deepEqual(report.files[0]?.branches.map(branch => branch.arms.map(arm => arm.hits)), [[1, 0]]);
+    assert.equal(report.files[0]?.branches.some(branch => branch.location.start.line === 4), false);
+    assert.ok(report.diagnostics.some(entry => entry.code === 'coverage.branch.ambiguous'));
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test('duplicate V8 scripts remain ambiguous', async () => {
   const fixture = await runCoverage(`
 function subject(value: number): number {
