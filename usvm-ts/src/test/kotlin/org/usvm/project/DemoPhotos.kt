@@ -9,12 +9,10 @@ import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.junit.jupiter.api.Tag
-import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
-import org.usvm.util.getResourcePathOrNull
 import kotlin.test.Test
 
 private val logger = KotlinLogging.logger {}
@@ -66,8 +64,7 @@ class RunOnDemoPhotosProject : TsMethodTestRunner() {
             runCatching {
                 val tsOptions = TsOptions()
                 TsMachine(scene, options, tsOptions).use { machine ->
-                    val states = machine.analyze(methods)
-                    states.let {}
+                    machine.analyze(methods)
                 }
             }.onFailure {
                 exceptions += it
@@ -98,8 +95,7 @@ class RunOnDemoPhotosProject : TsMethodTestRunner() {
 
         val tsOptions = TsOptions()
         TsMachine(scene, options, tsOptions).use { machine ->
-            val states = machine.analyze(methods)
-            states.let {}
+            machine.analyze(methods)
         }
     }
 
@@ -112,8 +108,7 @@ class RunOnDemoPhotosProject : TsMethodTestRunner() {
 
         val tsOptions = TsOptions()
         TsMachine(scene, options, tsOptions).use { machine ->
-            val states = machine.analyze(listOf(method))
-            states.let {}
+            machine.analyze(listOf(method))
         }
     }
 }
