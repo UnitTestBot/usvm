@@ -18,4 +18,18 @@ The command refuses a checkout whose Git `HEAD` differs from the manifest or who
 ./gradlew :usvm-ts:runUnknownCallCensus --args='summarize --input /absolute/path/to/results/raw.jsonl --output /absolute/path/to/results/summary.json'
 ```
 
+The persisted summary includes `input.completeness` (`COMPLETE` or `PARTIAL`) and
+`input.issues` (typed reasons for a partial input). Only one ordered schema-v2
+`run_start` and a matching `run_result` with `status: "completed"`, followed by
+no more records, certify a complete run. The start timestamp must match and the
+end marker must include a finish timestamp. A complete run can still contain
+method or project timeouts and errors; inspect their outcome counts separately.
+Interrupted raw files and older data-only fixtures remain summarizable with
+their available counts, but their summaries are marked `PARTIAL`. Unsupported
+data-record schema versions also make the summary partial. Unsupported method
+or project statuses fail summarization with the raw line number and status,
+so they cannot silently disappear from outcome categories. The summary
+`schemaVersion` identifies the summary format, not proof that its input is a
+complete supported run.
+
 `EMPTY_STOP` can be added as a separate profile when stopping-site counts are needed. Do not combine its counts with the primary `EMPTY_FRESH` profile.
