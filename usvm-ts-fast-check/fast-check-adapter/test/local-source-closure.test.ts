@@ -393,3 +393,61 @@ for (const [name, initialization] of [
     })
   })
 }
+
+
+test('installed package config extends freezes its package metadata and inherited compiler settings', () => {
+  workspace({
+    'tsconfig.json': '{"extends":"@fixture/dev-config","compilerOptions":{"module":"ESNext","moduleResolution":"Bundler"}}',
+    'package-lock.json': '{"lockfileVersion":3}',
+    'node_modules/@fixture/dev-config/package.json': '{"name":"@fixture/dev-config","version":"1.0.0","tsconfig":"config/base.json"}',
+    'node_modules/@fixture/dev-config/config/base.json': '{"compilerOptions":{"strict":true,"target":"ES2020","baseUrl":"../../../../src","paths":{"@local/*":["*"]}}}',
+    'entry.ts': "import { helper } from '@local/helper'; export function entry() { return helper(); }",
+    'src/helper.ts': 'export function helper() { return 29; }',
+  }, root => {
+    const closure = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+    const loaded = ts.readConfigFile(path.join(root, 'tsconfig.json'), ts.sys.readFile)
+    const expected = ts.parseJsonConfigFileContent(loaded.config, ts.sys, root)
+
+    assert.equal(closure.reasonCode, undefined, closure.diagnostic)
+    assert.deepEqual(closure.files, ['entry.ts', 'src/helper.ts'])
+    assert.equal(expected.options.strict, true)
+    assert.equal(JSON.parse(closure.resolution!.tsconfig).compilerOptions.strict, true)
+    assert.equal(JSON.parse(closure.resolution!.tsconfig).compilerOptions.target, 'ES2020')
+    assert.equal('node_modules/@fixture/dev-config/package.json' in closure.resolution!.inputSha256, true)
+    assert.equal('node_modules/@fixture/dev-config/config/base.json' in closure.resolution!.inputSha256, true)
+    assert.equal('package-lock.json' in closure.resolution!.inputSha256, true)
+  })
+})
+
+test('package configuration subpaths use their actual JSON source and preserve declaration/runtime distinction', () => {
+  workspace({
+    'tsconfig.json': '{"extends":"@fixture/dev-config/config/base"}',
+    'node_modules/@fixture/dev-config/package.json': '{"name":"@fixture/dev-config","version":"1.0.0","exports":"./runtime.d.ts"}',
+    'node_modules/@fixture/dev-config/config/base.json': '{"compilerOptions":{"target":"ES2022"}}',
+    'node_modules/@fixture/dev-config/runtime.d.ts': 'export declare const value: number;',
+    'entry.ts': 'export class Entry { read() { return 31; } }',
+  }, root => {
+    const closure = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+
+    assert.equal(closure.reasonCode, undefined, closure.diagnostic)
+    assert.equal('node_modules/@fixture/dev-config/runtime.d.ts' in closure.resolution!.inputSha256, false)
+    assert.equal('node_modules/@fixture/dev-config/config/base.json' in closure.resolution!.inputSha256, true)
+  })
+})
+
+test('missing configuration packages and outside-root configuration sources remain explicit rejections', () => {
+  workspace({ 'tsconfig.json': '{"extends":"@fixture/missing"}', 'entry.ts': 'export const value = 1;' }, root => {
+    const closure = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+
+    assert.equal(closure.reasonCode, 'IMPORTED_CALLEES_UNSUPPORTED')
+    assert.match(closure.diagnostic!, /Missing frozen configuration package/)
+  })
+  workspace({ 'project/tsconfig.json': '{"extends":"../outside.json"}', 'project/entry.ts': 'export const value = 1;',
+    'outside.json': '{"compilerOptions":{"strict":true}}' }, root => {
+    const project = path.join(root, 'project')
+    const closure = inspectLocalSourceClosure(project, path.join(project, 'entry.ts'))
+
+    assert.equal(closure.reasonCode, 'IMPORTED_CALLEES_UNSUPPORTED')
+    assert.match(closure.diagnostic!, /Missing frozen configuration source/)
+  })
+})
