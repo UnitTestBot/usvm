@@ -84,6 +84,10 @@ internal class UnknownCallCensusRunner(
     ) {
         val projectStart = TimeSource.Monotonic.markNow()
         val projectTimeout = manifest.limits.projectTimeoutSeconds.seconds
+        val budget = CensusProjectBudget(
+            projectTimeout = projectTimeout,
+            methodTimeout = manifest.limits.methodTimeoutSeconds.seconds,
+        )
 
         try {
             // A checkout entry may itself be a symlink. Its validated Git repository is the provenance boundary.
@@ -129,11 +133,10 @@ internal class UnknownCallCensusRunner(
             var partialMethods = 0
             var timedOutMethods = 0
             var failedMethods = 0
-            var projectTimedOut = false
 
             for (method in methods) {
-                if (projectStart.elapsedNow() >= projectTimeout) {
-                    projectTimedOut = true
+                val effectiveMethodTimeout = budget.methodTimeoutAt(projectStart.elapsedNow())
+                if (effectiveMethodTimeout == null) {
                     break
                 }
 
@@ -143,6 +146,7 @@ internal class UnknownCallCensusRunner(
                     scene = scene,
                     method = method,
                     profile = profile,
+                    methodTimeout = effectiveMethodTimeout,
                     pathsBySignature = loadedFiles.pathsBySignature,
                     writer = writer,
                 )
@@ -155,6 +159,7 @@ internal class UnknownCallCensusRunner(
                 }
             }
 
+            val projectTimedOut = budget.timedOutAt(projectStart.elapsedNow())
             writer.write(
                 buildJsonObject {
                     putCommonProjectFields(project, profile)
@@ -209,6 +214,7 @@ internal class UnknownCallCensusRunner(
         scene: EtsScene,
         method: EtsMethod,
         profile: UnknownCallCensusProfile,
+        methodTimeout: Duration,
         pathsBySignature: Map<EtsFileSignature, String>,
         writer: CensusRecordWriter,
     ): MethodRunResult {
@@ -221,7 +227,6 @@ internal class UnknownCallCensusRunner(
             pathsBySignature = pathsBySignature,
             writer = writer,
         )
-        val methodTimeout = manifest.limits.methodTimeoutSeconds.seconds
         val machineOptions = UMachineOptions(
             pathSelectionStrategies = listOf(CENSUS_PATH_SELECTION_STRATEGY),
             randomSeed = manifest.randomSeed,
@@ -528,6 +533,18 @@ internal class UnknownCallCensusRunner(
         const val MAX_GIT_OUTPUT_BYTES = 64 * 1024
         val RUN_METADATA_GIT_TIMEOUT = 10.seconds
     }
+}
+
+internal class CensusProjectBudget(
+    private val projectTimeout: Duration,
+    private val methodTimeout: Duration,
+) {
+    fun methodTimeoutAt(elapsed: Duration): Duration? {
+        val remaining = projectTimeout - elapsed
+        return if (remaining <= Duration.ZERO) null else minOf(methodTimeout, remaining)
+    }
+
+    fun timedOutAt(elapsed: Duration): Boolean = elapsed >= projectTimeout
 }
 
 private fun runtimeArtifactName(type: Class<*>): String = runCatching {

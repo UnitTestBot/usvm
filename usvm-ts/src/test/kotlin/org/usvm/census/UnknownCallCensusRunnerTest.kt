@@ -152,6 +152,34 @@ class UnknownCallCensusRunnerTest {
     }
 
     @Test
+    fun `project budget caps the final method and marks the project timed out afterward`() {
+        val budget = CensusProjectBudget(
+            projectTimeout = 10.seconds,
+            methodTimeout = 6.seconds,
+        )
+
+        val effectiveMethodTimeout = budget.methodTimeoutAt(elapsed = 8.seconds)
+        val finalProjectTimedOut = budget.timedOutAt(elapsed = 10.seconds)
+
+        assertEquals(2.seconds, effectiveMethodTimeout)
+        assertTrue(finalProjectTimedOut)
+    }
+
+    @Test
+    fun `project budget rejects another method after selection exhausts it`() {
+        val budget = CensusProjectBudget(
+            projectTimeout = 10.seconds,
+            methodTimeout = 6.seconds,
+        )
+
+        val nextMethodTimeout = budget.methodTimeoutAt(elapsed = 10.seconds)
+        val projectTimedOut = budget.timedOutAt(elapsed = 10.seconds)
+
+        assertEquals(null, nextMethodTimeout)
+        assertTrue(projectTimedOut)
+    }
+
+    @Test
     fun `stable selection rank is reproducible and seed dependent`() {
         val rank = stableSelectionRank(seed = 0, identity = "project:file:Class")
 
