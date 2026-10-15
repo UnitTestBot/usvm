@@ -600,6 +600,10 @@ class TsInterpreter(
     ): Unit? = with(ctx) {
         val exprResolver = exprResolverWithScope(scope)
         val file = scope.calcOnState { lastEnteredMethod.enclosingClass!!.declaringFile!! }
+
+        fun isDfltLocalName(name: String): Boolean =
+            name.startsWith("%") || name.startsWith("_tmp") || name == "this"
+
         when (lhv) {
             is EtsPropertyRef -> {
                 exprResolver.handleAssignToProperty(lhv, expr)
@@ -611,7 +615,7 @@ class TsInterpreter(
 
             is EtsLocal -> {
                 val name = lhv.name
-                if (name.startsWith("%") || name.startsWith("_tmp") || name == "this") {
+                if (isDfltLocalName(name)) {
                     // Normal local variable
                     exprResolver.handleAssignToLocal(lhv, expr)
                 } else {
@@ -625,7 +629,7 @@ class TsInterpreter(
 
             is EtsArrayAccess -> {
                 val name = lhv.array.name
-                if (name.startsWith("%") || name.startsWith("_tmp") || name == "this") {
+                if (isDfltLocalName(name)) {
                     // Normal local array variable
                     exprResolver.handleAssignToArrayIndex(lhv, expr)
                 } else {
@@ -645,7 +649,7 @@ class TsInterpreter(
 
             is EtsInstanceFieldRef -> {
                 val name = lhv.instance.name
-                if (name.startsWith("%") || name.startsWith("_tmp") || name == "this") {
+                if (isDfltLocalName(name)) {
                     // Normal local instance variable
                     exprResolver.handleAssignToInstanceField(lhv, expr)
                 } else {
