@@ -10,6 +10,7 @@ import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.accepts
 import org.usvm.ts.pbt.model.contains
+import org.usvm.ts.pbt.observation.ObservationPointKind
 import org.usvm.ts.pbt.observation.PropertyObservationRequest
 import org.usvm.ts.pbt.validation.requireValid
 import org.usvm.ts.pbt.validation.validatePropertyDefinition
@@ -86,7 +87,9 @@ class FastCheckBackend(
             }
         }
         val allInputIndexesValid = request.points.all { point ->
-            if (point.kind == org.usvm.ts.pbt.observation.ObservationPointKind.ARGUMENT) {
+            val isArgument = point.kind == ObservationPointKind.ARGUMENT ||
+                point.kind == ObservationPointKind.ENTRY_ARGUMENT
+            if (isArgument) {
                 point.inputIndex in property.inputs.indices
             } else {
                 point.inputIndex == null
