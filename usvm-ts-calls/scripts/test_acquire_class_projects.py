@@ -104,10 +104,11 @@ class AcquisitionTest(unittest.TestCase):
             package.mkdir(parents=True)
             (package / 'package.json').write_text('{"scripts":{"build":"tsc"}}')
 
-            directory, script = acquisition.original_build_script(root, 'packages/helper#build')
+            directory, script, arguments = acquisition.original_build_script(root, 'packages/helper#build --package helper')
 
             self.assertEqual(package, directory)
             self.assertEqual('build', script)
+            self.assertEqual(['--package', 'helper'], arguments)
             with self.assertRaisesRegex(ValueError, 'No original package script'):
                 acquisition.original_build_script(root, 'packages/helper#publish')
             with self.assertRaisesRegex(ValueError, 'escapes'):

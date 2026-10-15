@@ -9,6 +9,7 @@ import platform
 from pathlib import Path
 import re
 import shutil
+import shlex
 import subprocess
 import time
 import tarfile
@@ -182,7 +183,11 @@ def verify_snapshot(root, expected):
 
 
 def original_build_script(root, specification):
-    directory_name, script = specification.split('#', 1) if '#' in specification else ('.', specification)
+    parts = shlex.split(specification)
+    if not parts:
+        raise ValueError('Expected an original package build script')
+    selected = parts[0]
+    directory_name, script = selected.split('#', 1) if '#' in selected else ('.', selected)
     relative = Path(directory_name)
     if relative.is_absolute() or '..' in relative.parts:
         raise ValueError('Build script directory escapes original project')
@@ -192,7 +197,7 @@ def original_build_script(root, specification):
     package = json.loads((directory / 'package.json').read_text(encoding='utf-8'))
     if script not in package.get('scripts', {}):
         raise ValueError(f'No original package script named {script} in {directory_name}')
-    return directory, script
+    return directory, script, parts[1:]
 
 
 def acquire_project(project, output, install, overrides, scripts, timeout):
@@ -226,8 +231,8 @@ def acquire_project(project, output, install, overrides, scripts, timeout):
             check_command(receipt['commands'][-1])
             receipt['phase'] = 'INSTALLED'
         for index, specification in enumerate(scripts):
-            directory, script = original_build_script(checkout, specification)
-            receipt['commands'].append(run_recorded(command + ['run', script], directory,
+            directory, script, script_arguments = original_build_script(checkout, specification)
+            receipt['commands'].append(run_recorded(command + ['run', script, *script_arguments], directory,
                                                     destination / f'build-{index}.log', timeout))
             check_command(receipt['commands'][-1])
         # Builds may add ignored/generated files, but they cannot silently alter original source.

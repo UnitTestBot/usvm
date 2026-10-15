@@ -38,7 +38,9 @@ python3 usvm-ts-calls/scripts/acquire-class-projects.py \
 
 Only explicitly requested script names from the original `package.json` run.
 For an original workspace recipe, use `PROJECT=packages/helper#build`; the command
-runs in that in-root workspace and records its working directory. Missing scripts
+runs in that in-root workspace and records its working directory. Arguments can
+follow the declared script, for example `PROJECT=packages/vest-utils#build --package vest-utils`;
+they are forwarded as command arguments rather than executed as a separate command. Missing scripts
 and escaping workspace paths fail rather than inventing or editing package scripts.
 They execute before measurement. Tracked source and lockfile changes fail the
 attempt even when a package manager or build script reports success. Generated
