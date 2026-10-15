@@ -35,7 +35,7 @@ class TsModelUnknownCallDispatcher(
     private val observer: TsInterpreterObserver? = null,
 ) : TsUnknownCallModelDispatcher {
     override fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome {
-        val application = scope.calcOnState {
+        val (application, residualPolicy) = scope.calcOnState {
             val catalog = this@TsModelUnknownCallDispatcher.models
             val hasDirectTarget = catalog.select(call) != null
             // A direct target retains precedence even when its model rejects the call or is already active.
@@ -45,22 +45,24 @@ class TsModelUnknownCallDispatcher(
                 TsDateEtsIrModelFamily.canonicalModelCall(this, call) ?: call
             }
 
-            catalog.apply(this, modelCall)
+            val residualPolicy = catalog.select(modelCall)?.residualPolicy(this, modelCall) ?: fallback
+            catalog.apply(this, modelCall) to residualPolicy
         }
 
         return when (application) {
-            is TsUnknownCallModelApplication.Applied -> applyModel(scope, call, application)
-            TsUnknownCallModelApplication.NotApplicable -> applyFallback(scope, call)
+            is TsUnknownCallModelApplication.Applied -> applyModel(scope, call, application, residualPolicy)
+            TsUnknownCallModelApplication.NotApplicable -> applyFallback(scope, call, residualPolicy)
         }
     }
 
     private fun applyFallback(
         scope: TsStepScope,
         call: TsUnknownCall,
+        residualPolicy: TsResidualCallPolicy,
     ): TsUnknownCallOutcome {
-        val decision = TsUnknownCallDecision.ResidualFallback(fallback)
+        val decision = TsUnknownCallDecision.ResidualFallback(residualPolicy)
 
-        when (fallback) {
+        when (residualPolicy) {
             TsResidualCallPolicy.STOP_PATH -> {
                 val stoppedState = scope.calcOnState { this }
                 val falseExpr = stoppedState.ctx.falseExpr
@@ -78,7 +80,7 @@ class TsModelUnknownCallDispatcher(
             }
         }
 
-        reportFallback(call)
+        reportFallback(call, residualPolicy)
         return decision.outcome
     }
 
@@ -86,18 +88,19 @@ class TsModelUnknownCallDispatcher(
         scope: TsStepScope,
         call: TsUnknownCall,
         application: TsUnknownCallModelApplication.Applied,
+        residualPolicy: TsResidualCallPolicy,
     ): TsUnknownCallOutcome {
         val residualGuard = application.execution.residualGuard
         // Creating an unresolved value may add fake-value constraints. Do it before forking so the residual clone
         // inherits both the constraints and their solver models.
         val freshResidualResult = if (
-            residualGuard != null && fallback == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN
+            residualGuard != null && residualPolicy == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN
         ) {
             makeFreshUnknownCallResult(scope, call.resultType)
         } else {
             null
         }
-        val stoppedResidualState = if (residualGuard != null && fallback == TsResidualCallPolicy.STOP_PATH) {
+        val stoppedResidualState = if (residualGuard != null && residualPolicy == TsResidualCallPolicy.STOP_PATH) {
             scope.checkSat(residualGuard)
         } else {
             null
@@ -126,7 +129,7 @@ class TsModelUnknownCallDispatcher(
             )
         }.toMutableList()
 
-        if (residualGuard != null && fallback == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN) {
+        if (residualGuard != null && residualPolicy == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN) {
             guardedStateChanges += residualGuard to {
                 setMockMethodCallResult(call.callee, requireNotNull(freshResidualResult))
                 newStmt(call.callSite)
@@ -147,7 +150,7 @@ class TsModelUnknownCallDispatcher(
             observer?.onUnknownCallSafely(event(call, TsUnknownCallDecision.ModelApplied(application.modelId)))
         }
         if (freshResidualApplied || stoppedResidualIsSatisfiable) {
-            reportFallback(call)
+            reportFallback(call, residualPolicy)
         }
 
         return when {
@@ -161,14 +164,14 @@ class TsModelUnknownCallDispatcher(
     private fun stoppedPathReason(call: TsUnknownCall): String =
         "Unknown call ${call.callee} at ${call.callSite.location}: reason=${call.failureReason}"
 
-    private fun reportFallback(call: TsUnknownCall) {
-        if (fallback == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN) {
+    private fun reportFallback(call: TsUnknownCall, residualPolicy: TsResidualCallPolicy) {
+        if (residualPolicy == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN) {
             logger.debug {
                 "Unknown call ${call.callee} at ${call.callSite.location}: " +
-                    "fallback=$fallback, reason=${call.failureReason}"
+                    "fallback=$residualPolicy, reason=${call.failureReason}"
             }
         }
-        observer?.onUnknownCallSafely(event(call, TsUnknownCallDecision.ResidualFallback(fallback)))
+        observer?.onUnknownCallSafely(event(call, TsUnknownCallDecision.ResidualFallback(residualPolicy)))
     }
 
     private fun modelStateChange(

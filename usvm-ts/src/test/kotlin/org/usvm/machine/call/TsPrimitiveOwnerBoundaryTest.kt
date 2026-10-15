@@ -12,6 +12,7 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
@@ -36,6 +37,27 @@ class TsPrimitiveOwnerBoundaryTest {
     fun `foreign declarations cannot use string predicate or range helpers`() {
         assertForeignHelperResidual("foreignWhitespace")
         assertForeignHelperResidual("foreignStringRange")
+    }
+
+    @Test
+    fun `foreign invariant declaration retains the configured fresh fallback`() {
+        val method = scene.projectClasses.single { it.name == "ForeignPrimitiveHelpers" }
+            .methods
+            .single { it.name == "foreignDense" }
+        val observer = RecordingObserver()
+
+        val states = TsMachine(
+            scene = scene,
+            options = machineOptions,
+            tsOptions = TsOptions(unknownCallFallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN),
+            observer = observer,
+        ).use { machine -> machine.analyze(listOf(method)) }
+
+        assertEquals(expected = 1, actual = states.size)
+        assertEquals(
+            expected = TsUnknownCallDecision.ResidualFallback(TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN),
+            actual = observer.events.single().decision,
+        )
     }
 
     private fun assertForeignHelperResidual(methodName: String) {
