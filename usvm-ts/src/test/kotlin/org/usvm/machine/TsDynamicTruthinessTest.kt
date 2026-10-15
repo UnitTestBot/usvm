@@ -53,6 +53,7 @@ class TsDynamicTruthinessTest : TsMethodTestRunner() {
             "anyObjectTruthy",
             "objectTruthy",
             "truthinessBeforeKind",
+            "equalsObjectBeforeKind",
         )
         val methods = scene.projectClasses.single { it.name == "SymbolicStringInput" }.methods
             .filter { it.name in names }
@@ -135,6 +136,23 @@ class TsDynamicTruthinessTest : TsMethodTestRunner() {
             { input, result -> input is TsTestValue.TsString && input.value.isNotEmpty() && result.number == 21.0 },
             { input, result -> input == TsTestValue.TsNull && result.number == 30.0 },
             { input, result -> input == TsTestValue.TsUndefined && result.number == 40.0 },
+        )
+    }
+
+    @Test
+    fun `object equality before type refinement retains all runtime kinds`() {
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+            method = getMethod(methodName = "equalsObjectBeforeKind", className = "SymbolicStringInput"),
+            { input, result -> input is TsTestValue.TsString && result.number == 10.0 },
+            { input, result -> input == TsTestValue.TsNull && result.number == 20.0 },
+            { input, result -> input == TsTestValue.TsUndefined && result.number == 30.0 },
+            { input, result ->
+                val otherKind = input !is TsTestValue.TsString &&
+                    input != TsTestValue.TsNull && input != TsTestValue.TsUndefined
+
+                otherKind && result.number == 40.0
+            },
+            invariants = arrayOf({ _, result -> result.number < 100.0 }),
         )
     }
 }

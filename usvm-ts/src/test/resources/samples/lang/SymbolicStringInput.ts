@@ -136,6 +136,16 @@ class SymbolicStringInput {
         return truthy + 50;
     }
 
+    equalsObjectBeforeKind(value: any): number {
+        const object = { marker: 1 };
+        const equal = value === object ? 100 : 0;
+        if (typeof value === "string") return equal + 10;
+        if (value === null) return equal + 20;
+        if (value === undefined) return equal + 30;
+
+        return equal + 40;
+    }
+
     anyAnd(value: any): number {
         if (value && true) return 1;
         return 0;
