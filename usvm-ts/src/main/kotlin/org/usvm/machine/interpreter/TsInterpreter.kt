@@ -415,6 +415,16 @@ class TsInterpreter(
 
         val callee = stmt.callee.executableOverloadImplementation()
 
+        if (ctx.isSourceModelClass(callee.signature.enclosingClass)) {
+            val hasOwningModelFrame = scope.calcOnState {
+                isUnknownCallModelFileActive(callee.signature.enclosingClass)
+            }
+            val callerIsSourceModel = ctx.isSourceModelClass(stmt.location.method.signature.enclosingClass)
+            check(hasOwningModelFrame && callerIsSourceModel) {
+                "Source model ${callee.signature} entered without its dispatcher-owned model frame"
+            }
+        }
+
         if (callee.signature.enclosingClass.name == "Log") {
             unknownCallDispatcher.dispatch(scope, stmt, Reason.LOGGING_CALL, callee.signature)
             return
