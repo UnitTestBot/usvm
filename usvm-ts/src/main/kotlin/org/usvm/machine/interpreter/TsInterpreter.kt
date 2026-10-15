@@ -505,13 +505,13 @@ class TsInterpreter(
 
         val expr = exprResolver.resolve(stmt.condition) ?: return
 
+        scope.ensureTruthinessSupported(expr) ?: return
+
         val boolExpr = if (expr.sort == ctx.boolSort) {
             expr.asExpr(ctx.boolSort)
         } else {
             ctx.mkTruthyExpr(expr, scope)
         }
-
-        scope.ensureTruthinessSupported(expr) ?: return
 
         observer?.onIfStatementWithResolvedCondition(simpleValueResolver, stmt, boolExpr, scope)
 

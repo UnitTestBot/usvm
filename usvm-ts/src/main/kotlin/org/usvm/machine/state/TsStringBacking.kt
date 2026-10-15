@@ -12,6 +12,8 @@ import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.typeStreamOf
+import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.machine.expr.mkNotNullOrUndefined
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.solver.UUnsatResult
@@ -43,6 +45,40 @@ internal fun TsState.symbolicStringBackingConstraint(ref: UHeapRef): UBoolExpr =
     val boundedLength = mkBvSignedLessOrEqualExpr(length, mkBv(maxStringLength))
 
     mkAnd(definedBacking, backingType, nonnegativeLength, boundedLength)
+}
+
+/** Split the runtime string alternative before reading contents; other values retain their original state. */
+internal fun TsStepScope.prepareStringBacking(ref: UHeapRef, activeGuard: UBoolExpr): Unit? {
+    val context = calcOnState { ctx }
+    if (ref is UIteExpr<*>) {
+        val trueGuard = context.mkAnd(activeGuard, ref.condition)
+        val falseGuard = context.mkAnd(activeGuard, context.mkNot(ref.condition))
+        prepareStringBacking(ref.trueBranch.asExpr(context.addressSort), trueGuard) ?: return null
+        return prepareStringBacking(ref.falseBranch.asExpr(context.addressSort), falseGuard)
+    }
+    val needsBacking = calcOnState { ref is USymbolicHeapRef && ref !in boundedStringBackingRefs }
+    if (!needsBacking) return Unit
+
+    val stringCondition = calcOnState {
+        val stringType = memory.types.evalTypeEquals(ref, EtsStringType)
+        val nonNullish = ctx.mkNotNullOrUndefined(ref)
+        ctx.mkAnd(activeGuard, stringType, nonNullish)
+    }
+    if (stringCondition.isFalse) return Unit
+
+    val takeString = calcOnState { models.first().eval(stringCondition).isTrue }
+    val selectedCondition = if (takeString) stringCondition else context.mkNot(stringCondition)
+    fork(selectedCondition) ?: return null
+    if (!takeString) return Unit
+
+    val backingConstraint = calcOnState { symbolicStringBackingConstraint(ref) }
+    assert(backingConstraint) ?: return null
+    doWithState {
+        boundedStringBackingRefs += ref to maxStringLength
+        symbolicStringCandidates -= ref
+    }
+
+    return Unit
 }
 
 /** Prepare only references that are already non-nullish strings on this execution path. */

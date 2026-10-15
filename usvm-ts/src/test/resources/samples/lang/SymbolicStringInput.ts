@@ -125,6 +125,17 @@ class SymbolicStringInput {
         return 0;
     }
 
+    truthinessBeforeKind(value: any): number {
+        const truthy = value ? 1 : 0;
+        if (typeof value === "string") {
+            return truthy + (value.length === 0 ? 10 : 20);
+        }
+        if (value === null) return truthy + 30;
+        if (value === undefined) return truthy + 40;
+
+        return truthy + 50;
+    }
+
     anyAnd(value: any): number {
         if (value && true) return 1;
         return 0;
