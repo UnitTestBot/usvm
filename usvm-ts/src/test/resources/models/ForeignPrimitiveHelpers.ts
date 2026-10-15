@@ -6,6 +6,7 @@ declare class StringModelPrimitives {
 
 declare class ArrayModelPrimitives {
     static grow(values: number[], length: number): void;
+    static requireDense(values: number[]): void;
 }
 
 export class ForeignPrimitiveHelpers {
@@ -24,6 +25,12 @@ export class ForeignPrimitiveHelpers {
     foreignArray(): number {
         const values = [1];
         ArrayModelPrimitives.grow(values, 2);
+        return values.length;
+    }
+
+    foreignDense(): number {
+        const values = [1];
+        ArrayModelPrimitives.requireDense(values);
         return values.length;
     }
 }

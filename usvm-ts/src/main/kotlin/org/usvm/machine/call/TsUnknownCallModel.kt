@@ -39,6 +39,9 @@ interface TsUnknownCallModel {
     val additionalSceneFiles: List<EtsFile>
         get() = emptyList()
 
+    /** Model-owned invariants may require stopping a prefix instead of inventing a helper result. */
+    fun residualPolicy(state: TsState, call: TsUnknownCall): TsResidualCallPolicy? = null
+
     fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution?
 }
 
