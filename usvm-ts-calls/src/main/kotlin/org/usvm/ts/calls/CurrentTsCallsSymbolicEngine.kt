@@ -898,28 +898,42 @@ private fun callsExternalFrontendRuntimeDigest(frontendDirectory: Path): String 
     val digest = MessageDigest.getInstance("SHA-256")
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
     for (file in files) {
-        val relativePath = dist.relativize(file).toString().replace('\\', '/')
-        val nameBytes = relativePath.toByteArray(Charsets.UTF_8)
-        val fileSize = Files.size(file)
-        digest.update(ByteBuffer.allocate(Int.SIZE_BYTES).putInt(nameBytes.size).array())
-        digest.update(nameBytes)
-        digest.update(ByteBuffer.allocate(Long.SIZE_BYTES).putLong(fileSize).array())
-
-        var bytesRead = 0L
-        Files.newInputStream(file).use { input ->
-            while (true) {
-                val count = input.read(buffer)
-                if (count < 0) break
-                digest.update(buffer, 0, count)
-                bytesRead += count
-            }
-        }
-        require(bytesRead == fileSize) { "External native frontend dist changed while hashing: $file" }
+        updateCallsExternalFrontendRuntimeFileDigest(
+            digest = digest,
+            dist = dist,
+            file = file,
+            buffer = buffer,
+        )
     }
 
     return digest.digest().joinToString(separator = "") { byte ->
         "%02x".format(byte.toInt() and UNSIGNED_BYTE_MASK)
     }
+}
+
+private fun updateCallsExternalFrontendRuntimeFileDigest(
+    digest: MessageDigest,
+    dist: Path,
+    file: Path,
+    buffer: ByteArray,
+) {
+    val relativePath = dist.relativize(file).toString().replace('\\', '/')
+    val nameBytes = relativePath.toByteArray(Charsets.UTF_8)
+    val fileSize = Files.size(file)
+    digest.update(ByteBuffer.allocate(Int.SIZE_BYTES).putInt(nameBytes.size).array())
+    digest.update(nameBytes)
+    digest.update(ByteBuffer.allocate(Long.SIZE_BYTES).putLong(fileSize).array())
+
+    var bytesRead = 0L
+    Files.newInputStream(file).use { input ->
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            digest.update(buffer, 0, count)
+            bytesRead += count
+        }
+    }
+    require(bytesRead == fileSize) { "External native frontend dist changed while hashing: $file" }
 }
 
 private fun isCallsExternalFrontendRuntimeFile(path: Path): Boolean {
