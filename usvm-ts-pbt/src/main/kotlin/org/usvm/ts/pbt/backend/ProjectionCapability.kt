@@ -1,6 +1,9 @@
 package org.usvm.ts.pbt.backend
 
+import kotlinx.serialization.Serializable
+
 /** Describes how faithfully a backend can project a Kotlin property domain. */
+@Serializable
 enum class ProjectionLevel {
     /** Every value produced by the backend has the declared Kotlin domain semantics. */
     EXACT,
@@ -13,6 +16,7 @@ enum class ProjectionLevel {
 }
 
 /** Describes which execution modes remain available for a complete property. */
+@Serializable
 enum class PropertyCapabilityLevel {
     /** Both concrete and symbolic projections preserve the declared property semantics. */
     EXACT,
@@ -34,6 +38,7 @@ enum class PropertyCapabilityLevel {
  * @property message human-readable description of the limitation
  * @property path location of the affected value in the property model
  */
+@Serializable
 data class CapabilityDiagnostic(
     val code: String,
     val message: String,
@@ -46,6 +51,7 @@ data class CapabilityDiagnostic(
  * @property level semantic fidelity of the projection
  * @property diagnostics limitations and directions that explain a non-exact [level]
  */
+@Serializable
 data class ProjectionCapability(
     val level: ProjectionLevel,
     val diagnostics: List<CapabilityDiagnostic> = emptyList(),

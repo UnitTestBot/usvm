@@ -1,5 +1,6 @@
 package org.usvm.ts.pbt.campaign
 
+import kotlinx.serialization.Serializable
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrGenerationTimeoutException
 import org.jacodb.ets.utils.EtsIrProvider
@@ -38,14 +39,18 @@ import java.security.MessageDigest
 import java.util.concurrent.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 
+@Serializable
 enum class PropertyCampaignMode { PBT_ONLY, SYMBOLIC_ONLY, SEQUENTIAL }
 
+@Serializable
 enum class PropertyCampaignPhase { PREPARATION, PBT, SYMBOLIC, CONFIRMATION }
 
 /** COMPLETED describes orchestration; inspect the retained engine results for unsupported or incomplete work. */
+@Serializable
 enum class PropertyCampaignStop { COMPLETED, DEADLINE, EXECUTION_FAILURE }
 
 /** Only native violations count as confirmed; symbolic inputs remain candidates until replay succeeds. */
+@Serializable
 data class PropertyCampaignResult(
     val propertyId: PropertyId,
     val mode: PropertyCampaignMode,
@@ -69,6 +74,18 @@ class PropertyCampaignRunner(
     private val nodeExecutable: String = "node",
     private val machineOptions: UMachineOptions = UMachineOptions(solverType = SolverType.YICES),
 ) {
+    /** Captures the requested direct controls and their actual result without repeating execution. */
+    fun runArtifact(
+        property: PropertyDefinition,
+        mode: PropertyCampaignMode,
+        configuration: PropertyRunConfiguration = PropertyRunConfiguration(),
+        validationReserveMillis: Long = DEFAULT_VALIDATION_RESERVE_MILLIS,
+    ): PropertyCampaignArtifact {
+        val result = run(property, mode, configuration, validationReserveMillis)
+
+        return PropertyCampaignArtifact(property, configuration, validationReserveMillis, result)
+    }
+
     fun run(
         property: PropertyDefinition,
         mode: PropertyCampaignMode,

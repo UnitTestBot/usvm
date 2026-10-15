@@ -1,10 +1,12 @@
 package org.usvm.ts.pbt.usvm
 
+import kotlinx.serialization.Serializable
 import org.usvm.ts.pbt.backend.CapabilityDiagnostic
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyId
 
 /** Terminal outcome of one USVM property-violation search. */
+@Serializable
 enum class UsvmPropertySearchStatus {
     VIOLATION_REACHED,
     NO_VIOLATION_REACHED,
@@ -18,6 +20,7 @@ enum class UsvmPropertySearchStatus {
 }
 
 /** Supported ways in which a mapped predicate can violate its property. */
+@Serializable
 enum class UsvmPropertyViolationTarget {
     PREDICATE_FALSE,
     UNEXPECTED_EXCEPTION,
@@ -25,6 +28,7 @@ enum class UsvmPropertyViolationTarget {
 }
 
 /** Backend-neutral result of searching one mapped TypeScript property with USVM. */
+@Serializable
 data class UsvmPropertySearchResult(
     val propertyId: PropertyId,
     val status: UsvmPropertySearchStatus,

@@ -1,5 +1,6 @@
 package org.usvm.ts.pbt.usvm
 
+import kotlinx.serialization.Serializable
 import org.usvm.machine.TsOptions
 import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.ts.pbt.backend.PropertyCapabilityLevel
@@ -19,6 +20,7 @@ data class UsvmProjectionOptions(
 }
 
 /** Capability of one ordered property input at its stable manifest path. */
+@Serializable
 data class UsvmInputProjectionCapability(
     val inputName: String,
     val path: String,
@@ -26,6 +28,7 @@ data class UsvmInputProjectionCapability(
 )
 
 /** Combined concrete and symbolic execution capability for one property. */
+@Serializable
 data class UsvmPropertyProjectionCapability(
     val inputs: List<UsvmInputProjectionCapability>,
     val precondition: ProjectionCapability,
