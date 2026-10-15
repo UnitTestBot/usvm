@@ -44,6 +44,19 @@ class FastCheckBackend(
     override fun run(
         property: PropertyDefinition,
         configuration: PropertyRunConfiguration,
+    ): PropertyRunResult = execute(property, configuration, deadline = null)
+
+    /** Charges preparation and the supervised process to the caller's existing deadline. */
+    fun run(
+        property: PropertyDefinition,
+        configuration: PropertyRunConfiguration,
+        deadline: WitnessReplayDeadline,
+    ): PropertyRunResult = execute(property, configuration, deadline)
+
+    private fun execute(
+        property: PropertyDefinition,
+        configuration: PropertyRunConfiguration,
+        deadline: WitnessReplayDeadline?,
     ): PropertyRunResult {
         requireValid(validatePropertyDefinition(property))
         validateConfiguration(property, configuration)
@@ -63,7 +76,7 @@ class FastCheckBackend(
             coverageRequest = configuration.coverageRequest,
         )
 
-        return client.check(request)
+        return client.check(request, remainingMillis = deadline?.let { it::remainingMillis })
     }
 
     override fun confirmWitness(

@@ -24,32 +24,71 @@ internal class FastCheckProcessClient(
     )
 
     /** Executes one request and exposes only a fully validated common result. */
-    fun check(request: FastCheckExecutionRequest): PropertyRunResult {
+    fun check(
+        request: FastCheckExecutionRequest,
+        remainingMillis: (() -> Long)? = null,
+    ): PropertyRunResult {
         val encodedRequest = encodeRequest(request)
         val coverageSession = request.coverageRequest?.let {
-            FastCheckCoverageSession.prepare(
-                nodeExecutable = nodeExecutable,
-                adapterEntryPoint = adapterEntryPoint,
-                request = request,
-            )
+            if (remainingMillis == null) {
+                FastCheckCoverageSession.prepare(
+                    nodeExecutable = nodeExecutable,
+                    adapterEntryPoint = adapterEntryPoint,
+                    request = request,
+                )
+            } else {
+                val prepared = FastCheckCoverageSession.prepareWithinBudget(
+                    nodeExecutable = nodeExecutable,
+                    adapterEntryPoint = adapterEntryPoint,
+                    request = request,
+                    remainingMillis = remainingMillis,
+                )
+                when (prepared) {
+                    is FastCheckOperationResult.Completed -> prepared.value
+                    is FastCheckOperationResult.TimedOut -> throw deadlineExpired(request, prepared.message)
+                }
+            }
         }
 
         try {
+            val phaseLimit = saturatedAdd(request.timeoutMillis, transportGraceMillis)
+            val processBudget = remainingMillis?.invoke()?.coerceAtMost(phaseLimit) ?: phaseLimit
+            if (processBudget <= 0) throw deadlineExpired(request, "Property campaign deadline expired")
+
             val output = invokeAdapter(
                 encodedRequest = encodedRequest,
                 request = request,
                 command = coverageSession?.adapterCommand
                     ?: listOf(nodeExecutable, adapterEntryPoint.toString()),
+                timeoutMillis = processBudget,
             )
             validateProcessOutput(output, request)
             val response = decodeResponse(output.stdout, request)
             val result = decodeSuccessfulResponse(response, request)
 
-            return coverageSession?.attachTo(result) ?: result
+            if (coverageSession == null) return result
+            if (remainingMillis == null) return coverageSession.attachTo(result)
+
+            return when (val artifact = coverageSession.readArtifact()) {
+                is FastCheckOperationResult.Completed -> result.copy(coverage = artifact.value)
+                is FastCheckOperationResult.TimedOut -> result.copy(
+                    coverage = coverageSession.incompleteArtifact(message = artifact.message),
+                )
+            }
         } finally {
             coverageSession?.close()
         }
     }
+
+    private fun deadlineExpired(
+        request: FastCheckExecutionRequest,
+        message: String,
+    ): PbtBackendException = backendError(
+        kind = BackendErrorKind.TIMEOUT,
+        code = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+        message = message,
+        request = request,
+    )
 
     /** One external operation, using the same supervised transport and optional original-source collector. */
     fun witness(

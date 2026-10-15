@@ -46,6 +46,7 @@ class UsvmPropertySearcher(
         manifest: PropertyManifest,
         mapping: PropertyEtsMappingArtifact,
         concreteCapability: ProjectionCapability,
+        deadlineReached: (() -> Boolean)? = null,
     ): UsvmPropertySearchResult {
         val capability = capabilityResolver.resolve(
             manifest = manifest,
@@ -79,6 +80,7 @@ class UsvmPropertySearcher(
             predicate = predicate,
             precondition = precondition,
             capability = capability,
+            deadlineReached = deadlineReached,
         )
     }
 
@@ -87,6 +89,7 @@ class UsvmPropertySearcher(
         predicate: EtsEntryPointTarget,
         precondition: EtsEntryPointTarget?,
         capability: UsvmPropertyProjectionCapability,
+        deadlineReached: (() -> Boolean)?,
     ): UsvmPropertySearchResult {
         lateinit var projection: UsvmDeclaredDomainProjection
         val target = UsvmViolationTsTarget()
@@ -99,6 +102,7 @@ class UsvmPropertySearcher(
             options = machineOptions,
             tsOptions = tsOptions,
             machineObserver = observer,
+            deadlineReached = deadlineReached,
         ).use { machine ->
             val analysis = machine.analyzeWithMetadata(
                 methods = listOf(predicate.method),
