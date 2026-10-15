@@ -44,7 +44,7 @@ class DeterministicPriorityCollection<T, Priority>(private val comparator: Compa
         assert({ !priorityQueue.any { (e, _) -> e == element } }) { "Element already exists in priority queue" }
 
         val currentTop = topElement
-        if (currentTop != null && comparator.compare(currentTop.second, priority) < 0) {
+        if (currentTop != null && comparator.compare(currentTop.second, priority) > 0) {
             topElement = element to priority
             priorityQueue.add(currentTop)
             return
