@@ -28,7 +28,7 @@ class LoopsReachability {
                 break;
             }
             if (counter > 50) {
-                return 1; // Unreachable due to break at 20
+                return 1; // Reachable when the starting value skips 20
             }
         }
         return 0;

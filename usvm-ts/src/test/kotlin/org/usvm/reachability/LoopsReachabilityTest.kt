@@ -1,20 +1,28 @@
 package org.usvm.reachability
 
 import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Disabled
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
+import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
 import org.usvm.api.targets.TsTarget
+import org.usvm.machine.TsAnalysisStopReason
 import org.usvm.machine.TsMachine
+import org.usvm.machine.TsMachineAnalysisResult
 import org.usvm.machine.TsOptions
+import org.usvm.machine.state.TsMethodResult
 import org.usvm.util.getResourcePath
+import org.usvm.util.mkRegisterStackLValue
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
@@ -82,34 +90,61 @@ class LoopsReachabilityTest {
     }
 
     @Test
-    fun testWhileLoopBreakReachable() {
-        // Test reachability through while loop with break:
-        //   while (counter < 100) -> if (counter === 20) break -> if (counter > 50) -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+    fun testWhileLoopBreakPreventsLaterReturnFromZero() {
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "whileLoopBreakReachable" }
+        val returnOne = method.cfg.stmts.filterIsInstance<EtsReturnStmt>().first()
 
-        val initialTarget = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
-        var target: TsTarget = initialTarget
+        val analysis = analyzeWhileLoopBreak(method, start = 0.0)
 
-        // if (counter === 20)
-        val breakCheck = method.cfg.stmts.filterIsInstance<EtsIfStmt>()[0]
-        target = target.addChild(TsReachabilityTarget.IntermediatePoint(breakCheck))
+        assertCompleteWhileLoopAnalysis(analysis)
+        assertFalse(returnOne in analysis.states.flatMap { it.pathNode.allStatements })
+    }
 
-        // if (counter > 50) - this should be unreachable due to break
-        val unreachableCheck = method.cfg.stmts.filterIsInstance<EtsIfStmt>()[1]
-        target = target.addChild(TsReachabilityTarget.IntermediatePoint(unreachableCheck))
+    @Test
+    fun testWhileLoopCanReachLaterReturnWhenStartSkipsBreak() {
+        val method = scene.projectClasses
+            .flatMap { it.methods }
+            .single { it.name == "whileLoopBreakReachable" }
+        val returnOne = method.cfg.stmts.filterIsInstance<EtsReturnStmt>().first()
 
-        // return 1 - should be unreachable
-        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
-        target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
+        val analysis = analyzeWhileLoopBreak(method, start = 50.0)
 
-        val results = machine.analyze(listOf(method), listOf(initialTarget))
-        
-        // This test verifies that the unreachable path is correctly identified
-        val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
-        // The return 1 should NOT be reached due to break at counter == 20
+        assertCompleteWhileLoopAnalysis(analysis)
+        assertTrue(returnOne in analysis.states.flatMap { it.pathNode.allStatements })
+    }
+
+    private fun analyzeWhileLoopBreak(method: EtsMethod, start: Double): TsMachineAnalysisResult {
+        val exhaustiveOptions = options.copy(
+            pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = 0,
+            stopOnTargetsReached = false,
+            stepsFromLastCovered = null,
+        )
+
+        return TsMachine(scene = scene, options = exhaustiveOptions, tsOptions = tsOptions).use { machine ->
+            machine.analyzeWithMetadata(
+                methods = listOf(method),
+                configureInitialState = { _, state ->
+                    with(state.ctx) {
+                        val input = state.memory.read(mkRegisterStackLValue(fp64Sort, idx = 1))
+                        state.pathConstraints += mkEq(input, mkFp64(start))
+                    }
+                },
+            )
+        }
+    }
+
+    private fun assertCompleteWhileLoopAnalysis(analysis: TsMachineAnalysisResult) {
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
+        assertFalse(analysis.timedOut)
+        assertFalse(analysis.engineFailed)
+        assertFalse(analysis.unsupportedCall)
+        assertTrue(analysis.unsupportedPaths.isEmpty(), analysis.unsupportedPaths.toString())
+        assertTrue(analysis.states.isNotEmpty())
+        assertTrue(analysis.states.all { it.methodResult is TsMethodResult.Success })
     }
 
     @Test
