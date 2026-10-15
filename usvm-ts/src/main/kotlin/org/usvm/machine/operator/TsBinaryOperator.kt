@@ -20,6 +20,7 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.expr.ensureTruthinessSupported
 import org.usvm.machine.expr.mkIsNullOrUndefined
+import org.usvm.machine.expr.mkNotNullOrUndefined
 import org.usvm.machine.expr.mkNumericExpr
 import org.usvm.machine.expr.mkNumericExprWithGuard
 import org.usvm.machine.expr.mkTruthyExpr
@@ -249,8 +250,6 @@ private fun TsContext.stringValueEquals(
     activeGuard: UBoolExpr,
     scope: TsStepScope,
 ): UBoolExpr? {
-    scope.prepareStringBacking(lhs, activeGuard) ?: return null
-    scope.prepareStringBacking(rhs, activeGuard) ?: return null
     val lhsConstant = (lhs as? UConcreteHeapRef)?.let(::getStringConstantValue)
     val rhsConstant = (rhs as? UConcreteHeapRef)?.let(::getStringConstantValue)
     if (lhsConstant != null && rhsConstant != null) {
@@ -263,6 +262,12 @@ private fun TsContext.stringValueEquals(
     if (lhsIsString.isFalse || rhsIsString.isFalse) return falseExpr
 
     val bothStrings = mkAnd(lhsIsString, rhsIsString)
+    val lhsNonNullish = mkNotNullOrUndefined(lhs)
+    val rhsNonNullish = mkNotNullOrUndefined(rhs)
+    val stringComparisonGuard = mkAnd(activeGuard, bothStrings, lhsNonNullish, rhsNonNullish)
+    scope.prepareStringBacking(lhs, stringComparisonGuard) ?: return null
+    scope.prepareStringBacking(rhs, stringComparisonGuard) ?: return null
+
     val missingBacking = scope.calcOnState {
         (lhsConstant == null && lhs !in boundedStringBackingRefs) ||
             (rhsConstant == null && rhs !in boundedStringBackingRefs)
