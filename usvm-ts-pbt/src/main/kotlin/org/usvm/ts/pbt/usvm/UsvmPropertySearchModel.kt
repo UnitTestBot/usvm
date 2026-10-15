@@ -32,6 +32,7 @@ data class UsvmPropertySearchResult(
     val inputs: List<JsConcreteValue>?,
     val capability: UsvmPropertyProjectionCapability,
     val diagnostics: List<CapabilityDiagnostic>,
+    val edgeGuidance: UsvmEdgeGuidanceTrace? = null,
 ) {
     init {
         when (status) {

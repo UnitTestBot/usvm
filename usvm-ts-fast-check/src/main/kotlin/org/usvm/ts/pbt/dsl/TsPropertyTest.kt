@@ -7,6 +7,8 @@ import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.ts.pbt.backend.ProjectionLevel
+import org.usvm.ts.pbt.backend.PropertyCoverageRequest
+import org.usvm.ts.pbt.backend.PropertyFailureDetails
 import org.usvm.ts.pbt.backend.PropertyFailureKind
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunResult
@@ -16,12 +18,14 @@ import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.encodeToUtf8SafeString
+import org.usvm.ts.pbt.usvm.UsvmCoverageFeedback
 import org.usvm.ts.pbt.usvm.UsvmPropertySearchResult
 import org.usvm.ts.pbt.usvm.UsvmPropertySearchStatus
 import org.usvm.ts.pbt.usvm.UsvmPropertySearcher
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TimeSource
 
 /** Selects execution without changing the author property or its JavaScript semantics. */
 enum class PropertyEngine {
@@ -36,6 +40,9 @@ data class DslPropertyRun(
     val concrete: PropertyRunResult?,
     val symbolic: UsvmPropertySearchResult?,
     val symbolicReplay: PropertyRunResult?,
+    val elapsedMillis: Long = 0,
+    val budgetMillis: Long? = null,
+    val symbolicSkippedDueToDeadline: Boolean = false,
 ) {
     fun requireSuccess() {
         val violation = listOfNotNull(concrete, symbolicReplay).firstOrNull {
@@ -46,8 +53,13 @@ data class DslPropertyRun(
         }
         val concreteFailure = concrete?.status == PropertyRunStatus.FAILURE
         val incompleteSearch = symbolic != null && symbolic.status != UsvmPropertySearchStatus.NO_VIOLATION_REACHED
-        if (concreteFailure || incompleteSearch) {
-            throw DslPropertyExecutionError(this, "Property run was inconclusive: ${concrete?.failure ?: symbolic}")
+        if (concreteFailure || incompleteSearch || symbolicSkippedDueToDeadline) {
+            val message = if (symbolicSkippedDueToDeadline) {
+                "The total deadline expired before symbolic analysis could start"
+            } else {
+                "Property run was inconclusive: ${concrete?.failure ?: symbolic}"
+            }
+            throw DslPropertyExecutionError(this, message)
         }
     }
 
@@ -100,6 +112,9 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
         engine: PropertyEngine = PropertyEngine.FAST_CHECK,
         configuration: PropertyRunConfiguration = PropertyRunConfiguration(),
     ): DslPropertyRun {
+        val started = TimeSource.Monotonic.markNow()
+        fun remainingMillis(): Long = configuration.timeoutMillis - started.elapsedNow().inWholeMilliseconds
+
         val directory = Files.createTempDirectory("usvm-kotlin-property-")
         try {
             val compiled = PropertyTypeScriptCompiler().compile(
@@ -112,26 +127,67 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
             copySources(directory)
             val sourceRoots = listOf(directory)
             val backend = FastCheckBackend(sourceRoots = sourceRoots)
+            val hybridConfiguration = if (engine == PropertyEngine.BOTH) {
+                val request = configuration.coverageRequest ?: PropertyCoverageRequest()
+                configuration.copy(
+                    coverageRequest = request.copy(admittedOnly = true),
+                )
+            } else {
+                configuration
+            }
             val concrete = if (engine != PropertyEngine.USVM) {
-                backend.run(property = compiled.definition, configuration = configuration)
+                val concreteBudget = if (engine == PropertyEngine.BOTH) {
+                    minOf(remainingMillis(), maxOf(1L, configuration.timeoutMillis / CONCRETE_BUDGET_DIVISOR))
+                } else {
+                    remainingMillis()
+                }
+                if (concreteBudget <= 0L) {
+                    exhaustedConcreteRun(compiled, configuration, started.elapsedNow().inWholeMilliseconds)
+                } else {
+                    backend.run(
+                        property = compiled.definition,
+                        configuration = hybridConfiguration.copy(timeoutMillis = concreteBudget),
+                    )
+                }
             } else {
                 null
             }
             val symbolic = if (engine != PropertyEngine.FAST_CHECK) {
-                search(compiled, directory, sourceRoots, configuration)
-            } else {
-                null
-            }
-            val candidate = symbolic?.inputs
-            val replay = if (candidate != null) {
-                backend.run(
-                    property = compiled.definition,
-                    configuration = configuration.copy(replayPath = null, examples = listOf(candidate), numRuns = 1),
+                search(
+                    compiled = compiled,
+                    directory = directory,
+                    sourceRoots = sourceRoots,
+                    configuration = hybridConfiguration,
+                    concrete = concrete,
+                    backend = backend,
+                    remainingMillis = ::remainingMillis,
                 )
             } else {
                 null
             }
-            return DslPropertyRun(compiled, concrete, symbolic, replay)
+            val candidate = symbolic?.inputs
+            val replay = if (candidate != null && remainingMillis() > 0) {
+                backend.run(
+                    property = compiled.definition,
+                    configuration = configuration.copy(
+                        replayPath = null,
+                        examples = listOf(candidate),
+                        numRuns = 1,
+                        timeoutMillis = remainingMillis().coerceAtLeast(1L),
+                    ),
+                )
+            } else {
+                null
+            }
+            return DslPropertyRun(
+                property = compiled,
+                concrete = concrete,
+                symbolic = symbolic,
+                symbolicReplay = replay,
+                elapsedMillis = started.elapsedNow().inWholeMilliseconds,
+                budgetMillis = configuration.timeoutMillis,
+                symbolicSkippedDueToDeadline = engine != PropertyEngine.FAST_CHECK && symbolic == null,
+            )
         } finally {
             Files.walk(directory).use { paths ->
                 paths.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists)
@@ -144,20 +200,84 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
         directory: Path,
         sourceRoots: List<Path>,
         configuration: PropertyRunConfiguration,
-    ): UsvmPropertySearchResult {
+        concrete: PropertyRunResult?,
+        backend: FastCheckBackend,
+        remainingMillis: () -> Long,
+    ): UsvmPropertySearchResult? {
+        if (remainingMillis() <= 0L) return null
+
         val scene = loadEtsProjectAutoConvert(directory, provider = EtsIrProvider.TS_FRONTEND)
         val manifest = compiled.definition.toManifest()
-        val mapping = PropertyEtsMapper(scene = scene, sourceRoots = sourceRoots).map(manifest)
+        val mapping = PropertyEtsMapper(scene = scene, sourceRoots = sourceRoots).map(manifest, concrete?.coverage)
+        val remainingBudgetMillis = remainingMillis().coerceAtLeast(0L)
+        val finalReplayReserveMillis = remainingBudgetMillis / FINAL_REPLAY_BUDGET_DIVISOR
+        val searchBudgetMillis = remainingBudgetMillis - finalReplayReserveMillis
+        fun symbolicRemainingMillis(): Long = remainingMillis() - finalReplayReserveMillis
+
         val options = UMachineOptions(
             solverType = SolverType.YICES,
-            timeout = configuration.timeoutMillis.milliseconds,
+            timeout = searchBudgetMillis.milliseconds,
         )
-        return UsvmPropertySearcher(scene = scene, machineOptions = options).search(
+        val replayBudgetMillis = searchBudgetMillis / FEEDBACK_REPLAY_BUDGET_DIVISOR
+        var spentReplayMillis = 0L
+        val feedback = if (concrete != null) {
+            UsvmCoverageFeedback(initialCoverage = concrete.coverage) { inputs ->
+                val replayRemaining = minOf(symbolicRemainingMillis(), replayBudgetMillis - spentReplayMillis)
+                if (replayRemaining <= 0L) {
+                    null
+                } else {
+                    val replayStarted = TimeSource.Monotonic.markNow()
+                    try {
+                        backend.run(
+                            property = compiled.definition,
+                            configuration = configuration.copy(
+                                replayPath = null,
+                                examples = listOf(inputs),
+                                numRuns = 1,
+                                timeoutMillis = replayRemaining,
+                                exactReplay = true,
+                            ),
+                        )
+                    } finally {
+                        spentReplayMillis += replayStarted.elapsedNow().inWholeMilliseconds
+                    }
+                }
+            }
+        } else {
+            null
+        }
+        return UsvmPropertySearcher(
+            scene = scene,
+            machineOptions = options,
+            deadlineReached = { symbolicRemainingMillis() <= 0L },
+        ).search(
             manifest = manifest,
             mapping = mapping,
             concreteCapability = ProjectionCapability(level = ProjectionLevel.EXACT),
+            coverageFeedback = feedback,
         )
     }
+
+    private fun exhaustedConcreteRun(
+        compiled: CompiledDslProperty,
+        configuration: PropertyRunConfiguration,
+        elapsedMillis: Long,
+    ) = PropertyRunResult(
+        propertyId = compiled.definition.id,
+        status = PropertyRunStatus.FAILURE,
+        seed = configuration.seed ?: 0,
+        replayPath = null,
+        counterexample = null,
+        numRuns = 0,
+        numSkips = 0,
+        numShrinks = 0,
+        failure = PropertyFailureDetails(
+            kind = PropertyFailureKind.TIMEOUT,
+            errorName = "HybridDeadlineExceeded",
+            message = "The total property deadline expired before the concrete run",
+        ),
+        executionTimeMillis = elapsedMillis,
+    )
 
     private fun resolveModule(module: String, directory: Path): String {
         val modulePath = Path.of(module)
@@ -199,6 +319,9 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
 
     private companion object {
         const val GENERATED_MODULE = "__usvm_kotlin_property.ts"
+        const val CONCRETE_BUDGET_DIVISOR = 3L
+        const val FEEDBACK_REPLAY_BUDGET_DIVISOR = 3L
+        const val FINAL_REPLAY_BUDGET_DIVISOR = 3L
         val EXCLUDED_DIRECTORIES = setOf("node_modules", ".git", ".gradle", "build")
     }
 }

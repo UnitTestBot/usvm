@@ -42,7 +42,8 @@ class UsvmPreconditionSearchTest {
         val unsupported = search(manifest = errorPrecondition, propertySearcher = searcherWithoutModels)
 
         assertEquals(UsvmPropertySearchStatus.PRECONDITION_REJECTED, rejected.status)
-        assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, modeled.status)
+        assertEquals(UsvmPropertySearchStatus.PROPERTY_ERROR, modeled.status)
+        assertTrue(modeled.diagnostics.any { it.code == "usvm.precondition.threw" })
         assertEquals(UsvmPropertyViolationTarget.PREDICATE_FALSE, modeled.target)
         assertEquals(listOf(JsConcreteValue.number(0.0)), modeled.inputs)
         assertEquals(UsvmPropertySearchStatus.UNSUPPORTED, unsupported.status)

@@ -88,6 +88,10 @@ class TsMachine(
     unknownCallModels: TsUnknownCallModelCatalog? = null,
     /** Creates an observer with access to the analysis queue, including unsupported terminal states. */
     private val machineObserverFactory: ((UPathSelector<TsState>) -> UMachineObserver<TsState>)? = null,
+    /** Replaces scheduling for a caller-owned objective without changing the interpreted program. */
+    private val pathSelectorFactory: ((Map<EtsMethod, TsState>, TsGraph) -> UPathSelector<TsState>)? = null,
+    /** Caller-owned monotonic deadline, checked before setup and between interpreter steps. */
+    private val deadlineReached: (() -> Boolean)? = null,
 ) : UMachine<TsState>() {
     init {
         val hasCompatibleCoverageScope = tsOptions.classCoverageTargets == null ||
@@ -188,6 +192,7 @@ class TsMachine(
     ): TsMachineAnalysisResult {
         interpreter.resetStepFailure()
         failureTrackingUnknownCallObserver.reset()
+        if (deadlineReached?.invoke() == true) return deadlineAnalysisResult()
 
         val (initialStates, unsupportedPaths, infeasibleEntryPoints) =
             createInitialStates(methods, targets, configureInitialState)
@@ -215,7 +220,7 @@ class TsMachine(
 
         val timeStatistics = createTimeStatistics()
 
-        val pathSelector = createPathSelector(
+        val pathSelector = pathSelectorFactory?.invoke(initialStates, graph) ?: createPathSelector(
             initialStates = initialStates,
             options = options,
             applicationGraph = graph,
@@ -250,7 +255,7 @@ class TsMachine(
             )
 
             override fun shouldStop(): Boolean {
-                if (options.timeout <= kotlin.time.Duration.ZERO) {
+                if (options.timeout <= kotlin.time.Duration.ZERO || deadlineReached?.invoke() == true) {
                     timedOut = true
                     return true
                 }
@@ -368,6 +373,11 @@ class TsMachine(
         engineFailed = false,
         unsupportedPaths = unsupportedPaths.toList(),
         infeasibleEntryPoints = infeasibleEntryPoints,
+    )
+
+    private fun deadlineAnalysisResult(): TsMachineAnalysisResult = emptyAnalysisResult(emptySet(), emptyList()).copy(
+        stopReason = TsAnalysisStopReason.STOPPED,
+        timedOut = true,
     )
 
     private data class InitialStatesResult(

@@ -106,7 +106,13 @@ internal class FastCheckCoverageSession private constructor(
             )
         }
 
-        return result.copy(coverage = artifact)
+        val admittedInvocations = if (coverageRequest.admittedOnly) {
+            Files.readString(workspace.rawDirectory.resolve("admitted-count.txt")).trim().toInt()
+        } else {
+            null
+        }
+
+        return result.copy(coverage = artifact.copy(admittedInvocations = admittedInvocations))
     }
 
     private fun propertyEntryPointPaths(): Set<String> {
