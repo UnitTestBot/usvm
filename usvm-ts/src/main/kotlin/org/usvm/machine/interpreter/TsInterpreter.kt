@@ -548,7 +548,16 @@ class TsInterpreter(
     private fun returnFromMethod(scope: TsStepScope, value: UExpr<*>) {
         val method = scope.calcOnState { callStack.lastMethod() }
         val returnedValue = if (method.isAsync) {
-            ctx.ensureSupportedAsyncFulfillment(scope, value, graph.hierarchy)
+            val existingPromise = ctx.existingPromiseOrEnsureNonThenable(
+                scope = scope,
+                value = value,
+                hierarchy = graph.hierarchy,
+                operation = "Async return",
+            )
+            if (existingPromise != null) {
+                throw UnsupportedOperationException("Async return requires unmodeled Promise adoption")
+            }
+
             ctx.createSettledPromise(
                 scope = scope,
                 value = value,

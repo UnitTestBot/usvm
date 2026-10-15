@@ -36,6 +36,7 @@ import org.usvm.machine.call.intrinsic.TsDateEtsIrModelFamily
 import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.createSettledPromise
+import org.usvm.machine.interpreter.existingPromiseOrEnsureNonThenable
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
@@ -498,6 +499,17 @@ private fun TsExprResolver.handlePromiseResolveReject(expr: EtsInstanceCallExpr)
         "Promise.${expr.callee.name}() should have exactly one argument, but got ${expr.args.size}"
     }
     val value = resolve(expr.args.single()) ?: return null
+
+    if (newState == PromiseState.FULFILLED) {
+        val existingPromise = existingPromiseOrEnsureNonThenable(
+            scope = scope,
+            value = value,
+            hierarchy = hierarchy,
+            operation = "Promise.resolve",
+        )
+        if (existingPromise != null) return existingPromise
+    }
+
     createSettledPromise(scope = scope, value = value, settlement = newState)
 }
 

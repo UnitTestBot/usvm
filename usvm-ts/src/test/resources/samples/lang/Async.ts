@@ -73,6 +73,35 @@ class Async {
         return 0;
     }
 
+    resolvePreservesSettledPromise(): number {
+        const original = Promise.resolve(7);
+        const resolved = Promise.resolve(original);
+        const value = await resolved;
+
+        return resolved === original && value === 7 ? 1 : 0;
+    }
+
+    resolvePreservesPendingPromise(): number {
+        const original = new Promise((resolve) => resolve(7));
+        const resolved = Promise.resolve(original);
+        const value = await resolved;
+
+        return resolved === original && value === 7 ? 1 : 0;
+    }
+
+    resolvePreservesRejectedPromise(): number {
+        const original = Promise.reject(new Error("rejected"));
+        const resolved = Promise.resolve(original);
+        if (resolved !== original) return 0;
+
+        try {
+            await resolved;
+            return 0;
+        } catch (error) {
+            return 1;
+        }
+    }
+
     awaitRejectedPromise() {
         const promise = Promise.reject(new Error("An error occurred"));
         await promise; // exception

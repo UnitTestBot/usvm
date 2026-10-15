@@ -79,35 +79,38 @@ internal fun TsContext.createSettledPromise(
     return promise
 }
 
-/** Async returns assimilate Promises and thenables; keep unmodeled shapes out of success results. */
-internal fun TsContext.ensureSupportedAsyncFulfillment(
+/** Returns a modeled Promise to reuse, or null when a value is safe to fulfill without assimilation. */
+internal fun TsContext.existingPromiseOrEnsureNonThenable(
     scope: TsStepScope,
     value: UExpr<*>,
     hierarchy: EtsHierarchy,
-) {
+    operation: String,
+): UConcreteHeapRef? {
     val actualValue = if (value.isFakeObject()) {
         value.extractSingleValueFromFakeObjectOrNull(scope)
-            ?: throw UnsupportedOperationException("Async return has a symbolic runtime kind")
+            ?: throw UnsupportedOperationException("$operation has a symbolic runtime kind")
     } else {
         value
     }
-    if (actualValue.sort != addressSort) return
-    if (actualValue == mkTsNullValue() || actualValue == mkUndefinedValue()) return
+    if (actualValue.sort != addressSort) return null
+    if (actualValue == mkTsNullValue() || actualValue == mkUndefinedValue()) return null
 
     val reference = actualValue.asExpr(addressSort)
     if (!isAllocatedConcreteHeapRef(reference)) {
-        throw UnsupportedOperationException("Async return requires unmodeled thenable assimilation")
+        throw UnsupportedOperationException("$operation requires unmodeled thenable assimilation")
     }
 
     val registeredPromise = scope.calcOnState {
         promiseState[reference] != null || promiseExecutor[reference] != null
     }
     if (registeredPromise) {
-        throw UnsupportedOperationException("Async return requires unmodeled Promise adoption")
+        return reference
     }
     if (!isDefinitelyNonThenable(scope, reference, hierarchy)) {
-        throw UnsupportedOperationException("Async return may require unmodeled thenable assimilation")
+        throw UnsupportedOperationException("$operation may require unmodeled thenable assimilation")
     }
+
+    return null
 }
 
 internal const val RESOLVED_FIELD = "__resolved__"

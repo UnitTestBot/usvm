@@ -92,6 +92,39 @@ class Async : TsMethodTestRunner() {
     }
 
     @Test
+    fun `resolve preserves settled promise identity and value`() {
+        val method = getMethod("resolvePreservesSettledPromise")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 1 },
+            invariants = arrayOf({ result -> result.number > 0 }),
+        )
+    }
+
+    @Test
+    fun `resolve preserves pending promise identity and value`() {
+        val method = getMethod("resolvePreservesPendingPromise")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 1 },
+            invariants = arrayOf({ result -> result.number > 0 }),
+        )
+    }
+
+    @Test
+    fun `resolve preserves rejected promise identity and rejection`() {
+        val method = getMethod("resolvePreservesRejectedPromise")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 1 },
+            invariants = arrayOf({ result -> result.number > 0 }),
+        )
+    }
+
+    @Test
     fun `await rejected promise`() {
         val method = getMethod("awaitRejectedPromise")
         discoverProperties<TsTestValue>(
