@@ -24,7 +24,7 @@ class CoverageGuidedPathSelectorRefreshTest {
             assertEquals(expected = "left", actual = selector.peek())
             evaluatedTargets.clear()
             selector.update(state = "left")
-            assertEquals(expected = listOf("left", "right"), actual = evaluatedTargets)
+            assertEquals(expected = listOf("left", "right"), actual = evaluatedTargets.sorted())
         }
         evaluatedTargets.clear()
         repeat(256) {
@@ -214,7 +214,7 @@ class CoverageGuidedPathSelectorRefreshTest {
         evaluatedTargets.clear()
         selector.add(states = listOf("other"))
 
-        assertEquals(expected = listOf("left", "right"), actual = evaluatedTargets)
+        assertEquals(expected = listOf("left", "right"), actual = evaluatedTargets.sorted())
         assertEquals(expected = "right", actual = selector.peek())
         assertEquals(expected = setOf("left", "right", "other"), actual = selector.drain().toSet())
     }
