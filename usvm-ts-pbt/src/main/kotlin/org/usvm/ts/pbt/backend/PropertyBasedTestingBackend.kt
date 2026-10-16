@@ -21,6 +21,7 @@ interface PropertyBasedTestingBackend {
 }
 
 /** Backend-neutral controls for one concrete property run. */
+@Serializable
 data class PropertyRunConfiguration(
     val seed: Int? = null,
     val replayPath: String? = null,
