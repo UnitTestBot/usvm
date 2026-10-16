@@ -4,6 +4,7 @@ import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { executeWitness, type WitnessTarget } from '../src/external-witness.js';
 import { executeProperty } from '../src/execute-property.js';
 import { encodeJsValue, ProtocolError } from '../src/js-value.js';
 import type { CompilerNumericLocalBinding, ObservationPointRequest } from '../src/observe-property.js';
@@ -185,4 +186,86 @@ test('changed selected source and incompatible companion signature cannot supply
     await assert.rejects(executeProperty(request), (error: unknown) =>
       error instanceof ProtocolError && error.code === 'protocol.request.invalid');
   }, '', false);
+});
+
+function witnessRequest(request: ReturnType<typeof buildRequest>, input = 7) {
+  const target: WitnessTarget = {
+    id: 'compiler-result', role: 'HYPOTHESIS',
+    binding: { pointId: 'compiler-result', contextId: 'original-compiler-local', revision: 'v1', occurrence: 0 },
+    dslNumericLocalRelation: {
+      compiler: request.observationRequest.points[0]!.compilerLocal!,
+      inputIndex: 0, resultIsLeft: true, template: 'STRICT_EQUAL',
+    },
+  };
+
+  return { ...request, witness: {
+    mode: 'replay', target, inputs: [encodeJsValue(input)], sources: request.observationRequest.sources,
+  } };
+}
+
+test('compiler witness callback compares original numeric snapshots with JavaScript semantics', async () => {
+  await fixture(async (request) => {
+    for (const input of [Number.NaN, -0, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY]) {
+      const initial = witnessRequest(request, input);
+      const selected = { ...initial, manifest: { ...initial.manifest, inputs: [{ name: 'value', domain: {
+        kind: 'number', min: { value: 'negative-infinity' }, max: { value: 'positive-infinity' }, allowNaN: true,
+      } }] } };
+
+      const replay = (await executeWitness(selected)).witnessReplay;
+
+      assert.equal(replay?.outcome, 'HOLDS');
+      assert.equal(replay?.targetMatched, Number.isNaN(input));
+      assert.deepEqual(replay?.events.map((event) => event.binding), [initial.witness.target.binding]);
+    }
+  });
+});
+
+test('missing wrong repeated and nonnumeric compiler witness receipts retain the original oracle', async () => {
+  const callbacks = [
+    '', "observer?.(5, 'result', result);", "observer?.(4, 'other', result);",
+    "observer?.(4, 'result', 'unsupported');",
+    "observer?.(4, 'result', result); observer?.(4, 'result', result);",
+  ];
+  for (const callback of callbacks) {
+    await fixture(async (request) => {
+      const replay = (await executeWitness(witnessRequest(request))).witnessReplay;
+
+      assert.equal(replay?.outcome, 'HOLDS');
+      assert.equal(replay?.admission, 'ADMITTED');
+      assert.equal(replay?.targetMatched, false);
+      assert.ok(replay?.diagnostic?.startsWith('compiler-local-'));
+    }, callback);
+  }
+});
+
+test('public witness hook cannot impersonate the compiler callback', async () => {
+  await fixture(async (request) => {
+    const replay = (await executeWitness(witnessRequest(request))).witnessReplay;
+
+    assert.equal(replay?.outcome, 'HOLDS');
+    assert.equal(replay?.targetMatched, false);
+    assert.deepEqual(replay?.events, []);
+    assert.equal(replay?.diagnostic, 'compiler-local-point-missing');
+  }, `(globalThis as any)[Symbol.for('org.usvm.ts.pbt.witness')]?.(
+    'compiler-result', 'original-compiler-local', 'v1', true, false);`);
+});
+
+test('compiler witness validates input index direction context and declared compiler authority', async () => {
+  await fixture(async (request) => {
+    const initial = witnessRequest(request);
+    const target = initial.witness.target;
+    const local = target.dslNumericLocalRelation!;
+    const badTargets = [
+      { ...target, dslNumericLocalRelation: { ...local, inputIndex: 1 } },
+      { ...target, dslNumericLocalRelation: { ...local, resultIsLeft: 'true' } },
+      { ...target, dslNumericLocalRelation: { ...local, template: 'COERCING_EQUAL' } },
+      { ...target, binding: { ...target.binding!, contextId: 'helper' } },
+      { ...target, dslNumericLocalRelation: { ...local, compiler: { ...local.compiler, producer: 'source-line' } } },
+      { ...target, dslNumericLocalRelation: { ...local, compiler: { ...local.compiler, sourceSha256: '0'.repeat(64) } } },
+    ];
+    for (const changed of badTargets) {
+      await assert.rejects(executeWitness({ ...initial, witness: { ...initial.witness, target: changed } }),
+        (error: unknown) => error instanceof ProtocolError && error.code === 'protocol.request.invalid');
+    }
+  });
 });

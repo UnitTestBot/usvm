@@ -5,6 +5,7 @@ import org.usvm.ts.pbt.inference.ScalarRelationTemplate
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyId
+import org.usvm.ts.pbt.observation.CompilerNumericLocalBinding
 import org.usvm.ts.pbt.observation.PropertyObservationSource
 
 /** Auxiliary witnesses are useful evidence even when the complete original oracle holds. */
@@ -24,6 +25,23 @@ data class WitnessEntryRelation(
 
     companion object {
         const val CONTEXT_ID = "original-entry"
+    }
+}
+
+/** Explicit companion callback, comparing one stored numeric result with an original input snapshot. */
+@Serializable
+data class WitnessDslNumericLocalRelation(
+    val compiler: CompilerNumericLocalBinding,
+    val inputIndex: Int,
+    val resultIsLeft: Boolean,
+    val template: ScalarRelationTemplate,
+) {
+    init {
+        require(inputIndex >= 0)
+    }
+
+    companion object {
+        const val CONTEXT_ID = "original-compiler-local"
     }
 }
 
@@ -49,6 +67,7 @@ data class WitnessTarget(
     val binding: WitnessBinding? = null,
     val expectedOutcome: WitnessOracleOutcome? = null,
     val entryRelation: WitnessEntryRelation? = null,
+    val dslNumericLocalRelation: WitnessDslNumericLocalRelation? = null,
 ) {
     init {
         require(id.isNotBlank())
@@ -56,6 +75,10 @@ data class WitnessTarget(
         if (entryRelation != null) {
             require(role == WitnessRole.HYPOTHESIS)
             require(binding?.contextId == WitnessEntryRelation.CONTEXT_ID && binding.occurrence == 0)
+        }
+        if (dslNumericLocalRelation != null) {
+            require(entryRelation == null && role == WitnessRole.HYPOTHESIS)
+            require(binding?.contextId == WitnessDslNumericLocalRelation.CONTEXT_ID && binding.occurrence == 0)
         }
         require(
             expectedOutcome == null || expectedOutcome == WitnessOracleOutcome.FALSE ||

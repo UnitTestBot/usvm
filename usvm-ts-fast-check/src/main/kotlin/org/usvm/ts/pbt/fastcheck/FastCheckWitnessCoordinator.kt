@@ -310,6 +310,11 @@ internal class FastCheckWitnessCoordinator(
             if (!numericInputs) return WitnessReplayStatus.UNSUPPORTED_REPLAY
         }
 
+        val localRelation = candidate.target.dslNumericLocalRelation
+        if (localRelation != null && inputs.getOrNull(localRelation.inputIndex) !is JsConcreteValue.Number) {
+            return WitnessReplayStatus.UNSUPPORTED_REPLAY
+        }
+
         val sourceModules = candidate.sources.mapTo(hashSetOf()) { source -> source.module }
         val requiredModules = listOfNotNull(property.predicate.module, property.precondition?.module)
         val validSources = candidate.sources.all { source -> source.sha256.matches(SHA256_REGEX) } &&

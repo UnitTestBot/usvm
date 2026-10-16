@@ -834,6 +834,21 @@ function validateCompilerLocal(
   value: unknown, point: ObservationPointRequest, manifest: PropertyManifestWire,
   sources: Array<{ module: string; sha256: string }>, path: string,
 ): CompilerNumericLocalBinding {
+  const binding = validateCompilerLocalBinding(value, manifest, sources, path);
+  const originalPoint = point.kind === 'return' && point.source.module === manifest.predicate.module
+    && point.callSite.module === manifest.predicate.module;
+  if (!originalPoint) {
+    throw protocolError(adapterDiagnostic.protocolRequestInvalid,
+      'Compiler local requires an original return point', `${path}.compilerLocal`);
+  }
+
+  return binding;
+}
+
+export function validateCompilerLocalBinding(
+  value: unknown, manifest: PropertyManifestWire,
+  sources: Array<{ module: string; sha256: string }>, path: string,
+): CompilerNumericLocalBinding {
   const binding = requireRecord(value, adapterDiagnostic.protocolRequestInvalid,
     'Compiler local binding must be an object', `${path}.compilerLocal`);
   const predicateAssignment = validateSourcePoint(binding.predicateAssignment, `${path}.compilerLocal.predicateAssignment`);
@@ -846,10 +861,9 @@ function validateCompilerLocal(
     && binding.companionExportName === manifest.predicate.checkResultExportName
     && manifest.predicate.checkResultExportName !== undefined && manifest.predicate.executionKind === 'sync'
     && predicateAssignment.module === manifest.predicate.module && companionAssignment.module === manifest.predicate.module
-    && point.source.module === manifest.predicate.module && point.callSite.module === manifest.predicate.module
     && !samePoint(predicateAssignment, companionAssignment)
     && typeof binding.sourceSha256 === 'string' && /^[0-9a-f]{64}$/.test(binding.sourceSha256)
-    && source?.sha256 === binding.sourceSha256 && binding.occurrence === 0 && point.kind === 'return';
+    && source?.sha256 === binding.sourceSha256 && binding.occurrence === 0;
   if (!valid) {
     throw protocolError(adapterDiagnostic.protocolRequestInvalid,
       'Compiler local identity, callback ABI or selected source does not match', `${path}.compilerLocal`);
