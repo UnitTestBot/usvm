@@ -302,13 +302,20 @@ private fun TsState.numericConversionSupported(expr: UExpr<out USort>): UBoolExp
     }
 
     val reference = expr.asExpr(addressSort)
+    val literalString = (reference as? UConcreteHeapRef)?.let(::getStringConstantValue)
+    if (literalString != null) return@with trueExpr
+
     val lengthBound = boundedStringBackingRefs[reference]
     val hasModeledStringConversion = lengthBound != null && lengthBound in 0..1
     if (hasModeledStringConversion) {
         return@with trueExpr
     }
 
-    mkIsNullOrUndefined(reference)
+    val integerString = boundedIntegerStringToNumber(reference)
+    val nullish = mkIsNullOrUndefined(reference)
+    if (integerString == null) return@with nullish
+
+    mkOr(nullish, integerString.supported)
 }
 
 /** Converts modeled primitives and bounded strings, retaining unmodeled alternatives as unsupported paths. */
@@ -407,14 +414,23 @@ private fun TsContext.mkNumericExprUnchecked(
         return mkIte(expr.condition, trueNumber, falseNumber)
     }
 
+    val reference = expr.asExpr(addressSort)
+    val literalString = (reference as? UConcreteHeapRef)?.let(::getStringConstantValue)
+    if (literalString != null) return mkFp64(ecmaScriptStringToNumber(literalString))
+
     val codeUnitNumber = singleCodeUnitToNumber(scope = scope, string = expr.asExpr(addressSort))
     if (codeUnitNumber != null) {
         return codeUnitNumber
     }
 
+    val integerString = scope.calcOnState { boundedIntegerStringToNumber(reference) }
+    if (integerString != null) {
+        val nullishNumber = mkIte(mkHeapRefEq(reference, mkTsNullValue()), mkFp64(0.0), mkFp64NaN())
+        return mkIte(mkIsNullOrUndefined(reference), nullishNumber, integerString.value)
+    }
+
     // TODO: Model general StringToNumber and ToPrimitive conversion (https://github.com/UnitTestBot/usvm/issues/280).
     // The public support guard excludes unmodeled reference alternatives from the selected result.
-    val reference = expr.asExpr(addressSort)
     val nullValue = mkTsNullValue()
     val isNull = mkEq(reference, nullValue)
     val zero = mkFp(0.0, fp64Sort)
