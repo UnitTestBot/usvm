@@ -1043,15 +1043,19 @@ class JcMethodApproximationResolver(
             dispatchUsvmApiMethod(Engine::assumeSymbolic) {
                 val instance = it.arguments[0].asExpr(ctx.addressSort)
                 val condition = it.arguments[1].asExpr(ctx.booleanSort)
-                foldHeapRefWithStaticAsConcrete<Unit?>(
+                val assumptionConstraint = foldHeapRefWithStaticAsConcrete<UBoolExpr>(
                     ref = instance,
-                    initial = Unit,
+                    initial = ctx.trueExpr,
                     initialGuard = ctx.trueExpr,
                     ignoreNullRefs = true,
                     collapseHeapRefs = true,
-                    blockOnConcrete = { _, _ -> Unit },
-                    blockOnSymbolic = { acc, ref -> scope.assert(ctx.mkImplies(ref.guard, condition)) ?: acc }
-                )?.let { ctx.voidValue }
+                    blockOnConcrete = { constraint, _ -> constraint },
+                    blockOnSymbolic = { constraint, ref ->
+                        ctx.mkAnd(constraint, ctx.mkImplies(ref.guard, condition))
+                    },
+                )
+
+                scope.assert(assumptionConstraint)?.let { ctx.voidValue }
             }
             dispatchUsvmApiMethod(Engine::makeSymbolicBoolean) {
                 scope.calcOnState { makeSymbolicPrimitive(ctx.booleanSort) }
