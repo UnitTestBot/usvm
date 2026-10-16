@@ -4,6 +4,9 @@ import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.backend.PropertyFailureKind
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
+import org.usvm.ts.pbt.backend.WitnessOracleOutcome
+import org.usvm.ts.pbt.backend.WitnessReductionStatus
+import org.usvm.ts.pbt.backend.WitnessReplayStatus
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.testResourcesRoot
 import org.usvm.ts.pbt.usvm.UsvmPropertySearchStatus
@@ -16,9 +19,7 @@ import kotlin.test.assertTrue
 class KotlinPropertyDslTest {
     private val roots = listOf(testResourcesRoot().resolve("properties/dsl"))
     private val runner = DslPropertyRunner(sourceRoots = roots)
-
-    // Functional assertions include cold frontend initialization in the runner's shared timeout.
-    private val configuration = PropertyRunConfiguration(seed = 42, numRuns = 50)
+    private val configuration = PropertyRunConfiguration(seed = 42, numRuns = 50, timeoutMillis = 60_000)
 
     @Test
     fun `calculator runs through existing concrete and symbolic execution`() {
@@ -70,9 +71,17 @@ class KotlinPropertyDslTest {
 
         assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, run.symbolic?.status)
         val replay = assertNotNull(run.symbolicReplay)
-        assertEquals("addition", replay.failure?.checkId)
-        assertEquals(listOf(JsConcreteValue.number(0.0), JsConcreteValue.number(0.0)), replay.counterexample)
-        assertFailsWith<DslPropertyAssertionError> { run.requireSuccess() }
+        assertEquals(WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION, replay.status)
+        assertEquals("addition", replay.candidate.target.id)
+        assertEquals(WitnessOracleOutcome.FALSE, replay.candidate.target.expectedOutcome)
+        assertEquals(run.symbolic?.inputs, replay.candidate.inputs)
+        assertEquals("addition", replay.originalReplay?.failure?.checkId)
+        assertEquals("addition", replay.reducedReplay?.failure?.checkId)
+        assertEquals(WitnessReductionStatus.EXHAUSTED, replay.reduction.status)
+        assertEquals(listOf(JsConcreteValue.number(0.0), JsConcreteValue.number(0.0)), replay.reduction.inputs)
+        val error = assertFailsWith<DslPropertyAssertionError> { run.requireSuccess() }
+        assertTrue(error.message.orEmpty().contains("check addition"))
+        assertTrue(error.message.orEmpty().contains("actual=1, expected=0"))
     }
 
     @Test
@@ -200,11 +209,10 @@ class KotlinPropertyDslTest {
 
         val run = runner.run(program = program, engine = PropertyEngine.BOTH, configuration = configuration)
 
-        val diagnostic = run.executionDiagnostic()
-        assertEquals("unexpected", run.concrete?.failure?.checkId, diagnostic)
-        assertEquals("Error", run.concrete?.failure?.errorName, diagnostic)
-        val replay = assertNotNull(run.symbolicReplay, diagnostic)
-        assertEquals("unexpected", replay.failure?.checkId, diagnostic)
+        assertEquals("unexpected", run.concrete?.failure?.checkId)
+        assertEquals("Error", run.concrete?.failure?.errorName)
+        assertEquals("unexpected", run.symbolicReplay?.originalReplay?.failure?.checkId)
+        assertEquals(WitnessOracleOutcome.THREW, run.symbolicReplay?.candidate?.target?.expectedOutcome)
         assertFailsWith<DslPropertyAssertionError> { run.requireSuccess() }
     }
 

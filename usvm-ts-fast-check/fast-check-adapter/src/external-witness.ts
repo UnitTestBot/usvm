@@ -2,8 +2,8 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { performance } from 'node:perf_hooks';
 import fc from 'fast-check';
 import { adapterDiagnostic } from './diagnostics.js';
-import { EntryPointInvocationError, loadEntryPoint, sourceHashMatches, type LoadedEntryPoint } from './entry-point.js';
-import { describePropertyFailure, invokePropertyOnce, validateRequest, type FastCheckFailureDetails } from './execute-property.js';
+import { EntryPointInvocationError, isNamedCheckFailure, loadEntryPoint, sourceHashMatches, type LoadedEntryPoint } from './entry-point.js';
+import { describeNamedCheckFailure, describePropertyFailure, invokePropertyOnce, validateRequest, type FastCheckFailureDetails } from './execute-property.js';
 import { decodeJsValue, encodeJsValue, ProtocolError, protocolError, type JsConcreteValue, type TaggedJsValue } from './js-value.js';
 import { buildPropertyArbitrary } from './property-arbitrary.js';
 import { stringifyProtocolJson } from './protocol-json.js';
@@ -97,11 +97,17 @@ export async function executeWitness(value: unknown): Promise<WitnessExecutionSu
   const operation = validateOperation((value as Record<string, unknown>).witness, request.manifest.inputs.length);
   const identity = { witnessPropertyId: request.manifest.propertyId, witnessTarget: operation.target };
   const target = operation.target;
+  const declaredCheck = request.manifest.assertions?.some((check) => check.id === target.id) === true;
+  const diagnosticCheck = request.manifest.predicate.checkResultExportName !== undefined && declaredCheck;
+  const originalCheckObservation = operation.mode === 'replay' && target.binding === undefined
+    && target.id === request.manifest.predicate.exportName
+    && request.manifest.predicate.checkResultExportName !== undefined;
   const validOriginalCheck = target.role !== 'PROPERTY' || (target.binding === undefined
-    ? (request.manifest.assertions?.length ?? 0) === 0 && target.id === request.manifest.predicate.exportName
-    : target.binding.pointId === target.id && request.manifest.assertions?.some((check) => check.id === target.id));
+    ? originalCheckObservation || diagnosticCheck
+      || (request.manifest.assertions?.length ?? 0) === 0 && target.id === request.manifest.predicate.exportName
+    : target.binding.pointId === target.id && declaredCheck);
   if (!validOriginalCheck) {
-    throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Original named check requires its executable binding', 'witness.target');
+    throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Original named check requires a companion or executable binding', 'witness.target');
   }
   for (const source of operation.sources) {
     const matches = await sourceHashMatches(source.module, source.sha256, request.sourceRoots);
@@ -145,7 +151,7 @@ export async function executeWitness(value: unknown): Promise<WitnessExecutionSu
     : await loadEntryPoint(
       request.manifest.precondition, request.sourceRoots, 'manifest.precondition', request.tsconfig,
     );
-  const replay = (input: JsConcreteValue[]) => replayOnce(input, operation.target, predicate, precondition);
+  const replay = (input: JsConcreteValue[]) => replayOnce(input, operation.target, predicate, precondition, diagnosticCheck);
 
   if (operation.mode === 'replay') {
     const first = await replay(values);
@@ -235,6 +241,7 @@ class ExternalValueArbitrary extends fc.Arbitrary<JsConcreteValue[]> {
 
 async function replayOnce(
   values: JsConcreteValue[], target: WitnessTarget, predicate: LoadedEntryPoint, precondition: LoadedEntryPoint | undefined,
+  diagnosticCheck: boolean,
 ): Promise<WitnessNativeReplay> {
   const context: WitnessContext = { events: [], active: false };
   const result: WitnessNativeReplay = {
@@ -251,7 +258,10 @@ async function replayOnce(
       result.outcome = holds ? 'HOLDS' : 'FALSE';
     }
   } catch (error: unknown) {
-    if (error instanceof EntryPointInvocationError) {
+    if (isNamedCheckFailure(error)) {
+      result.outcome = error.exception === undefined ? 'FALSE' : 'THREW';
+      result.failure = describeNamedCheckFailure(error);
+    } else if (error instanceof EntryPointInvocationError) {
       result.outcome = 'THREW';
       result.failure = { kind: 'property', ...describePropertyFailure(error.thrownValue) };
     } else {
@@ -270,8 +280,11 @@ async function replayOnce(
     : context.events.find((entry) => sameBinding(entry.binding, target.binding as WitnessBinding));
   const propertyFailed = result.outcome === 'FALSE' || result.outcome === 'THREW';
   const guardedEvent = event !== undefined && event.guard;
+  const checkMatched = diagnosticCheck
+    ? result.failure?.checkId === target.id
+    : result.failure?.checkId === undefined || result.failure.checkId === target.id;
   result.targetMatched = result.admission === 'ADMITTED' && (target.role === 'PROPERTY'
-    ? propertyFailed && (target.expectedOutcome === undefined || target.expectedOutcome === result.outcome)
+    ? propertyFailed && checkMatched && (target.expectedOutcome === undefined || target.expectedOutcome === result.outcome)
       && (target.binding === undefined || (guardedEvent && !event.holds))
     : guardedEvent && (target.role === 'COVERAGE' || !event.holds));
 
@@ -280,7 +293,9 @@ async function replayOnce(
 
 export function sameTarget(actual: WitnessNativeReplay, expected: WitnessNativeReplay): boolean {
   return actual.admission === 'ADMITTED' && actual.targetMatched && actual.outcome === expected.outcome
-    && actual.failure?.errorName === expected.failure?.errorName;
+    && actual.failure?.checkId === expected.failure?.checkId
+    && actual.failure?.errorName === expected.failure?.errorName
+    && actual.failure?.message === expected.failure?.message;
 }
 
 function sameBinding(left: WitnessBinding, right: WitnessBinding): boolean {
