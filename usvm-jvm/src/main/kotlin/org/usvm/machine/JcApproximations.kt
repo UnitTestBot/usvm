@@ -5,6 +5,7 @@ import io.ksmt.utils.uncheckedCast
 import org.jacodb.api.jvm.JcArrayType
 import org.jacodb.api.jvm.JcClassType
 import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.JcPrimitiveType
 import org.jacodb.api.jvm.JcType
 import org.jacodb.api.jvm.cfg.BsmArg
 import org.jacodb.api.jvm.cfg.BsmDoubleArg
@@ -318,13 +319,18 @@ class JcMethodApproximationResolver(
         if (method.name == "isInstance") {
             val classRef = arguments[0].asExpr(ctx.addressSort)
             val objectRef = arguments[1].asExpr(ctx.addressSort)
+            val classType = resolveRepresentedClassType(classRef) ?: return false
+            val isInstance = if (classType is JcPrimitiveType) {
+                ctx.falseExpr
+            } else {
+                scope.calcOnState {
+                    val nonNull = ctx.mkNot(ctx.mkHeapRefEq(objectRef, ctx.nullRef))
+                    ctx.mkAnd(nonNull, memory.types.evalIsSubtype(objectRef, classType))
+                }
+            }
+
             scope.doWithState {
-                val classRefTypeRepresentative =
-                    memory.read(UFieldLValue(ctx.addressSort, classRef, ctx.classTypeSyntheticField))
-                classRefTypeRepresentative as UConcreteHeapRef
-                val classType = memory.types.typeOf(classRefTypeRepresentative.address)
-                val isExpr = memory.types.evalIsSubtype(objectRef, classType)
-                skipMethodInvocationWithValue(methodCall, isExpr)
+                skipMethodInvocationWithValue(methodCall, isInstance)
             }
 
             return true
