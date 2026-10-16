@@ -571,6 +571,7 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
         TsMachine(
             scene = scene,
             options = UMachineOptions(
+                pathSelectionStrategies = listOf(CALLS_PATH_SELECTION_STRATEGY),
                 stateCollectionStrategy = StateCollectionStrategy.ALL,
                 randomSeed = manifest.seed,
                 collectedStatesLimit = manifest.collectedStatesLimit,

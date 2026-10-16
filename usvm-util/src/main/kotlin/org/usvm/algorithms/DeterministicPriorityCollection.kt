@@ -11,22 +11,18 @@ import kotlin.NoSuchElementException
 // TODO: what to do if elements have same priority?
 class DeterministicPriorityCollection<T, Priority>(private val comparator: Comparator<Priority>) :
     UPriorityCollection<T, Priority> {
-    private inner class Entry(val element: T, val priority: Priority) : Comparable<Entry> {
-        override fun compareTo(other: Entry): Int = comparator.compare(priority, other.priority)
-    }
-
-    private var topElement: Entry? = null
-    private var priorityQueue = PriorityQueue<Entry>()
+    private var topElement: Pair<T, Priority>? = null
+    private val priorityQueue = PriorityQueue<Pair<T, Priority>> { (_, p1), (_, p2) -> comparator.compare(p1, p2) }
 
     override val count: Int get() = priorityQueue.size + if (topElement == null) 0 else 1
 
     override fun peek(): T {
         val currentTop = topElement
-        if (currentTop != null) return currentTop.element
+        if (currentTop != null) return currentTop.first
 
         val next = priorityQueue.remove()
         topElement = next
-        return next.element
+        return next.first
     }
 
     override fun update(element: T, priority: Priority) {
@@ -36,45 +32,25 @@ class DeterministicPriorityCollection<T, Priority>(private val comparator: Compa
 
     override fun remove(element: T) {
         // Don't traverse the whole queue if we remove the top element
-        if (topElement != null && topElement?.element == element) {
+        if (topElement != null && topElement?.first == element) {
             topElement = null
             return
         }
 
-        if (!priorityQueue.removeIf { it.element == element }) {
+        if (!priorityQueue.removeIf { (e, _) -> e == element }) {
             throw NoSuchElementException("Element not found in priority queue")
         }
     }
 
     override fun add(element: T, priority: Priority) {
-        assert({ !priorityQueue.any { it.element == element } }) { "Element already exists in priority queue" }
+        assert({ !priorityQueue.any { (e, _) -> e == element } }) { "Element already exists in priority queue" }
 
         val currentTop = topElement
-        if (currentTop != null && comparator.compare(currentTop.priority, priority) > 0) {
-            topElement = Entry(element, priority)
+        if (currentTop != null && comparator.compare(currentTop.second, priority) > 0) {
+            topElement = element to priority
             priorityQueue.add(currentTop)
             return
         }
-        priorityQueue.add(Entry(element, priority))
-    }
-
-    /**
-     * Recalculates each priority once and rebuilds the heap in linear time, without removing and reinserting elements.
-     * If [priority] throws, the collection keeps its previous priorities and cached selection.
-     */
-    fun updatePriorities(priority: (T) -> Priority) {
-        val entries = ArrayList<Entry>(count)
-        val currentTop = topElement
-        if (currentTop != null) {
-            entries.add(Entry(currentTop.element, priority(currentTop.element)))
-        }
-        for (entry in priorityQueue) {
-            entries.add(Entry(entry.element, priority(entry.element)))
-        }
-
-        // The collection constructor heapifies Comparable entries; addAll would perform individual insertions.
-        val refreshedQueue = PriorityQueue(entries)
-        priorityQueue = refreshedQueue
-        topElement = null
+        priorityQueue.add(element to priority)
     }
 }

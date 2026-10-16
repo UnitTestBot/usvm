@@ -20,7 +20,7 @@ def cached_jar(group, artifact, version):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--cases', default='codec,gcd,loan')
-    parser.add_argument('--modes', default='existing,128,eager,512')
+    parser.add_argument('--modes', default='nurs,uniform')
     parser.add_argument('--steps', type=int, default=100000)
     parser.add_argument('--timeout-ms', type=int, default=120000)
     parser.add_argument('--repetitions', type=int, default=2)
@@ -32,6 +32,13 @@ def main():
 
     experiment = Path(__file__).resolve().parent
     root = experiment.parents[2]
+    revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip()
+    historical_revision = '44869512bca6b1ce89511b9f6799f4475efdf972'
+    historical_modes = {'128', '512', 'eager'}
+    uses_historical_modes = bool(set(args.modes.split(',')) & historical_modes)
+    if uses_historical_modes and revision != historical_revision:
+        parser.error(f'Historical experiment: run this script from a checkout of {historical_revision}')
+
     output = (args.output or root / 'build/coverage-selector-performance').resolve()
     output.mkdir(parents=True, exist_ok=True)
     codec = args.codec_jar or cached_jar('commons-codec', 'commons-codec', '1.16.0')
