@@ -250,8 +250,9 @@ private class ClassObservationValueResolver(
     private fun resolveArray(domain: ArrayDomain, type: EtsType, value: UExpr<out USort>): JsConcreteValue = with(
         state.ctx
     ) {
+        val declaredArrayType = type as? EtsArrayType ?: error("Observed array has no declared array type: $type")
         val reference = value.asExpr(addressSort)
-        val arrayType = state.arrayStorageType(reference, type) as? EtsArrayType
+        val arrayType = state.arrayStorageType(reference, declaredArrayType) as? EtsArrayType
             ?: error("Observed array has no supported array storage: $type")
         val length = model.eval(state.memory.read(mkArrayLengthLValue(reference, arrayType))).extractInt()
         require(length in 0..domain.maxLength) { "Observed array exceeds the frozen observation capacity" }
@@ -270,7 +271,7 @@ private class ClassObservationValueResolver(
             }
 
             val lValue = mkArrayIndexLValue(storageSort, reference, symbolicIndex, arrayType)
-            resolve(domain.element, arrayType.componentType, state.memory.read(lValue))
+            resolve(domain.element, declaredArrayType.componentType, state.memory.read(lValue))
         }
         JsConcreteValue.Array(elements)
     }
