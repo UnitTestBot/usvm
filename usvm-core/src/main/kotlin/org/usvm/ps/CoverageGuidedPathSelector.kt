@@ -21,9 +21,9 @@ class CoverageGuidedPathSelector<State, Target>(
         require(priorityRefreshInterval > 0) { "Priority refresh interval must be positive" }
     }
 
-    private val knownTargets = targets.toMutableSet()
-    private val pendingTargets = targets.toMutableSet()
-    private var priorityTargets: Set<Target> = targets.toSet()
+    private val knownTargets = targets.toHashSet()
+    private val pendingTargets = targets.toHashSet()
+    private var priorityTargets: Set<Target> = targets.toHashSet()
     private val distanceToTarget = distance
     private var prioritiesChanged = false
     private var completedSelections = 0
@@ -36,7 +36,7 @@ class CoverageGuidedPathSelector<State, Target>(
     )
 
     val uncoveredTargets: Set<Target>
-        get() = pendingTargets.toSet()
+        get() = pendingTargets.toHashSet()
 
     /** Registers newly identified goals; previously covered goals stay covered. */
     fun addTargets(targets: Collection<Target>): Boolean {
@@ -50,7 +50,7 @@ class CoverageGuidedPathSelector<State, Target>(
 
     /** Unknown goals are ignored. Changed priorities are applied at the next eligible selection. */
     fun markCovered(targets: Collection<Target>): Boolean {
-        val changed = pendingTargets.removeAll(targets.toSet())
+        val changed = pendingTargets.removeAll(targets.toHashSet())
         if (changed) {
             prioritiesChanged = pendingTargets.isNotEmpty()
             if (!prioritiesChanged) {
@@ -67,7 +67,7 @@ class CoverageGuidedPathSelector<State, Target>(
     override fun peek(): State {
         val refreshDue = prioritiesChanged && completedSelections >= priorityRefreshInterval
         if (refreshDue) {
-            val refreshedTargets = pendingTargets.toSet()
+            val refreshedTargets = pendingTargets.toHashSet()
             priorities.updatePriorities { state -> weight(state, refreshedTargets) }
             priorityTargets = refreshedTargets
             prioritiesChanged = false
