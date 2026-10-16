@@ -3,6 +3,7 @@ package org.usvm.ts.pbt.dsl
 import kotlinx.serialization.json.Json
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsProjectAutoConvert
+import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.ts.pbt.backend.ProjectionCapability
@@ -149,6 +150,7 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
         val manifest = compiled.definition.toManifest()
         val mapping = PropertyEtsMapper(scene = scene, sourceRoots = sourceRoots).map(manifest)
         val options = UMachineOptions(
+            pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
             solverType = SolverType.YICES,
             timeout = configuration.timeoutMillis.milliseconds,
         )

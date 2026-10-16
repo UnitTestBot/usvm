@@ -1,10 +1,29 @@
 # Coverage selector performance on real JVM bytecode
 
-These are historical results for the superseded periodic selector. Reproduce them at commit `44869512bca6b1ce89511b9f6799f4475efdf972`, where the harness and old selector are compiled together. The preserved harness in this directory is evidence, not part of current test sources. The current compiled harness supports `nurs`, `existing`, `uniform`, and `random-path`; the runner defaults to `nurs,uniform`. None of the original 28 measurements benchmarks `CLOSEST_TO_UNCOVERED_RANDOM` (NURS).
+The original 28 runs below are historical results for the superseded periodic selector. Reproduce them at commit `44869512bca6b1ce89511b9f6799f4475efdf972`, where the harness and old selector are compiled together. The preserved harness in this directory is evidence, not part of current test sources. The current compiled harness supports `nurs`, `existing`, `uniform`, and `random-path`; the runner defaults to `nurs,uniform`. None of the original 28 measurements benchmarks `CLOSEST_TO_UNCOVERED_RANDOM` (NURS).
 
 This experiment drives the production `JcInterpreter` through `UMachine.run`, with the coverage-guided selector installed directly in the execution loop. It does not use mock states. It does not call the public `JcMachine.analyze` wrapper or concretely replay generated inputs.
 
-## Recorded results (2026-10-16)
+## Lazy NURS follow-up (2026-10-16)
+
+The current harness uses the production `createClosestToUncoveredRandomPathSelector` with one aggregate `CallStackDistanceCalculator`. Coverage reports remove goals; normal add/update operations recompute only the affected state's weight. No queue-wide refresh or per-target calculator is used. This checks core NURS on real JVM bytecode, not TS-machine performance or concrete replay coverage.
+
+Two batches contain 12 successful runs and 1,094,076 interpreter steps, with seed 0 and the same limits as above. The first batch partly overlapped a dependent PBT build; its raw measurements are retained separately. The table uses only the subsequent sequential batch, which ran after that build finished. Other host activity was not controlled.
+
+| Program | Mode | Steps | Analysis seconds | Selector seconds | Covered goals | Global refreshes |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| codec | nurs | 100,000 | 11.829 | 1.277 | 74 | 0 |
+| codec | uniform | 100,000 | 10.851 | 1.029 | 74 | 0 |
+| gcd | nurs | 100,000 | 9.247 | 0.508 | 28 | 0 |
+| gcd | uniform | 100,000 | 9.641 | 0.608 | 28 | 0 |
+| loan | nurs | 73,519 | 3.344 | 0.328 | 123 | 0 |
+| loan | uniform | 73,519 | 7.063 | 0.682 | 123 | 0 |
+
+Both strategies reached the step limit for Codec and Guava and exhausted LoanExam. NURS made 104,817 / 104,581 / 73,519 aggregate distance calls respectively, only through state add/update. All runs recorded zero distance work in peek and zero global refreshes. Goal counts match the uniform baseline in these runs; equal counts do not prove equal covered sets. Timing varied considerably between batches, so these short runs do not establish a stable speedup or a TS performance conclusion.
+
+Raw measurements, process outcomes, source hashes and batch conditions are in [`lazy-nurs/`](lazy-nurs/). The old results and their manifest are unchanged. To reproduce the current comparison, use the current checkout with `--modes nurs,uniform --seed 0 --repetitions 1`; to reproduce the original periodic modes, use the historical commit noted above.
+
+## Original recorded results (2026-10-16)
 
 The periodic selector remains expensive on these programs. Most measured selector time is outside full refreshes: every ordinary state update still scans the entire goal snapshot through the per-target distance callback. Increasing the interval to 512 does not remove that cost.
 
