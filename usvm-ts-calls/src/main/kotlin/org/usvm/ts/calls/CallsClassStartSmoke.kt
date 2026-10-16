@@ -96,6 +96,7 @@ internal data class CallsClassStartManifest(
     val seed: Long = 17,
     val profile: CallsExperimentProfile = CallsExperimentProfile.FROZEN_STOP,
     val classes: List<CallsClassStartCase>,
+    val retainRawStateDiagnostics: Boolean = false,
 ) {
     init {
         require(schemaVersion == 1 && classes.size == expectedClassCount && expectedClassCount > 0)
@@ -489,6 +490,8 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
                 sourceFile = case.sourceFile,
                 sourceText = sourceText,
                 output = output,
+                retainRawStateDiagnostics = manifest.retainRawStateDiagnostics,
+                profile = manifest.profile,
             )
         } else {
             null
@@ -606,11 +609,13 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
                     methods = independentMethods,
                     configureInitialState = { method, state ->
                         machineObserver.registerInitialState(method = method, state = state)
+                        raw?.registerInitialState(method = method, state = state)
                     },
                 )
             } finally {
                 analysisElapsedMillis = analysisStarted.elapsedNow().inWholeMilliseconds
                 if (raw != null) {
+                    raw.checkpointBeforeDrain(stopReason = outcome?.stopReason?.name)
                     checkpoint(next = "DRAIN_REMAINING")
                     raw.retainRemainingStates(selector = remainingSelector)
                 }

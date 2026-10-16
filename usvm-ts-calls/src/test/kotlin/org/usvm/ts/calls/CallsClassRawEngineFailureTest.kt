@@ -35,7 +35,13 @@ class CallsClassRawEngineFailureTest {
         val file = loadEtsFileAutoConvert(path = source, provider = EtsIrProvider.TS_FRONTEND)
         val scene = EtsScene(projectFiles = listOf(file))
         val method = scene.projectClasses.single { it.name == "Target" }.methods.single { it.name == "run" }
-        val raw = ClassRawAnalysisObserver(sourceFile = "Target.ts", universe = emptyList(), output = directory)
+        val raw = ClassRawAnalysisObserver(
+            sourceFile = "Target.ts",
+            universe = emptyList(),
+            output = directory,
+            retainRawStateDiagnostics = true,
+            profile = CallsExperimentProfile.FROZEN_STOP,
+        )
         val observer = object : TsInterpreterObserver {
             override fun onReturnStatement(
                 simpleValueResolver: TsSimpleValueResolver,
@@ -59,10 +65,16 @@ class CallsClassRawEngineFailureTest {
             tsOptions = TsOptions(),
             observer = observer,
             machineObserverFactory = { raw },
-        ).use { machine -> machine.analyzeWithMetadata(methods = listOf(method)) }
+        ).use { machine ->
+            machine.analyzeWithMetadata(
+                methods = listOf(method),
+                configureInitialState = { entry, state -> raw.registerInitialState(method = entry, state = state) },
+            )
+        }
         val manifest = manifest(source = source)
         val analysis = raw.result(manifest = manifest, analysisElapsedMillis = 0)
-        val snapshots = GZIPInputStream(Files.newInputStream(directory.resolve(analysis.stateSnapshots.path)))
+        val snapshotPath = directory.resolve(checkNotNull(analysis.stateSnapshots).path)
+        val snapshots = GZIPInputStream(Files.newInputStream(snapshotPath))
             .bufferedReader().use { reader ->
                 reader.lineSequence().map { CallsExperimentJson.json.decodeFromString<CallsClassRawStateSnapshot>(it) }
                     .toList()

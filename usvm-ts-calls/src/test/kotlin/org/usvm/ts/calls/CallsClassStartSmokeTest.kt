@@ -10,6 +10,16 @@ import org.jacodb.ets.model.EtsSourceSpan
 import org.jacodb.ets.model.EtsStmtLocation
 import org.jacodb.ets.model.EtsUndefinedType
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.ts.pbt.backend.PropertyRunConfiguration
+import org.usvm.ts.pbt.backend.PropertyRunStatus
+import org.usvm.ts.pbt.fastcheck.FastCheckBackend
+import org.usvm.ts.pbt.fastcheck.FastCheckRuntime
+import org.usvm.ts.pbt.model.BooleanDomain
+import org.usvm.ts.pbt.model.JsConcreteValue
+import org.usvm.ts.pbt.model.PropertyDefinition
+import org.usvm.ts.pbt.model.PropertyId
+import org.usvm.ts.pbt.model.PropertyInput
+import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -149,6 +159,7 @@ class CallsClassStartSmokeTest {
             sourceText = "export class Target { constructor() { Date.now(); } }",
             profile = CallsExperimentProfile.EMPTY_STOP,
             exploratory = true,
+            retainRawStateDiagnostics = true,
         )
 
         assertTrue(result.started, result.toString())
@@ -156,21 +167,141 @@ class CallsClassStartSmokeTest {
         assertEquals(30_000L, raw.budgetMillis)
         assertEquals(null, raw.collectedStatesLimit)
         assertTrue(raw.stoppedPrefixStates > 0)
-        assertTrue(raw.stateSnapshots.records >= raw.stoppedPrefixStates)
-        assertTrue(raw.stateSnapshots.complete)
-        assertTrue(raw.symbolicExpressions.complete)
+        assertTrue(checkNotNull(raw.stateSnapshots).records >= raw.stoppedPrefixStates)
+        assertTrue(checkNotNull(raw.stateSnapshots).complete)
+        assertTrue(checkNotNull(raw.symbolicExpressions).complete)
         assertTrue(raw.sourceMappedIrUniverse.isNotEmpty())
         assertTrue(raw.sourceMappedIrEntered.isNotEmpty())
         assertTrue(raw.sourceMappedIrUniverse.containsAll(raw.sourceMappedIrEntered))
         assertTrue(raw.stateSnapshotFailures.isEmpty(), raw.stateSnapshotFailures.toString())
         assertTrue(Files.isRegularFile(directory.resolve("output/states.jsonl.gz")))
-        assertEquals(1, raw.timingSchemaVersion)
+        assertEquals(2, raw.timingSchemaVersion)
         assertTrue(raw.searchElapsedMillis > 0)
         assertEquals(raw.analysisElapsedMillis, raw.analysisSetupElapsedMillis + raw.searchElapsedMillis)
         assertEquals((raw.searchElapsedMillis - raw.budgetMillis).coerceAtLeast(0), raw.budgetOverrunMillis)
         assertTrue(raw.searchSnapshotElapsedNanos > 0)
         assertEquals(0L, raw.drainSnapshotElapsedNanos)
         assertEquals(0L, raw.remainingStates)
+    }
+
+    @Test
+    fun `symbolic probe saves concrete candidates without raw state journals by default`() {
+        val result = runFixture(
+            sourceText = "export class Target { read(value: number): number { return value > 0 ? 1 : -1; } }",
+            exploratory = true,
+        )
+
+        val analysis = checkNotNull(result.rawAnalysis)
+        assertFalse(analysis.rawStateDiagnosticsEnabled)
+        assertEquals(null, analysis.stateSnapshots)
+        assertEquals(null, analysis.symbolicExpressions)
+        assertTrue(checkNotNull(analysis.inputCandidates).records > 0)
+        assertTrue(checkNotNull(analysis.inputCandidates).complete)
+        assertTrue(checkNotNull(analysis.inputExtractionFailures).complete)
+        assertTrue(analysis.candidateExtractionElapsedNanos > 0)
+        assertEquals(0L, analysis.searchSnapshotElapsedNanos)
+        assertFalse(Files.exists(directory.resolve("output/states.jsonl.gz")))
+        assertFalse(Files.exists(directory.resolve("output/expressions.jsonl.gz")))
+    }
+
+    @Test
+    fun `generic entry inputs use initialized number boolean reference and default sorts`() {
+        val source = """
+            export class Target {
+                numeric<T extends number>(value: T): number { return value > 0 ? 1 : 0; }
+                logical<T extends boolean>(value: T): number { return value ? 1 : 0; }
+                reference<T extends string>(value: T): number { return value.length; }
+                defaulted<T = number>(value: T): boolean { return typeof value === 'number'; }
+            }
+        """.trimIndent()
+
+        val result = runFixture(sourceText = source, exploratory = true)
+        val metadata = checkNotNull(result.rawAnalysis?.inputCandidates)
+        val candidates = Files.readAllLines(directory.resolve("output").resolve(metadata.path)).map {
+            CallsExperimentJson.json.decodeFromString<CallsClassInputCandidate>(it)
+        }.groupBy { it.methodName }
+
+        assertTrue(result.started, result.toString())
+        assertFalse(result.engineFailed, result.toString())
+        fun values(method: String): List<JsConcreteValue?> = checkNotNull(candidates[method]).map {
+            it.inputs.arguments.single().primitive
+        }
+        assertTrue(values("numeric").all { it is JsConcreteValue.Number })
+        assertTrue(values("logical").all { it is JsConcreteValue.Boolean })
+        assertTrue(values("reference").all { it is JsConcreteValue.String })
+        val failures = Files.readAllLines(directory.resolve("output/input-extraction-failures.jsonl"))
+        assertTrue(values("defaulted").isNotEmpty())
+        assertTrue(values("defaulted").any { it !is JsConcreteValue.Number })
+        assertTrue(failures.isEmpty(), failures.toString())
+    }
+
+    @Test
+    fun `saved stopped candidate restores original receiver and arguments in native execution`() {
+        val source = """
+            declare class External { static stop(): number; }
+            export class Box { value: number = 0; }
+            export class Target {
+                value: number = 0;
+                run(box: Box, items: number[]): number {
+                    if (this.value !== 11 || box.value !== 12 || items.length !== 1 || items[0] !== 13) return 0;
+                    this.value = 91;
+                    box.value = 92;
+                    items[0] = 93;
+                    return this.nested(items, box);
+                }
+                nested(items: number[], box: Box): number { return External.stop(); }
+            }
+        """.trimIndent()
+
+        val result = runFixture(sourceText = source, exploratory = true, profile = CallsExperimentProfile.EMPTY_STOP)
+        val metadata = checkNotNull(result.rawAnalysis?.inputCandidates)
+        val candidates = Files.readAllLines(directory.resolve("output").resolve(metadata.path)).map {
+            CallsExperimentJson.json.decodeFromString<CallsClassInputCandidate>(it)
+        }
+        val candidate = candidates.single { it.methodName == "run" && it.outcome.startsWith("STOPPED_PREFIX") }
+        Files.writeString(directory.resolve("candidate.json"), encodeCallsArtifact(candidate))
+
+        assertEquals(CallsCoverageCandidateOrigin.SUSPENDED, candidate.origin)
+        assertEquals(null, candidate.completion)
+        assertFalse(candidate.suspendedAtMachineStop)
+        replaySavedStoppedCandidate()
+    }
+
+    private fun replaySavedStoppedCandidate() {
+        val decoder = FastCheckRuntime.protocolJsonModule().resolveSibling("js-value.js").toUri().toString()
+        val replaySource = """
+            import { readFileSync } from 'node:fs';
+            import { Target, Box } from './Target.ts';
+            import { decodeJsValue } from '$decoder';
+            ${callsConcreteHeapRestoreSource()}
+            export function checkCandidate(_sentinel: boolean): boolean {
+              const candidate = JSON.parse(readFileSync(new URL('./candidate.json', import.meta.url), 'utf8'));
+              const prototypes = new Map<string, object>();
+              for (const node of candidate.inputs.objects) {
+                if (node.className === 'Target') prototypes.set(node.classSignature, Target.prototype);
+                if (node.className === 'Box') prototypes.set(node.classSignature, Box.prototype);
+              }
+              const restored = restoreCallsConcreteHeap(candidate.inputs, prototypes, decodeJsValue);
+              try { restored.receiver.run(...restored.arguments); } catch (error) {
+                if (!(error instanceof ReferenceError)) throw error;
+              }
+              return restored.receiver.value === 91 && restored.arguments[0].value === 92 &&
+                     restored.arguments[1][0] === 93;
+            }
+        """.trimIndent()
+        Files.writeString(directory.resolve("replay.mts"), replaySource)
+        val property = PropertyDefinition(
+            id = PropertyId("calls.saved-stopped-inputs"),
+            inputs = listOf(PropertyInput(name = "sentinel", domain = BooleanDomain)),
+            predicate = TypeScriptEntryPoint(module = "replay.mts", exportName = "checkCandidate"),
+        )
+
+        val result = FastCheckBackend(sourceRoots = listOf(directory)).run(
+            property = property,
+            configuration = PropertyRunConfiguration(seed = 17, numRuns = 1, timeoutMillis = 20_000),
+        )
+
+        assertEquals(PropertyRunStatus.SUCCESS, result.status, result.toString())
     }
 
     @Test
@@ -247,6 +378,7 @@ class CallsClassStartSmokeTest {
         sourceText: String,
         profile: CallsExperimentProfile = CallsExperimentProfile.FROZEN_STOP,
         exploratory: Boolean = false,
+        retainRawStateDiagnostics: Boolean = false,
     ): CallsClassStartResult {
         val source = directory.resolve("Target.ts")
         Files.writeString(source, sourceText)
@@ -273,6 +405,7 @@ class CallsClassStartSmokeTest {
             budgetMillis = if (exploratory) 30_000 else 2_000,
             collectedStatesLimit = if (exploratory) null else 10,
             classes = listOf(case),
+            retainRawStateDiagnostics = retainRawStateDiagnostics,
         )
         val path = directory.resolve("manifest.json")
         Files.writeString(path, encodeClassStartManifest(manifest))
