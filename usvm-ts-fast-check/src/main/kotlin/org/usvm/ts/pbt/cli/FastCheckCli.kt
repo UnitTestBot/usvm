@@ -337,10 +337,10 @@ class FastCheckCli(
 
 /** Process entry point used by Gradle application and installed distributions. */
 fun main(args: Array<String>) {
-    val exitCode = if (args.firstOrNull() == "campaign-file") {
-        runCampaignFile(args.drop(1).toTypedArray())
-    } else {
-        FastCheckCli().run(args)
+    val exitCode = when (args.firstOrNull()) {
+        "campaign-file" -> runCampaignFile(args.drop(1).toTypedArray())
+        "campaign-preflight" -> CampaignFrontendPreflight.run(args.drop(1).toTypedArray())
+        else -> FastCheckCli().run(args)
     }
     exitProcess(exitCode)
 }
