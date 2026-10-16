@@ -58,6 +58,15 @@ class AllocatedArrays {
         }
     }
 
+    inspectAllocatedArrayLengthExpansion() {
+        const values = this.allocatedArrayLengthExpansion();
+        if (typeof values === 'number') return -1;
+        if (values.length !== 6) return -2;
+        if (values[0] !== 1 || values[1] !== 2 || values[2] !== 3) return -3;
+        if (values[3] !== undefined || values[4] !== undefined) return -4;
+        return values[5];
+    }
+
     writeInTheIndexEqualToLength() {
         let x = [1, 2, 3];
         x[3] = 4;
