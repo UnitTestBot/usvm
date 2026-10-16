@@ -27,6 +27,7 @@ data class PropertyCampaignArtifact(
     val pbtAllocationMillis: Long? = null,
     val shrinkWitness: Boolean = true,
     val completedInputLimit: Int = 0,
+    val relationGuidanceControls: PropertyRelationGuidanceControls? = null,
 ) {
     init {
         val resultProperties = listOfNotNull(
@@ -36,7 +37,10 @@ data class PropertyCampaignArtifact(
             result.confirmation?.candidate?.propertyId,
         ) + result.symbolicInputReplays.flatMap { replay ->
             listOfNotNull(replay.candidate.propertyId, replay.replay.coverage?.propertyId)
-        }
+        } + listOfNotNull(result.relationGuidance?.selection?.inference?.propertyId) +
+            result.relationGuidance?.attempts.orEmpty().flatMap { attempt ->
+                listOfNotNull(attempt.witness?.propertyId, attempt.confirmation?.candidate?.propertyId)
+            }
         val sameProperty = resultProperties.all { it == property.id }
         require(sameProperty) { "Campaign evidence belongs to another property" }
         require(completedInputLimit >= 0)

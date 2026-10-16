@@ -1,5 +1,6 @@
 package org.usvm.ts.pbt.inference
 
+import kotlinx.serialization.Serializable
 import org.usvm.ts.pbt.dsl.CompiledDslProperty
 import org.usvm.ts.pbt.dsl.DslNumericLocalCapture
 import org.usvm.ts.pbt.dsl.PropertyExpressionTerm
@@ -8,9 +9,11 @@ import org.usvm.ts.pbt.dsl.selectNumericLocalCapture
 import org.usvm.ts.pbt.observation.ObservationPointKind
 
 /** KNOWN_DSL_CHECK identifies a direct original check, not a proved relation or executable body. */
+@Serializable
 enum class ScalarGuidanceRelevance { KNOWN_DSL_CHECK, UNKNOWN }
 
 /** Selection decisions preserve each excluded relation and its original evidence. */
+@Serializable
 enum class ScalarGuidanceExclusionReason {
     NOT_SAMPLED,
     DOMAIN_IMPLIED,
@@ -21,9 +24,11 @@ enum class ScalarGuidanceExclusionReason {
 }
 
 /** An empirical candidate whose exact symbolic support still needs a consumer's binding checks. */
+@Serializable
 data class ScalarGuidanceCandidate(val relation: ScalarRelation, val relevance: ScalarGuidanceRelevance)
 
 /** An unselected relation; exclusion never removes it from the original inference. */
+@Serializable
 data class ScalarGuidanceExclusion(
     val relation: ScalarRelation,
     val reason: ScalarGuidanceExclusionReason,
@@ -31,6 +36,7 @@ data class ScalarGuidanceExclusion(
 )
 
 /** Retains the complete original inference, including contradictory, insufficient and excluded evidence. */
+@Serializable
 data class ScalarGuidanceSelection(
     val inference: ScalarRelationInference,
     val candidates: List<ScalarGuidanceCandidate>,

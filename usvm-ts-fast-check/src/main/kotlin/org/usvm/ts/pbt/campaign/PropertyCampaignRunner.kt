@@ -25,6 +25,7 @@ import org.usvm.ts.pbt.fastcheck.FastCheckBackend
 import org.usvm.ts.pbt.fastcheck.PbtBackendException
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
+import org.usvm.ts.pbt.mapping.PropertyEtsMappingArtifact
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.observation.PropertyObservationRequest
@@ -63,10 +64,14 @@ data class PropertyCampaignResult(
     val elapsedMillis: Long,
     val diagnostic: String?,
     val symbolicInputReplays: List<SymbolicInputReplay> = emptyList(),
+    val relationGuidance: PropertyRelationGuidanceTrace? = null,
 ) {
     val confirmedViolation: Boolean
         get() = concrete?.failure?.kind == PropertyFailureKind.PROPERTY ||
-            confirmation?.status == WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION
+            confirmation?.status == WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION ||
+            relationGuidance?.attempts?.any {
+                it.confirmation?.status == WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION
+            } == true
 }
 
 /** One concrete generation phase followed by the unchanged original-property symbolic query. */
@@ -86,12 +91,21 @@ class PropertyCampaignRunner(
         pbtAllocationMillis: Long? = null,
         shrinkWitness: Boolean = true,
         completedInputLimit: Int = 0,
+        relationGuidance: PropertyRelationGuidance? = null,
     ): PropertyCampaignArtifact {
         require(completedInputLimit >= 0) { "Completed input limit must not be negative" }
         require(completedInputLimit == 0 || mode != PropertyCampaignMode.PBT_ONLY) {
             "Completed input capture requires a symbolic campaign mode"
         }
         validateControls(mode, configuration, validationReserveMillis, pbtAllocationMillis)
+        if (relationGuidance != null) {
+            require(mode == PropertyCampaignMode.SEQUENTIAL || mode == PropertyCampaignMode.COVERAGE_FEEDBACK) {
+                "Relation guidance requires one PBT phase followed by a symbolic phase"
+            }
+            require(relationGuidance.compiled == null || relationGuidance.compiled.definition == property) {
+                "Retained compiler output belongs to another property"
+            }
+        }
         val guided = mode == PropertyCampaignMode.COVERAGE_FEEDBACK
         val startedAt = System.nanoTime()
         val deadline = WitnessReplayDeadline(timeoutMillis = configuration.timeoutMillis)
@@ -105,6 +119,7 @@ class PropertyCampaignRunner(
         var symbolic: UsvmPropertySearchResult? = null
         var confirmation: WitnessEvidenceDelta? = null
         var inputReplays: SymbolicInputReplayCollector? = null
+        var relationTrace: PropertyRelationGuidanceTrace? = null
 
         fun result(
             stop: PropertyCampaignStop = PropertyCampaignStop.COMPLETED,
@@ -116,6 +131,7 @@ class PropertyCampaignRunner(
             pbtAllocationMillis = pbtAllocationMillis,
             shrinkWitness = shrinkWitness,
             completedInputLimit = completedInputLimit,
+            relationGuidanceControls = relationGuidance?.controls(),
             result = PropertyCampaignResult(
                 propertyId = property.id,
                 mode = mode,
@@ -123,6 +139,7 @@ class PropertyCampaignRunner(
                 symbolic = symbolic,
                 confirmation = confirmation,
                 symbolicInputReplays = inputReplays?.replays.orEmpty(),
+                relationGuidance = relationTrace,
                 stop = stop,
                 stoppedAt = phase.takeUnless { stop == PropertyCampaignStop.COMPLETED },
                 elapsedMillis = (System.nanoTime() - startedAt) / NANOS_PER_MILLISECOND,
@@ -144,6 +161,7 @@ class PropertyCampaignRunner(
 
             usedConfiguration = evidenceConfiguration(
                 configuration, requireNotNull(metadata).sources, guided, captureNative = completedInputLimit > 0,
+                relationGuidance = relationGuidance,
             )
 
             if (mode != PropertyCampaignMode.SYMBOLIC_ONLY) {
@@ -195,7 +213,21 @@ class PropertyCampaignRunner(
                     null
                 },
                 completedInputLimit = completedInputLimit,
+                relationChallenger = relationGuidance?.let { guidance ->
+                    {
+                            scene, mapping ->
+                        PropertyRelationChallenger(
+                            scene, mapping, backend, machineOptions, deadline, validationReserveMillis,
+                        ).challenge(property, concrete?.observations, guidance, shrinkWitness)
+                    }
+                },
+                retainRelationTrace = { relationTrace = it },
             )
+            val relationFault = relationTrace?.confirmedOriginalFault()
+            if (relationFault != null) {
+                confirmation = relationFault
+                return result()
+            }
             if (symbolic == null) return result(PropertyCampaignStop.DEADLINE)
 
             val hasNativeWork = symbolic.target != null || symbolic.completedInputs.isNotEmpty()
@@ -249,6 +281,7 @@ class PropertyCampaignRunner(
         pbtAllocationMillis: Long? = null,
         shrinkWitness: Boolean = true,
         completedInputLimit: Int = 0,
+        relationGuidance: PropertyRelationGuidance? = null,
     ): PropertyCampaignResult = runArtifact(
         property = property,
         mode = mode,
@@ -257,6 +290,7 @@ class PropertyCampaignRunner(
         pbtAllocationMillis = pbtAllocationMillis,
         shrinkWitness = shrinkWitness,
         completedInputLimit = completedInputLimit,
+        relationGuidance = relationGuidance,
     ).result
 
     private fun validateControls(
@@ -281,13 +315,19 @@ class PropertyCampaignRunner(
         sources: List<PropertyObservationSource>,
         guided: Boolean,
         captureNative: Boolean,
+        relationGuidance: PropertyRelationGuidance?,
     ): PropertyRunConfiguration {
-        if (!guided && !captureNative) return configuration
+        if (!guided && !captureNative && relationGuidance == null) return configuration
 
         val request = configuration.coverageRequest ?: PropertyCoverageRequest()
         return configuration.copy(
             coverageRequest = request.copy(admittedOnly = true),
-            observationRequest = if (guided && configuration.inputExportRequest == null) {
+            observationRequest = if (relationGuidance != null) {
+                configuration.observationRequest ?: PropertyObservationRequest(
+                    points = relationGuidance.pairs.flatMap { listOf(it.left, it.right) }.distinct(),
+                    sources = sources,
+                )
+            } else if (guided && configuration.inputExportRequest == null) {
                 configuration.observationRequest ?: PropertyObservationRequest(points = emptyList(), sources = sources)
             } else {
                 configuration.observationRequest
@@ -363,6 +403,8 @@ class PropertyCampaignRunner(
         validationReserveMillis: Long,
         feedback: UsvmCoverageFeedback?,
         completedInputLimit: Int,
+        relationChallenger: ((EtsScene, PropertyEtsMappingArtifact) -> PropertyRelationGuidanceTrace)?,
+        retainRelationTrace: (PropertyRelationGuidanceTrace) -> Unit,
     ): UsvmPropertySearchResult? {
         if (deadline.remainingMillis() <= validationReserveMillis) return null
 
@@ -371,11 +413,20 @@ class PropertyCampaignRunner(
 
         val manifest = property.toManifest()
         val mapping = PropertyEtsMapper(scene = scene, sourceRoots = listOf(root)).map(manifest)
+        val relationTrace = relationChallenger?.invoke(scene, mapping)
+        if (relationTrace?.confirmedOriginalFault() != null) {
+            retainRelationTrace(relationTrace)
+            return null
+        }
         val budgetMillis = deadline.remainingMillis() - validationReserveMillis
+        relationTrace?.let {
+            retainRelationTrace(it.copy(originalAllocatedMillis = budgetMillis.coerceAtLeast(minimumValue = 0)))
+        }
         if (budgetMillis <= 0) return null
 
         val searchTimeout = minOf(machineOptions.timeout, budgetMillis.milliseconds)
-        return UsvmPropertySearcher(
+        val originalStartedAt = System.nanoTime()
+        val result = UsvmPropertySearcher(
             scene = scene,
             machineOptions = machineOptions.copy(timeout = searchTimeout, stopOnCoverage = 0),
         ).search(
@@ -386,6 +437,15 @@ class PropertyCampaignRunner(
             coverageFeedback = feedback,
             completedInputLimit = completedInputLimit,
         )
+        relationTrace?.let {
+            retainRelationTrace(
+                it.copy(
+                    originalAllocatedMillis = searchTimeout.inWholeMilliseconds,
+                    originalElapsedMillis = (System.nanoTime() - originalStartedAt) / NANOS_PER_MILLISECOND,
+                )
+            )
+        }
+        return result
     }
 
     private fun confirm(

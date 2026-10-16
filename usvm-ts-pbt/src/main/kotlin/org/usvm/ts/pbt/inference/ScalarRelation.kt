@@ -11,6 +11,7 @@ import org.usvm.ts.pbt.observation.PropertyObservationSource
 import org.usvm.ts.pbt.observation.PropertyPointEvent
 
 /** An explicitly selected pair of assertion operands, each evaluated once per invocation. */
+@Serializable
 data class ScalarObservationPair(
     val left: PropertyObservationPoint,
     val right: PropertyObservationPoint,
@@ -24,6 +25,7 @@ enum class ScalarRelationTemplate {
 }
 
 /** Sample agreement is empirical evidence, never an invariant or permission to prune a path. */
+@Serializable
 enum class ScalarRelationStatus {
     SAMPLED,
     REFUTED,
@@ -32,6 +34,7 @@ enum class ScalarRelationStatus {
 }
 
 /** Reasons an invocation or selection cannot supply complete numeric evidence. */
+@Serializable
 enum class ScalarRelationLimitation {
     INVALID_PAIR,
     SOURCE_MISMATCH,
@@ -48,6 +51,7 @@ enum class ScalarRelationLimitation {
 }
 
 /** Exact same-invocation point values, retaining origin, phase, input and event identities. */
+@Serializable
 data class ScalarRelationEvidence(
     val invocation: PropertyInvocationObservation,
     val left: PropertyPointEvent,
@@ -56,6 +60,7 @@ data class ScalarRelationEvidence(
 )
 
 /** Evaluation of one template for one selected pair, including every observed contradiction. */
+@Serializable
 data class ScalarRelation(
     val pair: ScalarObservationPair,
     val template: ScalarRelationTemplate,
@@ -66,6 +71,7 @@ data class ScalarRelation(
 )
 
 /** Bounded, property-scoped results preserving selected-source and executable-build provenance. */
+@Serializable
 data class ScalarRelationInference(
     val propertyId: PropertyId,
     val runId: String,

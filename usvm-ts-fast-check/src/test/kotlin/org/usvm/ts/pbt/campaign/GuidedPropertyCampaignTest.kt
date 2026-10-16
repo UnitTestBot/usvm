@@ -68,7 +68,9 @@ class GuidedPropertyCampaignTest {
         val configuration = configuration.copy(
             examples = examples(1),
             inputExportRequest = PropertyInputExportRequest(
-                sources = listOf(PropertyObservationSource(module = MODULE, sha256 = campaignSourceSha256(root.resolve(MODULE)))),
+                sources = listOf(
+                    PropertyObservationSource(module = MODULE, sha256 = campaignSourceSha256(root.resolve(MODULE)))
+                ),
             ),
         )
 
@@ -79,10 +81,12 @@ class GuidedPropertyCampaignTest {
             pbtAllocationMillis = 15_000,
         )
 
-        assertEquals(1, artifact.result.concrete?.inputExport?.records?.size)
-        assertNull(artifact.result.concrete?.observations)
+        val concrete = assertNotNull(artifact.result.concrete)
+        assertEquals(1, concrete.inputExport?.records?.size)
+        assertNull(concrete.observations)
         assertNotNull(artifact.result.symbolic?.edgeGuidance)
-        assertTrue(assertNotNull(artifact.result.concrete?.coverage).provenance.request.admittedOnly)
+        val concreteCoverage = assertNotNull(concrete.coverage)
+        assertTrue(concreteCoverage.provenance.request.admittedOnly)
     }
 
     @Test

@@ -166,13 +166,9 @@ internal class FastCheckWitnessCoordinator(
         val coverageRequest = configuration.coverageRequest
         if (coverageRequest != null) {
             try {
-                val coverageResult = replay(property, candidate, inputs, deadline, coverageRequest)
-                val covered = when (coverageResult) {
-                    is FastCheckOperationResult.Completed -> coverageResult.value
-                    is FastCheckOperationResult.TimedOut -> null
-                }
-                if (covered == null) {
-                    coverageDiagnostic = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT
+                val covered = replayInput(property, candidate, coverageRequest, deadline)
+                if (covered.diagnostic != null) {
+                    coverageDiagnostic = covered.diagnostic
                 } else if (!repeatable(original, covered)) {
                     return delta(
                         candidate = candidate,

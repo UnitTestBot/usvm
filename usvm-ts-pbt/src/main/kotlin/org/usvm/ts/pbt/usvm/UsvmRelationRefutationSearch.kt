@@ -1,5 +1,6 @@
 package org.usvm.ts.pbt.usvm
 
+import kotlinx.serialization.Serializable
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsType
 import org.usvm.StateCollectionStrategy
@@ -26,6 +27,7 @@ import org.usvm.ts.pbt.model.JsConcreteValue
 import java.util.concurrent.CancellationException
 
 /** Auxiliary search outcomes, independently of the original property's truth. */
+@Serializable
 enum class UsvmRelationRefutationStatus {
     REFUTATION_REACHED,
     NO_REFUTATION_REACHED,
