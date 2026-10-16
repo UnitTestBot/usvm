@@ -489,6 +489,7 @@ class TsExprResolver(
         val isKnownFunction = scope.calcOnState {
             ref is UConcreteHeapRef && (
                 associatedFunction[ref] != null ||
+                    capturedInstanceCalls[ref] != null ||
                     memory.types.getTypeStream(ref).singleOrNull() is EtsFunctionType
                 )
         }
