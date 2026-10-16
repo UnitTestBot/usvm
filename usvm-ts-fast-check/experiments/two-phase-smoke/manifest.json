@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "two-phase-functional-smoke-v1",
+  "seeds": [
+    37
+  ],
+  "totalBudgetMillis": 30000,
+  "classReplayReserveMillis": 8000,
+  "validationReserveMillis": 1500,
+  "pbtAllocationMillis": 4000,
+  "numRuns": 12,
+  "pbtInputLimit": 64,
+  "symbolicInputLimit": 16,
+  "maxArrayElements": 64,
+  "maxObservationBytes": 65536,
+  "cases": [
+    {
+      "id": "classifier-control",
+      "population": "correct-control",
+      "project": "repository-functional-fixture",
+      "revision": "fixture-v1",
+      "license": "Apache-2.0",
+      "provenance": "Small functional fixture for the measurement path; no external defect or superiority claim",
+      "sourceRoot": ".",
+      "classSource": "Classifier.ts",
+      "className": "Classifier",
+      "sourceSha256": {
+        "Classifier.ts": "f646b19dec674d432039e343f816d94bfdeaf390814ede2d07c29bb6b5c2141c",
+        "Properties.ts": "726e7429cf9e79ecd781db88dc40f4091a4c68585df292fed2e85878ee888d07"
+      },
+      "property": {
+        "id": "experiment.classifier.correct",
+        "inputs": [
+          {
+            "name": "value",
+            "domain": {
+              "kind": "integer",
+              "min": -2147483648,
+              "max": 2147483647
+            }
+          }
+        ],
+        "predicate": {
+          "module": "Properties.ts",
+          "exportName": "correct"
+        }
+      },
+      "diagnosticScenario": {
+        "module": "Properties.ts",
+        "exportName": "scenario"
+      },
+      "smokeInputs": [
+        {
+          "inputs": [
+            {
+              "kind": "number",
+              "value": "finite",
+              "bits": "bff0000000000000"
+            }
+          ],
+          "admission": "ADMITTED",
+          "outcome": "HOLDS"
+        },
+        {
+          "inputs": [
+            {
+              "kind": "number",
+              "value": "finite",
+              "bits": "3ff0000000000000"
+            }
+          ],
+          "admission": "ADMITTED",
+          "outcome": "HOLDS"
+        },
+        {
+          "inputs": [
+            {
+              "kind": "number",
+              "value": "finite",
+              "bits": "4132d68700000000"
+            }
+          ],
+          "admission": "ADMITTED",
+          "outcome": "HOLDS"
+        }
+      ]
+    }
+  ]
+}
