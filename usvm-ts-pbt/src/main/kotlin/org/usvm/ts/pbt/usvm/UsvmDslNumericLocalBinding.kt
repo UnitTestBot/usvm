@@ -18,6 +18,7 @@ import org.usvm.ts.pbt.mapping.EtsMappingResult
 import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMappingArtifact
 import org.usvm.ts.pbt.mapping.SourceLocationNormalizer
+import org.usvm.ts.pbt.mapping.inputBindingsFor
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertySourcePoint
 import org.usvm.ts.pbt.observation.CompilerNumericLocalBinding
@@ -98,6 +99,14 @@ fun bindDslNumericLocalRelation(
             targets = emptyList(),
             diagnostics = predicateMapping.diagnostics
         )
+    }
+    val inputBindingsMatch = predicateMapping.targets.all { entry ->
+        val expected = entry.method.inputBindingsFor(compiled.definition.inputs)
+
+        expected.size == compiled.definition.inputs.size && entry.bindings.inputs == expected
+    }
+    if (!inputBindingsMatch) {
+        return unbound(reason = "input-mismatch", message = "The original positional input bindings changed")
     }
     val locations = SourceLocationNormalizer(mapping.provenance.sourceRoots.map(Path::of))
     val module = compiled.definition.predicate.module

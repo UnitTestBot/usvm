@@ -104,6 +104,33 @@ class DslNumericLocalRelationTest {
     }
 
     @Test
+    fun `swapped input parameters wrong names and wrong stack slots cannot activate an exact point`() {
+        val fixture = prepare()
+        val entry = fixture.mapping.predicate.targets.single()
+        val inputs = entry.bindings.inputs
+        val first = inputs[0]
+        val second = inputs[1]
+        val invalidInputs = listOf(
+            inputs.reversed(),
+            listOf(first.copy(stackSlot = second.stackSlot), second),
+            listOf(first.copy(parameter = second.parameter), second),
+            listOf(first.copy(propertyInputName = second.propertyInputName), second),
+        )
+
+        invalidInputs.forEach { changed ->
+            val target = entry.copy(bindings = entry.bindings.copy(inputs = changed))
+            val predicate = fixture.mapping.predicate.copy(targets = listOf(target))
+            val mapping = fixture.mapping.copy(predicate = predicate)
+
+            val binding = bindDslNumericLocalRelation(fixture.compiled, mapping, fixture.inference, fixture.relation)
+
+            assertEquals(EtsMappingStatus.UNSUPPORTED, binding.status)
+            assertEquals("usvm.dsl-local.input-mismatch", binding.diagnostics.single().code)
+            assertTrue(binding.targets.isEmpty())
+        }
+    }
+
+    @Test
     fun `repeated nested out of order wrong context and unavailable receipts cannot activate exact guidance`() {
         val fixture = prepare()
         val relation = fixture.relation
@@ -274,9 +301,11 @@ class DslNumericLocalRelationTest {
         val program = defineProperty(id = "dsl.local-relation") {
             val transform = function<(Double) -> Double>(module = "functions.ts", exportName = "transform")
             val input by int(min = 0, max = 1000)
+            val other by int(min = 0, max = 1000)
             val result by value(transform(input))
 
             check(name = "bound") { result lessOrEqual input }
+            check(name = "other-input") { other lessOrEqual 1000 }
         }
         val compiled = PropertyTypeScriptCompiler().compile(
             program,
