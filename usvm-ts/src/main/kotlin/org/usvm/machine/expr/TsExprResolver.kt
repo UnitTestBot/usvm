@@ -72,6 +72,7 @@ import org.jacodb.ets.model.EtsRequireObjectCoercibleExpr
 import org.jacodb.ets.model.EtsRightShiftExpr
 import org.jacodb.ets.model.EtsStaticCallExpr
 import org.jacodb.ets.model.EtsStaticFieldRef
+import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStrictEqExpr
 import org.jacodb.ets.model.EtsStrictNotEqExpr
 import org.jacodb.ets.model.EtsStringConstant
@@ -216,6 +217,14 @@ class TsExprResolver(
 
     internal fun reportRuntimeFeatureLimitation(reason: TsRuntimeFeatureLimitationReason, detail: String) {
         val statement = scope.calcOnState { lastStmt }
+        reportRuntimeFeatureLimitation(reason = reason, detail = detail, statement = statement)
+    }
+
+    private fun reportRuntimeFeatureLimitation(
+        reason: TsRuntimeFeatureLimitationReason,
+        detail: String,
+        statement: EtsStmt,
+    ) {
         observer?.onRuntimeFeatureLimitationSafely(
             TsRuntimeFeatureLimitationEvent(statement = statement, reason = reason, detail = detail),
         )
@@ -870,6 +879,7 @@ class TsExprResolver(
                 reportRuntimeFeatureLimitation(
                     reason = TsRuntimeFeatureLimitationReason.STRING_CONCAT_OPERAND_CONVERSION,
                     detail = detail,
+                    statement = lastStmt,
                 )
                 terminateAsUnsupported(reason = detail)
             }) ?: return null
