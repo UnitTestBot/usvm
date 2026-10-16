@@ -214,6 +214,7 @@ test('entry arguments are adapter snapshots before user code and cannot be repla
   assert.deepEqual(invocation.points.map((event) => event.occurrence), [0, 0]);
   assert.equal(recorder.result.buildStatus, 'unverified');
   assert.equal(recorder.result.droppedPoints, 0);
+  assert.equal(invocation.pointsTruncated, false);
 });
 
 test('observation limits report dropped invocations and points without changing returned values', () => {
@@ -245,6 +246,7 @@ test('observation limits report dropped invocations and points without changing 
   assert.equal(recorder.result.invocations[0]?.input.status, 'captured');
   assert.equal(recorder.result.invocations[0]?.points[0]?.value.status, 'truncated');
   assert.equal(recorder.result.droppedPoints, 1);
+  assert.equal(recorder.result.invocations[0]?.pointsTruncated, true);
   assert.equal(recorder.result.droppedInvocations, 1);
 });
 
@@ -398,6 +400,7 @@ test('the complete observation artifact stays within edge budgets after outcomes
     assert.equal(artifact.invocations[0]?.outcome, 'skipped');
     assert.equal(artifact.droppedInvocations, 10);
     assert.ok(artifact.droppedPoints >= 10);
+    assert.equal(artifact.invocations[0]?.pointsTruncated, true);
     capturedPoints += artifact.invocations[0]?.points.length ?? 0;
   }
 

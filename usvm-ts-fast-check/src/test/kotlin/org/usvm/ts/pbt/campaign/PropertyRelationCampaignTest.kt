@@ -15,6 +15,8 @@ import org.usvm.ts.pbt.dsl.lessOrEqual
 import org.usvm.ts.pbt.inference.ScalarGuidanceExclusionReason
 import org.usvm.ts.pbt.inference.ScalarGuidanceRelevance
 import org.usvm.ts.pbt.inference.ScalarObservationPair
+import org.usvm.ts.pbt.inference.ScalarRelationLimitation
+import org.usvm.ts.pbt.inference.ScalarRelationStatus
 import org.usvm.ts.pbt.inference.ScalarRelationTemplate
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.PropertyAssertion
@@ -42,6 +44,44 @@ class PropertyRelationCampaignTest {
     lateinit var root: Path
 
     private val configuration = PropertyRunConfiguration(seed = 42, numRuns = 8, timeoutMillis = 30_000)
+
+    @Test
+    fun `default one hundred PBT runs can challenge a relation from a bounded recorded sample`() {
+        val compiled = numericProperty(rareInput = 1_234_567_891, maximumInput = Int.MAX_VALUE)
+
+        val artifact = run(
+            compiled,
+            PropertyRelationGuidance.numericLocal(compiled),
+            numRuns = PropertyRunConfiguration().numRuns,
+        )
+        val file = root.resolve("bounded-campaign.json")
+        artifact.write(file)
+        val restored = PropertyCampaignArtifact.read(file)
+
+        val concrete = assertNotNull(restored.result.concrete)
+        val observations = assertNotNull(concrete.observations)
+        val trace = assertNotNull(restored.result.relationGuidance)
+        assertEquals(100, concrete.numRuns)
+        assertTrue(observations.droppedInvocations > 0 || observations.droppedPoints > 0)
+        val selection = assertNotNull(trace.selection)
+        val equality = selection.inference.relations.single { it.template == ScalarRelationTemplate.STRICT_EQUAL }
+        assertTrue(equality.evidence.size >= 2)
+        assertTrue(equality.evidence.all { it.holds })
+        assertTrue(trace.attempts.isNotEmpty(), "Recorded relation: ${equality.status}, ${equality.limitations}")
+        val attempt = trace.attempts.single()
+        assertEquals(ScalarRelationStatus.SAMPLED, equality.status)
+        assertTrue(ScalarRelationLimitation.INCOMPLETE_CAPTURE in equality.limitations)
+        assertEquals(observations.droppedInvocations, selection.inference.droppedInvocations)
+        assertEquals(observations.droppedPoints, selection.inference.droppedPoints)
+        assertTrue(equality.evidence.all { it.invocation.pointsTruncated == false })
+        assertEquals(UsvmRelationRefutationStatus.REFUTATION_REACHED, attempt.searchStatus)
+        assertEquals(WitnessReplayStatus.CONFIRMED_HYPOTHESIS_REFUTATION, attempt.confirmation?.status)
+        assertEquals(WitnessOracleOutcome.HOLDS, attempt.confirmation?.originalReplay?.outcome)
+        assertEquals(ObservationBuildStatus.UNVERIFIED, assertNotNull(trace.selection).inference.buildStatus)
+        assertTrue(trace.originalAllocatedMillis >= trace.originalReserveMillis)
+        assertEquals(UsvmPropertySearchStatus.NO_VIOLATION_REACHED, restored.result.symbolic?.status)
+        assertFalse(restored.result.confirmedViolation)
+    }
 
     @Test
     fun `one PBT snapshot challenges a sampled local equality and retains the unrestricted original search`() {
@@ -223,21 +263,26 @@ class PropertyRelationCampaignTest {
         relationGuidance = guidance,
     )
 
-    private fun numericProperty(delta: String = "- 1", sparsePrefix: Boolean = false): CompiledDslProperty {
+    private fun numericProperty(
+        delta: String = "- 1",
+        sparsePrefix: Boolean = false,
+        rareInput: Int = 417,
+        maximumInput: Int = 1000,
+    ): CompiledDslProperty {
         val prefix = if (sparsePrefix) "const cache: number[] = []; cache[1001] = input;" else ""
         Files.writeString(
             root.resolve("functions.ts"),
             """
             export function transform(input: number): number {
                 $prefix
-                if (input === 417) return input $delta;
+                if (input === $rareInput) return input $delta;
                 return input;
             }
             """.trimIndent()
         )
         val program = defineProperty(id = "campaign.local-relation") {
             val transform = function<(Double) -> Double>(module = "functions.ts", exportName = "transform")
-            val input by int(min = 0, max = 1000)
+            val input by int(min = 0, max = maximumInput)
             val result by value(transform(input))
 
             check(name = "bound") { result lessOrEqual input }

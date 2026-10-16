@@ -48,6 +48,8 @@ enum class ScalarRelationLimitation {
     CONSTANT_OBSERVED_PAIR,
     INVOCATION_LIMIT,
     INCOMPLETE_CAPTURE,
+    TRUNCATED_INVOCATION,
+    UNATTRIBUTED_POINT_DROPS,
 }
 
 /** Exact same-invocation point values, retaining origin, phase, input and event identities. */
@@ -86,3 +88,16 @@ data class ScalarRelationInference(
     /** Sampled entry relations already implied by declared numeric input support, retained for audit. */
     val domainImpliedRelations: List<ScalarRelation> = emptyList(),
 )
+
+/** These warnings bound the observed sample; every other limitation blocks usable numeric support. */
+internal val ScalarRelationLimitation.isSamplingWarning: Boolean
+    get() = when (this) {
+        ScalarRelationLimitation.INVOCATION_LIMIT,
+        ScalarRelationLimitation.INCOMPLETE_CAPTURE,
+        ScalarRelationLimitation.TRUNCATED_INVOCATION,
+        -> true
+        else -> false
+    }
+
+internal fun ScalarRelation.hasSampledSupport(): Boolean =
+    status == ScalarRelationStatus.SAMPLED && limitations.all { it.isSamplingWarning }

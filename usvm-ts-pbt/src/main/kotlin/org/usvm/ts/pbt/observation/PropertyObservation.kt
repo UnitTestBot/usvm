@@ -189,6 +189,8 @@ data class PropertyInvocationObservation(
     val admission: ObservationAdmission,
     val outcome: ObservationOutcome,
     val points: List<PropertyPointEvent>,
+    /** Null for older producers; true means some point data was lost within this invocation. */
+    val pointsTruncated: Boolean? = null,
 )
 
 /** Optional artifact: unknown phase is not independent random evidence. */

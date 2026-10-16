@@ -58,7 +58,7 @@ fun selectScalarGuidance(
         val known = original?.contains(relation.pair) == true
         val relevance = if (known) ScalarGuidanceRelevance.KNOWN_DSL_CHECK else ScalarGuidanceRelevance.UNKNOWN
         val duplicate = candidates.any { candidate -> candidate.relation.sameComparison(relation) }
-        val sampled = relation.status == ScalarRelationStatus.SAMPLED && relation.limitations.isEmpty()
+        val sampled = relation.hasSampledSupport()
         val restatesOriginal = known && original?.implies(relation) == true
         val reason = when {
             !sampled -> ScalarGuidanceExclusionReason.NOT_SAMPLED

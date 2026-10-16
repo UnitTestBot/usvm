@@ -223,12 +223,16 @@ class DomainImpliedScalarRelationTest {
         val refuted = infer(property, listOf(first, second, sample(id = 2, left = 3.0, right = 2.0)))
         val insufficient = infer(property, listOf(first))
         val dropped = artifact(listOf(first, second)).copy(droppedInvocations = 1)
-        val incomplete = inferScalarRelations(property, dropped, listOf(PAIR))
+        val bounded = inferScalarRelations(property, dropped, listOf(PAIR))
 
         assertEquals(ScalarRelationStatus.REFUTED, refuted.order().status)
         assertEquals(ScalarRelationStatus.INSUFFICIENT, insufficient.order().status)
-        assertEquals(ScalarRelationStatus.INSUFFICIENT, incomplete.order().status)
-        assertTrue(listOf(refuted, insufficient, incomplete).all { it.domainImpliedRelations.isEmpty() })
+        assertTrue(bounded.domainImpliedRelations.isNotEmpty())
+        val warningsPreserved = bounded.domainImpliedRelations.all {
+            ScalarRelationLimitation.INCOMPLETE_CAPTURE in it.limitations
+        }
+        assertTrue(warningsPreserved)
+        assertTrue(listOf(refuted, insufficient).all { it.domainImpliedRelations.isEmpty() })
     }
 
     @Test

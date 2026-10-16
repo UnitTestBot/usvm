@@ -1,6 +1,9 @@
 package org.usvm.ts.pbt.inference
 
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.Test
+import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.JsNumber
@@ -28,6 +31,7 @@ import org.usvm.ts.pbt.observation.PropertyObservationValue
 import org.usvm.ts.pbt.observation.PropertyPointEvent
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -255,6 +259,97 @@ class InferScalarRelationsTest {
     }
 
     @Test
+    fun `bounded sampling warnings preserve agreement only over complete retained invocations`() {
+        val samples = listOf(
+            invocation(id = 0, left = 0.0, right = 0.0),
+            invocation(id = 1, left = 1.0, right = 1.0),
+            invocation(id = 2, left = 2.0, right = 0.0),
+        )
+        val observations = artifact(samples).copy(droppedInvocations = 97)
+
+        val result = inferScalarRelations(PROPERTY, observations, listOf(PAIR), maxInvocations = 2)
+        val selected = selectScalarGuidance(result)
+
+        assertEquals(2, selected.candidates.size)
+        assertTrue(result.relations.all { it.status == ScalarRelationStatus.SAMPLED })
+        assertTrue(result.relations.all { it.evidence.map { evidence -> evidence.invocation } == samples.take(2) })
+        assertTrue(result.relations.all { ScalarRelationLimitation.INVOCATION_LIMIT in it.limitations })
+        assertTrue(result.relations.all { ScalarRelationLimitation.INCOMPLETE_CAPTURE in it.limitations })
+        assertEquals(1, result.omittedInvocations)
+        assertEquals(97, result.droppedInvocations)
+        assertEquals(ObservationBuildStatus.UNVERIFIED, result.buildStatus)
+        assertEquals(samples, observations.invocations)
+    }
+
+    @Test
+    fun `truncated invocations retain raw points but cannot supply either independent support or binding evidence`() {
+        val good = listOf(invocation(id = 0, left = 0.0, right = 0.0), invocation(id = 1, left = 1.0, right = 1.0))
+        val partial = invocation(id = 2, left = 2.0, right = 2.0).copy(pointsTruncated = true)
+        val observations = artifact(good + partial).copy(droppedPoints = 1)
+        val partialPair = partial.copy(points = partial.points.take(1))
+
+        for (truncated in listOf(partial, partialPair)) {
+            val recorded = observations.copy(invocations = good + truncated)
+            val result = inferScalarRelations(PROPERTY, recorded, listOf(PAIR))
+
+            assertTrue(result.relations.all { it.status == ScalarRelationStatus.SAMPLED })
+            assertTrue(result.relations.all { it.evidence.map { evidence -> evidence.invocation } == good })
+            assertTrue(result.relations.all { ScalarRelationLimitation.TRUNCATED_INVOCATION in it.limitations })
+            assertEquals(2, selectScalarGuidance(result).candidates.size)
+            assertEquals(1, result.droppedPoints)
+            assertEquals(good + truncated, recorded.invocations)
+        }
+        val oneGood = observations.copy(invocations = good.take(1) + partial)
+        val insufficient = inferScalarRelations(PROPERTY, oneGood, listOf(PAIR))
+        assertTrue(insufficient.relations.all { it.status == ScalarRelationStatus.INSUFFICIENT })
+        assertTrue(selectScalarGuidance(insufficient).candidates.isEmpty())
+    }
+
+    @Test
+    fun `older observation JSON keeps unknown point completeness while new receipts round trip their marker`() {
+        val sample = invocation(id = 0, left = 0.0, right = 0.0)
+        val json = PropertyManifestJson.json
+        val serializer = PropertyInvocationObservation.serializer()
+        val value = json.encodeToJsonElement(serializer, sample).jsonObject
+        val legacy = JsonObject(value - "pointsTruncated")
+
+        val decoded = json.decodeFromJsonElement(serializer, legacy)
+
+        assertNull(decoded.pointsTruncated)
+        for (marker in listOf(null, false, true)) {
+            val changed = sample.copy(pointsTruncated = marker)
+            val encoded = json.encodeToString(serializer, changed)
+            assertEquals(changed, json.decodeFromString(serializer, encoded))
+        }
+    }
+
+    @Test
+    fun `recording truncation does not excuse repeated mismatched nonnumeric nested or incomplete observations`() {
+        val good = listOf(invocation(id = 0, left = 0.0, right = 0.0), invocation(id = 1, left = 1.0, right = 1.0))
+        val partial = invocation(id = 2, left = 2.0, right = 2.0).copy(pointsTruncated = true)
+        val first = partial.points.first()
+        val failures = listOf(
+            partial.copy(points = partial.points + first.copy(occurrence = 1)),
+            partial.copy(points = listOf(first.copy(inputIndex = 7), partial.points.last())),
+            partial.copy(points = listOf(first.copy(value = captured(JsConcreteValue.String("bad"))))),
+            partial.copy(parentInvocationId = 0),
+            partial.copy(outcome = ObservationOutcome.PENDING),
+        )
+        for (invalid in failures) {
+            val observations = artifact(good + invalid).copy(droppedPoints = 1)
+
+            val result = inferScalarRelations(PROPERTY, observations, listOf(PAIR))
+
+            assertTrue(result.relations.none { it.status == ScalarRelationStatus.SAMPLED })
+            assertTrue(selectScalarGuidance(result).candidates.isEmpty())
+        }
+        val legacy = artifact(good.map { it.copy(pointsTruncated = null) }).copy(droppedPoints = 1)
+        val result = inferScalarRelations(PROPERTY, legacy, listOf(PAIR))
+        assertTrue(result.relations.all { ScalarRelationLimitation.UNATTRIBUTED_POINT_DROPS in it.limitations })
+        assertTrue(selectScalarGuidance(result).candidates.isEmpty())
+    }
+
+    @Test
     fun `selected source hashes are checked against property identity when declared`() {
         val sourceIdentity = PropertySourceIdentity(
             sourceSha256 = "b".repeat(64),
@@ -362,6 +457,7 @@ class InferScalarRelationsTest {
             admission = ObservationAdmission.ADMITTED,
             outcome = ObservationOutcome.HOLDS,
             points = listOf(event(LEFT, left, ordinal = 0), event(RIGHT, right, ordinal = 1)),
+            pointsTruncated = false,
         )
 
     private fun event(point: PropertyObservationPoint, number: Double, ordinal: Int): PropertyPointEvent =
