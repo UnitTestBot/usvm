@@ -298,6 +298,26 @@ class JcMethodApproximationResolver(
             return true
         }
 
+        if (method.name == "getComponentType") {
+            val classRef = arguments.single().asExpr(ctx.addressSort)
+            scope.doWithState {
+                val classTypeRepresentative =
+                    memory.read(UFieldLValue(ctx.addressSort, classRef, ctx.classTypeSyntheticField))
+                classTypeRepresentative as UConcreteHeapRef
+                val classType = memory.types.typeOf(classTypeRepresentative.address)
+                val componentType = classType.ifArrayGetElementType
+                val componentClassRef = if (componentType != null) {
+                    exprResolver.simpleValueResolver.resolveClassRef(componentType)
+                } else {
+                    ctx.nullRef
+                }
+
+                skipMethodInvocationWithValue(methodCall, componentClassRef)
+            }
+
+            return true
+        }
+
         if (method.name == "isInstance") {
             val classRef = arguments[0].asExpr(ctx.addressSort)
             val objectRef = arguments[1].asExpr(ctx.addressSort)
