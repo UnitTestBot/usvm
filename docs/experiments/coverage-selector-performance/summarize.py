@@ -17,17 +17,19 @@ def main():
     groups = defaultdict(list)
     for line in args.results.read_text().splitlines():
         row = json.loads(line)
-        groups[row['program'], row['mode']].append(row)
+        seed = row.get('randomSeed') if row['mode'] in ['random-path', 'uniform'] else None
+        groups[row['program'], row['mode'], seed].append(row)
 
-    fields = ['program', 'mode', 'runs', 'stops', 'steps', 'elapsedMs', 'selectorMs',
-              'selectorPercent', 'refreshMs', 'refreshes', 'distanceCalls', 'peakQueue',
-              'covered', 'goals', 'allocatedBytes', 'gcMs']
+    metrics = ['steps', 'elapsedMs', 'selectorMs', 'selectorPercent', 'refreshMs',
+               'refreshes', 'distanceCalls', 'peakQueue', 'covered', 'goals',
+               'allocatedBytes', 'gcMs']
+    fields = ['program', 'mode', 'randomSeed', 'runs', 'stops', *metrics]
     writer = csv.DictWriter(sys.stdout, fieldnames=fields, lineterminator='\n')
     writer.writeheader()
-    for (program, mode), rows in sorted(groups.items()):
-        summary = dict(program=program, mode=mode, runs=len(rows))
+    for (program, mode, seed), rows in sorted(groups.items()):
+        summary = dict(program=program, mode=mode, randomSeed=seed, runs=len(rows))
         summary['stops'] = ','.join(sorted({row['stop'] for row in rows}))
-        for field in fields[4:]:
+        for field in metrics:
             if field == 'selectorPercent':
                 summary[field] = median(100 * row['selectorMs'] / row['elapsedMs'] for row in rows)
             else:
