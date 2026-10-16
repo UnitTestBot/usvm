@@ -211,11 +211,11 @@ fun TsContext.assignToInstanceField(
 ): Unit? {
     // Unwrap to get non-fake reference.
     val unwrappedInstance = resolveHeapRef(scope, instance.unwrapRef(scope)) ?: return null
-    if (isDateModelTimestamp(scope = scope, instance = unwrappedInstance, field = field)) {
-        val timestamp = dateModelTimestampLValue(unwrappedInstance)
-        return scope.doWithState {
-            memory.write(timestamp, expr.asExpr(fp64Sort), guard = trueExpr)
-        }
+
+    when (val intrinsic = tryWriteIntrinsicField(scope, unwrappedInstance, field, expr)) {
+        is TsIntrinsicFieldResult.Handled -> return intrinsic.value
+        TsIntrinsicFieldResult.Stopped -> return null
+        TsIntrinsicFieldResult.NotApplicable -> {}
     }
 
     if (!isAllocatedConcreteHeapRef(unwrappedInstance) && instanceLocal.type !is EtsArrayType) {

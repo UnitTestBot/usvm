@@ -1544,11 +1544,7 @@ class TsExprResolver(
             )
         val intrinsicRegex = hasRegexName && hasIntrinsicOwner
         if (intrinsicRegex) {
-            stopRuntimeFeatureLimitation(
-                reason = TsRuntimeFeatureLimitationReason.REGULAR_EXPRESSION_LITERAL,
-                detail = "Intrinsic RegExp allocation has no runtime model",
-            )
-            return@with null
+            return@with allocateRegExpLiteral(checkNotNull(classType))
         }
 
         // Try to resolve the concrete type if possible.

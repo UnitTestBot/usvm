@@ -128,9 +128,11 @@ internal fun TsContext.resolveField(
 ): UExpr<*>? {
     checkNotFake(instance)
     val receiver = resolveHeapRef(scope, instance) ?: return null
-    if (isDateModelTimestamp(scope = scope, instance = receiver, field = field)) {
-        val timestamp = dateModelTimestampLValue(receiver)
-        return scope.calcOnState { memory.read(timestamp) }
+
+    when (val intrinsic = tryReadIntrinsicField(scope, receiver, field)) {
+        is TsIntrinsicFieldResult.Handled -> return intrinsic.value
+        TsIntrinsicFieldResult.Stopped -> return null
+        TsIntrinsicFieldResult.NotApplicable -> {}
     }
 
     // Input fields have symbolic initial presence. Allocations use their declaration and later writes.
@@ -148,9 +150,6 @@ private fun TsContext.resolveDeclaredField(
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
 ): UExpr<*>? {
-    val dateConstructor = readIntrinsicDateConstructor(scope, instance, field.name)
-    if (dateConstructor != null) return dateConstructor
-
     val deleted = scope.calcOnState { memory.read(deletedFieldLValue(instance, field)) }
     if (deleted.isTrue) return mkUndefinedValue()
 

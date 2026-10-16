@@ -1,6 +1,6 @@
 export class RuntimeLimitationBoundaries {
     static regularExpressionLiteral(): boolean {
-        return /value/.test("value");
+        return /value|other/.test("value");
     }
 
     static unsupportedConversionOrSupportedSibling(flag: boolean, value: { field: number }): string {
