@@ -42,11 +42,17 @@ export interface ObservationValue {
   reason?: string;
 }
 
+export interface ReturnedInputMetadata {
+  origin: 'returned-seed' | 'returned-neighborhood';
+  returnedInput: { seedId: string; sourceRunId: string; sourceInvocationId: number };
+}
+
 interface InvocationRecord {
   invocationId: number;
   parentInvocationId: null;
   callSite: SourcePoint | null;
-  origin: 'fast-check';
+  origin: 'fast-check' | ReturnedInputMetadata['origin'];
+  returnedInput?: ReturnedInputMetadata['returnedInput'];
   phase: 'generation' | 'explicit' | 'shrink' | 'replay' | 'unknown';
   input: ObservationValue;
   admission: 'pending' | 'admitted' | 'rejected' | 'threw';
@@ -127,6 +133,7 @@ export class ObservationRecorder {
     values: unknown[],
     phase: InvocationRecord['phase'],
     invocation: () => T,
+    metadata?: ReturnedInputMetadata,
   ): T {
     if (this.artifact.invocations.length >= this.request.maxInvocations) {
       this.artifact.droppedInvocations = incrementCounter(this.artifact.droppedInvocations);
@@ -138,7 +145,8 @@ export class ObservationRecorder {
       invocationId: this.artifact.invocations.length,
       parentInvocationId: null,
       callSite: this.request.points[0]?.callSite ?? null,
-      origin: 'fast-check',
+      origin: metadata?.origin ?? 'fast-check',
+      ...(metadata === undefined ? {} : { returnedInput: metadata.returnedInput }),
       phase,
       input: this.snapshot(values),
       admission: 'pending',

@@ -22,10 +22,16 @@ import {
   protocolError,
   type TaggedJsValue,
 } from './js-value.js';
-import { buildPropertyArbitrary, PhaseTrackingArbitrary, validateJointGenerator } from './property-arbitrary.js';
+import { PhaseTrackingArbitrary, validateJointGenerator } from './property-arbitrary.js';
+import {
+  buildReturnedInputGeneration,
+  validateReturnedInputGeneration,
+  type ReturnedInputGeneration,
+} from './returned-input-generation.js';
 import {
   installObservationHook,
   ObservationRecorder,
+  type ReturnedInputMetadata,
   type ObservationArtifact,
   type ObservationPointRequest,
   type ObservationRequest,
@@ -76,6 +82,7 @@ export interface FastCheckExecutionRequest {
   timeoutMillis: number;
   examples: TaggedJsValue[][];
   observationRequest?: ObservationRequest;
+  returnedInputGeneration?: ReturnedInputGeneration;
 }
 
 export interface FastCheckFailureDetails {
@@ -126,13 +133,16 @@ export async function executeProperty(requestValue: unknown): Promise<FastCheckE
     : await loadEntryPoint(request.manifest.precondition, request.sourceRoots, 'manifest.precondition', request.tsconfig);
 
   const contractErrors: ContractErrorState = { first: undefined };
-  const baseArbitrary = buildPropertyArbitrary(request.manifest);
+  const generation = buildReturnedInputGeneration(request.manifest, request.returnedInputGeneration);
+  const baseArbitrary = generation.arbitrary;
   const tracker = recorder === undefined ? undefined : new PhaseTrackingArbitrary(baseArbitrary);
   const arbitrary = tracker ?? baseArbitrary;
   const phaseOf = (values: JsConcreteValue[]) => request.replayPath === undefined
     ? tracker?.phaseOf(values) ?? 'unknown'
     : 'replay';
-  const property = buildProperty(arbitrary, predicate, precondition, contractErrors, recorder, phaseOf);
+  const property = buildProperty(
+    arbitrary, predicate, precondition, contractErrors, recorder, phaseOf, generation.metadataOf,
+  );
   const parameters = buildParameters(request, tracker);
 
   const details = await checkProperty(property, parameters, request.replayPath);
@@ -158,6 +168,7 @@ function buildProperty(
   contractErrors: ContractErrorState,
   recorder: ObservationRecorder | undefined,
   phaseOf: (values: JsConcreteValue[]) => 'generation' | 'explicit' | 'shrink' | 'replay' | 'unknown',
+  metadataOf: (values: JsConcreteValue[]) => ReturnedInputMetadata | undefined,
 ): fc.IProperty<[JsConcreteValue[]]> | fc.IAsyncProperty<[JsConcreteValue[]]> {
   const asynchronous = predicate.executionKind === 'async' || precondition?.executionKind === 'async';
   let selectedCheckId: string | undefined;
@@ -166,7 +177,9 @@ function buildProperty(
     return fc.asyncProperty(arbitrary, (values: JsConcreteValue[]): Promise<boolean> => preserveAsyncContractError(
       contractErrors,
       async () => {
-        const result = await invokePropertyOnce(values, predicate, precondition, recorder, phaseOf(values));
+        const result = await invokePropertyOnce(
+          values, predicate, precondition, recorder, phaseOf(values), metadataOf(values),
+        );
         if (result === null) fc.pre(false);
 
         return result;
@@ -179,7 +192,9 @@ function buildProperty(
     () => {
       let result: boolean | null;
       try {
-        result = invokePropertyOnce(values, predicate, precondition, recorder, phaseOf(values)) as boolean | null;
+        result = invokePropertyOnce(
+          values, predicate, precondition, recorder, phaseOf(values), metadataOf(values),
+        ) as boolean | null;
       } catch (error: unknown) {
         if (isNamedCheckFailure(error)) {
           selectedCheckId ??= error.checkId;
@@ -202,6 +217,7 @@ function invokePropertyOnce(
   precondition: LoadedEntryPoint | undefined,
   recorder: ObservationRecorder | undefined,
   phase: 'generation' | 'explicit' | 'shrink' | 'replay' | 'unknown',
+  metadata?: ReturnedInputMetadata,
 ): boolean | null | Promise<boolean | null> {
   const invocationValues = cloneArguments(values);
   const invoke = (): boolean | null | Promise<boolean | null> => {
@@ -252,7 +268,7 @@ function invokePropertyOnce(
     }
   };
 
-  return recorder === undefined ? invoke() : recorder.run(values, phase, invoke);
+  return recorder === undefined ? invoke() : recorder.run(values, phase, invoke, metadata);
 }
 
 function predicateExceptionOutcome(error: unknown): 'false' | 'threw' {
@@ -584,6 +600,14 @@ function validateRequest(value: unknown): FastCheckExecutionRequest {
   if (request.replayPath !== undefined) validated.replayPath = request.replayPath as string;
   if (request.observationRequest !== undefined) {
     validated.observationRequest = validateObservationRequest(request.observationRequest, manifest);
+  }
+
+  if (request.returnedInputGeneration !== undefined) {
+    if (validated.observationRequest === undefined) {
+      throw protocolError(adapterDiagnostic.returnedGenerationInvalid,
+        'Returned generation requires bounded observations for lineage', 'returnedInputGeneration');
+    }
+    validated.returnedInputGeneration = validateReturnedInputGeneration(request.returnedInputGeneration, manifest);
   }
 
   return validated;

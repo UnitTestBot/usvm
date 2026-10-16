@@ -175,6 +175,14 @@ data class PropertyPointEvent(
     val value: PropertyObservationValue,
 )
 
+/** Caller-owned provenance of the returned seed selected by the native generation branch. */
+@Serializable
+data class ReturnedInputLineage(
+    val seedId: String,
+    val sourceRunId: String,
+    val sourceInvocationId: Int,
+)
+
 /** One original callback invocation and its bounded point events. */
 @Serializable
 data class PropertyInvocationObservation(
@@ -187,6 +195,7 @@ data class PropertyInvocationObservation(
     val admission: ObservationAdmission,
     val outcome: ObservationOutcome,
     val points: List<PropertyPointEvent>,
+    val returnedInput: ReturnedInputLineage? = null,
 )
 
 /** Optional artifact: unknown phase is not independent random evidence. */

@@ -56,6 +56,7 @@ class FastCheckBackend(
             timeoutMillis = configuration.timeoutMillis,
             examples = configuration.examples,
             observationRequest = configuration.observationRequest,
+            returnedInputGeneration = configuration.returnedInputGeneration,
             coverageRequest = configuration.coverageRequest,
         )
 

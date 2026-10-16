@@ -29,6 +29,7 @@ data class PropertyRunConfiguration(
     val examples: List<List<JsConcreteValue>> = emptyList(),
     val coverageRequest: PropertyCoverageRequest? = null,
     val observationRequest: PropertyObservationRequest? = null,
+    val returnedInputGeneration: ReturnedInputGeneration? = null,
 ) {
     init {
         require(numRuns > 0) { "Number of runs must be positive" }

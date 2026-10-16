@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyRunResult
+import org.usvm.ts.pbt.backend.ReturnedInputGeneration
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.observation.PropertyObservationRequest
@@ -20,6 +21,7 @@ internal data class FastCheckExecutionRequest(
     val timeoutMillis: Long,
     val examples: List<List<JsConcreteValue>> = emptyList(),
     val observationRequest: PropertyObservationRequest? = null,
+    val returnedInputGeneration: ReturnedInputGeneration? = null,
     @Transient
     val coverageRequest: PropertyCoverageRequest? = null,
 )
