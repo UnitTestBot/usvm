@@ -12,6 +12,7 @@ import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.state.captureInitialEnvironment
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 
@@ -27,7 +28,7 @@ private fun TsState.staticInitializationFlag(clazz: EtsClass, flag: Any): UField
 internal fun TsState.isInitialized(clazz: EtsClass): Boolean =
     memory.read(staticInitializationFlag(clazz, flag = StaticFieldsInitializedFlag)).isTrue
 
-private fun TsState.isInitializing(clazz: EtsClass): Boolean =
+internal fun TsState.isInitializing(clazz: EtsClass): Boolean =
     memory.read(staticInitializationFlag(clazz, flag = StaticFieldsInitializingFlag)).isTrue
 
 /** A recursive read/write may use its current initializer, but completion is recorded only on return. */
@@ -43,6 +44,7 @@ internal fun TsState.completeStaticsInitialization(method: EtsMethod) {
 
     memory.write(initializedFlag, ctx.trueExpr, guard = ctx.trueExpr)
     memory.write(initializingFlag, ctx.falseExpr, guard = ctx.trueExpr)
+    captureInitialEnvironment(clazz)
 }
 
 internal fun TsState.failStaticsInitialization(method: EtsMethod, exception: TsMethodResult.TsException) {
@@ -85,6 +87,7 @@ internal fun TsContext.ensureStaticsInitialized(
             ?.methods
             ?.singleOrNull { it.name == DEFAULT_ARK_METHOD_NAME }
     if (initializer == null) {
+        captureInitialEnvironment(clazz)
         return@calcOnState Unit
     }
 

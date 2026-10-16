@@ -6,6 +6,7 @@ import org.usvm.UExpr
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureGlobalsInitialized
+import org.usvm.machine.state.recordInitialModuleBinding
 import org.usvm.util.mkFieldLValue
 
 fun TsContext.writeGlobal(
@@ -15,6 +16,7 @@ fun TsContext.writeGlobal(
     expr: UExpr<*>,
 ): Unit? = scope.calcOnState {
     ensureGlobalsInitialized(scope, file) ?: return@calcOnState null
+    recordInitialModuleBinding(file, name, isWrite = true)
 
     val dfltObject = getDfltObject(file)
 
