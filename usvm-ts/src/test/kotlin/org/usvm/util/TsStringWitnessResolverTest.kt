@@ -9,6 +9,7 @@ import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.state.TsMethodResult
 import java.nio.file.Path
 import kotlin.io.path.readText
 import kotlin.test.assertEquals
@@ -23,6 +24,31 @@ class TsStringWitnessResolverTest : TsMethodTestRunner() {
     private val tsPath = "/samples/lang/SymbolicStringInput.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
+
+    @Test
+    fun `input-only resolution preserves completed witness inputs without requiring a result`() {
+        val method = getMethod(methodName = "anyStringLength", className = "SymbolicStringInput")
+        val states = TsMachine(
+            scene = scene,
+            options = UMachineOptions(
+                pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
+                solverType = SolverType.YICES,
+                solverTimeout = Duration.INFINITE,
+                typeOperationsTimeout = Duration.INFINITE,
+            ),
+            tsOptions = TsOptions(),
+        ).use { machine -> machine.analyze(methods = listOf(method)) }
+
+        val completedInputs = states.map { state -> TsTestResolver().resolve(method, state).before }
+        val inputOnly = states.map { state ->
+            val incomplete = state.clone()
+            incomplete.methodResult = TsMethodResult.NoCall
+            TsTestResolver().resolveInputs(method = method, state = incomplete)
+        }
+
+        assertTrue(states.isNotEmpty())
+        assertEquals(completedInputs, inputOnly)
+    }
 
     @Test
     fun `string inferred from any has replayable length witnesses`() {

@@ -63,7 +63,36 @@ import org.usvm.types.first
 /** A satisfying state lacks the modeled data needed to emit a concrete witness. */
 class TsUnsupportedWitnessException(message: String) : IllegalStateException(message)
 
+/** Materializes concrete test values from an existing symbolic model. */
 class TsTestResolver {
+    /**
+     * Resolves original entry inputs from the model without requiring a completed call.
+     * [inputValues] pins the entry registers when execution is suspended inside a nested call.
+     */
+    fun resolveInputs(
+        method: EtsMethod,
+        state: TsState,
+        inputValues: List<UExpr<*>>? = null,
+        receiverValue: UExpr<*>? = null,
+    ): TsParametersState {
+        prepareForResolve(state)
+        val scope = MemoryScope(
+            ctx = state.ctx,
+            model = state.models.first(),
+            finalStateMemory = state.memory,
+            method = method,
+            resolvedLValuesToFakeObjects = resolvedLValuesToFakeObjects,
+            maxStringLength = state.maxStringLength,
+            stringLengthBounds = state.boundedStringBackingRefs,
+            propertyState = state,
+            inputValues = inputValues,
+            receiverValue = receiverValue,
+        )
+
+        val hasReceiver = !method.isStatic && method.name != "constructor"
+        return scope.withMode(ResolveMode.MODEL) { resolveState(includeReceiver = hasReceiver) }
+    }
+
     private val resolvedLValuesToFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf()
 
     fun resolve(method: EtsMethod, state: TsState): TsTest = with(state.ctx) {
@@ -116,6 +145,7 @@ class TsTestResolver {
     }
 
     private fun prepareForResolve(state: TsState) {
+        resolvedLValuesToFakeObjects.clear()
         state.lValuesToAllocatedFakeObjects.forEach { (lValue, fakeObject) ->
             when (lValue) {
                 is UFieldLValue<*, *> -> {
@@ -156,9 +186,8 @@ class TsTestResolver {
                         val concreteRef = evaluateInModel(res.value) as? UConcreteHeapRef
                         check(concreteRef != null && isAllocatedConcreteHeapRef(concreteRef))
 
-                        TsTestValue.TsException.ObjectException(
-                            TsTestValue.TsClass(name = "TypeError", properties = emptyMap())
-                        )
+                        val value = TsTestValue.TsClass(name = "TypeError", properties = emptyMap())
+                        TsTestValue.TsException.ObjectException(value)
                     }
 
                     is EtsStringType -> {
@@ -189,6 +218,8 @@ class TsTestResolver {
         maxStringLength: Int,
         stringLengthBounds: Map<UHeapRef, Int>,
         propertyState: TsState,
+        inputValues: List<UExpr<*>>? = null,
+        receiverValue: UExpr<*>? = null,
     ) : TsTestStateResolver(
         ctx = ctx,
         model = model,
@@ -198,9 +229,11 @@ class TsTestResolver {
         maxStringLength = maxStringLength,
         stringLengthBounds = stringLengthBounds,
         propertyState = propertyState,
+        inputValues = inputValues,
+        receiverValue = receiverValue,
     ) {
-        fun resolveState(): TsParametersState {
-            val thisInstance = resolveThisInstance()
+        fun resolveState(includeReceiver: Boolean = true): TsParametersState {
+            val thisInstance = if (includeReceiver) resolveThisInstance() else null
             val parameters = resolveParameters()
             val globals = resolveGlobals()
             return TsParametersState(thisInstance, parameters, globals)
@@ -208,6 +241,7 @@ class TsTestResolver {
     }
 }
 
+/** Reads input or current values from the selected model and memory view. */
 open class TsTestStateResolver(
     val ctx: TsContext,
     private val model: UModelBase<EtsType>,
@@ -217,8 +251,11 @@ open class TsTestStateResolver(
     val maxStringLength: Int,
     private val stringLengthBounds: Map<UHeapRef, Int> = emptyMap(),
     private val propertyState: TsState? = null,
+    private val inputValues: List<UExpr<*>>? = null,
+    private val receiverValue: UExpr<*>? = null,
 ) {
     private val resolvedClasses = hashMapOf<UConcreteHeapRef, TsTestValue.TsClass>()
+    private val resolvedArrays = hashMapOf<UConcreteHeapRef, TsTestValue.TsArray<TsTestValue>>()
 
     fun resolveLValue(
         lValue: ULValue<*, *>,
@@ -315,7 +352,7 @@ open class TsTestStateResolver(
             }
 
             is EtsUnknownType -> {
-                resolveTsValue(heapRef)
+                throw TsUnsupportedWitnessException("Concrete witness runtime type is unresolved")
             }
 
             is EtsStringType -> {
@@ -330,6 +367,13 @@ open class TsTestStateResolver(
         heapRef: UHeapRef,
         type: EtsArrayType,
     ): TsTestValue.TsArray<*> = with(ctx) {
+        val reference = evaluateInModel(heapRef) as UConcreteHeapRef
+        val previous = resolvedArrays[reference]
+        if (previous != null) return previous
+
+        val elements = mutableListOf<TsTestValue>()
+        val result = TsTestValue.TsArray(elements)
+        resolvedArrays[reference] = result
         val arrayLength = mkArrayLengthLValue(heapRef, type)
         val length = resolveLValue(arrayLength) as TsTestValue.TsNumber
 
@@ -378,7 +422,8 @@ open class TsTestStateResolver(
             resolveExpr(value)
         }
 
-        return TsTestValue.TsArray(values)
+        elements.addAll(values)
+        return result
     }
 
     private fun resolveString(
@@ -415,11 +460,19 @@ open class TsTestStateResolver(
     }
 
     fun resolveThisInstance(): TsTestValue {
+        val initialReceiver = receiverValue
+        if (initialReceiver != null) return resolveExpr(evaluateInModel(initialReceiver))
+
         val ref = mkRegisterStackLValue(ctx.addressSort, idx = 0) // TODO check for statics
         return resolveLValue(ref)
     }
 
     fun resolveParameters(): List<TsTestValue> = with(ctx) {
+        inputValues?.let { values ->
+            require(values.size == method.parameters.size) { "Entry input count does not match the method" }
+            return values.map { value -> resolveExpr(evaluateInModel(value)) }
+        }
+
         method.parameters.mapIndexed { i, param ->
             val idx = i + 1 // +1 because the register 0 is reserved for `this`
             val sort = typeToSort(param.type)
@@ -475,20 +528,7 @@ open class TsTestStateResolver(
         type: EtsPrimitiveType,
     ): TsTestValue = with(ctx) {
         when (type) {
-            EtsNumberType -> {
-                val e = evaluateInModel(expr)
-                if (e.isFakeObject()) {
-                    val lValue = getIntermediateFpLValue(e.address)
-                    val value = finalStateMemory.read(lValue)
-                    resolveExpr(model.eval(value))
-                } else {
-                    if (e is KFpValue<*>) {
-                        TsTestValue.TsNumber.TsDouble(e.extractDouble())
-                    } else {
-                        TsTestValue.TsNumber.TsInteger(e.extractInt())
-                    }
-                }
-            }
+            EtsNumberType -> resolveNumber(expr)
 
             EtsBooleanType -> TsTestValue.TsBoolean(evaluateInModel(expr).toConcreteBoolValue())
             EtsUndefinedType -> TsTestValue.TsUndefined
@@ -498,6 +538,21 @@ open class TsTestStateResolver(
             EtsStringType -> error("String values must be resolved from heap references")
             EtsVoidType -> TODO()
             else -> error("Unexpected type: $type")
+        }
+    }
+
+    private fun resolveNumber(expr: UExpr<out USort>): TsTestValue = with(ctx) {
+        val value = evaluateInModel(expr)
+        if (value.isFakeObject()) {
+            val lValue = getIntermediateFpLValue(value.address)
+            val stored = finalStateMemory.read(lValue)
+            return resolveExpr(model.eval(stored))
+        }
+
+        return if (value is KFpValue<*>) {
+            TsTestValue.TsNumber.TsDouble(value.extractDouble())
+        } else {
+            TsTestValue.TsNumber.TsInteger(value.extractInt())
         }
     }
 
@@ -597,7 +652,8 @@ open class TsTestStateResolver(
         val declaredType = entry.declaredType
         val sort = declaredType?.let { typeToSort(it) } ?: unresolvedSort
         if (!written && sort !is TsUnresolvedSort && !entry.optional) {
-            return resolveObjectField(ref, ref, name, declaredType!!, initial = true)
+            val fieldType = requireNotNull(declaredType)
+            return resolveObjectField(ref, ref, name, fieldType, initial = true)
         }
 
         val valueMemory = if (written) finalStateMemory else model
@@ -673,6 +729,7 @@ open class TsTestStateResolver(
         }
 }
 
+/** Chooses original model values or the heap at the reached execution point. */
 enum class ResolveMode {
     MODEL, CURRENT, ERROR
 }
