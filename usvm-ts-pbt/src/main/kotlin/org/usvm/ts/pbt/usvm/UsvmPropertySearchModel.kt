@@ -2,6 +2,7 @@ package org.usvm.ts.pbt.usvm
 
 import kotlinx.serialization.Serializable
 import org.usvm.ts.pbt.backend.CapabilityDiagnostic
+import org.usvm.ts.pbt.backend.WitnessOracleOutcome
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyId
 
@@ -27,6 +28,20 @@ enum class UsvmPropertyViolationTarget {
     ASSERTION_FAILURE,
 }
 
+/** Predicted completion for one original immutable input; native replay remains a separate observation. */
+@Serializable
+data class UsvmCompletedInput(
+    val inputs: List<JsConcreteValue>,
+    val expectedOutcome: WitnessOracleOutcome,
+) {
+    init {
+        require(
+            expectedOutcome == WitnessOracleOutcome.HOLDS || expectedOutcome == WitnessOracleOutcome.FALSE ||
+                expectedOutcome == WitnessOracleOutcome.THREW
+        )
+    }
+}
+
 /** Backend-neutral result of searching one mapped TypeScript property with USVM. */
 @Serializable
 data class UsvmPropertySearchResult(
@@ -37,8 +52,12 @@ data class UsvmPropertySearchResult(
     val capability: UsvmPropertyProjectionCapability,
     val diagnostics: List<CapabilityDiagnostic>,
     val edgeGuidance: UsvmEdgeGuidanceTrace? = null,
+    val completedInputs: List<UsvmCompletedInput> = emptyList(),
+    val omittedCompletedInputs: Int = 0,
 ) {
     init {
+        require(omittedCompletedInputs >= 0)
+
         when (status) {
             UsvmPropertySearchStatus.VIOLATION_REACHED -> {
                 requireNotNull(target) { "A reached violation requires its target" }

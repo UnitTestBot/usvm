@@ -26,6 +26,7 @@ data class PropertyCampaignArtifact(
     val metadata: PropertyCampaignMetadata? = null,
     val pbtAllocationMillis: Long? = null,
     val shrinkWitness: Boolean = true,
+    val completedInputLimit: Int = 0,
 ) {
     init {
         val resultProperties = listOfNotNull(
@@ -33,9 +34,13 @@ data class PropertyCampaignArtifact(
             result.concrete?.propertyId,
             result.symbolic?.propertyId,
             result.confirmation?.candidate?.propertyId,
-        )
+        ) + result.symbolicInputReplays.flatMap { replay ->
+            listOfNotNull(replay.candidate.propertyId, replay.replay.coverage?.propertyId)
+        }
         val sameProperty = resultProperties.all { it == property.id }
         require(sameProperty) { "Campaign evidence belongs to another property" }
+        require(completedInputLimit >= 0)
+        require(result.symbolicInputReplays.size <= completedInputLimit)
         require(pbtAllocationMillis == null || pbtAllocationMillis in 1 until configuration.timeoutMillis)
         require(validationReserveMillis > 0) { "Validation reserve must be positive" }
         require(targetRole == WitnessRole.PROPERTY) { "Direct controls search the original property" }

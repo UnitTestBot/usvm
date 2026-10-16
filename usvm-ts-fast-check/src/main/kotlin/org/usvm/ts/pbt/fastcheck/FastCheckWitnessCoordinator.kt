@@ -46,7 +46,9 @@ internal class FastCheckWitnessCoordinator(
         val result = replay(property, candidate, requireNotNull(candidate.inputs), deadline, coverageRequest)
         val native = when (result) {
             is FastCheckOperationResult.Completed -> result.value
-            is FastCheckOperationResult.TimedOut -> return unavailableReplay(result.message)
+            is FastCheckOperationResult.TimedOut -> return unavailableReplay(
+                "${FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT}: ${result.message}",
+            )
         }
         val coverage = native.coverage ?: return native
         val unchanged = identity == captureCoverageIdentity(candidate.manifest, sourceRoots)

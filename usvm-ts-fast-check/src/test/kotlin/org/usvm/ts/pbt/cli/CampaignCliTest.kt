@@ -116,6 +116,29 @@ class CampaignCliTest {
     }
 
     @Test
+    fun `symbolic CLI enables bounded native input capture in the saved artifact`() {
+        val property = property().copy(
+            inputs = listOf(PropertyInput(name = "value", domain = IntegerDomain(min = -100, max = 100))),
+            predicate = TypeScriptEntryPoint(module = "CompletedProperties.ts", exportName = "healthy"),
+            precondition = null,
+        )
+        val destination = directory.resolve("completed.json")
+
+        val run = runCli(
+            arguments(PropertyCampaignMode.SYMBOLIC_ONLY, destination) + arrayOf("--completed-input-limit", "3"),
+            properties = listOf(property),
+        )
+        val artifact = readArtifact(run, destination)
+
+        assertEquals(0, run.exitCode)
+        assertEquals("", run.errors)
+        assertEquals(3, artifact.completedInputLimit)
+        assertTrue(artifact.result.symbolicInputReplays.isNotEmpty())
+        assertTrue(artifact.result.symbolicInputReplays.size <= 3)
+        assertTrue(artifact.result.symbolicInputReplays.all { it.admittedCoverage != null })
+    }
+
+    @Test
     fun `completed direct controls with no finding return zero`() {
         val admittedSingleton = property().copy(
             inputs = listOf(PropertyInput(name = "value", domain = IntegerDomain(min = 20, max = 20))),
@@ -281,6 +304,17 @@ class CampaignCliTest {
             arrayOf(
                 "--source-root", root, "--mode", "UNKNOWN", "--artifact", destination,
             ) to "cli.argument.invalid",
+            arrayOf(
+                "--source-root", root, "--mode", "PBT_ONLY", "--artifact", destination,
+                "--completed-input-limit", "1",
+            ) to "cli.argument.invalid",
+            arrayOf(
+                "--source-root", root, "--mode", "SYMBOLIC_ONLY", "--artifact", destination,
+                "--completed-input-limit", "-1",
+            ) to "cli.argument.invalid",
+            arrayOf(
+                "--source-root", root, "--completed-input-limit", "1",
+            ) to "cli.campaign.mode.required",
         )
 
         for ((arguments, expectedCode) in cases) {

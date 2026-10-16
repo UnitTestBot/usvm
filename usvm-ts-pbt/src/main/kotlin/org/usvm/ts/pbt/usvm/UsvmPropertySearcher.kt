@@ -24,10 +24,13 @@ import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.CapabilityDiagnostic
 import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.ts.pbt.backend.ProjectionLevel
+import org.usvm.ts.pbt.backend.WitnessOracleOutcome
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.EtsEntryPointTarget
 import org.usvm.ts.pbt.mapping.PropertyEtsMappingArtifact
+import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyId
+import java.util.concurrent.CancellationException
 import kotlin.random.Random
 
 /** Searches mapped TypeScript predicates for concrete property violations with USVM. */
@@ -58,7 +61,9 @@ class UsvmPropertySearcher(
         concreteCapability: ProjectionCapability,
         deadlineReached: (() -> Boolean)? = null,
         coverageFeedback: UsvmCoverageFeedback? = null,
+        completedInputLimit: Int = 0,
     ): UsvmPropertySearchResult {
+        require(completedInputLimit >= 0) { "Completed input limit must not be negative" }
         val capability = capabilityResolver.resolve(
             manifest = manifest,
             mapping = mapping,
@@ -105,6 +110,7 @@ class UsvmPropertySearcher(
             capability = capability,
             deadlineReached = deadlineReached ?: this.deadlineReached,
             guidance = guidance,
+            completedInputLimit = completedInputLimit,
         ).copy(edgeGuidance = guidance?.snapshot())
     }
 
@@ -115,22 +121,42 @@ class UsvmPropertySearcher(
         capability: UsvmPropertyProjectionCapability,
         deadlineReached: (() -> Boolean)?,
         guidance: UsvmEdgeGuidance?,
+        completedInputLimit: Int,
     ): UsvmPropertySearchResult {
         lateinit var projection: UsvmDeclaredDomainProjection
+        val completedInputs = linkedSetOf<UsvmCompletedInput>()
+        val completionDiagnostics = mutableListOf<CapabilityDiagnostic>()
+        var omittedCompletedInputs = 0
         val target = UsvmViolationTsTarget()
         lateinit var observer: UsvmViolationObserver
         observer = UsvmViolationObserver(target) { state ->
-            if (guidance != null) {
+            val methodResult = state.methodResult
+            val completed = methodResult is TsMethodResult.TsException ||
+                (methodResult is TsMethodResult.Success && methodResult.value.sort == state.ctx.boolSort)
+            val capture = completed && completedInputLimit > 0 && completedInputs.size < completedInputLimit
+            if (completed && completedInputLimit > 0 && !capture) omittedCompletedInputs += 1
+            if (guidance != null || capture) {
                 val violation = observer.violationStates.lastOrNull { it.pathNode === state.pathNode }
                 val replayState = violation ?: state
-                val inputs = runCatching {
-                    UsvmCandidateInputResolver(projection.objectShapes).resolve(
-                        replayState, manifest.inputs, projection,
+                val resolved = resolveCompletedInput(replayState, manifest, projection)
+                val inputs = resolved.getOrNull()
+                if (capture && inputs == null) {
+                    completionDiagnostics += diagnostic(
+                        code = "usvm.completed-input.unavailable",
+                        message = resolved.exceptionOrNull()?.message ?: "Original input could not be resolved",
+                        path = "completedInputs",
                     )
-                }.getOrNull()
-                if (inputs != null) guidance.confirm(replayState, inputs, expectsViolation = violation != null)
+                }
+                if (inputs != null) {
+                    if (capture) {
+                        val expected = completedOutcome(violation)
+                        completedInputs += UsvmCompletedInput(inputs = inputs, expectedOutcome = expected)
+                    }
+                    guidance?.confirm(replayState, inputs, expectsViolation = violation != null)
+                }
             }
         }
+
         val runtimeLimitations = UsvmRuntimeLimitationObserver()
         val objectShapes = PlainObjectInputShapes(scene, manifest.inputs.map { it.domain })
         val domainProjector = UsvmDomainProjector(projectionOptions, objectShapes)
@@ -190,8 +216,36 @@ class UsvmPropertySearcher(
                     runtimeLimited = runtimeDiagnostics.isNotEmpty(),
                 )
 
-            searchResult.copy(diagnostics = (searchResult.diagnostics + runtimeDiagnostics).distinct())
+            searchResult.copy(
+                diagnostics = (searchResult.diagnostics + runtimeDiagnostics + completionDiagnostics).distinct(),
+                completedInputs = completedInputs.toList(),
+                omittedCompletedInputs = omittedCompletedInputs,
+            )
         }
+    }
+
+    private fun completedOutcome(violation: TsState?): WitnessOracleOutcome = when {
+        violation?.methodResult is TsMethodResult.TsException -> WitnessOracleOutcome.THREW
+        violation != null -> WitnessOracleOutcome.FALSE
+        else -> WitnessOracleOutcome.HOLDS
+    }
+
+    private fun resolveCompletedInput(
+        state: TsState,
+        manifest: PropertyManifest,
+        projection: UsvmDeclaredDomainProjection,
+    ): Result<List<JsConcreteValue>> {
+        val resolved = runCatching {
+            UsvmCandidateInputResolver(projection.objectShapes).resolve(state, manifest.inputs, projection)
+        }
+        val error = resolved.exceptionOrNull()
+        if (error is CancellationException) throw error
+        if (error is InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw error
+        }
+
+        return resolved
     }
 
     private fun classifyTerminalFailure(
@@ -437,7 +491,7 @@ class UsvmPropertySearcher(
         status: UsvmPropertySearchStatus,
         capability: UsvmPropertyProjectionCapability,
         target: UsvmPropertyViolationTarget? = null,
-        inputs: List<org.usvm.ts.pbt.model.JsConcreteValue>? = null,
+        inputs: List<JsConcreteValue>? = null,
         additionalDiagnostic: CapabilityDiagnostic? = null,
     ) = UsvmPropertySearchResult(
         propertyId = PropertyId(manifest.propertyId),

@@ -41,6 +41,7 @@ internal data class CliOptions(
     val validationReserveMillis: Long?,
     val pbtAllocationMillis: Long? = null,
     val shrinkWitness: Boolean = true,
+    val completedInputLimit: Int = 0,
 )
 
 internal class CliUsageException(
@@ -129,6 +130,11 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-fast-check")
         help = "PBT allocation within a two-phase campaign; required for COVERAGE_FEEDBACK",
     ).long()
 
+    private val completedInputLimit by option(
+        "--completed-input-limit",
+        help = "Maximum completed symbolic inputs to verify natively; defaults to disabled",
+    ).int().default(0)
+
     private val noShrinking by option(
         "--no-shrinking",
         help = "Disable native candidate reduction; requires --mode",
@@ -178,6 +184,7 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-fast-check")
             validationReserveMillis = validationReserveMillis,
             pbtAllocationMillis = pbtAllocationMillis,
             shrinkWitness = !noShrinking,
+            completedInputLimit = completedInputLimit,
         )
     }
 
@@ -211,7 +218,7 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-fast-check")
 
     private fun requireCampaignControls() {
         val hasCampaignDetails = artifactFile != null || validationReserveMillis != null ||
-            pbtAllocationMillis != null || noShrinking
+            pbtAllocationMillis != null || noShrinking || completedInputLimit != 0
         val reserve = validationReserveMillis
         val allocation = pbtAllocationMillis
         val twoPhase = mode == PropertyCampaignMode.SEQUENTIAL || mode == PropertyCampaignMode.COVERAGE_FEEDBACK
@@ -233,6 +240,12 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-fast-check")
                 message = "A campaign requires exactly one --source-root",
                 path = "sourceRoot",
             )
+            completedInputLimit < 0 || (completedInputLimit > 0 && mode == PropertyCampaignMode.PBT_ONLY) ->
+                CliUsageException(
+                    code = FastCheckDiagnosticCode.CLI_ARGUMENT_INVALID,
+                    message = "--completed-input-limit must be non-negative and requires a symbolic campaign mode",
+                    path = "completedInputLimit",
+                )
             invalidAllocation || missingAllocation -> CliUsageException(
                 code = FastCheckDiagnosticCode.CLI_ARGUMENT_INVALID,
                 message = "COVERAGE_FEEDBACK requires --pbt-allocation-ms between 1 and the total timeout; " +
