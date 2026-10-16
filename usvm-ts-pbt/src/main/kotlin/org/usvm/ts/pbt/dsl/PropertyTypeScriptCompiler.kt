@@ -19,6 +19,9 @@ data class CompiledDslProperty(
     val definition: PropertyDefinition,
     val typeScript: String,
     val expressionLocations: Map<Int, List<GeneratedPropertyRange>>,
+    val numericLocalCapture: CompiledDslNumericLocalCapture? = null,
+    /** Retains import decisions so a point consumer can reproduce this compiler output from the original program. */
+    val resolvedModules: Map<String, String> = emptyMap(),
 )
 
 /** One expression occurrence in generated TypeScript; columns are one-based UTF-16 and end-exclusive. */
@@ -34,7 +37,16 @@ class PropertyTypeScriptCompiler {
         generatedModule: String,
         resolveModule: (String) -> String,
     ): CompiledDslProperty {
-        val emitter = PropertyEmitter(program, generatedModule, resolveModule)
+        return compile(program, generatedModule, resolveModule, numericLocalCapture = null)
+    }
+
+    fun compile(
+        program: DslProperty,
+        generatedModule: String,
+        resolveModule: (String) -> String,
+        numericLocalCapture: DslNumericLocalCapture?,
+    ): CompiledDslProperty {
+        val emitter = PropertyEmitter(program, generatedModule, resolveModule, numericLocalCapture)
         return emitter.compile()
     }
 }
@@ -43,17 +55,27 @@ private class PropertyEmitter(
     private val program: DslProperty,
     private val module: String,
     private val resolveModule: (String) -> String,
+    numericLocalCapture: DslNumericLocalCapture?,
 ) {
+    private val capture = numericLocalCapture?.let { program.selectNumericLocalCapture(it) }
     private val source = StringBuilder()
     private val functions = linkedMapOf<PropertyFunctionReference, String>()
+    private val resolvedModules = linkedMapOf<String, String>()
     private val expressionLocations = mutableMapOf<Int, MutableList<GeneratedPropertyRange>>()
     private val assertions = mutableListOf<PropertyAssertion>()
     private var line = 1
+    private var predicateAssignment: PropertySourcePoint? = null
+    private var companionAssignment: PropertySourcePoint? = null
+    private var capturedCall: PropertySourcePoint? = null
 
     fun compile(): CompiledDslProperty {
         allExpressions().forEach(::collectFunctions)
         functions.forEach { (function, alias) ->
             val path = resolveModule(function.module)
+            val previous = resolvedModules.putIfAbsent(function.module, path)
+            require(capture == null || previous == null || previous == path) {
+                "A captured program requires one stable import resolution per module"
+            }
             appendLine("import { ${function.exportName} as $alias } from ${quote(path)};")
         }
         val parameters = program.inputs.joinToString { input ->
@@ -84,7 +106,15 @@ private class PropertyEmitter(
             assertions = assertions,
         )
         val locations = expressionLocations.mapValues { (_, ranges) -> ranges.toList() }
-        return CompiledDslProperty(program, definition, source.toString(), locations)
+        val typeScript = source.toString()
+        val localCapture = capture?.compileCapture(
+            definition,
+            typeScript,
+            predicateAssignment = requireNotNull(predicateAssignment),
+            companionAssignment = requireNotNull(companionAssignment),
+        )
+
+        return CompiledDslProperty(program, definition, typeScript, locations, localCapture, resolvedModules.toMap())
     }
 
     private fun emitPredicate(parameters: String, diagnostic: Boolean) {
@@ -94,12 +124,32 @@ private class PropertyEmitter(
         } else {
             "boolean"
         }
-        appendLine("export function $name($parameters): $resultType {")
-        program.locals.forEach { local -> appendValue(local.name, local.expression) }
+        val callback = if (diagnostic && capture != null) {
+            ", __usvmObserve?: (nodeId: number, localName: string, value: number) => void"
+        } else {
+            ""
+        }
+        appendLine("export function $name($parameters$callback): $resultType {")
+        program.locals.forEach { local -> emitLocal(local, diagnostic) }
         program.checks.forEachIndexed { index, check -> emitCheck(check, index, diagnostic) }
         val success = if (diagnostic) "{ passed: true, checkId: '', actual: true, expected: true }" else "true"
         appendLine("  return $success;")
         appendLine("}")
+    }
+
+    private fun emitLocal(local: PropertyLocal, diagnostic: Boolean) {
+        val assignment = PropertySourcePoint(module = module, line = line, column = "  ".length + 1)
+        appendValue(local.name, local.expression)
+        if (local != capture?.local) return
+
+        if (diagnostic) {
+            companionAssignment = assignment
+            val arguments = "${local.expression.id}, ${quote(local.name)}, ${local.name}"
+            appendLine("  if (__usvmObserve !== undefined) __usvmObserve($arguments);")
+        } else {
+            predicateAssignment = assignment
+            capturedCall = expressionLocations.getValue(local.expression.id).last().start
+        }
     }
 
     private fun emitCheck(check: NamedPropertyCheck, index: Int, diagnostic: Boolean) {
@@ -125,7 +175,14 @@ private class PropertyEmitter(
             appendLine("${indentation}const $expected = true;")
             condition = actual
             val location = expressionLocations.getValue(check.expression.id).last().start
-            operands = listOf(PropertyOperand(id = "condition", source = location))
+            operands = if (check.name == capture?.check?.name) {
+                (term as PropertyExpressionTerm.Operation).arguments.mapIndexed { operandIndex, node ->
+                    val operandLocation = expressionLocations.getValue(node.id).last().start
+                    PropertyOperand(id = "operand-$operandIndex", source = operandLocation)
+                }
+            } else {
+                listOf(PropertyOperand(id = "condition", source = location))
+            }
         }
         val failure = if (diagnostic) {
             "{ passed: false, checkId: ${quote(check.name)}, actual: $actual, expected: $expected }"
@@ -136,7 +193,13 @@ private class PropertyEmitter(
         record(check.expression, column = indentation.length + "if (!(".length + 1, length = condition.length)
         appendLine("${indentation}if (!($condition)) return $failure;")
         if (!diagnostic) {
-            assertions += PropertyAssertion(id = check.name, source = point, operands = operands)
+            val testedCall = capturedCall.takeIf { check.name == capture?.check?.name }
+            assertions += PropertyAssertion(
+                id = check.name,
+                source = point,
+                testedCall = testedCall,
+                operands = operands,
+            )
         } else {
             appendLine("  } catch (__usvmError) {")
             val identity = quote(check.name)

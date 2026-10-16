@@ -16,11 +16,16 @@ data class PropertyObservationPoint(
     val callSite: PropertySourcePoint,
     val kind: ObservationPointKind,
     val inputIndex: Int? = null,
+    val compilerLocal: CompilerNumericLocalBinding? = null,
 )
 
 /** Location and role of a recorded operand value. */
 @Serializable
 enum class ObservationPointKind {
+    /** Captured by the adapter from the original input vector before invoking user code. */
+    @SerialName("entry-argument")
+    ENTRY_ARGUMENT,
+
     @SerialName("argument")
     ARGUMENT,
 
@@ -169,6 +174,7 @@ data class PropertyPointEvent(
     val eventOrdinal: Int,
     val inputIndex: Int? = null,
     val value: PropertyObservationValue,
+    val compilerLocal: CompilerNumericLocalBinding? = null,
 )
 
 /** One original callback invocation and its bounded point events. */

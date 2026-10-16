@@ -1,14 +1,49 @@
 package org.usvm.ts.pbt.backend
 
 import kotlinx.serialization.Serializable
+import org.usvm.ts.pbt.inference.ScalarRelationTemplate
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyId
+import org.usvm.ts.pbt.observation.CompilerNumericLocalBinding
 import org.usvm.ts.pbt.observation.PropertyObservationSource
 
 /** Auxiliary witnesses are useful evidence even when the complete original oracle holds. */
 @Serializable
 enum class WitnessRole { PROPERTY, COVERAGE, HYPOTHESIS }
+
+/** Adapter-owned comparison of two original numeric inputs, before the original callback runs. */
+@Serializable
+data class WitnessEntryRelation(
+    val leftInputIndex: Int,
+    val rightInputIndex: Int,
+    val template: ScalarRelationTemplate,
+) {
+    init {
+        require(leftInputIndex >= 0 && rightInputIndex >= 0)
+    }
+
+    companion object {
+        const val CONTEXT_ID = "original-entry"
+    }
+}
+
+/** Explicit companion callback, comparing one stored numeric result with an original input snapshot. */
+@Serializable
+data class WitnessDslNumericLocalRelation(
+    val compiler: CompilerNumericLocalBinding,
+    val inputIndex: Int,
+    val resultIsLeft: Boolean,
+    val template: ScalarRelationTemplate,
+) {
+    init {
+        require(inputIndex >= 0)
+    }
+
+    companion object {
+        const val CONTEXT_ID = "original-compiler-local"
+    }
+}
 
 /** Exact executable hook binding supplied by a producer, never inferred from a source line. */
 @Serializable
@@ -31,10 +66,20 @@ data class WitnessTarget(
     val role: WitnessRole = WitnessRole.PROPERTY,
     val binding: WitnessBinding? = null,
     val expectedOutcome: WitnessOracleOutcome? = null,
+    val entryRelation: WitnessEntryRelation? = null,
+    val dslNumericLocalRelation: WitnessDslNumericLocalRelation? = null,
 ) {
     init {
         require(id.isNotBlank())
         require(role == WitnessRole.PROPERTY || binding != null)
+        if (entryRelation != null) {
+            require(role == WitnessRole.HYPOTHESIS)
+            require(binding?.contextId == WitnessEntryRelation.CONTEXT_ID && binding.occurrence == 0)
+        }
+        if (dslNumericLocalRelation != null) {
+            require(entryRelation == null && role == WitnessRole.HYPOTHESIS)
+            require(binding?.contextId == WitnessDslNumericLocalRelation.CONTEXT_ID && binding.occurrence == 0)
+        }
         require(
             expectedOutcome == null || expectedOutcome == WitnessOracleOutcome.FALSE ||
                 expectedOutcome == WitnessOracleOutcome.THREW

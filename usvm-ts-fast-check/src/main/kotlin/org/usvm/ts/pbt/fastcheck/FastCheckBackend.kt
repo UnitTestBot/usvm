@@ -15,10 +15,13 @@ import org.usvm.ts.pbt.backend.WitnessReplayConfiguration
 import org.usvm.ts.pbt.backend.WitnessReplayDeadline
 import org.usvm.ts.pbt.coverage.captureCoverageIdentity
 import org.usvm.ts.pbt.manifest.toManifest
+import org.usvm.ts.pbt.model.ExecutionKind
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.accepts
 import org.usvm.ts.pbt.model.contains
+import org.usvm.ts.pbt.observation.CompilerNumericLocalBinding
+import org.usvm.ts.pbt.observation.ObservationPointKind
 import org.usvm.ts.pbt.observation.PropertyObservationRequest
 import org.usvm.ts.pbt.validation.requireValid
 import org.usvm.ts.pbt.validation.validatePropertyDefinition
@@ -181,16 +184,37 @@ class FastCheckBackend(
             }
         }
         val allInputIndexesValid = request.points.all { point ->
-            if (point.kind == org.usvm.ts.pbt.observation.ObservationPointKind.ARGUMENT) {
+            val isArgument = point.kind == ObservationPointKind.ARGUMENT ||
+                point.kind == ObservationPointKind.ENTRY_ARGUMENT
+            if (isArgument) {
                 point.inputIndex in property.inputs.indices
             } else {
                 point.inputIndex == null
             }
         }
         val hashesValid = request.sources.all { source -> source.sha256.matches(SHA256_REGEX) }
+        val compilerPoints = request.points.filter { it.compilerLocal != null }
+        val compilerLocalsValid = compilerPoints.size <= 1 && compilerPoints.all { point ->
+            val binding = requireNotNull(point.compilerLocal)
+            val module = property.predicate.module
+            val predicate = binding.predicateAssignment
+            val companion = binding.companionAssignment
+
+            binding.producer == CompilerNumericLocalBinding.PRODUCER &&
+                binding.abi == CompilerNumericLocalBinding.ABI && binding.programId == property.id.value &&
+                binding.nodeId >= 0 && binding.localName.matches(Regex("[A-Za-z_$][A-Za-z0-9_$]*")) &&
+                binding.predicateExportName == property.predicate.exportName &&
+                binding.companionExportName == property.predicate.checkResultExportName &&
+                property.predicate.executionKind == ExecutionKind.SYNC &&
+                predicate.module == module && companion.module == module && predicate != companion &&
+                predicate.line > 0 && predicate.column > 0 && companion.line > 0 && companion.column > 0 &&
+                point.source.module == module && point.callSite.module == module &&
+                binding.sourceSha256 == sourceByModule[module]?.sha256 &&
+                binding.occurrence == 0 && point.kind == ObservationPointKind.RETURN
+        }
 
         val validRequest = validLimits && allSourcesPresent &&
-            allPointsBound && allInputIndexesValid && hashesValid
+            allPointsBound && allInputIndexesValid && hashesValid && compilerLocalsValid
 
         if (!validRequest) {
             throw invalidRequest(

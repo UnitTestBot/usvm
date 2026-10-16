@@ -12,8 +12,24 @@ export interface ObservationPointRequest {
   operandId: string;
   source: SourcePoint;
   callSite: SourcePoint;
-  kind: 'argument' | 'return' | 'intermediate' | 'pre' | 'post';
+  kind: 'entry-argument' | 'argument' | 'return' | 'intermediate' | 'pre' | 'post';
   inputIndex?: number;
+  compilerLocal?: CompilerNumericLocalBinding;
+}
+
+/** Authority comes from the retained compiler program, not these source coordinates alone. */
+export interface CompilerNumericLocalBinding {
+  producer: string;
+  abi: string;
+  programId: string;
+  nodeId: number;
+  localName: string;
+  predicateExportName: string;
+  companionExportName: string;
+  predicateAssignment: SourcePoint;
+  companionAssignment: SourcePoint;
+  sourceSha256: string;
+  occurrence: number;
 }
 
 export interface SourcePoint {
@@ -123,6 +139,22 @@ export class ObservationRecorder {
     return this.artifact;
   }
 
+  get compilerLocalBinding(): CompilerNumericLocalBinding | undefined {
+    return this.request.points.find((point) => point.compilerLocal !== undefined)?.compilerLocal;
+  }
+
+  captureCompilerLocal(nodeId: number, localName: string, value: unknown): void {
+    const context = contexts.getStore();
+    const point = this.request.points.find((point) => point.compilerLocal !== undefined);
+    if (context?.recorder !== this || point === undefined) return;
+
+    const binding = point.compilerLocal!;
+    const identityMatches = nodeId === binding.nodeId && localName === binding.localName;
+    const reason = !identityMatches ? 'compiler-local-identity-mismatch'
+      : typeof value !== 'number' ? 'compiler-local-numeric-required' : undefined;
+    this.capturePoint(context.invocation, point, value, reason);
+  }
+
   run<T>(
     values: unknown[],
     phase: InvocationRecord['phase'],
@@ -153,6 +185,12 @@ export class ObservationRecorder {
       return invocation();
     }
 
+    for (const point of this.request.points) {
+      if (point.kind === 'entry-argument') {
+        this.capturePoint(record, point, values[point.inputIndex!]);
+      }
+    }
+
     return contexts.run({ recorder: this, invocation: record }, invocation);
   }
 
@@ -166,7 +204,19 @@ export class ObservationRecorder {
 
   point(record: InvocationRecord, pointId: string, value: unknown): void {
     const point = this.pointsById.get(pointId);
-    if (point === undefined || record.points.length >= this.request.maxPointsPerInvocation) {
+    // Adapter entry snapshots and compiler callbacks own these points; public hooks cannot replace them.
+    if (point?.kind === 'entry-argument' || point?.compilerLocal !== undefined) return;
+    if (point === undefined) {
+      this.artifact.droppedPoints = incrementCounter(this.artifact.droppedPoints);
+
+      return;
+    }
+
+    this.capturePoint(record, point, value);
+  }
+
+  private capturePoint(record: InvocationRecord, point: ObservationPointRequest, value: unknown, unsupportedReason?: string): void {
+    if (record.points.length >= this.request.maxPointsPerInvocation) {
       this.artifact.droppedPoints = incrementCounter(this.artifact.droppedPoints);
 
       return;
@@ -180,9 +230,10 @@ export class ObservationRecorder {
       callSite: point.callSite,
       kind: point.kind,
       ...(point.inputIndex === undefined ? {} : { inputIndex: point.inputIndex }),
+      ...(point.compilerLocal === undefined ? {} : { compilerLocal: point.compilerLocal }),
       occurrence: record.points.filter((event) => event.pointId === point.id).length,
       eventOrdinal: record.points.length,
-      value: this.snapshot(value),
+      value: unsupportedReason === undefined ? this.snapshot(value) : { status: 'unsupported', reason: unsupportedReason },
     });
     if (this.reservedArtifactBytes() > this.request.maxBytes) {
       record.points.pop();
