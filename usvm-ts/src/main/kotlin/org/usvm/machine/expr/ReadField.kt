@@ -165,6 +165,9 @@ private fun TsContext.resolveDeclaredField(
     // A literal's own declarations, rather than scene-wide same-name fields, determine its initial storage.
     val objectClass = objectLiteralClass(scope, instance, hierarchy)
     val wasWritten = scope.calcOnState { (instance to field.name) in writtenConcreteFields }
+    if (local != null && objectClass == null) {
+        ensureSupportedDeclaredMemberAccess(scope, instance, local, field.name, hierarchy)
+    }
     if (objectClass != null && !wasWritten && !objectClass.hasOwnProperty(field.name)) {
         scope.ensureMissingPropertyHasNoPrototype(instance, objectClass, field.name)
         return mkUndefinedValue()
