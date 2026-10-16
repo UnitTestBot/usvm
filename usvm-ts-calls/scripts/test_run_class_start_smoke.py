@@ -1,6 +1,7 @@
 import importlib.util
 import tempfile
 import unittest
+import xml.etree.ElementTree as ElementTree
 from pathlib import Path
 
 SPEC = importlib.util.spec_from_file_location('smoke', Path(__file__).with_name('run-class-start-smoke.py'))
@@ -9,6 +10,26 @@ SPEC.loader.exec_module(smoke)
 
 
 class StartupIntegrityTest(unittest.TestCase):
+    def test_measurement_logging_is_off_and_can_resume_unchanged(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+
+            configuration = smoke.measurement_logging(directory)
+            resumed_configuration = smoke.measurement_logging(directory)
+            root_logger = ElementTree.parse(configuration).getroot().find('root')
+
+            self.assertEqual(configuration, resumed_configuration)
+            self.assertEqual('OFF', root_logger.attrib['level'])
+
+    def test_measurement_cannot_resume_with_enabled_logging(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            configuration = smoke.measurement_logging(directory)
+            configuration.write_text('<configuration><root level="INFO" /></configuration>')
+
+            with self.assertRaisesRegex(ValueError, 'logging configuration changed'):
+                smoke.measurement_logging(directory)
+
     def case(self, directory):
         source = directory / 'Target.ts'
         source.write_text('export class Target {}')
