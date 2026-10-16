@@ -275,7 +275,7 @@ class TsExprResolver(
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsClassValueRef): UExpr<out USort> = ctx.classConstructorRef(value.signature)
+    override fun visit(value: EtsClassValueRef): UExpr<out USort> = ctx.classConstructorRef(value.signature, scope)
 
     override fun visit(value: EtsParameterRef): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
@@ -1843,7 +1843,7 @@ class TsSimpleValueResolver(
             }
 
             val sdkConstructor = ctx.scene.sdkConstructorForGlobal(local)
-            if (sdkConstructor != null) return ctx.classConstructorRef(sdkConstructor.signature)
+            if (sdkConstructor != null) return ctx.classConstructorRef(sdkConstructor.signature, scope)
 
             // TODO: function pointers should be "singletons"
             return scope.calcOnState { memory.allocConcrete(local.type) }
@@ -1860,7 +1860,7 @@ class TsSimpleValueResolver(
         return resolveLocal(value)
     }
 
-    override fun visit(value: EtsClassValueRef): UExpr<out USort> = ctx.classConstructorRef(value.signature)
+    override fun visit(value: EtsClassValueRef): UExpr<out USort> = ctx.classConstructorRef(value.signature, scope)
 
     override fun visit(value: EtsConstant): UExpr<out USort> = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }

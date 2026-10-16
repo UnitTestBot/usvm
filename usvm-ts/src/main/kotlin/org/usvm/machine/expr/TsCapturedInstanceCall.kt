@@ -16,12 +16,12 @@ import org.jacodb.ets.utils.callExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.api.allocateConcreteRef
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
 import org.usvm.machine.call.isBuiltinArrayConstructor
 import org.usvm.machine.call.isBuiltinDateGlobalType
 import org.usvm.machine.call.isBuiltinGlobalType
+import org.usvm.machine.runtimeFunctionType
 import org.usvm.machine.state.lastStmt
 import org.usvm.util.getAllFields
 import org.usvm.util.mkFieldLValue
@@ -89,7 +89,7 @@ internal fun TsExprResolver.tryCaptureInstanceCall(
 
     // Logger's compatibility approximation deliberately matches the source variable name.
     val approximationReceiver = if (implicitGlobal || source.name == "Logger") source else field.instance
-    val pointer = allocateConcreteRef()
+    val pointer = scope.calcOnState { memory.allocConcrete(scene.runtimeFunctionType()) }
     scope.doWithState {
         capturedInstanceCalls = capturedInstanceCalls.put(
             pointer,

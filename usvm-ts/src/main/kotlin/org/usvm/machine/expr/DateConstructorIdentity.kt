@@ -44,7 +44,7 @@ internal fun TsContext.readIntrinsicDateConstructor(
         throw UnsupportedOperationException("Date constructor lookup after prototype mutation is not modeled")
     }
 
-    val constructor = classConstructorRef(intrinsicDateConstructorSignature)
+    val constructor = classConstructorRef(intrinsicDateConstructorSignature, scope)
     val wasWritten = scope.calcOnState { (instance to name) in writtenConcreteFields }
     if (!wasWritten) return constructor
 

@@ -105,10 +105,16 @@ class TsContext(
     private val classConstructorRefs: MutableMap<EtsClassSignature, UConcreteHeapRef> = mutableMapOf()
     private val constructorSignatures: MutableMap<UConcreteHeapRef, EtsClassSignature> = mutableMapOf()
 
-    fun classConstructorRef(signature: EtsClassSignature): UConcreteHeapRef =
-        classConstructorRefs.getOrPut(signature) {
+    /** Intern identity in the context, but register its runtime type in each consuming state. */
+    fun classConstructorRef(signature: EtsClassSignature, scope: TsStepScope): UConcreteHeapRef {
+        val reference = classConstructorRefs.getOrPut(signature) {
             allocateStaticRef().also { constructorSignatures[it] = signature }
         }
+        val functionType = scene.runtimeFunctionType()
+
+        scope.doWithState { memory.types.allocate(reference.address, functionType) }
+        return reference
+    }
 
     fun classConstructorSignature(ref: UConcreteHeapRef): EtsClassSignature? = constructorSignatures[ref]
 
