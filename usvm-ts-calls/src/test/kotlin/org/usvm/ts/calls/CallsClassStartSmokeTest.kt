@@ -241,12 +241,15 @@ class CallsClassStartSmokeTest {
             declare class External { static stop(): number; }
             export class Box { value: number = 0; }
             export class Target {
+                static marker: number = 17;
                 value: number = 0;
                 run(box: Box, items: number[]): number {
-                    if (this.value !== 11 || box.value !== 12 || items.length !== 1 || items[0] !== 13) return 0;
+                    if (this.value !== 11 || box.value !== 12 || items.length !== 1 || items[0] !== 13 ||
+                        Target.marker !== 17) return 0;
                     this.value = 91;
                     box.value = 92;
                     items[0] = 93;
+                    Target.marker = 97;
                     return this.nested(items, box);
                 }
                 nested(items: number[], box: Box): number { return External.stop(); }
@@ -264,7 +267,43 @@ class CallsClassStartSmokeTest {
         assertEquals(CallsCoverageCandidateOrigin.SUSPENDED, candidate.origin)
         assertEquals(null, candidate.completion)
         assertFalse(candidate.suspendedAtMachineStop)
+        assertTrue(candidate.environmentComplete, candidate.environmentLimitations.toString())
+        assertFalse(candidate.nativeReplayValidated)
+        val marker = candidate.inputs.environmentFields.single { it.name == "marker" }
+        assertEquals(JsConcreteValue.number(17.0), marker.value.primitive)
         replaySavedStoppedCandidate()
+    }
+
+    @Test
+    fun `unsupported environment retains concrete original roots as explicitly partial`() {
+        val source = """
+            declare class External { static stop(): number; }
+            export class Target {
+                static items: number[] = new Array<number>(2);
+                run(value: number): number {
+                    if (value !== 11 || Target.items.length !== 2) return 0;
+                    return External.stop();
+                }
+            }
+        """.trimIndent()
+
+        val result = runFixture(sourceText = source, exploratory = true, profile = CallsExperimentProfile.EMPTY_STOP)
+        val metadata = checkNotNull(result.rawAnalysis?.inputCandidates)
+        val candidates = Files.readAllLines(directory.resolve("output").resolve(metadata.path)).map {
+            CallsExperimentJson.json.decodeFromString<CallsClassInputCandidate>(it)
+        }
+        val candidate = candidates.single { it.methodName == "run" && it.outcome.startsWith("STOPPED_PREFIX") }
+        val failureLines = Files.readAllLines(directory.resolve("output/input-extraction-failures.jsonl"))
+        val failures = failureLines.map {
+            CallsExperimentJson.json.decodeFromString<CallsClassInputExtractionFailure>(it)
+        }
+
+        assertEquals(JsConcreteValue.number(11.0), candidate.inputs.arguments.single().primitive)
+        assertFalse(candidate.environmentComplete)
+        assertFalse(candidate.nativeReplayValidated)
+        assertTrue(candidate.environmentLimitations.any { it.contains("sparse", ignoreCase = true) })
+        assertTrue(candidate.inputs.environmentFields.isEmpty())
+        assertTrue(failures.any { it.stateId == candidate.stateId && it.environmentOnly })
     }
 
     private fun replaySavedStoppedCandidate() {
@@ -281,12 +320,16 @@ class CallsClassStartSmokeTest {
                 if (node.className === 'Target') prototypes.set(node.classSignature, Target.prototype);
                 if (node.className === 'Box') prototypes.set(node.classSignature, Box.prototype);
               }
-              const restored = restoreCallsConcreteHeap(candidate.inputs, prototypes, decodeJsValue);
+              Target.marker = 999;
+              const restored = restoreCallsConcreteHeap(candidate.inputs, prototypes, decodeJsValue, (field, value) => {
+                if (field.ownerName !== 'Target' || field.name !== 'marker') throw Error('Unknown environment binding');
+                Target.marker = value;
+              });
               try { restored.receiver.run(...restored.arguments); } catch (error) {
                 if (!(error instanceof ReferenceError)) throw error;
               }
               return restored.receiver.value === 91 && restored.arguments[0].value === 92 &&
-                     restored.arguments[1][0] === 93;
+                     restored.arguments[1][0] === 93 && Target.marker === 97;
             }
         """.trimIndent()
         Files.writeString(directory.resolve("replay.mts"), replaySource)
