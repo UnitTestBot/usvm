@@ -192,12 +192,130 @@ def confirmed_symbolic_input(artifact):
     return {"inputs": candidate["inputs"], "admission": "ADMITTED", "outcome": native["outcome"]}
 
 
+def _same_auxiliary_registration(artifact, candidate):
+    property = artifact.get("property") or {}
+    property_id = property.get("id")
+    manifest = dict(property)
+    manifest.pop("id", None)
+    manifest["propertyId"] = property_id
+    metadata = artifact.get("metadata") or {}
+    configured = ((artifact.get("configuration") or {}).get("observationRequest") or {}).get("sources")
+    sources = candidate.get("sources")
+    if not property_id or candidate.get("propertyId") != property_id \
+            or artifact["result"].get("propertyId") != property_id or candidate.get("manifest") != manifest \
+            or not isinstance(candidate.get("inputs"), list) or len(candidate["inputs"]) != len(property.get("inputs", [])) \
+            or not isinstance(sources, list) or not sources or sources != configured:
+        return False
+    valid_sources = all(isinstance(source, dict) and isinstance(source.get("module"), str)
+                        and isinstance(source.get("sha256"), str) for source in sources)
+    if not valid_sources:
+        return False
+    pins = {source["module"]: source["sha256"] for source in sources}
+    selected = metadata.get("sources") or []
+    return len(pins) == len(sources) and bool(selected) and isinstance(metadata.get("sourceRoot"), str) \
+        and bool(metadata["sourceRoot"]) \
+        and all(isinstance(source, dict) and pins.get(source.get("module")) == source.get("sha256") for source in selected)
+
+
+def _same_auxiliary_target(artifact, attempt, candidate):
+    trace = artifact["result"].get("relationGuidance") or {}
+    selection = trace.get("selection") or {}
+    inference = selection.get("inference") or {}
+    selected = attempt.get("selected") or {}
+    relation = selected.get("relation") or {}
+    pair = relation.get("pair") or {}
+    controls = artifact.get("relationGuidanceControls") or {}
+    left, right = pair.get("left") or {}, pair.get("right") or {}
+    target = candidate.get("target") or {}
+    binding = target.get("binding") or {}
+    target_id = f'{left.get("assertionId")}:{left.get("id")}:{relation.get("template")}:{right.get("id")}'
+    exact = attempt.get("bindingStatus") == "EXACT" and not attempt.get("bindingDiagnostics") \
+        and selected in selection.get("candidates", []) and relation in inference.get("relations", []) \
+        and relation.get("status") == "SAMPLED" and pair in controls.get("pairs", []) \
+        and inference.get("property") == artifact.get("property") \
+        and inference.get("propertyId") == candidate.get("propertyId") \
+        and inference.get("sources") == candidate.get("sources") \
+        and target.get("role") == "HYPOTHESIS" and bool(binding) and target.get("id") == target_id \
+        and binding.get("pointId") == target_id and binding.get("occurrence") == 0 \
+        and binding.get("revision") == candidate.get("manifestSha256") and bool(binding.get("revision"))
+    if not exact:
+        return False
+    if left.get("kind") == right.get("kind") == "entry-argument":
+        expected = {"leftInputIndex": left.get("inputIndex"), "rightInputIndex": right.get("inputIndex"),
+                    "template": relation.get("template")}
+        return target.get("entryRelation") == expected and target.get("dslNumericLocalRelation") is None \
+            and binding.get("contextId") == "original-entry"
+    result, original = (left, right) if left.get("compilerLocal") else (right, left)
+    compiler = result.get("compilerLocal")
+    expected = {"compiler": compiler, "inputIndex": original.get("inputIndex"),
+                "resultIsLeft": result == left, "template": relation.get("template")}
+    return result.get("kind") == "return" and original.get("kind") == "entry-argument" and bool(compiler) \
+        and controls.get("compilerRetained") is True \
+        and target.get("dslNumericLocalRelation") == expected and target.get("entryRelation") is None \
+        and binding.get("contextId") == "original-compiler-local"
+
+
+def _confirmed_auxiliary_replay(artifact, attempt):
+    confirmation = attempt.get("confirmation") or {}
+    candidate = confirmation.get("candidate") or {}
+    native = confirmation.get("originalReplay") or {}
+    target = candidate.get("target") or {}
+    binding = target.get("binding")
+    context_matches = bool(binding) and any(
+        event.get("binding") == binding and event.get("guard") is True and event.get("holds") is False
+        for event in confirmation.get("contextualRefutations", [])
+    ) and any(event.get("binding") == binding and event.get("guard") is True and event.get("holds") is False
+              for event in native.get("events", []))
+    declared_checks = {assertion["id"] for assertion in artifact["property"].get("assertions", [])}
+    original_check_matches = not declared_checks or (native.get("failure") or {}).get("checkId") in declared_checks
+    original_fault = confirmation.get("status") == "CONFIRMED_PROPERTY_VIOLATION" \
+        and native.get("outcome") in ("FALSE", "THREW") and original_check_matches
+    hypothesis_refuted = confirmation.get("status") == "CONFIRMED_HYPOTHESIS_REFUTATION" and native.get("outcome") == "HOLDS"
+    eligible = attempt.get("completedWithinDeadline") is True and attempt.get("searchStatus") == "REFUTATION_REACHED" \
+        and candidate == attempt.get("witness") and candidate.get("inputs") is not None \
+        and _same_auxiliary_registration(artifact, candidate) and _same_auxiliary_target(artifact, attempt, candidate) \
+        and native.get("admission") == "ADMITTED" and native.get("targetMatched") is True \
+        and not native.get("diagnostic") and context_matches and (hypothesis_refuted or original_fault)
+    return (candidate, native) if eligible else None
+
+
+def confirmed_auxiliary_input(artifact, attempt):
+    """Use the original confirmed input; the later original/counter replay measures its class coverage."""
+    confirmed = _confirmed_auxiliary_replay(artifact, attempt)
+    if confirmed is None or (attempt.get("confirmation") or {}).get("diagnostic"):
+        return None
+    candidate, native = confirmed
+    coverage = native.get("coverage") or {}
+    metadata = artifact["metadata"]
+    source_root = str(Path(metadata["sourceRoot"]).resolve())
+    hashes = (coverage.get("identity") or {}).get("sourceSha256") or {}
+    sources_match = all(hashes.get(str((Path(source_root) / source["module"]).resolve())) == source["sha256"]
+                        for source in candidate["sources"])
+    roots_match = coverage.get("provenance", {}).get("sourceRoots") == [source_root]
+    if not native_coverage_matches(candidate, native) or not sources_match or not roots_match:
+        return None
+    return {"inputs": candidate["inputs"], "admission": "ADMITTED", "outcome": native["outcome"]}
+
+
+def confirmed_original_violation(artifact):
+    result = artifact["result"]
+    if ((result.get("concrete") or {}).get("failure") or {}).get("kind") == "property":
+        return True
+    canonical = result.get("confirmation") or {}
+    if canonical.get("status") != "CONFIRMED_PROPERTY_VIOLATION":
+        return False
+    if (canonical.get("candidate") or {}).get("target", {}).get("role") != "HYPOTHESIS":
+        return True  # Existing ordinary-control confirmation contract.
+    return any(attempt.get("confirmation") == canonical and _confirmed_auxiliary_replay(artifact, attempt) is not None
+               for attempt in (result.get("relationGuidance") or {}).get("attempts", []))
+
+
 def replay_inputs(artifact):
     result = artifact["result"]
     concrete = result.get("concrete")
     omissions = {"pbtDroppedInvocations": 0, "pbtUnavailableInputs": 0, "pbtUnsupportedInputs": 0,
                  "pbtPendingInvocations": 0, "symbolicOmittedInputs": 0,
-                 "symbolicUncheckedInputs": 0}
+                 "symbolicUncheckedInputs": 0, "auxiliaryUncheckedInputs": 0}
     batches = []
     if concrete is not None:
         export = concrete.get("inputExport")
@@ -251,6 +369,24 @@ def replay_inputs(artifact):
         elif symbolic.get("target") is not None and input_key(symbolic.get("inputs")) not in replay_keys:
             omissions["symbolicUncheckedInputs"] += 1
         batches.append({"id": "symbolic", "inputs": invocations, "isolateInputs": True})
+    auxiliary = (result.get("relationGuidance") or {}).get("attempts", [])
+    if auxiliary:
+        invocations = []
+        for attempt in auxiliary:
+            has_candidate = attempt.get("witness") is not None or attempt.get("searchStatus") == "REFUTATION_REACHED" \
+                or (attempt.get("confirmation") or {}).get("candidate") is not None
+            if not has_candidate:
+                continue
+            confirmed = confirmed_auxiliary_input(artifact, attempt)
+            if confirmed is None:
+                omissions["auxiliaryUncheckedInputs"] += 1
+            else:
+                invocations.append(confirmed)
+        batches.append({"id": "auxiliary", "inputs": invocations, "isolateInputs": True})
+    canonical = result.get("confirmation") or {}
+    canonical_auxiliary = (canonical.get("candidate") or {}).get("target", {}).get("role") == "HYPOTHESIS"
+    if canonical_auxiliary and not any(attempt.get("confirmation") == canonical for attempt in auxiliary):
+        omissions["auxiliaryUncheckedInputs"] += 1
     if concrete is None and result["mode"] != "SYMBOLIC_ONLY":
         omissions["pbtUnavailableInputs"] += 1
     return batches, omissions
@@ -260,6 +396,28 @@ def full_budget_eligible(summary):
     quota_stopped_pbt = summary["mode"] == "PBT_ONLY" and summary.get("pbtQuotaReached") \
         and not summary["confirmedViolation"]
     return summary["comparisonKind"] == "equal-budget" and summary["primaryEligible"] and not quota_stopped_pbt
+
+
+def _relation_summary(result):
+    trace = result.get("relationGuidance") or {}
+    attempts = trace.get("attempts", [])
+    inference = (trace.get("selection") or {}).get("inference") or {}
+    diagnostics = list(trace.get("diagnostics", []))
+    for attempt in attempts:
+        diagnostics.extend(attempt.get("diagnostics", []) + attempt.get("bindingDiagnostics", []))
+        diagnostic = (attempt.get("confirmation") or {}).get("diagnostic")
+        if diagnostic:
+            diagnostics.append(diagnostic)
+    relations = inference.get("relations", []) + inference.get("domainImpliedRelations", [])
+    return {"relationElapsedMillis": trace.get("elapsedMillis", 0),
+            "originalQueryElapsedMillis": trace.get("originalElapsedMillis"),
+            "relationStatuses": [attempt.get("searchStatus") for attempt in attempts],
+            "relationDiagnostics": diagnostics,
+            "relationLimitations": sorted({item for relation in relations for item in relation.get("limitations", [])}),
+            "relationOmittedPairs": inference.get("omittedPairs", 0),
+            "relationOmittedInvocations": inference.get("omittedInvocations", 0),
+            "relationDroppedInvocations": inference.get("droppedInvocations", 0),
+            "relationDroppedPoints": inference.get("droppedPoints", 0)}
 
 
 def run_cell(frozen, case, seed, mode, output):
@@ -305,9 +463,9 @@ def run_cell(frozen, case, seed, mode, output):
         artifact = read_json(directory / "campaign.json")
         result = artifact["result"]
         summary["campaignElapsedMillis"] = result["elapsedMillis"]
-        confirmation = result.get("confirmation") or {}
+        summary.update(_relation_summary(result))
         failure = (result.get("concrete") or {}).get("failure") or {}
-        summary["confirmedViolation"] = failure.get("kind") == "property" or confirmation.get("status") == "CONFIRMED_PROPERTY_VIOLATION"
+        summary["confirmedViolation"] = confirmed_original_violation(artifact)
         summary["campaignStop"] = result["stop"]
         summary["symbolicStatus"] = (result.get("symbolic") or {}).get("status")
         summary["symbolicDiagnostics"] = (result.get("symbolic") or {}).get("diagnostics", [])
@@ -322,9 +480,11 @@ def run_cell(frozen, case, seed, mode, output):
         symbolic_supported = summary["symbolicStatus"] in (
             "VIOLATION_REACHED", "NO_VIOLATION_REACHED", "PRECONDITION_REJECTED", "TIMEOUT",
         )
-        stopped_on_pbt_fault = result.get("symbolic") is None and failure.get("kind") == "property"
-        summary["analysisSupported"] = (mode == "PBT_ONLY" or symbolic_supported or stopped_on_pbt_fault) \
-            and not summary["symbolicDiagnostics"]
+        stopped_on_original_fault = result.get("symbolic") is None and summary["confirmedViolation"]
+        relation_supported = all(status in ("REFUTATION_REACHED", "NO_REFUTATION_REACHED", "PRECONDITION_REJECTED", "TIMEOUT")
+                                 for status in summary["relationStatuses"])
+        summary["analysisSupported"] = (mode == "PBT_ONLY" or symbolic_supported or stopped_on_original_fault) \
+            and not summary["symbolicDiagnostics"] and relation_supported and not summary["relationDiagnostics"]
         if summary["confirmedViolation"]:
             summary["findingReturnedByMillis"] = int((time.monotonic() - started) * 1000) + preparation_cost
             summary["confirmedViolationWithinBudget"] = summary["findingReturnedByMillis"] <= frozen["totalBudgetMillis"] \
@@ -417,6 +577,9 @@ def summarize(output):
                 row.pop("replayProcesses", None)
                 row["omissions"] = json.dumps(row.get("omissions", {}), sort_keys=True)
                 row["symbolicDiagnostics"] = json.dumps(row.get("symbolicDiagnostics", []), sort_keys=True)
+                row["relationDiagnostics"] = json.dumps(row.get("relationDiagnostics", []), sort_keys=True)
+                row["relationStatuses"] = json.dumps(row.get("relationStatuses", []))
+                row["relationLimitations"] = json.dumps(row.get("relationLimitations", []))
                 rows.append(row)
     columns = sorted(set().union(*(row.keys() for row in rows)))
     with (output / "summary.csv").open("w", newline="", encoding="utf-8") as file:
