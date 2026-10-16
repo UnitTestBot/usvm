@@ -125,6 +125,29 @@ class UsvmEdgeFeedbackContractTest {
     }
 
     @Test
+    fun `exhausted replay attempts stop guiding without confirming coverage or dropping paths`() {
+        val property = property().copy(
+            precondition = TypeScriptEntryPoint(module = "guidance-property.ts", exportName = "retryAdmission"),
+        )
+        val initial = backend.run(property, configuration)
+
+        val result = search(property, initial.coverage) { null }
+
+        val trace = assertNotNull(result.edgeGuidance)
+        assertEquals(1, trace.initialGoals.size)
+        assertEquals(trace.attemptLimitPerGoal, trace.replays.size)
+        assertEquals(trace.initialGoals, trace.remainingGoals)
+        assertEquals(trace.initialCovered, trace.confirmedCovered)
+        assertTrue(trace.replays.all { it.status == UsvmEdgeReplayStatus.NOT_RUN }, trace.toString())
+        assertEquals(trace.replays.size, trace.replays.map { it.inputs }.distinct().size)
+        assertEquals(null, trace.selections.last().goal)
+        val originalTurns = trace.selections.filterIndexed { index, _ -> index % 2 == 1 }
+        assertTrue(originalTurns.isNotEmpty())
+        assertTrue(originalTurns.all { it.originalObjectiveTurn }, trace.toString())
+        assertEquals(UsvmPropertySearchStatus.NO_VIOLATION_REACHED, result.status)
+    }
+
+    @Test
     fun `rejected precondition cannot remove a source edge from the real coverage target queue`() {
         val property = property().copy(
             predicate = TypeScriptEntryPoint(module = "guidance-property.ts", exportName = "guarded"),
