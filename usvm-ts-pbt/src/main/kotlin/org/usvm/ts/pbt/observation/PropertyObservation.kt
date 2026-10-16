@@ -16,6 +16,7 @@ data class PropertyObservationPoint(
     val callSite: PropertySourcePoint,
     val kind: ObservationPointKind,
     val inputIndex: Int? = null,
+    val compilerLocal: CompilerNumericLocalBinding? = null,
 )
 
 /** Location and role of a recorded operand value. */
@@ -173,6 +174,7 @@ data class PropertyPointEvent(
     val eventOrdinal: Int,
     val inputIndex: Int? = null,
     val value: PropertyObservationValue,
+    val compilerLocal: CompilerNumericLocalBinding? = null,
 )
 
 /** One original callback invocation and its bounded point events. */
