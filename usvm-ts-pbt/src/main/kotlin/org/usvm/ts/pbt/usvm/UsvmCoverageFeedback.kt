@@ -3,13 +3,20 @@ package org.usvm.ts.pbt.usvm
 import kotlinx.serialization.Serializable
 import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
 import org.usvm.ts.pbt.backend.PropertyRunResult
+import org.usvm.ts.pbt.backend.WitnessNativeReplay
 import org.usvm.ts.pbt.model.JsConcreteValue
 
 /** Concrete feedback for the original property analysis. A replay must execute exactly [inputs]. */
 data class UsvmCoverageFeedback(
     val initialCoverage: PropertyCoverageArtifact?,
-    val replay: (inputs: List<JsConcreteValue>) -> PropertyRunResult?,
-)
+    val nativeReplay: ((inputs: List<JsConcreteValue>) -> WitnessNativeReplay?)? = null,
+    val replay: (inputs: List<JsConcreteValue>) -> PropertyRunResult? = { null },
+) {
+    constructor(
+        initialCoverage: PropertyCoverageArtifact?,
+        replay: (inputs: List<JsConcreteValue>) -> PropertyRunResult?,
+    ) : this(initialCoverage = initialCoverage, nativeReplay = null, replay = replay)
+}
 
 /** Why a report can or cannot supply exact coverage goals for this property/source snapshot. */
 @Serializable

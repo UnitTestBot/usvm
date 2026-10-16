@@ -6,9 +6,11 @@ import org.usvm.ts.pbt.backend.ExternalWitnessBackend
 import org.usvm.ts.pbt.backend.ExternalWitnessCandidate
 import org.usvm.ts.pbt.backend.PropertyBasedTestingBackend
 import org.usvm.ts.pbt.backend.PropertyCoverageCapability
+import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.backend.WitnessEvidenceDelta
+import org.usvm.ts.pbt.backend.WitnessNativeReplay
 import org.usvm.ts.pbt.backend.WitnessReplayConfiguration
 import org.usvm.ts.pbt.backend.WitnessReplayDeadline
 import org.usvm.ts.pbt.coverage.captureCoverageIdentity
@@ -113,6 +115,18 @@ class FastCheckBackend(
         configuration = configuration,
         deadline = deadline,
     )
+
+    /** Native verification of a fixed candidate; this operation never starts PBT generation. */
+    fun replayInput(
+        property: PropertyDefinition,
+        candidate: ExternalWitnessCandidate,
+        coverageRequest: PropertyCoverageRequest,
+        deadline: WitnessReplayDeadline,
+    ): WitnessNativeReplay = FastCheckWitnessCoordinator(
+        client = client,
+        sourceRoots = sourceRoots,
+        tsconfig = tsconfig?.toRealPath()?.toString(),
+    ).replayInput(property, candidate, coverageRequest, deadline)
 
     internal fun confirmOriginalWitness(
         property: PropertyDefinition,

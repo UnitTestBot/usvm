@@ -27,7 +27,7 @@ try {
   try {
     if (inputError !== undefined) throw inputError;
     const isWitness = request !== null && typeof request === 'object' && 'witness' in request;
-    response = isWitness ? await executeWitness(request) : await executeProperty(request, coverage);
+    response = isWitness ? await executeWitness(request, coverage) : await executeProperty(request, coverage);
   } catch (error: unknown) {
     if (!(error instanceof ProtocolError)) throw error;
 

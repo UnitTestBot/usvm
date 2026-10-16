@@ -15,6 +15,7 @@ import org.usvm.ts.pbt.backend.WitnessReplayDeadline
 import org.usvm.ts.pbt.backend.WitnessReplayStatus
 import org.usvm.ts.pbt.backend.WitnessRole
 import org.usvm.ts.pbt.backend.witnessManifestSha256
+import org.usvm.ts.pbt.coverage.captureCoverageIdentity
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.model.JsConcreteValue
@@ -31,6 +32,36 @@ internal class FastCheckWitnessCoordinator(
     private val sourceRoots: List<Path>,
     private val tsconfig: String? = null,
 ) {
+    /** Replays one fixed input without invoking a random generator or reducing it. */
+    fun replayInput(
+        property: PropertyDefinition,
+        candidate: ExternalWitnessCandidate,
+        coverageRequest: PropertyCoverageRequest,
+        deadline: WitnessReplayDeadline,
+    ): WitnessNativeReplay {
+        val earlyStatus = validateCandidate(property, candidate, allowOriginalCheck = true)
+        if (earlyStatus != null) return unavailableReplay(earlyStatus.name)
+
+        val identity = captureCoverageIdentity(candidate.manifest, sourceRoots)
+        val result = replay(property, candidate, requireNotNull(candidate.inputs), deadline, coverageRequest)
+        val native = when (result) {
+            is FastCheckOperationResult.Completed -> result.value
+            is FastCheckOperationResult.TimedOut -> return unavailableReplay(result.message)
+        }
+        val coverage = native.coverage ?: return native
+        val unchanged = identity == captureCoverageIdentity(candidate.manifest, sourceRoots)
+        if (!unchanged) return native.copy(diagnostic = "coverage.source.stale")
+
+        return native.copy(coverage = coverage.copy(identity = identity))
+    }
+
+    private fun unavailableReplay(diagnostic: String) = WitnessNativeReplay(
+        admission = WitnessAdmission.UNKNOWN,
+        outcome = WitnessOracleOutcome.UNKNOWN,
+        targetMatched = false,
+        diagnostic = diagnostic,
+    )
+
     /** Observes the complete oracle once before fixing the named target for confirmation and reduction. */
     fun confirmOriginal(
         property: PropertyDefinition,
@@ -425,6 +456,7 @@ internal class FastCheckWitnessCoordinator(
             timeoutMillis = timeoutMillis,
             witness = operation,
             coverageRequest = coverageRequest,
+            admittedCoverage = coverageRequest?.admittedOnly == true,
         )
     }
 

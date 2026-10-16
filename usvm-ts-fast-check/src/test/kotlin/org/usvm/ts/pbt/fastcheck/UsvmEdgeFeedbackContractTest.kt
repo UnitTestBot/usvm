@@ -6,12 +6,18 @@ import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.junit.jupiter.api.Test
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
+import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.ts.pbt.backend.ProjectionLevel
 import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunResult
+import org.usvm.ts.pbt.backend.WitnessNativeReplay
+import org.usvm.ts.pbt.backend.WitnessReplayDeadline
+import org.usvm.ts.pbt.backend.WitnessTarget
+import org.usvm.ts.pbt.backend.captureWitness
+import org.usvm.ts.pbt.campaign.campaignSourceSha256
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
 import org.usvm.ts.pbt.model.IntegerDomain
@@ -20,6 +26,7 @@ import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
+import org.usvm.ts.pbt.observation.PropertyObservationSource
 import org.usvm.ts.pbt.testResourcesRoot
 import org.usvm.ts.pbt.usvm.UsvmCoverageEvidenceStatus
 import org.usvm.ts.pbt.usvm.UsvmCoverageFeedback
@@ -59,6 +66,98 @@ class UsvmEdgeFeedbackContractTest {
         assertEquals(setOf(true), negativeSelection.traversedGoals.map { it.outcome }.toSet())
         assertEquals(UsvmPropertySearchStatus.NO_VIOLATION_REACHED, positiveSearch.status)
         assertEquals(UsvmPropertySearchStatus.NO_VIOLATION_REACHED, negativeSearch.status)
+    }
+
+    @Test
+    fun `native single input evidence confirms new edges without invoking the legacy PBT callback`() {
+        val property = property()
+        val initial = backend.run(property, configuration)
+        val deadline = WitnessReplayDeadline(timeoutMillis = 30_000)
+        val sources = listOf("guidance-property.ts", "edge-guidance.ts").map { module ->
+            PropertyObservationSource(module = module, sha256 = campaignSourceSha256(roots.single().resolve(module)))
+        }
+        val nativeResults = mutableListOf<WitnessNativeReplay>()
+
+        val result = search(
+            property,
+            initial.coverage,
+            nativeReplay = { inputs ->
+                val candidate = property.captureWitness(
+                    inputs = inputs,
+                    target = WitnessTarget(id = property.predicate.exportName),
+                    sources = sources,
+                    provenance = "native-coverage-test",
+                )
+                backend.replayInput(
+                    property = property,
+                    candidate = candidate,
+                    coverageRequest = requireNotNull(configuration.coverageRequest),
+                    deadline = deadline,
+                ).also(nativeResults::add)
+            },
+            replay = { error("Native feedback must never fall back to a PBT run") },
+        )
+
+        val trace = assertNotNull(result.edgeGuidance)
+        assertTrue(nativeResults.isNotEmpty())
+        assertTrue(nativeResults.all { it.coverage?.admittedInvocations == 1 }, nativeResults.toString())
+        assertTrue(trace.replays.any { it.status == UsvmEdgeReplayStatus.CONFIRMED && it.additions.isNotEmpty() })
+        assertTrue(trace.remainingGoals.isEmpty(), trace.toString())
+        assertEquals(UsvmPropertySearchStatus.NO_VIOLATION_REACHED, result.status)
+    }
+
+    @Test
+    fun `a stale native source receipt is retained and cannot remove an edge goal`() {
+        val property = property()
+        val initial = backend.run(property, configuration)
+        val deadline = WitnessReplayDeadline(timeoutMillis = 30_000)
+
+        val result = search(
+            property,
+            initial.coverage,
+            nativeReplay = { inputs ->
+                val candidate = property.captureWitness(
+                    inputs = inputs,
+                    target = WitnessTarget(id = property.predicate.exportName),
+                    sources = listOf(
+                        PropertyObservationSource(module = property.predicate.module, sha256 = "0".repeat(64)),
+                    ),
+                    provenance = "stale-native-source-test",
+                )
+                backend.replayInput(
+                    property = property,
+                    candidate = candidate,
+                    coverageRequest = requireNotNull(configuration.coverageRequest),
+                    deadline = deadline,
+                )
+            },
+            replay = { error("A stale native receipt must not fall back to PBT") },
+        )
+
+        val trace = assertNotNull(result.edgeGuidance)
+        assertEquals(trace.initialGoals, trace.remainingGoals)
+        assertTrue(trace.replays.all { it.status == UsvmEdgeReplayStatus.REJECTED_OR_INCOMPATIBLE })
+        assertTrue(trace.diagnostics.any { it.contains(FastCheckDiagnosticCode.ENTRY_POINT_SOURCE_HASH_MISMATCH) })
+        assertEquals(UsvmPropertySearchStatus.NO_VIOLATION_REACHED, result.status)
+    }
+
+    @Test
+    fun `an unavailable native operation never falls back to random generation`() {
+        val property = property()
+        val initial = backend.run(property, configuration)
+
+        val result = search(
+            property,
+            initial.coverage,
+            nativeReplay = { throw IllegalStateException("native source mismatch") },
+            replay = { error("Legacy callback must not be used after native failure") },
+        )
+
+        val trace = assertNotNull(result.edgeGuidance)
+        assertEquals(trace.initialGoals, trace.remainingGoals)
+        assertTrue(trace.replays.all { it.status == UsvmEdgeReplayStatus.REPLAY_FAILED })
+        assertTrue(trace.diagnostics.any { it.contains("native source mismatch") })
+        assertEquals(UsvmPropertySearchStatus.NO_VIOLATION_REACHED, result.status)
     }
 
     @Test
@@ -199,6 +298,7 @@ class UsvmEdgeFeedbackContractTest {
     private fun search(
         property: PropertyDefinition,
         coverage: PropertyCoverageArtifact?,
+        nativeReplay: ((List<JsConcreteValue>) -> WitnessNativeReplay?)? = null,
         replay: (List<JsConcreteValue>) -> PropertyRunResult?,
     ): UsvmPropertySearchResult {
         val manifest = property.toManifest()
@@ -210,7 +310,11 @@ class UsvmEdgeFeedbackContractTest {
             manifest = manifest,
             mapping = mapping,
             concreteCapability = ProjectionCapability(level = ProjectionLevel.EXACT),
-            coverageFeedback = UsvmCoverageFeedback(initialCoverage = coverage, replay = replay),
+            coverageFeedback = UsvmCoverageFeedback(
+                initialCoverage = coverage,
+                nativeReplay = nativeReplay,
+                replay = replay,
+            ),
         )
     }
 
