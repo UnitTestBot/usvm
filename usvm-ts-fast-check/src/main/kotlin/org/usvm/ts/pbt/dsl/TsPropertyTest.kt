@@ -2,25 +2,34 @@ package org.usvm.ts.pbt.dsl
 
 import kotlinx.serialization.json.Json
 import org.jacodb.ets.utils.EtsIrProvider
-import org.jacodb.ets.utils.loadEtsProjectAutoConvert
+import org.jacodb.ets.utils.generateEtsIR
+import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.ts.pbt.backend.ProjectionLevel
+import org.usvm.ts.pbt.backend.PropertyFailureDetails
 import org.usvm.ts.pbt.backend.PropertyFailureKind
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.backend.PropertyRunStatus
+import org.usvm.ts.pbt.backend.WitnessEvidenceDelta
+import org.usvm.ts.pbt.backend.WitnessReplayConfiguration
+import org.usvm.ts.pbt.backend.WitnessReplayDeadline
+import org.usvm.ts.pbt.backend.WitnessReplayStatus
+import org.usvm.ts.pbt.backend.captureWitness
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.encodeToUtf8SafeString
+import org.usvm.ts.pbt.observation.PropertyObservationSource
 import org.usvm.ts.pbt.usvm.UsvmPropertySearchResult
 import org.usvm.ts.pbt.usvm.UsvmPropertySearchStatus
 import org.usvm.ts.pbt.usvm.UsvmPropertySearcher
 import java.nio.file.Files
 import java.nio.file.Path
+import java.security.MessageDigest
 import kotlin.time.Duration.Companion.milliseconds
 
 /** Selects execution without changing the author property or its JavaScript semantics. */
@@ -35,15 +44,31 @@ data class DslPropertyRun(
     val property: CompiledDslProperty,
     val concrete: PropertyRunResult?,
     val symbolic: UsvmPropertySearchResult?,
-    val symbolicReplay: PropertyRunResult?,
+    val symbolicReplay: WitnessEvidenceDelta?,
 ) {
     fun requireSuccess() {
-        val violation = listOfNotNull(concrete, symbolicReplay).firstOrNull {
-            it.failure?.kind == PropertyFailureKind.PROPERTY
+        val concreteFailureDetails = concrete?.failure
+        val concreteViolation = concreteFailureDetails?.kind == PropertyFailureKind.PROPERTY
+        val confirmed = symbolicReplay?.status == WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION
+        val violation = when {
+            concreteViolation -> {
+                val run = requireNotNull(concrete)
+                val replayDetails = "seed=${run.seed}, path=${run.replayPath}, shrinks=${run.numShrinks}"
+                violationMessage(requireNotNull(concreteFailureDetails), run.counterexample, replayDetails)
+            }
+            confirmed -> {
+                val evidence = requireNotNull(symbolicReplay)
+                val replay = evidence.reducedReplay ?: requireNotNull(evidence.originalReplay)
+                val values = evidence.reduction.inputs ?: evidence.candidate.inputs
+                val replayDetails = "native confirmation, shrinks=${evidence.reduction.acceptedShrinks}"
+                violationMessage(requireNotNull(replay.failure), values, replayDetails)
+            }
+            else -> {
+                null
+            }
         }
-        if (violation != null) {
-            throw DslPropertyAssertionError(this, violationMessage(violation))
-        }
+
+        if (violation != null) throw DslPropertyAssertionError(this, violation)
         val concreteFailure = concrete?.status == PropertyRunStatus.FAILURE
         val incompleteSearch = symbolic != null && symbolic.status != UsvmPropertySearchStatus.NO_VIOLATION_REACHED
         if (concreteFailure || incompleteSearch) {
@@ -51,19 +76,22 @@ data class DslPropertyRun(
         }
     }
 
-    private fun violationMessage(result: PropertyRunResult): String {
-        val failure = requireNotNull(result.failure)
+    private fun violationMessage(
+        failure: PropertyFailureDetails,
+        values: List<JsConcreteValue>?,
+        replayDetails: String,
+    ): String {
         val check = property.program.checks.firstOrNull { it.name == failure.checkId }
-        val inputs = property.program.inputs.zip(result.counterexample.orEmpty()).joinToString { (input, value) ->
+        val inputs = property.program.inputs.zip(values.orEmpty()).joinToString { (input, value) ->
             "${input.name}=${displayValue(value)}"
         }
         return buildString {
-            append("Property ${result.propertyId}: check ${failure.checkId ?: "predicate"} failed")
+            append("Property ${property.definition.id}: check ${failure.checkId ?: "predicate"} failed")
             check?.source?.let { append(" at ${it.fileName}:${it.line}") }
             append("\n$inputs")
             append("\nactual=${displayValue(failure.actual)}, expected=${displayValue(failure.expected)}")
             append("\n${failure.errorName}: ${failure.message}")
-            append("\nseed=${result.seed}, path=${result.replayPath}, shrinks=${result.numShrinks}")
+            append("\n$replayDetails")
         }
     }
 }
@@ -100,6 +128,7 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
         engine: PropertyEngine = PropertyEngine.FAST_CHECK,
         configuration: PropertyRunConfiguration = PropertyRunConfiguration(),
     ): DslPropertyRun {
+        val deadline = WitnessReplayDeadline(timeoutMillis = configuration.timeoutMillis)
         val directory = Files.createTempDirectory("usvm-kotlin-property-")
         try {
             val compiled = PropertyTypeScriptCompiler().compile(
@@ -111,22 +140,31 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
             Files.write(generated, compiled.typeScript.toByteArray(Charsets.UTF_8))
             copySources(directory)
             val sourceRoots = listOf(directory)
+            val sources = captureSources(directory)
             val backend = FastCheckBackend(sourceRoots = sourceRoots)
             val concrete = if (engine != PropertyEngine.USVM) {
-                backend.run(property = compiled.definition, configuration = configuration)
+                backend.run(
+                    property = compiled.definition,
+                    configuration = configuration.copy(timeoutMillis = remainingBudget(deadline)),
+                )
             } else {
                 null
             }
             val symbolic = if (engine != PropertyEngine.FAST_CHECK) {
-                search(compiled, directory, sourceRoots, configuration)
+                search(compiled, directory, sourceRoots, deadline)
             } else {
                 null
             }
-            val candidate = symbolic?.inputs
-            val replay = if (candidate != null) {
-                backend.run(
+            val replay = if (symbolic?.inputs != null) {
+                backend.confirmOriginalWitness(
                     property = compiled.definition,
-                    configuration = configuration.copy(replayPath = null, examples = listOf(candidate), numRuns = 1),
+                    candidate = symbolic.captureWitness(property = compiled.definition, sources = sources),
+                    configuration = WitnessReplayConfiguration(
+                        timeoutMillis = configuration.timeoutMillis,
+                        validationReserveMillis = VALIDATION_RESERVE_MILLIS,
+                        coverageRequest = configuration.coverageRequest,
+                    ),
+                    deadline = deadline,
                 )
             } else {
                 null
@@ -143,20 +181,52 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
         compiled: CompiledDslProperty,
         directory: Path,
         sourceRoots: List<Path>,
-        configuration: PropertyRunConfiguration,
+        deadline: WitnessReplayDeadline,
     ): UsvmPropertySearchResult {
-        val scene = loadEtsProjectAutoConvert(directory, provider = EtsIrProvider.TS_FRONTEND)
+        val ir = generateEtsIR(
+            keepPartialOutputOnFailure = false,
+            projectPath = directory,
+            isProject = true,
+            loadEntrypoints = false,
+            useArkAnalyzerTypeInference = 1,
+            timeout = remainingBudget(deadline).milliseconds,
+            provider = EtsIrProvider.TS_FRONTEND,
+        )
+        val scene = try {
+            loadEtsProjectFromIR(projectFilesPath = ir, sdkFilesPath = null)
+        } finally {
+            ir.toFile().deleteRecursively()
+        }
         val manifest = compiled.definition.toManifest()
         val mapping = PropertyEtsMapper(scene = scene, sourceRoots = sourceRoots).map(manifest)
+        val searchBudgetMillis = (remainingBudget(deadline) - VALIDATION_RESERVE_MILLIS).coerceAtLeast(1)
         val options = UMachineOptions(
             solverType = SolverType.YICES,
-            timeout = configuration.timeoutMillis.milliseconds,
+            timeout = searchBudgetMillis.milliseconds,
+            stopOnCoverage = 0,
         )
         return UsvmPropertySearcher(scene = scene, machineOptions = options).search(
             manifest = manifest,
             mapping = mapping,
             concreteCapability = ProjectionCapability(level = ProjectionLevel.EXACT),
         )
+    }
+
+    private fun captureSources(directory: Path): List<PropertyObservationSource> = Files.walk(directory).use { paths ->
+        paths.filter(Files::isRegularFile).iterator().asSequence().map { source ->
+            val hash = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(source))
+                .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and BYTE_MASK) }
+            val module = directory.relativize(source).toString().replace('\\', '/')
+
+            PropertyObservationSource(module = module, sha256 = hash)
+        }.toList()
+    }
+
+    private fun remainingBudget(deadline: WitnessReplayDeadline): Long {
+        val remaining = deadline.remainingMillis()
+        check(remaining > 0) { "Property execution deadline expired" }
+
+        return remaining
     }
 
     private fun resolveModule(module: String, directory: Path): String {
@@ -199,6 +269,8 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
 
     private companion object {
         const val GENERATED_MODULE = "__usvm_kotlin_property.ts"
+        const val VALIDATION_RESERVE_MILLIS = 5_000L
+        const val BYTE_MASK = 0xff
         val EXCLUDED_DIRECTORIES = setOf("node_modules", ".git", ".gradle", "build")
     }
 }

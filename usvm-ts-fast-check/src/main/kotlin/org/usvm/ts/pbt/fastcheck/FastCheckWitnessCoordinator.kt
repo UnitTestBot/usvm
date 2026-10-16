@@ -31,11 +31,69 @@ internal class FastCheckWitnessCoordinator(
     private val sourceRoots: List<Path>,
     private val tsconfig: String? = null,
 ) {
+    /** Observes the complete oracle once before fixing the named target for confirmation and reduction. */
+    fun confirmOriginal(
+        property: PropertyDefinition,
+        candidate: ExternalWitnessCandidate,
+        configuration: WitnessReplayConfiguration,
+        deadline: WitnessReplayDeadline,
+    ): WitnessEvidenceDelta {
+        val originalTarget = candidate.target.role == WitnessRole.PROPERTY && candidate.target.binding == null &&
+            candidate.target.id == property.predicate.exportName
+        require(originalTarget) { "Original check discovery requires the complete property target" }
+
+        val earlyStatus = validateCandidate(property, candidate, allowOriginalCheck = true)
+        if (earlyStatus != null) return delta(candidate = candidate, status = earlyStatus)
+
+        val observed = try {
+            when (val replay = replay(property, candidate, requireNotNull(candidate.inputs), deadline)) {
+                is FastCheckOperationResult.Completed -> replay.value
+                is FastCheckOperationResult.TimedOut -> return delta(
+                    candidate = candidate,
+                    status = WitnessReplayStatus.TIMEOUT,
+                    diagnostic = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+                )
+            }
+        } catch (error: PbtBackendException) {
+            return delta(candidate = candidate, status = error.replayStatus(), diagnostic = error.code)
+        }
+
+        val checkId = observed.failure?.checkId
+        val originalOutcome = observed.outcome == WitnessOracleOutcome.FALSE ||
+            observed.outcome == WitnessOracleOutcome.THREW
+        val declaredCheck = property.assertions.any { assertion -> assertion.id == checkId }
+        val expectedOutcome = candidate.target.expectedOutcome
+        val matchingOutcome = expectedOutcome == null || expectedOutcome == observed.outcome
+        val namedFailure = observed.admission == WitnessAdmission.ADMITTED && originalOutcome &&
+            declaredCheck && matchingOutcome
+        if (!namedFailure) {
+            val observedStatus = classify(observed, candidate)
+            val status = if (observedStatus == WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION) {
+                WitnessReplayStatus.TARGET_MISMATCH
+            } else {
+                observedStatus
+            }
+            return delta(candidate = candidate, status = status, original = observed)
+        }
+
+        val namedCandidate = candidate.copy(
+            target = candidate.target.copy(id = requireNotNull(checkId), expectedOutcome = observed.outcome),
+        )
+        return confirm(
+            property = property,
+            candidate = namedCandidate,
+            configuration = configuration,
+            deadline = deadline,
+            expectedOriginal = observed.copy(targetMatched = true),
+        )
+    }
+
     fun confirm(
         property: PropertyDefinition,
         candidate: ExternalWitnessCandidate,
         configuration: WitnessReplayConfiguration,
         deadline: WitnessReplayDeadline,
+        expectedOriginal: WitnessNativeReplay? = null,
     ): WitnessEvidenceDelta {
         val validation = validatePropertyDefinition(property)
         if (!validation.isValid) {
@@ -60,6 +118,14 @@ internal class FastCheckWitnessCoordinator(
         if (!replayConfirmed) return initial
 
         val original = requireNotNull(initial.originalReplay)
+        val changedReplay = expectedOriginal != null && !repeatable(expectedOriginal, original)
+        if (changedReplay) {
+            return delta(
+                candidate = candidate,
+                status = WitnessReplayStatus.NONDETERMINISTIC,
+                original = expectedOriginal,
+            )
+        }
         val status = initial.status
 
         var confirmedOriginal = original
@@ -227,6 +293,7 @@ internal class FastCheckWitnessCoordinator(
     private fun validateCandidate(
         property: PropertyDefinition,
         candidate: ExternalWitnessCandidate,
+        allowOriginalCheck: Boolean = false,
     ): WitnessReplayStatus? {
         val sameRegistration = property.id == candidate.propertyId &&
             property.witnessManifestSha256() == candidate.manifestSha256 && property.toManifest() == candidate.manifest
@@ -246,8 +313,11 @@ internal class FastCheckWitnessCoordinator(
         val binding = target.binding
         val declaredCheck = property.assertions.any { assertion -> assertion.id == target.id }
         val diagnosticCheck = property.predicate.checkResultExportName != null && declaredCheck
+        val unselectedOriginalCheck = allowOriginalCheck && property.predicate.checkResultExportName != null &&
+            target.id == property.predicate.exportName
         val validCheck = target.role != WitnessRole.PROPERTY || if (binding == null) {
-            diagnosticCheck || property.assertions.isEmpty() && target.id == property.predicate.exportName
+            unselectedOriginalCheck || diagnosticCheck ||
+                property.assertions.isEmpty() && target.id == property.predicate.exportName
         } else {
             binding.pointId == target.id && declaredCheck
         }

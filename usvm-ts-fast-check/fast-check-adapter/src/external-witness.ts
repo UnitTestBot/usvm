@@ -99,8 +99,12 @@ export async function executeWitness(value: unknown): Promise<WitnessExecutionSu
   const target = operation.target;
   const declaredCheck = request.manifest.assertions?.some((check) => check.id === target.id) === true;
   const diagnosticCheck = request.manifest.predicate.checkResultExportName !== undefined && declaredCheck;
+  const originalCheckObservation = operation.mode === 'replay' && target.binding === undefined
+    && target.id === request.manifest.predicate.exportName
+    && request.manifest.predicate.checkResultExportName !== undefined;
   const validOriginalCheck = target.role !== 'PROPERTY' || (target.binding === undefined
-    ? diagnosticCheck || (request.manifest.assertions?.length ?? 0) === 0 && target.id === request.manifest.predicate.exportName
+    ? originalCheckObservation || diagnosticCheck
+      || (request.manifest.assertions?.length ?? 0) === 0 && target.id === request.manifest.predicate.exportName
     : target.binding.pointId === target.id && declaredCheck);
   if (!validOriginalCheck) {
     throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Original named check requires a companion or executable binding', 'witness.target');
