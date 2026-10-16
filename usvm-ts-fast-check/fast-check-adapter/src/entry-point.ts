@@ -7,6 +7,7 @@ import { register } from 'tsx/esm/api';
 import { adapterDiagnostic } from './diagnostics.js';
 import type { JsConcreteValue } from './js-value.js';
 import { ProtocolError, protocolError } from './js-value.js';
+import type { CompilerNumericLocalBinding } from './observe-property.js';
 
 // Each adapter process uses one explicit resolver configuration for all nested imports.
 let registeredConfig: string | undefined;
@@ -60,14 +61,30 @@ export function isNamedCheckFailure(value: unknown): value is NamedCheckFailure 
   return value !== null && typeof value === 'object' && namedCheckFailures.has(value);
 }
 
-type EntryPointFunction = (...args: JsConcreteValue[]) => unknown;
+type EntryPointFunction = (...args: unknown[]) => unknown;
+
+export interface CompilerNumericLocalCapture {
+  binding: CompilerNumericLocalBinding;
+  observe(nodeId: number, localName: string, value: unknown): void;
+}
 
 export async function loadEntryPoint(
   reference: TypeScriptEntryPointReference,
   sourceRoots: string[],
   referencePath: string,
   tsconfig?: string,
+  compilerCapture?: CompilerNumericLocalCapture,
 ): Promise<LoadedEntryPoint> {
+  if (compilerCapture !== undefined) {
+    const binding = compilerCapture.binding;
+    const validAbi = binding.producer === 'usvm-kotlin-dsl-v1' && binding.abi === 'numeric-local-callback-v1'
+      && binding.predicateExportName === reference.exportName
+      && binding.companionExportName === reference.checkResultExportName && reference.executionKind === 'sync';
+    if (!validAbi) {
+      throw protocolError(adapterDiagnostic.protocolRequestInvalid,
+        'Compiler local callback ABI does not match the selected predicate and companion', `${referencePath}.compilerLocal`);
+    }
+  }
   registerTypeScriptLoader(tsconfig);
   const modulePath = await resolveModule(reference.module, sourceRoots, referencePath);
   const moduleNamespace = await importTypeScriptModule(modulePath, referencePath);
@@ -101,7 +118,12 @@ export async function loadEntryPoint(
     return {
       executionKind: 'sync',
       invoke: (args) => {
-        const result = invokeEntryPoint(companion as EntryPointFunction, args);
+        if (compilerCapture !== undefined && companion.length !== args.length + 1) {
+          throw protocolError(adapterDiagnostic.protocolRequestInvalid,
+            'Compiler local companion has an incompatible callback signature', `${referencePath}.compilerLocal`);
+        }
+        const companionArgs = compilerCapture === undefined ? args : [...args, compilerCapture.observe];
+        const result = invokeEntryPoint(companion as EntryPointFunction, companionArgs);
         if (result === null || typeof result !== 'object' || isThenable(result)) {
           throw protocolError(adapterDiagnostic.entryPointResultInvalid,
             'A generated companion must return a check outcome', `${referencePath}.result`);
@@ -324,7 +346,7 @@ function buildInvocation(
   };
 }
 
-function invokeEntryPoint(entryPoint: EntryPointFunction, args: JsConcreteValue[]): unknown {
+function invokeEntryPoint(entryPoint: EntryPointFunction, args: unknown[]): unknown {
   try {
     return entryPoint(...args);
   } catch (error: unknown) {
