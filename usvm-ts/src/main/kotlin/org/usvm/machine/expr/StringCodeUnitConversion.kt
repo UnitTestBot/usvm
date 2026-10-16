@@ -1,7 +1,9 @@
 package org.usvm.machine.expr
 
+import io.ksmt.sort.KBv16Sort
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.cast
+import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.machine.TsContext
@@ -10,10 +12,19 @@ import org.usvm.util.mkStringBackingElementLValue
 import org.usvm.util.stringCharacters
 import org.usvm.util.stringLength
 
-private val singleCodeUnitWhitespace = listOf(
+private val ecmaScriptWhitespace = listOf(
     '\t', '\n', '\u000b', '\u000c', '\r', ' ', '\u00a0', '\u1680',
     '\u2028', '\u2029', '\u202f', '\u205f', '\u3000', '\ufeff',
 ) + ('\u2000'..'\u200a')
+
+/** ECMAScript WhiteSpace and LineTerminator, kept as one predicate rather than execution branches. */
+internal fun TsContext.mkEcmaScriptWhitespace(codeUnit: UExpr<KBv16Sort>): UBoolExpr {
+    val matches = ecmaScriptWhitespace.map { character ->
+        mkEq(codeUnit, mkBv(character.code, bv16Sort))
+    }
+
+    return mkOr(matches)
+}
 
 /** ToNumber for the zero- or one-code-unit Strings produced by indexing and charAt. */
 internal fun TsContext.singleCodeUnitToNumber(scope: TsStepScope, string: UHeapRef): UExpr<KFp64Sort>? {
@@ -41,12 +52,7 @@ internal fun TsContext.singleCodeUnitToNumber(scope: TsStepScope, string: UHeapR
         value = digit.cast(),
         signed = false,
     )
-    val whitespaceGuards = singleCodeUnitWhitespace.map { character ->
-        val whitespace = mkBv(character.code, bv16Sort)
-
-        mkEq(codeUnit, whitespace)
-    }
-    val isWhitespace = mkOr(whitespaceGuards)
+    val isWhitespace = mkEcmaScriptWhitespace(codeUnit)
     val zero = mkFp64(0.0)
     val nonDigitNumber = mkIte(isWhitespace, zero, mkFp64NaN())
     val nonEmptyNumber = mkIte(isDigit, digitNumber, nonDigitNumber)

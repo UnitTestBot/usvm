@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import io.ksmt.expr.KBitVec32Value
 import io.ksmt.sort.KBv16Sort
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
@@ -10,6 +11,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.api.initializeArrayLength
+import org.usvm.api.memcpy
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.state.TsState
 import org.usvm.sizeSort
@@ -45,6 +47,32 @@ private fun TsState.allocateString(
     boundedStringBackingRefs += string to maxLength
 
     string to characters
+}
+
+/** Copies an already validated range: 0 <= from <= to <= receiver.length. */
+internal fun TsState.copyStringRange(
+    receiver: UHeapRef,
+    from: UExpr<TsSizeSort>,
+    to: UExpr<TsSizeSort>,
+): UConcreteHeapRef = with(ctx) {
+    val length = mkBvSubExpr(to, from)
+    val receiverBound = boundedStringBackingRefs.getValue(receiver)
+    val constantLength = (length as? KBitVec32Value)?.intValue
+    val resultBound = minOf(receiverBound, constantLength ?: receiverBound)
+    val sourceCharacters = stringCharacters(receiver)
+    val (result, characters) = allocateString(length = length, maxLength = resultBound)
+
+    memory.memcpy(
+        srcRef = sourceCharacters,
+        dstRef = characters,
+        type = stringBackingArrayDescriptor,
+        elementSort = bv16Sort,
+        fromSrc = from,
+        fromDst = mkBv(0),
+        length = length,
+    )
+
+    result
 }
 
 internal fun TsState.stringFromCodeUnit(codeUnit: UExpr<KFp64Sort>): UConcreteHeapRef = with(ctx) {

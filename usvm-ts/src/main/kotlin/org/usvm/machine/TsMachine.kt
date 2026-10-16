@@ -147,6 +147,9 @@ class TsMachine(
         throwExceptionOnStepFailure = options.throwExceptionOnStepFailure,
     )
     private val cfgStatistics = CfgStatisticsImpl(graph)
+    private var activeAnalysis: TsAnalysisSession? = null
+    private var preparingAnalysis = false
+    private var closed = false
 
     /** Returns supported states only. Call [analyzeWithOutcome] to inspect excluded unsupported paths. */
     fun analyze(
@@ -189,61 +192,66 @@ class TsMachine(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
         configureInitialState: (EtsMethod, TsState) -> Unit = { _, _ -> },
-    ): TsMachineAnalysisResult {
+    ): TsMachineAnalysisResult = openAnalysis(
+        methods = methods,
+        targets = targets,
+        configureInitialState = configureInitialState,
+    ).use { session -> session.advance() }
+
+    /** Prepares one retained analysis; close it before starting another analysis on this machine. */
+    fun openAnalysis(
+        methods: List<EtsMethod>,
+        targets: List<TsTarget> = emptyList(),
+        configureInitialState: (EtsMethod, TsState) -> Unit = { _, _ -> },
+    ): TsAnalysisSession {
+        check(!closed) { "Machine is closed" }
+        check(activeAnalysis == null && !preparingAnalysis) {
+            "Close the current analysis session before starting another"
+        }
+
+        preparingAnalysis = true
+        try {
+            val session = prepareAnalysis(methods.toList(), targets.toList(), configureInitialState)
+            activeAnalysis = session
+            return session
+        } finally {
+            preparingAnalysis = false
+        }
+    }
+
+    private fun prepareAnalysis(
+        methods: List<EtsMethod>,
+        targets: List<TsTarget>,
+        configureInitialState: (EtsMethod, TsState) -> Unit,
+    ): TsAnalysisSession {
         interpreter.resetStepFailure()
         failureTrackingUnknownCallObserver.reset()
-        if (deadlineReached?.invoke() == true) return deadlineAnalysisResult()
+        if (deadlineReached?.invoke() == true) {
+            val result = deadlineAnalysisResult()
+            return finishedAnalysis(result)
+        }
 
         val (initialStates, unsupportedPaths, infeasibleEntryPoints) =
             createInitialStates(methods, targets, configureInitialState)
 
         if (initialStates.isEmpty()) {
-            return emptyAnalysisResult(unsupportedPaths, infeasibleEntryPoints)
+            val result = emptyAnalysisResult(unsupportedPaths, infeasibleEntryPoints)
+            return finishedAnalysis(result)
         }
 
-        val methodsToTrackCoverage =
-            when (options.coverageZone) {
-                CoverageZone.METHOD, CoverageZone.TRANSITIVE -> initialStates.keys.toHashSet()
-                CoverageZone.CLASS -> classCoverageMethods(entryMethods = initialStates.keys)
-            }
-
-        val coverageStatistics = CoverageStatistics<EtsMethod, EtsStmt, TsState>(
-            methods = methodsToTrackCoverage,
-            applicationGraph = graph,
-        )
-
-        val callGraphStatistics: PlainCallGraphStatistics<EtsMethod> =
-            when (options.targetSearchDepth) {
-                0u -> PlainCallGraphStatistics()
-                else -> TODO("Unsupported yet")
-            }
-
+        val coverageStatistics = createCoverageStatistics(entryMethods = initialStates.keys)
         val timeStatistics = createTimeStatistics()
-
-        val pathSelector = pathSelectorFactory?.invoke(initialStates, graph) ?: createPathSelector(
+        val pathSelector = createAnalysisPathSelector(
             initialStates = initialStates,
-            options = options,
-            applicationGraph = graph,
             timeStatistics = timeStatistics,
-            coverageStatisticsFactory = { coverageStatistics },
-            cfgStatisticsFactory = { cfgStatistics },
-            callGraphStatisticsFactory = { callGraphStatistics },
+            coverageStatistics = coverageStatistics,
         )
 
         val statesCollector = createStatesCollector(coverageStatistics)
 
-        val observers = mutableListOf<UMachineObserver<TsState>>(coverageStatistics)
-        observers.add(statesCollector)
-        if (tsOptions.enableVisualization) {
-            observers += TsStateVisualizer()
-        }
-
-        if (options.useSoftConstraints) {
-            observers.add(SoftConstraintsObserver())
-        }
-
         val stepsStatistics = StepsStatistics<EtsMethod, TsState>()
         var timedOut = false
+        var finished = false
         val stopStrategy = object : StopStrategy {
             val strategy = createStopStrategy(
                 options,
@@ -257,20 +265,137 @@ class TsMachine(
             override fun shouldStop(): Boolean {
                 if (options.timeout <= kotlin.time.Duration.ZERO || deadlineReached?.invoke() == true) {
                     timedOut = true
+                    finished = true
                     return true
                 }
 
                 val result = strategy.shouldStop()
-                if (result && timeStatistics.runningTime >= options.timeout) {
-                    timedOut = true
-                }
-
                 if (result) {
+                    timedOut = timeStatistics.runningTime >= options.timeout
+                    finished = true
                     logger.warn { "Stop strategy finished execution: ${strategy.stopReason()}" }
                 }
 
                 return result
             }
+        }
+
+        val supportedObserver = createAnalysisObserver(
+            initialStates = initialStates,
+            coverageStatistics = coverageStatistics,
+            statesCollector = statesCollector,
+            timeStatistics = timeStatistics,
+            stepsStatistics = stepsStatistics,
+        )
+        val outcomeObserver = UnsupportedPathsObserver(
+            delegate = supportedObserver,
+            unsupportedPaths = unsupportedPaths,
+        )
+        val factoryObserver = machineObserverFactory?.invoke(pathSelector)
+        val executionObserver = if (factoryObserver == null) {
+            outcomeObserver
+        } else {
+            CompositeUMachineObserver(outcomeObserver, factoryObserver)
+        }
+
+        var lastResult: TsMachineAnalysisResult? = null
+        return TsAnalysisSession(
+            advancePhase = { maxSteps ->
+                if (finished) {
+                    requireNotNull(lastResult)
+                } else {
+                    require(maxSteps == null || initialStates.size == 1) {
+                        "Bounded analysis phases require one runnable entry point"
+                    }
+
+                    val phaseStartSteps = stepsStatistics.totalSteps
+                    val phaseStopStrategy = StopStrategy {
+                        val analysisStopped = stopStrategy.shouldStop()
+                        val phaseStopped = maxSteps != null && stepsStatistics.totalSteps - phaseStartSteps >= maxSteps
+                        analysisStopped || phaseStopped
+                    }
+
+                    run(
+                        interpreter = interpreter,
+                        pathSelector = pathSelector,
+                        observer = executionObserver,
+                        isStateTerminated = { state -> state.callStack.isEmpty() },
+                        stopStrategy = phaseStopStrategy,
+                    )
+
+                    val exhausted = pathSelector.isEmpty()
+                    finished = finished || exhausted
+                    val stopReason = if (exhausted) TsAnalysisStopReason.EXHAUSTED else TsAnalysisStopReason.STOPPED
+                    val result = TsMachineAnalysisResult(
+                        states = statesCollector.collectedStates.toList(),
+                        stopReason = stopReason,
+                        timedOut = timedOut,
+                        unsupportedCall = failureTrackingUnknownCallObserver.pathStopped,
+                        engineFailed = interpreter.stepFailed,
+                        unsupportedPaths = unsupportedPaths.toList(),
+                        infeasibleEntryPoints = infeasibleEntryPoints,
+                    )
+                    lastResult = result
+                    result
+                }
+            },
+            analysisFinished = { finished },
+            release = { activeAnalysis = null },
+        )
+    }
+
+    private fun finishedAnalysis(result: TsMachineAnalysisResult) = TsAnalysisSession(
+        advancePhase = { result },
+        analysisFinished = { true },
+        release = { activeAnalysis = null },
+    )
+
+    private fun createCoverageStatistics(
+        entryMethods: Set<EtsMethod>,
+    ): CoverageStatistics<EtsMethod, EtsStmt, TsState> {
+        val methodsToTrackCoverage = when (options.coverageZone) {
+            CoverageZone.METHOD, CoverageZone.TRANSITIVE -> entryMethods.toHashSet()
+            CoverageZone.CLASS -> classCoverageMethods(entryMethods = entryMethods)
+        }
+
+        return CoverageStatistics(methods = methodsToTrackCoverage, applicationGraph = graph)
+    }
+
+    private fun createAnalysisPathSelector(
+        initialStates: Map<EtsMethod, TsState>,
+        timeStatistics: TimeStatistics<EtsMethod, TsState>,
+        coverageStatistics: CoverageStatistics<EtsMethod, EtsStmt, TsState>,
+    ): UPathSelector<TsState> {
+        val callGraphStatistics: PlainCallGraphStatistics<EtsMethod> = when (options.targetSearchDepth) {
+            0u -> PlainCallGraphStatistics()
+            else -> TODO("Unsupported yet")
+        }
+
+        return pathSelectorFactory?.invoke(initialStates, graph) ?: createPathSelector(
+            initialStates = initialStates,
+            options = options,
+            applicationGraph = graph,
+            timeStatistics = timeStatistics,
+            coverageStatisticsFactory = { coverageStatistics },
+            cfgStatisticsFactory = { cfgStatistics },
+            callGraphStatisticsFactory = { callGraphStatistics },
+        )
+    }
+
+    private fun createAnalysisObserver(
+        initialStates: Map<EtsMethod, TsState>,
+        coverageStatistics: CoverageStatistics<EtsMethod, EtsStmt, TsState>,
+        statesCollector: StatesCollector<TsState>,
+        timeStatistics: TimeStatistics<EtsMethod, TsState>,
+        stepsStatistics: StepsStatistics<EtsMethod, TsState>,
+    ): UMachineObserver<TsState> {
+        val observers = mutableListOf<UMachineObserver<TsState>>(coverageStatistics, statesCollector)
+        if (tsOptions.enableVisualization) {
+            observers += TsStateVisualizer()
+        }
+
+        if (options.useSoftConstraints) {
+            observers.add(SoftConstraintsObserver())
         }
 
         observers.add(timeStatistics)
@@ -285,43 +410,12 @@ class TsMachine(
                     getMethodSignature = { it.humanReadableSignature },
                     coverageStatistics = coverageStatistics,
                     timeStatistics = timeStatistics,
-                    stepsStatistics = stepsStatistics
+                    stepsStatistics = stepsStatistics,
                 )
             )
         }
 
-        val supportedObserver = CompositeUMachineObserver(observers)
-        val outcomeObserver = UnsupportedPathsObserver(
-            delegate = supportedObserver,
-            unsupportedPaths = unsupportedPaths,
-        )
-        val factoryObserver = machineObserverFactory?.invoke(pathSelector)
-        val executionObserver = if (factoryObserver == null) {
-            outcomeObserver
-        } else {
-            CompositeUMachineObserver(outcomeObserver, factoryObserver)
-        }
-
-        run(
-            interpreter = interpreter,
-            pathSelector = pathSelector,
-            observer = executionObserver,
-            isStateTerminated = { state -> state.callStack.isEmpty() },
-            stopStrategy = stopStrategy,
-        )
-
-        val exhausted = pathSelector.isEmpty()
-        val stopReason = if (exhausted) TsAnalysisStopReason.EXHAUSTED else TsAnalysisStopReason.STOPPED
-
-        return TsMachineAnalysisResult(
-            states = statesCollector.collectedStates,
-            stopReason = stopReason,
-            timedOut = timedOut,
-            unsupportedCall = failureTrackingUnknownCallObserver.pathStopped,
-            engineFailed = interpreter.stepFailed,
-            unsupportedPaths = unsupportedPaths.toList(),
-            infeasibleEntryPoints = infeasibleEntryPoints,
-        )
+        return CompositeUMachineObserver(observers)
     }
 
     private fun createStatesCollector(
@@ -422,6 +516,11 @@ class TsMachine(
     }
 
     override fun close() {
+        if (closed) return
+        check(!preparingAnalysis) { "Cannot close the machine while preparing an analysis" }
+
+        activeAnalysis?.close()
+        closed = true
         components.close()
     }
 }

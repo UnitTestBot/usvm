@@ -1,6 +1,9 @@
 declare class StringModelPrimitives {
     static codeUnitAt(receiver: string, index: number): number;
     static fromCodeUnit(codeUnit: number): string;
+    static isWhitespace(codeUnit: number): boolean;
+    // Bounds have already been normalized: 0 <= from <= to <= receiver.length.
+    static copyNormalizedRange(receiver: string, from: number, to: number): string;
 }
 
 declare class ArrayModelPrimitives {
@@ -33,13 +36,15 @@ export class StringModels {
         let position = 0;
         while (position + separatorLength <= length) {
             let offset = 0;
-            while (offset < separatorLength &&
-                receiver[position + offset] ===
-                    separator[offset]) {
+            while (offset < separatorLength) {
+                const actual = StringModelPrimitives.codeUnitAt(receiver, position + offset);
+                const expected = StringModelPrimitives.codeUnitAt(separator, offset);
+                if (actual !== expected) break;
+
                 offset++;
             }
             if (offset === separatorLength) {
-                result[count] = StringModels.slice(receiver, start, position);
+                result[count] = StringModelPrimitives.copyNormalizedRange(receiver, start, position);
                 count++;
                 if (count === limit) return ArrayModelPrimitives.truncateDense(result, count);
                 position += separatorLength;
@@ -48,7 +53,7 @@ export class StringModels {
                 position++;
             }
         }
-        result[count] = StringModels.slice(receiver, start, length);
+        result[count] = StringModelPrimitives.copyNormalizedRange(receiver, start, length);
         return ArrayModelPrimitives.truncateDense(result, count + 1);
     }
 
@@ -75,8 +80,8 @@ export class StringModels {
         while (index + searchLength <= length) {
             let searchIndex = 0;
             while (searchIndex < searchLength) {
-                const character = receiver[index + searchIndex];
-                const expectedCharacter = searchString[searchIndex];
+                const character = StringModelPrimitives.codeUnitAt(receiver, index + searchIndex);
+                const expectedCharacter = StringModelPrimitives.codeUnitAt(searchString, searchIndex);
                 const matches = character === expectedCharacter;
                 if (!matches) {
                     break;
@@ -114,14 +119,11 @@ export class StringModels {
         const from = StringModels.normalizeSliceIndex(start, length);
         const to = StringModels.normalizeSliceIndex(end, length);
 
-        let result = "";
-        let index = from;
-        while (index < to) {
-            result += receiver[index];
-            index++;
+        if (to <= from) {
+            return "";
         }
 
-        return result;
+        return StringModelPrimitives.copyNormalizedRange(receiver, from, to);
     }
 
     static substring(receiver: string, start: number, end: number): string {
@@ -129,38 +131,58 @@ export class StringModels {
         const from = StringModels.normalizePosition(start, length);
         const to = StringModels.normalizePosition(end, length);
         return from <= to
-            ? StringModels.slice(receiver, from, to)
-            : StringModels.slice(receiver, to, from);
+            ? StringModelPrimitives.copyNormalizedRange(receiver, from, to)
+            : StringModelPrimitives.copyNormalizedRange(receiver, to, from);
     }
 
     static trim(receiver: string): string {
         const length = receiver.length;
         let start = 0;
         let end = length;
-        while (start < end && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, start))) {
+        while (start < end) {
+            const codeUnit = StringModelPrimitives.codeUnitAt(receiver, start);
+            const whitespace = StringModelPrimitives.isWhitespace(codeUnit);
+            if (!whitespace) break;
+
             start++;
         }
-        while (end > start && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, end - 1))) {
+
+        while (end > start) {
+            const codeUnit = StringModelPrimitives.codeUnitAt(receiver, end - 1);
+            const whitespace = StringModelPrimitives.isWhitespace(codeUnit);
+            if (!whitespace) break;
+
             end--;
         }
-        return StringModels.slice(receiver, start, end);
+
+        return StringModelPrimitives.copyNormalizedRange(receiver, start, end);
     }
 
     static trimStart(receiver: string): string {
         const length = receiver.length;
         let start = 0;
-        while (start < length && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, start))) {
+        while (start < length) {
+            const codeUnit = StringModelPrimitives.codeUnitAt(receiver, start);
+            const whitespace = StringModelPrimitives.isWhitespace(codeUnit);
+            if (!whitespace) break;
+
             start++;
         }
-        return StringModels.slice(receiver, start, length);
+
+        return StringModelPrimitives.copyNormalizedRange(receiver, start, length);
     }
 
     static trimEnd(receiver: string): string {
         let end = receiver.length;
-        while (end > 0 && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, end - 1))) {
+        while (end > 0) {
+            const codeUnit = StringModelPrimitives.codeUnitAt(receiver, end - 1);
+            const whitespace = StringModelPrimitives.isWhitespace(codeUnit);
+            if (!whitespace) break;
+
             end--;
         }
-        return StringModels.slice(receiver, 0, end);
+
+        return StringModelPrimitives.copyNormalizedRange(receiver, 0, end);
     }
 
     static replaceAll(receiver: string, search: string, replacement: string): string {
@@ -177,7 +199,7 @@ export class StringModels {
                 offset++;
             }
             if (offset === searchLength) {
-                result += StringModels.slice(receiver, endOfLastMatch, position);
+                result += StringModelPrimitives.copyNormalizedRange(receiver, endOfLastMatch, position);
                 result += StringModels.substitution(receiver, search, replacement, position);
                 endOfLastMatch = position + searchLength;
                 position = endOfLastMatch + (searchLength === 0 ? 1 : 0);
@@ -185,7 +207,7 @@ export class StringModels {
                 position++;
             }
         }
-        return result + StringModels.slice(receiver, endOfLastMatch, length);
+        return result + StringModelPrimitives.copyNormalizedRange(receiver, endOfLastMatch, length);
     }
 
     private static substitution(receiver: string, search: string, replacement: string, position: number): string {
@@ -207,13 +229,13 @@ export class StringModels {
                     continue;
                 }
                 if (next === 96) {
-                    result += StringModels.slice(receiver, 0, position);
+                    result += StringModelPrimitives.copyNormalizedRange(receiver, 0, position);
                     index += 2;
                     continue;
                 }
                 if (next === 39) {
                     const matchEnd = position + search.length;
-                    result += StringModels.slice(receiver, matchEnd, receiver.length);
+                    result += StringModelPrimitives.copyNormalizedRange(receiver, matchEnd, receiver.length);
                     index += 2;
                     continue;
                 }
@@ -222,14 +244,6 @@ export class StringModels {
             index++;
         }
         return result;
-    }
-
-    private static isWhitespace(codeUnit: number): boolean {
-        return (codeUnit >= 0x09 && codeUnit <= 0x0d)
-            || codeUnit === 0x20 || codeUnit === 0xa0 || codeUnit === 0x1680
-            || (codeUnit >= 0x2000 && codeUnit <= 0x200a)
-            || codeUnit === 0x2028 || codeUnit === 0x2029 || codeUnit === 0x202f
-            || codeUnit === 0x205f || codeUnit === 0x3000 || codeUnit === 0xfeff;
     }
 
     static toUpperCase(receiver: string): string {
@@ -272,8 +286,8 @@ export class StringModels {
 
         let searchIndex = 0;
         while (searchIndex < searchLength) {
-            const character = receiver[start + searchIndex];
-            const expectedCharacter = searchString[searchIndex];
+            const character = StringModelPrimitives.codeUnitAt(receiver, start + searchIndex);
+            const expectedCharacter = StringModelPrimitives.codeUnitAt(searchString, searchIndex);
             const matches = character === expectedCharacter;
             if (!matches) {
                 return false;
@@ -296,8 +310,8 @@ export class StringModels {
 
         let searchIndex = 0;
         while (searchIndex < searchLength) {
-            const character = receiver[start + searchIndex];
-            const expectedCharacter = searchString[searchIndex];
+            const character = StringModelPrimitives.codeUnitAt(receiver, start + searchIndex);
+            const expectedCharacter = StringModelPrimitives.codeUnitAt(searchString, searchIndex);
             const matches = character === expectedCharacter;
             if (!matches) {
                 return false;
@@ -320,8 +334,8 @@ export class StringModels {
         while (index >= 0) {
             let searchIndex = 0;
             while (searchIndex < searchLength) {
-                const character = receiver[index + searchIndex];
-                const expectedCharacter = searchString[searchIndex];
+                const character = StringModelPrimitives.codeUnitAt(receiver, index + searchIndex);
+                const expectedCharacter = StringModelPrimitives.codeUnitAt(searchString, searchIndex);
                 const matches = character === expectedCharacter;
                 if (!matches) {
                     break;
