@@ -30,11 +30,18 @@ import org.usvm.util.mkFieldLValue
 class TsCapturedInstanceCall(
     val receiver: UExpr<*>,
     val sourceReceiver: EtsLocal,
+    /** Extracted native methods retain their owner/name; each invocation keeps its own argument and result types. */
+    val nativeCallee: EtsMethodSignature? = null,
 )
 
 internal fun TsExprResolver.tryCaptureInstanceCall(
     field: EtsInstanceFieldRef,
 ): TsExprApproximationResult = with(ctx) {
+    when (val native = tryCaptureNativeObjectAssign(field)) {
+        TsExprApproximationResult.NoApproximation -> {}
+        else -> return native
+    }
+
     val method = scope.calcOnState { lastEnteredMethod }
     val assignment = scope.calcOnState { lastStmt } as? EtsAssignStmt
         ?: return TsExprApproximationResult.NoApproximation
@@ -107,10 +114,16 @@ internal fun TsExprResolver.handleCapturedInstanceCall(
     call: EtsPtrCallExpr,
     captured: TsCapturedInstanceCall,
 ): UExpr<out USort>? = with(ctx) {
-    val receiver = requireNotNull(call.receiver)
+    val nativeCallee = captured.nativeCallee
+    val receiver = if (nativeCallee != null) captured.sourceReceiver else requireNotNull(call.receiver)
+    val callee = if (nativeCallee != null) {
+        call.callee.copy(enclosingClass = nativeCallee.enclosingClass, name = nativeCallee.name)
+    } else {
+        call.callee
+    }
     val instanceCall = EtsInstanceCallExpr(
         instance = receiver,
-        callee = call.callee,
+        callee = callee,
         args = call.args,
         type = call.type,
     )
@@ -131,7 +144,7 @@ internal fun TsExprResolver.handleCapturedInstanceCall(
         call = instanceCall,
         instance = captured.receiver,
         args = args,
-        originalCall = call.copy(receiver = captured.sourceReceiver),
+        originalCall = call.copy(callee = callee, receiver = captured.sourceReceiver),
         targetCaptured = true,
     )
 }
@@ -141,7 +154,9 @@ internal fun TsExprResolver.resolveCallPointer(local: EtsLocal): UExpr<out USort
     if (!value.isFakeObject()) return value
 
     val reference = value.extractRef(scope)
-    val knownFunction = reference is UConcreteHeapRef && scope.calcOnState { associatedFunction[reference] != null }
+    val knownFunction = reference is UConcreteHeapRef && scope.calcOnState {
+        associatedFunction[reference] != null || capturedInstanceCalls[reference] != null
+    }
     if (!knownFunction) return value
 
     scope.assert(value.getFakeType(scope).refTypeExpr) ?: return null
