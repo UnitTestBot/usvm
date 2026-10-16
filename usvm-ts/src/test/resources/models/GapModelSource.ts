@@ -74,6 +74,32 @@ export class GapModelSource {
         return "a".split("").reduce((acc, value) => acc === undefined ? 8 : 9, undefined);
     }
 
+    denseSearchAfterWrite(): boolean {
+        const values = "a,b".split(",");
+        values[0] = "x";
+        return values.indexOf(undefined) === -1 && values.lastIndexOf(undefined) === -1;
+    }
+
+    denseSearchAfterUnrelatedWrite(): boolean {
+        const values = "a,b".split(",");
+        const other = "c,d".split(",");
+        other[0] = "x";
+        return values.indexOf(undefined) === -1 && values.lastIndexOf(undefined) === -1;
+    }
+
+    denseSearchAfterBoxedWrite(): boolean {
+        const values = "a,b".split(",") as any[];
+        values[0] = undefined;
+        return values.indexOf(undefined) === 0 && values.lastIndexOf(undefined) === 0 && values.includes(undefined);
+    }
+
+    searchAfterSlotDeletion(): number {
+        const values = "a,b".split(",");
+        values.reverse();
+        delete values[1];
+        return values.indexOf(undefined);
+    }
+
     reduceAliases(): boolean {
         const values = this.numbers();
         const seed = { total: 0 };

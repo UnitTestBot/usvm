@@ -5,6 +5,7 @@ import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsIntersectionType
@@ -43,6 +44,7 @@ class TsTypeSystem(
     val scene: EtsScene,
     override val typeOperationsTimeout: Duration,
     val hierarchy: EtsHierarchy,
+    private val applicationAndSdkClasses: List<EtsClass> = scene.projectAndSdkClasses,
 ) : UTypeSystem<EtsType> {
     private fun unwrapAlias(type: EtsType): EtsType = when (type) {
         is EtsAliasType -> unwrapAlias(type.originalType)
@@ -285,16 +287,16 @@ class TsTypeSystem(
             is EtsAnyType,
             is EtsUnknownType,
                 -> {
-                scene.projectAndSdkClasses
+                applicationAndSdkClasses
                     .asSequence()
                     .map { it.type }
                     .plus(sequenceOf(EtsNumberType, EtsBooleanType, EtsStringType))
             }
 
-            EtsObjectType -> scene.projectAndSdkClasses.asSequence().map { it.type }
+            EtsObjectType -> applicationAndSdkClasses.asSequence().map { it.type }
 
             is EtsAuxiliaryType -> {
-                scene.projectAndSdkClasses
+                applicationAndSdkClasses
                     .asSequence()
                     .filter { cls ->
                         val properties = cls.getAllPropertiesCombined(hierarchy)
@@ -318,7 +320,7 @@ class TsTypeSystem(
             is EtsClassType,
                 -> {
                 if ((t as? EtsClassType)?.signature == EtsHierarchy.OBJECT_CLASS.signature) { // TODO change it
-                    scene.projectAndSdkClasses.asSequence().map { it.type } + EtsStringType + EtsAnyType
+                    applicationAndSdkClasses.asSequence().map { it.type } + EtsStringType + EtsAnyType
                 } else {
                     hierarchy.classesForType(t)
                         .asSequence()

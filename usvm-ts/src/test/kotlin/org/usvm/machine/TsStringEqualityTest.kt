@@ -39,6 +39,7 @@ class TsStringEqualityTest : TsMethodTestRunner() {
         solverTimeout = Duration.INFINITE,
         typeOperationsTimeout = Duration.INFINITE,
         throwExceptionOnStepFailure = true,
+        stopOnCoverage = 0,
     )
 
     @Test
@@ -444,27 +445,37 @@ class TsStringEqualityTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `unsupported fork does not consume covered-new slot or stop before supported result`() {
+    fun `unrefined equality retains equal and unequal string and non string inputs`() {
         val method = scene.projectClasses.single { it.name == "StringEquality" }
             .methods
             .single { it.name == "equalsAnyDirect" }
         val analysis = TsMachine(
             scene,
-            options = analysisOptions.copy(collectedStatesLimit = 1),
+            options = analysisOptions.copy(stateCollectionStrategy = StateCollectionStrategy.ALL),
             tsOptions = TsOptions(maxArraySize = 4),
         ).use { machine ->
             machine.analyzeWithOutcome(listOf(method))
         }
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
-        assertTrue(analysis.unsupportedPaths.any { "modeled string backing" in it })
+        assertTrue(analysis.unsupportedPaths.isEmpty(), analysis.unsupportedPaths.toString())
         val tests = analysis.states.map { state -> TsTestResolver().resolve(method, state) }
-        val supported = tests.filter { test ->
+        val nonString = tests.filter { test ->
             test.before.parameters[0] !is TsTestValue.TsString && resultNumber(test) == 2
         }
-        assertTrue(supported.isNotEmpty(), "$tests")
+        assertTrue(nonString.isNotEmpty(), "$tests")
+        assertTrue(
+            tests.any { test ->
+                test.before.parameters[0] is TsTestValue.TsString && resultNumber(test) == 1
+            },
+        )
+        assertTrue(
+            tests.any { test ->
+                test.before.parameters[0] is TsTestValue.TsString && resultNumber(test) == 2
+            },
+        )
 
-        replayDynamic(mapOf("equalsAnyDirect" to supported))
+        replayDynamic(mapOf("equalsAnyDirect" to tests))
     }
 
     private fun analyze(name: String, maxStringLength: Int = 4): List<TsTest> {
