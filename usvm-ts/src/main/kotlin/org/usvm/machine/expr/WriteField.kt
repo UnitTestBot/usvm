@@ -18,6 +18,7 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
+import org.usvm.machine.state.recordInitialStaticBinding
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.extractValue
 import org.usvm.sizeSort
@@ -359,6 +360,7 @@ fun TsContext.assignToStaticField(
     // Static initialization precedes the first read or write. In particular,
     // a module initializer must not overwrite a value written by the caller.
     ensureStaticsInitialized(scope, clazz) ?: return null
+    scope.doWithState { recordInitialStaticBinding(clazz, field, isWrite = true) }
 
     val instance = scope.calcOnState { getStaticInstance(clazz) }
 

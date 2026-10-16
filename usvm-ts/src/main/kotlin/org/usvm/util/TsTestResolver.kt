@@ -9,6 +9,7 @@ import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldImpl
 import org.jacodb.ets.model.EtsFileSignature
+import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsLiteralType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNeverType
@@ -42,6 +43,7 @@ import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
 import org.usvm.machine.TS_TYPE_ERROR_TYPE
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsSizeSort
 import org.usvm.machine.expr.TrackedObjectProperty
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.deletedFieldLValue
@@ -51,8 +53,10 @@ import org.usvm.machine.expr.initialPropertyPresenceLValue
 import org.usvm.machine.expr.readInputPropertyValue
 import org.usvm.machine.expr.toConcreteBoolValue
 import org.usvm.machine.expr.writtenPropertyLValue
+import org.usvm.machine.state.TsInitialEnvironmentHeap
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.state.hasPendingInitialEnvironment
 import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
@@ -62,7 +66,10 @@ import org.usvm.sizeSort
 import org.usvm.types.first
 
 /** A satisfying state lacks the modeled data needed to emit a concrete witness. */
-class TsUnsupportedWitnessException(message: String) : IllegalStateException(message)
+open class TsUnsupportedWitnessException(message: String) : IllegalStateException(message)
+
+/** Original inputs are available, but complete source environment restoration is unsupported. */
+class TsUnsupportedEnvironmentWitnessException(message: String) : TsUnsupportedWitnessException(message)
 
 /** Materializes concrete test values from an existing symbolic model. */
 class TsTestResolver(
@@ -71,12 +78,14 @@ class TsTestResolver(
     /**
      * Resolves original entry inputs from the model without requiring a completed call.
      * [inputValues] pins the entry registers when execution is suspended inside a nested call.
+     * Disabling [resolveEnvironment] explicitly requests partial roots without static/module data.
      */
     fun resolveInputs(
         method: EtsMethod,
         state: TsState,
         inputValues: List<UExpr<*>>? = null,
         receiverValue: UExpr<*>? = null,
+        resolveEnvironment: Boolean = true,
     ): TsParametersState {
         prepareForResolve(state)
         val scope = MemoryScope(
@@ -94,12 +103,15 @@ class TsTestResolver(
         )
 
         val hasReceiver = !method.isStatic && method.name != "constructor"
-        return scope.withMode(ResolveMode.MODEL) { resolveState(includeReceiver = hasReceiver) }
+        return scope.withMode(ResolveMode.MODEL) {
+            resolveState(includeReceiver = hasReceiver, resolveEnvironment = resolveEnvironment)
+        }
     }
 
     private val resolvedLValuesToFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf()
 
-    fun resolve(method: EtsMethod, state: TsState): TsTest = with(state.ctx) {
+    /** [resolveEnvironment] opts into complete touched source data bindings and explicit unsupported failures. */
+    fun resolve(method: EtsMethod, state: TsState, resolveEnvironment: Boolean = false): TsTest = with(state.ctx) {
         val model = state.models.first()
         val memory = state.memory
 
@@ -144,8 +156,12 @@ class TsTestResolver(
             }
         }
 
-        val before = beforeMemoryScope.withMode(ResolveMode.MODEL) { resolveState() }
-        val after = afterMemoryScope.withMode(ResolveMode.CURRENT) { resolveState() }
+        val before = beforeMemoryScope.withMode(ResolveMode.MODEL) {
+            resolveState(resolveEnvironment = resolveEnvironment)
+        }
+        val after = afterMemoryScope.withMode(ResolveMode.CURRENT) {
+            resolveState(resolveEnvironment = resolveEnvironment)
+        }
 
         return TsTest(method, before, after, result, trace = emptyList())
     }
@@ -240,10 +256,13 @@ class TsTestResolver(
         receiverValue = receiverValue,
         onClassResolved = onClassResolved,
     ) {
-        fun resolveState(includeReceiver: Boolean = true): TsParametersState {
+        fun resolveState(
+            includeReceiver: Boolean = true,
+            resolveEnvironment: Boolean = false,
+        ): TsParametersState {
             val thisInstance = if (includeReceiver) resolveThisInstance() else null
             val parameters = resolveParameters()
-            val globals = resolveGlobals()
+            val globals = if (resolveEnvironment) resolveGlobals() else emptyMap()
             return TsParametersState(thisInstance, parameters, globals)
         }
     }
@@ -263,6 +282,18 @@ open class TsTestStateResolver(
     private val receiverValue: UExpr<*>? = null,
     private val onClassResolved: (TsTestValue.TsClass, EtsClass) -> Unit = { _, _ -> },
 ) {
+    private var initialEnvironmentHeap: TsInitialEnvironmentHeap? = null
+    private val resolutionMemory get() = initialEnvironmentHeap?.memory ?: finalStateMemory
+    private val trackedProperties get() = initialEnvironmentHeap?.trackedProperties
+        ?: propertyState?.trackedObjectProperties.orEmpty()
+    private val writtenFields get() = initialEnvironmentHeap?.writtenFields
+        ?: propertyState?.writtenConcreteFields.orEmpty()
+    private val writtenFieldSorts get() = initialEnvironmentHeap?.writtenFieldSorts
+        ?: propertyState?.writtenObjectLiteralFieldSorts
+    private val typedArrayOverrides get() = initialEnvironmentHeap?.typedArrayOverrides
+        ?: propertyState?.initializedTypedArrayOverrides.orEmpty()
+
+    private val resolvedHeapViews = hashMapOf<UConcreteHeapRef, TsInitialEnvironmentHeap?>()
     private val resolvedClasses = hashMapOf<UConcreteHeapRef, TsTestValue.TsClass>()
     private val resolvedArrays = hashMapOf<UConcreteHeapRef, TsTestValue.TsArray<TsTestValue>>()
 
@@ -314,7 +345,7 @@ open class TsTestStateResolver(
         if (constantValue != null) return TsTestValue.TsString(constantValue)
 
         val runtimeType = if (concreteRef.isAllocated) {
-            finalStateMemory.typeStreamOf(concreteRef).first()
+            resolutionMemory.typeStreamOf(concreteRef).first()
         } else {
             model.typeStreamOf(concreteRef).first()
         }
@@ -341,7 +372,7 @@ open class TsTestStateResolver(
         }
 
         val type = if (concreteRef.isAllocated) {
-            finalStateMemory.typeStreamOf(concreteRef).first()
+            resolutionMemory.typeStreamOf(concreteRef).first()
         } else {
             model.typeStreamOf(concreteRef).first()
         }
@@ -372,11 +403,40 @@ open class TsTestStateResolver(
         }
     }
 
+    private fun recordResolutionHeap(reference: UConcreteHeapRef) {
+        if (!reference.isAllocated) return
+        val priorResolution = reference in resolvedHeapViews
+        val priorHeap = resolvedHeapViews[reference]
+        if (priorResolution && priorHeap !== initialEnvironmentHeap) {
+            throw TsUnsupportedEnvironmentWitnessException(
+                "An allocated input aliases a different initial environment heap",
+            )
+        }
+
+        resolvedHeapViews[reference] = initialEnvironmentHeap
+    }
+
+    private fun requireDenseEnvironmentIndex(heapRef: UHeapRef, index: UExpr<TsSizeSort>) {
+        val heap = initialEnvironmentHeap ?: return
+        if (heapRef !in heap.knownArrayPresence) return
+
+        val initialized = heap.initializedArrayIndices[heapRef].orEmpty()
+        val present = with(ctx) {
+            mkOr(initialized.map { (writtenIndex, present) -> mkAnd(mkEq(index, writtenIndex), present) })
+        }
+        if (!model.eval(present).isTrue) {
+            throw TsUnsupportedEnvironmentWitnessException(
+                "Sparse initial environment arrays require own-index preservation",
+            )
+        }
+    }
+
     private fun resolveTsArray(
         heapRef: UHeapRef,
         type: EtsArrayType,
     ): TsTestValue.TsArray<*> = with(ctx) {
         val reference = evaluateInModel(heapRef) as UConcreteHeapRef
+        recordResolutionHeap(reference)
         val previous = resolvedArrays[reference]
         if (previous != null) return previous
 
@@ -388,6 +448,7 @@ open class TsTestStateResolver(
 
         val values = (0 until length.number.toInt()).map { i ->
             val index = mkSizeExpr(i)
+            requireDenseEnvironmentIndex(reference, index)
             val sort = typeToSort(type.componentType)
 
             if (sort is TsUnresolvedSort) {
@@ -409,9 +470,9 @@ open class TsTestStateResolver(
                 "Other sorts must be resolved above, but got: $sort"
             }
 
-            val hasTypedOverrides = propertyState?.initializedTypedArrayOverrides?.any { candidate ->
+            val hasTypedOverrides = typedArrayOverrides.any { candidate ->
                 model.eval(mkHeapRefEq(candidate, heapRef)).isTrue
-            } == true
+            }
             if (resolveMode == ResolveMode.CURRENT && hasTypedOverrides) {
                 val hasBoxedValue = memory.read(typedArrayOverrideLValue(heapRef, index))
                 if (model.eval(hasBoxedValue).isTrue) {
@@ -444,7 +505,7 @@ open class TsTestStateResolver(
         // Symbolic strings have no mutable backing field in the final state. Resolve
         // their backing array from the model in both before and after snapshots.
         val allocated = isAllocatedConcreteHeapRef(concreteRef)
-        val stringMemory = if (allocated) finalStateMemory else model
+        val stringMemory = if (allocated) resolutionMemory else model
         val stringRef = if (allocated) heapRef else concreteRef
         val backingLValue = mkStringBackingLValue(stringRef)
         val charsRef = evaluateInModel(stringMemory.read(backingLValue)) as UConcreteHeapRef
@@ -489,7 +550,7 @@ open class TsTestStateResolver(
             if (sort is TsUnresolvedSort) {
                 // this means that a fake object was created, and we need to read it from the current memory
                 val ref = mkRegisterStackLValue(addressSort, idx)
-                val address = finalStateMemory.read(ref)
+                val address = resolutionMemory.read(ref)
                 check(address.isFakeObject())
                 return@mapIndexed resolveFakeObject(address)
             }
@@ -500,31 +561,70 @@ open class TsTestStateResolver(
     }
 
     fun resolveGlobals(): Map<EtsClass, List<GlobalFieldValue>> {
-        // TODO
-        return emptyMap()
+        val recordedFailure = propertyState?.initialEnvironmentFailure
+        val incompleteInitializer = propertyState?.hasPendingInitialEnvironment() == true
+        val failure = recordedFailure ?: "A source initializer has not completed".takeIf { incompleteInitializer }
+        if (failure != null) throw TsUnsupportedEnvironmentWitnessException(failure)
+
+        val slots = propertyState?.initialEnvironmentSlots?.values.orEmpty()
+        val before = resolveMode == ResolveMode.MODEL
+        return slots.groupBy { it.owner }.mapValues { (_, bindings) ->
+            bindings.map { slot ->
+                val unsupportedKind = when {
+                    slot.field.type is EtsFunctionType -> "callable"
+                    slot.field.name.startsWith("#") -> "private"
+                    else -> null
+                }
+                if (unsupportedKind != null) {
+                    throw TsUnsupportedEnvironmentWitnessException(
+                        "Restoring a $unsupportedKind binding is unsupported: ${slot.field}",
+                    )
+                }
+
+                val previousHeap = initialEnvironmentHeap
+                try {
+                    if (before) initialEnvironmentHeap = slot.heap
+                    val expression = if (before) {
+                        slot.value
+                    } else {
+                        val currentSort = if (slot.moduleBinding) {
+                            propertyState?.dfltObjectFieldSorts?.get(slot.owner.signature.file to slot.field.name)
+                                ?: slot.storage.sort
+                        } else {
+                            slot.storage.sort
+                        }
+                        resolutionMemory.read(mkFieldLValue(currentSort, slot.storage.ref, slot.field.name))
+                    }
+                    val value = withMode(ResolveMode.CURRENT) { resolveExpr(expression) }
+                    GlobalFieldValue(field = slot.field, value = value)
+                } finally {
+                    initialEnvironmentHeap = previousHeap
+                }
+            }
+        }
     }
 
     private fun resolveFakeObject(expr: UConcreteHeapRef): TsTestValue = with(ctx) {
-        val type = expr.getFakeType(finalStateMemory)
+        val type = expr.getFakeType(resolutionMemory)
         // Note that everything about the details of a fake object
         // we need to read from the final state of the memory,
         // because they are allocated objects.
         return when {
             model.eval(type.boolTypeExpr).isTrue -> {
                 val lValue = getIntermediateBoolLValue(expr.address)
-                val value = finalStateMemory.read(lValue)
+                val value = resolutionMemory.read(lValue)
                 resolveExpr(model.eval(value))
             }
 
             model.eval(type.fpTypeExpr).isTrue -> {
                 val lValue = getIntermediateFpLValue(expr.address)
-                val value = finalStateMemory.read(lValue)
+                val value = resolutionMemory.read(lValue)
                 resolveExpr(model.eval(value))
             }
 
             model.eval(type.refTypeExpr).isTrue -> {
                 val lValue = getIntermediateRefLValue(expr.address)
-                val value = finalStateMemory.read(lValue)
+                val value = resolutionMemory.read(lValue)
                 resolveExpr(model.eval(value))
             }
 
@@ -554,7 +654,7 @@ open class TsTestStateResolver(
         val value = evaluateInModel(expr)
         if (value.isFakeObject()) {
             val lValue = getIntermediateFpLValue(value.address)
-            val stored = finalStateMemory.read(lValue)
+            val stored = resolutionMemory.read(lValue)
             return resolveExpr(model.eval(stored))
         }
 
@@ -619,10 +719,11 @@ open class TsTestStateResolver(
         concreteRef: UConcreteHeapRef,
         heapRef: UHeapRef,
     ): TsTestValue.TsClass = with(ctx) {
+        recordResolutionHeap(concreteRef)
         resolvedClasses[concreteRef]?.let { return it }
 
         val type = if (concreteRef.isAllocated) {
-            finalStateMemory.typeStreamOf(concreteRef).first()
+            resolutionMemory.typeStreamOf(concreteRef).first()
         } else {
             model.typeStreamOf(concreteRef).first()
         }
@@ -633,7 +734,7 @@ open class TsTestStateResolver(
         resolvedClasses[concreteRef] = result
         onClassResolved(result, clazz)
 
-        val tracked = propertyState?.trackedObjectProperties.orEmpty()
+        val tracked = trackedProperties
             .filter { evaluateInModel(it.instance) == concreteRef }
             .groupBy { it.name }
         val declaredFields = clazz.fields.filterNot { (it as EtsFieldImpl).modifiers.isStatic }
@@ -641,7 +742,7 @@ open class TsTestStateResolver(
             if (field.name in tracked) return@forEach
             if ((field as EtsFieldImpl).isOptional && !concreteRef.isAllocated) return@forEach
             if (resolveMode == ResolveMode.CURRENT &&
-                model.eval(finalStateMemory.read(deletedFieldLValue(heapRef, field.name))).isTrue
+                model.eval(resolutionMemory.read(deletedFieldLValue(heapRef, field.name))).isTrue
             ) {
                 return@forEach
             }
@@ -662,9 +763,9 @@ open class TsTestStateResolver(
         val propertyRef = entry.instance
         val initialPresence = model.eval(model.read(initialPropertyPresenceLValue(ref, name))).isTrue
         val written = resolveMode == ResolveMode.CURRENT &&
-            model.eval(finalStateMemory.read(writtenPropertyLValue(propertyRef, name))).isTrue
+            model.eval(resolutionMemory.read(writtenPropertyLValue(propertyRef, name))).isTrue
         val deleted = resolveMode == ResolveMode.CURRENT &&
-            model.eval(finalStateMemory.read(deletedFieldLValue(propertyRef, name))).isTrue
+            model.eval(resolutionMemory.read(deletedFieldLValue(propertyRef, name))).isTrue
         if ((!initialPresence && !written) || deleted) return null
 
         val declaredType = entry.declaredType
@@ -674,7 +775,7 @@ open class TsTestStateResolver(
             return resolveObjectField(ref, ref, name, fieldType, initial = true)
         }
 
-        val valueMemory = if (written) finalStateMemory else model
+        val valueMemory = if (written) resolutionMemory else model
         val valueRef = if (written) propertyRef else ref
         val value = readInputPropertyValue(valueMemory, valueRef, name, written)
         when {
@@ -690,11 +791,11 @@ open class TsTestStateResolver(
         ref: UConcreteHeapRef,
         heapRef: UHeapRef,
     ) = with(ctx) {
-        propertyState?.writtenConcreteFields.orEmpty().filter { it.first == ref }.forEach { (_, name) ->
-            if (model.eval(finalStateMemory.read(deletedFieldLValue(heapRef, name))).isTrue) {
+        writtenFields.filter { it.first == ref }.forEach { (_, name) ->
+            if (model.eval(resolutionMemory.read(deletedFieldLValue(heapRef, name))).isTrue) {
                 properties.remove(name)
             } else if (name !in properties) {
-                val sort = propertyState?.writtenObjectLiteralFieldSorts?.get(ref to name) ?: addressSort
+                val sort = writtenFieldSorts?.get(ref to name) ?: addressSort
                 properties[name] = resolveObjectFieldValue(ref, heapRef, name, sort)
             }
         }
@@ -722,6 +823,8 @@ open class TsTestStateResolver(
         }
 
         val lValue = mkFieldLValue(addressSort, ref, name)
+        if (initialEnvironmentHeap != null) return resolveExpr(valueMemory.read(lValue))
+
         val fakeObject = if (resolveMode == ResolveMode.MODEL) {
             resolvedLValuesToFakeObjects.firstOrNull { it.first == lValue }?.second
         } else {
@@ -742,7 +845,7 @@ open class TsTestStateResolver(
     val memory: UReadOnlyMemory<EtsType>
         get() = when (resolveMode) {
             ResolveMode.MODEL -> model
-            ResolveMode.CURRENT -> finalStateMemory
+            ResolveMode.CURRENT -> resolutionMemory
             ResolveMode.ERROR -> error("Illegal operation for a model")
         }
 }

@@ -2,6 +2,8 @@ package org.usvm.machine.state
 
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
+import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.TsEntryPointGuardResultStmt
@@ -18,6 +20,9 @@ fun TsState.newStmt(stmt: EtsStmt) {
 fun TsState.returnValue(valueToReturn: UExpr<out USort>) {
     val returnFromMethod = callStack.lastMethod()
     completeStaticsInitialization(returnFromMethod)
+    val owner = returnFromMethod.enclosingClass
+    val moduleCompleted = owner?.name == DEFAULT_ARK_CLASS_NAME && returnFromMethod.name == DEFAULT_ARK_METHOD_NAME
+    if (moduleCompleted) captureInitialEnvironment(requireNotNull(owner))
     leaveUnknownCallModelIfReturning()
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) {

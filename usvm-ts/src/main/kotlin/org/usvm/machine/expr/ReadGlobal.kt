@@ -5,6 +5,7 @@ import org.usvm.UExpr
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureGlobalsInitialized
+import org.usvm.machine.state.recordInitialModuleBinding
 import org.usvm.util.mkFieldLValue
 
 fun TsContext.readGlobal(
@@ -13,6 +14,7 @@ fun TsContext.readGlobal(
     name: String,
 ): UExpr<*>? = scope.calcOnState {
     ensureGlobalsInitialized(scope, file) ?: return@calcOnState null
+    recordInitialModuleBinding(file, name, isWrite = false)
 
     val savedSort = getSortForDfltObjectField(file, name)
     if (savedSort == null) {

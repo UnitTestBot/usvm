@@ -41,6 +41,7 @@ import org.usvm.machine.interpreter.TsFunction
 import org.usvm.machine.runtimeFunctionType
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
+import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
@@ -149,6 +150,18 @@ class TsState(
     forkPoints = forkPoints,
     targets = targets,
 ) {
+    internal var initialEnvironmentFailure: String? = null
+    internal var initialEnvironmentHeaps: Map<EtsClass, TsInitialEnvironmentHeap> = emptyMap()
+    internal var initialEnvironmentSlots: Map<Pair<EtsClass, String>, TsInitialEnvironmentSlot> = emptyMap()
+
+    internal fun captureInitialEnvironmentMemory(): UReadOnlyMemory<EtsType> {
+        val liveOwnership = MutabilityOwnership()
+        val snapshotOwnership = MutabilityOwnership()
+        val constraints = pathConstraints.clone(liveOwnership, snapshotOwnership)
+        ownership = liveOwnership
+        return memory.clone(constraints.typeConstraints, liveOwnership, snapshotOwnership)
+    }
+
     /** Terminates a satisfiable path that the TypeScript model cannot execute soundly. */
     fun terminateAsUnsupported(reason: String) {
         require(reason.isNotBlank())
@@ -405,7 +418,11 @@ class TsState(
             writtenObjectLiteralFieldSorts = writtenObjectLiteralFieldSorts,
             denseInputArrays = denseInputArrays.toMutableMap(),
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
-        )
+        ).also { cloned ->
+            cloned.initialEnvironmentFailure = initialEnvironmentFailure
+            cloned.initialEnvironmentHeaps = initialEnvironmentHeaps
+            cloned.initialEnvironmentSlots = initialEnvironmentSlots
+        }
     }
 
     override val isExceptional: Boolean
