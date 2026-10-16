@@ -79,6 +79,7 @@ class FastCheckBackend(
             timeoutMillis = configuration.timeoutMillis,
             examples = configuration.examples,
             observationRequest = configuration.observationRequest,
+            inputExportRequest = configuration.inputExportRequest,
             coverageRequest = configuration.coverageRequest,
             admittedCoverage = admittedCoverage,
             exactReplay = configuration.exactReplay,
@@ -145,6 +146,22 @@ class FastCheckBackend(
     ) {
         validateExamples(property, configuration)
         configuration.observationRequest?.let { validateObservationRequest(property, it) }
+        val export = configuration.inputExportRequest
+        if (export != null) {
+            val selectedSources = export.sources.map { it.module }
+            val allSourcesPresent = property.predicate.module in selectedSources &&
+                (property.precondition == null || property.precondition?.module in selectedSources)
+            val validHashes = export.sources.all { it.sha256.matches(SHA256_REGEX) }
+            val uniqueSources = selectedSources.distinct().size == selectedSources.size
+            if (!allSourcesPresent || !validHashes || !uniqueSources) {
+                throw invalidRequest(
+                    code = FastCheckDiagnosticCode.BACKEND_INPUT_EXPORT_INVALID,
+                    message = "Input export requires unique selected source hashes for the predicate and precondition",
+                    property = property,
+                    path = "inputExportRequest.sources",
+                )
+            }
+        }
     }
 
     private fun validateObservationRequest(property: PropertyDefinition, request: PropertyObservationRequest) {

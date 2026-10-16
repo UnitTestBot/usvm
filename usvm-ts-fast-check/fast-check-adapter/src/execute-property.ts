@@ -32,6 +32,7 @@ import {
   type ObservationPointRequest,
   type ObservationRequest,
 } from './observe-property.js';
+import { InputExportRecorder, validateInputExportRequest, type InputExportArtifact, type InputExportRequest } from './input-export.js';
 
 const runtimeVersion = process.version;
 
@@ -80,6 +81,7 @@ export interface FastCheckExecutionRequest {
   timeoutMillis: number;
   examples: TaggedJsValue[][];
   observationRequest?: ObservationRequest;
+  inputExportRequest?: InputExportRequest;
   admittedCoverage?: boolean;
   exactReplay?: boolean;
 }
@@ -106,6 +108,7 @@ export interface FastCheckRunResult {
   executionTimeMillis: number;
   runtimeVersion: string;
   observations?: ObservationArtifact;
+  inputExport?: InputExportArtifact;
 }
 
 export interface FastCheckExecutionSuccess {
@@ -119,12 +122,17 @@ export async function executeProperty(requestValue: unknown, coverage?: Executio
   const recorder = request.observationRequest === undefined
     ? undefined
     : new ObservationRecorder(request.manifest.propertyId, request.observationRequest);
+  const inputRecorder = request.inputExportRequest === undefined
+    ? undefined : new InputExportRecorder(request.manifest.propertyId, request.inputExportRequest);
 
   if (request.observationRequest !== undefined) {
     for (const source of request.observationRequest.sources) {
       await verifySourceHash(source.module, source.sha256, request.sourceRoots);
     }
     installObservationHook();
+  }
+  for (const source of request.inputExportRequest?.sources ?? []) {
+    await verifySourceHash(source.module, source.sha256, request.sourceRoots);
   }
 
   const predicate = await loadEntryPoint(request.manifest.predicate, request.sourceRoots, 'manifest.predicate', request.tsconfig);
@@ -134,12 +142,13 @@ export async function executeProperty(requestValue: unknown, coverage?: Executio
 
   const contractErrors: ContractErrorState = { first: undefined };
   const baseArbitrary = buildPropertyArbitrary(request.manifest);
-  const tracker = recorder === undefined && !coverage?.admittedOnly ? undefined : new PhaseTrackingArbitrary(baseArbitrary);
+  const tracker = recorder === undefined && inputRecorder === undefined && !coverage?.admittedOnly
+    ? undefined : new PhaseTrackingArbitrary(baseArbitrary);
   const arbitrary = tracker ?? baseArbitrary;
   const phaseOf = (values: JsConcreteValue[]) => request.replayPath === undefined
     ? tracker?.phaseOf(values) ?? 'unknown'
     : 'replay';
-  const property = buildProperty(arbitrary, predicate, precondition, contractErrors, recorder, phaseOf, coverage);
+  const property = buildProperty(arbitrary, predicate, precondition, contractErrors, recorder, phaseOf, coverage, inputRecorder);
   const parameters = buildParameters(request, tracker);
 
   const details = await checkProperty(property, parameters, request.replayPath);
@@ -154,6 +163,7 @@ export async function executeProperty(requestValue: unknown, coverage?: Executio
       details,
       Math.max(0, Math.round(performance.now() - startedAt)),
       recorder?.result,
+      inputRecorder?.result,
     ),
   };
 }
@@ -166,6 +176,7 @@ function buildProperty(
   recorder: ObservationRecorder | undefined,
   phaseOf: (values: JsConcreteValue[]) => 'generation' | 'explicit' | 'shrink' | 'replay' | 'unknown',
   coverage: ExecutionCoverage | undefined,
+  inputRecorder: InputExportRecorder | undefined,
 ): fc.IProperty<[JsConcreteValue[]]> | fc.IAsyncProperty<[JsConcreteValue[]]> {
   const asynchronous = predicate.executionKind === 'async' || precondition?.executionKind === 'async';
   let selectedCheckId: string | undefined;
@@ -174,7 +185,9 @@ function buildProperty(
     return fc.asyncProperty(arbitrary, (values: JsConcreteValue[]): Promise<boolean> => preserveAsyncContractError(
       contractErrors,
       async () => {
-        const result = await invokePropertyOnce(values, predicate, precondition, recorder, phaseOf(values), coverage);
+        const result = await invokePropertyOnce(
+          values, predicate, precondition, recorder, phaseOf(values), coverage, undefined, inputRecorder,
+        );
         if (result === null) fc.pre(false);
 
         return result;
@@ -187,7 +200,9 @@ function buildProperty(
     () => {
       let result: boolean | null;
       try {
-        result = invokePropertyOnce(values, predicate, precondition, recorder, phaseOf(values), coverage) as boolean | null;
+        result = invokePropertyOnce(
+          values, predicate, precondition, recorder, phaseOf(values), coverage, undefined, inputRecorder,
+        ) as boolean | null;
       } catch (error: unknown) {
         if (isNamedCheckFailure(error)) {
           selectedCheckId ??= error.checkId;
@@ -212,19 +227,28 @@ export function invokePropertyOnce(
   phase: 'generation' | 'explicit' | 'shrink' | 'replay' | 'unknown',
   coverage?: ExecutionCoverage,
   onPredicate?: () => void,
+  inputRecorder?: InputExportRecorder,
 ): boolean | null | Promise<boolean | null> {
+  const inputRecord = inputRecorder?.begin(values, phase);
+  const finish = (admission: 'admitted' | 'rejected' | 'threw', outcome: 'holds' | 'false' | 'threw' | 'skipped'): void => {
+    recorder?.finish(admission, outcome);
+    if (inputRecord !== undefined) {
+      inputRecord.admission = admission;
+      inputRecord.outcome = outcome;
+    }
+  };
   const invocationValues = cloneArguments(values);
   const invoke = (): boolean | null | Promise<boolean | null> => {
     if (predicate.executionKind === 'async' || precondition?.executionKind === 'async') {
       return (async () => {
         try {
           if (precondition !== undefined && !(await invokePrecondition(precondition, invocationValues))) {
-            recorder?.finish('rejected', 'skipped');
+            finish('rejected', 'skipped');
 
             return null;
           }
         } catch (error: unknown) {
-          recorder?.finish('threw', 'threw');
+          finish('threw', 'threw');
           throw error;
         }
 
@@ -234,11 +258,11 @@ export function invokePropertyOnce(
         try {
           onPredicate?.();
           const result = await predicate.invoke(invocationValues);
-          recorder?.finish('admitted', result ? 'holds' : 'false');
+          finish('admitted', result ? 'holds' : 'false');
 
           return result;
         } catch (error: unknown) {
-          recorder?.finish('admitted', predicateExceptionOutcome(error));
+          finish('admitted', predicateExceptionOutcome(error));
           throw error;
         } finally {
           if (collect) coverage.admit();
@@ -248,12 +272,12 @@ export function invokePropertyOnce(
 
     try {
       if (precondition !== undefined && !invokeSynchronousPrecondition(precondition, invocationValues)) {
-        recorder?.finish('rejected', 'skipped');
+        finish('rejected', 'skipped');
 
         return null;
       }
     } catch (error: unknown) {
-      recorder?.finish('threw', 'threw');
+      finish('threw', 'threw');
       throw error;
     }
 
@@ -263,11 +287,11 @@ export function invokePropertyOnce(
     try {
       onPredicate?.();
       const result = predicate.invoke(invocationValues) as boolean;
-      recorder?.finish('admitted', result ? 'holds' : 'false');
+      finish('admitted', result ? 'holds' : 'false');
 
       return result;
     } catch (error: unknown) {
-      recorder?.finish('admitted', predicateExceptionOutcome(error));
+      finish('admitted', predicateExceptionOutcome(error));
       throw error;
     } finally {
       if (collect) coverage.admit();
@@ -438,6 +462,7 @@ function toRunResult(
   details: RunDetails<[JsConcreteValue[]]>,
   executionTimeMillis: number,
   observations: ObservationArtifact | undefined,
+  inputExport: InputExportArtifact | undefined,
 ): FastCheckRunResult {
   const counterexampleValues = details.counterexample?.[0];
   const counterexample = counterexampleValues === undefined
@@ -459,6 +484,7 @@ function toRunResult(
     runtimeVersion,
   };
   if (observations !== undefined) result.observations = observations;
+  if (inputExport !== undefined) result.inputExport = inputExport;
 
   return result;
 }
@@ -624,6 +650,9 @@ export function validateRequest(value: unknown): FastCheckExecutionRequest {
 
   if (request.observationRequest !== undefined) {
     validated.observationRequest = validateObservationRequest(request.observationRequest, manifest);
+  }
+  if (request.inputExportRequest !== undefined) {
+    validated.inputExportRequest = validateInputExportRequest(request.inputExportRequest, manifest);
   }
 
   return validated;
