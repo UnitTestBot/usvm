@@ -1,5 +1,7 @@
 # Coverage selector performance on real JVM bytecode
 
+These are historical results for the superseded periodic selector. Reproduce them at commit `44869512bca6b1ce89511b9f6799f4475efdf972`, where the harness and old selector are compiled together. The preserved harness in this directory is evidence, not part of current test sources. The current compiled harness supports `nurs`, `existing`, `uniform`, and `random-path`; the runner defaults to `nurs,uniform`. None of the original 28 measurements benchmarks `CLOSEST_TO_UNCOVERED_RANDOM` (NURS).
+
 This experiment drives the production `JcInterpreter` through `UMachine.run`, with the coverage-guided selector installed directly in the execution loop. It does not use mock states. It does not call the public `JcMachine.analyze` wrapper or concretely replay generated inputs.
 
 ## Recorded results (2026-10-16)

@@ -5,6 +5,7 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
 import org.usvm.CoverageZone
+import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
@@ -37,6 +38,7 @@ import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.StatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
+import org.usvm.statistics.distances.CallStackDistanceCalculator
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.StopStrategy
@@ -78,9 +80,13 @@ data class TsMachineAnalysisResult(
     val runtimeLimited: Boolean get() = unsupportedPaths.isNotEmpty()
 }
 
+/** Symbolically executes TypeScript entry points with shared coverage guidance. */
 class TsMachine(
     scene: EtsScene,
-    override val options: UMachineOptions = UMachineOptions(solverType = SolverType.YICES),
+    override val options: UMachineOptions = UMachineOptions(
+        solverType = SolverType.YICES,
+        pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
+    ),
     private val tsOptions: TsOptions,
     private val machineObserver: UMachineObserver<TsState>? = null,
     private val observer: TsInterpreterObserver? = null,
@@ -149,6 +155,24 @@ class TsMachine(
         throwExceptionOnStepFailure = options.throwExceptionOnStepFailure,
     )
     private val cfgStatistics = CfgStatisticsImpl(graph)
+    private val externallyCoveredStatements = hashSetOf<EtsStmt>()
+    private var coverageDistanceCalculator: CallStackDistanceCalculator<EtsMethod, EtsStmt>? = null
+
+    /**
+     * Reports caller-confirmed coverage on the analysis thread, including before analysis starts.
+     * This removes distance goals without changing native coverage counters or refreshing queued weights.
+     * Reports are retained across analyses on this machine.
+     */
+    fun markCovered(statements: Collection<EtsStmt>): Boolean {
+        var changed = false
+        for (statement in statements) {
+            if (externallyCoveredStatements.add(statement)) {
+                coverageDistanceCalculator?.removeTarget(graph.methodOf(statement), statement)
+                changed = true
+            }
+        }
+        return changed
+    }
 
     /** Returns supported states only. Call [analyzeWithOutcome] to inspect excluded unsupported paths. */
     fun analyze(
@@ -192,6 +216,7 @@ class TsMachine(
         targets: List<TsTarget> = emptyList(),
         configureInitialState: (EtsMethod, TsState) -> Unit = { _, _ -> },
     ): TsMachineAnalysisResult {
+        coverageDistanceCalculator = null
         interpreter.resetStepFailure()
         failureTrackingUnknownCallObserver.reset()
 
@@ -213,11 +238,7 @@ class TsMachine(
             applicationGraph = graph,
         )
 
-        val callGraphStatistics: PlainCallGraphStatistics<EtsMethod> =
-            when (options.targetSearchDepth) {
-                0u -> PlainCallGraphStatistics()
-                else -> TODO("Unsupported yet")
-            }
+        val callGraphStatistics = createCallGraphStatistics()
 
         val timeStatistics = createTimeStatistics()
 
@@ -229,6 +250,7 @@ class TsMachine(
             coverageStatisticsFactory = { coverageStatistics },
             cfgStatisticsFactory = { cfgStatistics },
             callGraphStatisticsFactory = { callGraphStatistics },
+            coverageDistanceCalculatorFactory = { getCoverageDistanceCalculator(coverageStatistics) },
         )
 
         val statesCollector = createStatesCollector(coverageStatistics)
@@ -324,6 +346,19 @@ class TsMachine(
             infeasibleEntryPoints = infeasibleEntryPoints,
         )
     }
+
+    private fun createCallGraphStatistics(): PlainCallGraphStatistics<EtsMethod> = when (options.targetSearchDepth) {
+        0u -> PlainCallGraphStatistics()
+        else -> TODO("Unsupported yet")
+    }
+
+    private fun getCoverageDistanceCalculator(
+        coverageStatistics: CoverageStatistics<EtsMethod, EtsStmt, TsState>,
+    ): CallStackDistanceCalculator<EtsMethod, EtsStmt> = coverageDistanceCalculator ?: CallStackDistanceCalculator(
+        targets = coverageStatistics.getUncoveredStatements().filterNot { it in externallyCoveredStatements },
+        cfgStatistics = cfgStatistics,
+        applicationGraph = graph,
+    ).also { coverageDistanceCalculator = it }
 
     private fun createStatesCollector(
         coverageStatistics: CoverageStatistics<EtsMethod, EtsStmt, TsState>,

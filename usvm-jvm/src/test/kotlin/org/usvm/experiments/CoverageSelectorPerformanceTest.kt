@@ -21,7 +21,7 @@ import org.usvm.machine.JcTypeSystem
 import org.usvm.machine.interpreter.JcInterpreter
 import org.usvm.machine.state.JcState
 import org.usvm.ps.BfsPathSelector
-import org.usvm.ps.CoverageGuidedPathSelector
+import org.usvm.ps.createClosestToUncoveredRandomPathSelector
 import org.usvm.ps.RandomTreePathSelector
 import org.usvm.ps.WeightedPathSelector
 import org.usvm.samples.JacoDBContainer
@@ -30,7 +30,6 @@ import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.distances.CallStackDistanceCalculator
 import org.usvm.statistics.distances.CfgStatisticsImpl
-import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.util.originalInst
 import java.io.File
@@ -44,7 +43,7 @@ class CoverageSelectorPerformanceTest {
     @Test
     fun runProgram() {
         val program = System.getProperty("coverage.perf.case", "codec")
-        val mode = System.getProperty("coverage.perf.mode", "128")
+        val mode = System.getProperty("coverage.perf.mode", "nurs")
         val steps = System.getProperty("coverage.perf.steps", "100000").toLong()
         val timeoutMillis = System.getProperty("coverage.perf.timeoutMillis", "120000").toLong()
         val resultFile = File(System.getProperty("coverage.perf.results"))
@@ -154,45 +153,33 @@ private class PerformanceMachine(cp: JcClasspath) : UMachine<JcState>() {
         metrics: Metrics,
         initial: JcState,
     ): Pair<UPathSelector<JcState>, (JcInst) -> Unit> {
-        val cfg = CfgStatisticsImpl(graph)
-        val calculators = MultiTargetDistanceCalculator<JcMethod, JcInst, UInt> { target ->
-            CallStackDistanceCalculator(targets = listOf(target), cfgStatistics = cfg, applicationGraph = graph)
+        if (mode == "random-path" || mode == "uniform") {
+            return createRandomSelector(mode, initial) to {}
         }
-        val distance: (JcState, JcInst) -> UInt = { state, target ->
+        if (mode == "bfs") return BfsPathSelector<JcState>() to {}
+        require(mode == "nurs" || mode == "existing") { "Historical modes require checkout 44869512b" }
+
+        val aggregate = CallStackDistanceCalculator(
+            targets = goals,
+            cfgStatistics = CfgStatisticsImpl(graph),
+            applicationGraph = graph,
+        )
+        val distance: (JcState) -> UInt = { state ->
             metrics.distanceCalls++
-            calculators.calculateDistance(state.currentStatement.originalInst(), state.callStack, target)
+            aggregate.calculateDistance(state.currentStatement.originalInst(), state.callStack)
         }
-        val markCovered: (JcInst) -> Unit
-        val base: UPathSelector<JcState>
-        if (mode == "eager") {
-            val eager = EagerCoverageSelector(goals, distance)
-            base = eager
-            markCovered = { eager.markCovered(it) }
-        } else if (mode == "existing") {
-            val aggregate = CallStackDistanceCalculator(targets = goals, cfgStatistics = cfg, applicationGraph = graph)
-            base = WeightedPathSelector(
-                priorityCollectionFactory = { DeterministicPriorityCollection(naturalOrder()) },
-                weighter = { state: JcState ->
-                    metrics.distanceCalls++
-                    aggregate.calculateDistance(state.currentStatement.originalInst(), state.callStack)
-                },
-            )
-            markCovered = { statement -> aggregate.removeTarget(graph.methodOf(statement), statement) }
-        } else if (mode == "random-path" || mode == "uniform") {
-            base = createRandomSelector(mode, initial)
-            markCovered = {}
-        } else if (mode == "bfs") {
-            base = BfsPathSelector()
-            markCovered = {}
-        } else {
-            val periodic = CoverageGuidedPathSelector(
-                targets = goals,
+        val base = if (mode == "nurs") {
+            createClosestToUncoveredRandomPathSelector(
                 distance = distance,
-                priorityRefreshInterval = mode.toInt(),
+                random = Random(seed = options.randomSeed),
             )
-            base = periodic
-            markCovered = { periodic.markCovered(targets = listOf(it)) }
+        } else {
+            WeightedPathSelector(
+                priorityCollectionFactory = { DeterministicPriorityCollection(naturalOrder()) },
+                weighter = distance,
+            )
         }
+        val markCovered: (JcInst) -> Unit = { statement -> aggregate.removeTarget(graph.methodOf(statement), statement) }
         return base to markCovered
     }
 
@@ -270,36 +257,6 @@ private class MeasuredSelector(
         metrics.selectorNanos += System.nanoTime() - started
         metrics.queueSize--
     }
-}
-
-/** Original PR algorithm, using the same queue ordering fix as the periodic implementation. */
-private class EagerCoverageSelector(
-    targets: Collection<JcInst>,
-    distance: (JcState, JcInst) -> UInt,
-) : UPathSelector<JcState> {
-    private val pending = targets.toMutableSet()
-    private var dirty = false
-    private val delegate = WeightedPathSelector<JcState, UInt>(
-        priorityCollectionFactory = { DeterministicPriorityCollection(naturalOrder()) },
-        weighter = { state -> pending.minOfOrNull { distance(state, it) } ?: UInt.MAX_VALUE },
-    )
-
-    fun markCovered(target: JcInst) {
-        if (pending.remove(target)) dirty = true
-    }
-
-    override fun isEmpty(): Boolean = delegate.isEmpty()
-    override fun peek(): JcState {
-        if (dirty) {
-            val states = delegate.drain().toList()
-            delegate.add(states)
-            dirty = false
-        }
-        return delegate.peek()
-    }
-    override fun add(states: Collection<JcState>) = delegate.add(states)
-    override fun update(state: JcState) = delegate.update(state)
-    override fun remove(state: JcState) = delegate.remove(state)
 }
 
 private fun gcCount(): Long = ManagementFactory.getGarbageCollectorMXBeans().sumOf {
