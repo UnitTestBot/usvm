@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -16,6 +17,7 @@ import org.usvm.machine.TsOptions
 import org.usvm.machine.call.TsUnknownCallModelSelection
 import org.usvm.machine.state.TsState
 import java.nio.file.Path
+import java.util.IdentityHashMap
 import kotlin.io.path.readText
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -109,6 +111,22 @@ class TsInputWitnessResolverTest : TsMethodTestRunner() {
         val witnesses = states.map { TsTestResolver().resolveInputs(method = method, state = it) }
 
         assertTrue(witnesses.any { it.parameters[0] === it.parameters[1] })
+    }
+
+    @Test
+    fun `ordinary object literal remains materializable with its tracked fields`() {
+        val method = getMethod(methodName = "plainObject", className = "ConcreteWitnessInput")
+        val states = TsMachine(scene = scene, options = analysisOptions, tsOptions = TsOptions()).use { machine ->
+            machine.analyze(methods = listOf(method))
+        }
+
+        val categories = IdentityHashMap<TsTestValue.TsClass, EtsClassCategory>()
+        val resolver = TsTestResolver(onClassResolved = { value, owner -> categories[value] = owner.category })
+        val value = resolver.resolve(method = method, state = states.single()).returnValue
+        val instance = assertIs<TsTestValue.TsClass>(value)
+
+        assertEquals(EtsClassCategory.OBJECT, categories[instance])
+        assertEquals(7.0, assertIs<TsTestValue.TsNumber>(instance.properties["value"]).number)
     }
 
     private val analysisOptions = UMachineOptions(
