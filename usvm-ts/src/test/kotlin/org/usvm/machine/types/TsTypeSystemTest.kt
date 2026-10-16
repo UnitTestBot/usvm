@@ -266,6 +266,37 @@ class TsTypeSystemTest {
     }
 
     @Test
+    fun `runtime object and nominal constraints refine consistently in both orders`() {
+        val fileSignature = EtsFileSignature(projectName = "test", fileName = "types.ts")
+        val classSignature = EtsClassSignature(name = "RuntimeMember", file = fileSignature)
+        val clazz = EtsClassImpl(signature = classSignature, fields = emptyList(), methods = emptyList())
+        val file = EtsFile(signature = fileSignature, classes = listOf(clazz), namespaces = emptyList())
+        val scene = EtsScene(projectFiles = listOf(file)).withCoreRuntimeSdk()
+        val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds, hierarchy = EtsHierarchy(scene))
+        val nominalType = EtsNominalType(clazz.type)
+        val nominalObject = EtsNominalType(EtsHierarchy.OBJECT_CLASS)
+        val region = UTypeRegion(typeSystem, typeSystem.topTypeStream())
+
+        val objectFirst = region.addSupertype(EtsObjectType).addSupertype(nominalType)
+        val nominalFirst = region.addSupertype(nominalType).addSupertype(EtsObjectType)
+        val positiveThenNegative = objectFirst.excludeSupertype(nominalType)
+        val singletonRegion = UTypeRegion(typeSystem, USingleTypeStream(typeSystem, clazz.type))
+        val negativeThenPositive = singletonRegion.excludeSupertype(nominalType).addSupertype(EtsObjectType)
+
+        assertTrue(typeSystem.isSupertype(supertype = EtsObjectType, type = nominalType))
+        assertFalse(typeSystem.isSupertype(supertype = nominalType, type = EtsObjectType))
+        assertTrue(typeSystem.isSupertype(supertype = nominalObject, type = EtsObjectType))
+        assertFalse(objectFirst.isEmpty)
+        assertFalse(nominalFirst.isEmpty)
+        assertEquals(setOf(nominalType), objectFirst.supertypes.toSet())
+        assertEquals(objectFirst.supertypes, nominalFirst.supertypes)
+        val matchingTypes = objectFirst.typeStream.take(n = 10) as TypesResult.SuccessfulTypesResult
+        assertEquals(setOf(clazz.type), matchingTypes.types.toSet())
+        assertTrue(positiveThenNegative.isEmpty)
+        assertTrue(negativeThenPositive.isEmpty)
+    }
+
+    @Test
     fun `core SDK prototype identities are not ordinary object witnesses`() {
         val scene = EtsScene(projectFiles = emptyList()).withCoreRuntimeSdk()
         val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds, hierarchy = EtsHierarchy(scene))
