@@ -35,11 +35,15 @@ abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
         observer: UMachineObserver<State>,
         isStateTerminated: (State) -> Boolean,
         stopStrategy: StopStrategy = StopStrategy { false }
-    ) {
-        logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
+    ): UMachineRunResult {
+        return logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
+            val forkLimit = options.forkLimit
+            var generatedForks = 0UL
+            fun forkLimitReached(): Boolean = forkLimit != null && generatedForks >= forkLimit
+
             observer.onMachineStarted()
-            try {
-                while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
+            val result = try {
+                while (!pathSelector.isEmpty() && !forkLimitReached() && !stopStrategy.shouldStop()) {
                     val state = pathSelector.peek()
                     observer.onStatePeeked(state)
 
@@ -62,6 +66,7 @@ abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
                     val originalStateAlive = stateAlive && !isStateTerminated(state)
                     val aliveForkedStates = mutableListOf<State>()
                     for (forkedState in forkedStates) {
+                        generatedForks++
                         if (!isStateTerminated(forkedState)) {
                             aliveForkedStates.add(forkedState)
                         } else {
@@ -86,14 +91,23 @@ abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
                         pathSelector.add(aliveForkedStates)
                     }
                 }
+
+                val stopReason = when {
+                    pathSelector.isEmpty() -> UMachineStopReason.EXHAUSTED
+                    forkLimitReached() -> UMachineStopReason.FORK_LIMIT
+                    else -> UMachineStopReason.STOPPED
+                }
+                UMachineRunResult(stopReason = stopReason, generatedForks = generatedForks, forkLimit = forkLimit)
             } finally {
                 observer.onMachineStopped()
             }
 
-            if (!pathSelector.isEmpty()) {
-                val stopReason = stopStrategy.stopReason()
-                logger.debug { stopReason }
+            logger.debug {
+                val detail = if (result.stopReason == UMachineStopReason.STOPPED) stopStrategy.stopReason() else ""
+                "Stop reason: ${result.stopReason}; $detail; generated forks: ${result.generatedForks}; " +
+                    "fork limit: $forkLimit"
             }
+            result
         }
     }
 
