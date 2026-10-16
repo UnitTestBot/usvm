@@ -23,10 +23,14 @@ import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.CapabilityDiagnostic
 import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.ts.pbt.backend.ProjectionLevel
+import org.usvm.ts.pbt.coverage.captureCoverageIdentity
 import org.usvm.ts.pbt.manifest.PropertyManifest
+import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.mapping.EtsEntryPointTarget
 import org.usvm.ts.pbt.mapping.PropertyEtsMappingArtifact
 import org.usvm.ts.pbt.model.PropertyId
+import java.io.IOException
+import java.nio.file.Path
 
 /** Searches mapped TypeScript predicates for concrete property violations with USVM. */
 class UsvmPropertySearcher(
@@ -52,7 +56,20 @@ class UsvmPropertySearcher(
         mapping: PropertyEtsMappingArtifact,
         concreteCapability: ProjectionCapability,
         coverageFeedback: UsvmCoverageFeedback? = null,
-    ): UsvmPropertySearchResult {
+    ): UsvmPropertySearchResult = openSession(
+        manifest = manifest,
+        mapping = mapping,
+        concreteCapability = concreteCapability,
+        coverageFeedback = coverageFeedback,
+    ).use { session -> session.advance() }
+
+    /** Prepares the declared property once; later advances keep its pending and completed symbolic work. */
+    fun openSession(
+        manifest: PropertyManifest,
+        mapping: PropertyEtsMappingArtifact,
+        concreteCapability: ProjectionCapability,
+        coverageFeedback: UsvmCoverageFeedback? = null,
+    ): UsvmPropertySearchSession {
         val capability = capabilityResolver.resolve(
             manifest = manifest,
             mapping = mapping,
@@ -60,15 +77,17 @@ class UsvmPropertySearcher(
             options = projectionOptions,
         )
         if (capability.symbolic.level == ProjectionLevel.UNSUPPORTED) {
-            return result(
+            val unsupported = result(
                 manifest = manifest,
                 status = UsvmPropertySearchStatus.UNSUPPORTED,
                 capability = capability,
             )
+            return completedSession(unsupported)
         }
 
         val predicate = mapping.predicate.exactTargetOrNull()
-            ?: return result(
+        if (predicate == null) {
+            val unavailable = result(
                 manifest = manifest,
                 status = UsvmPropertySearchStatus.ENGINE_FAILURE,
                 capability = capability,
@@ -78,35 +97,49 @@ class UsvmPropertySearcher(
                     path = "predicate",
                 ),
             )
+            return completedSession(unavailable)
+        }
+
+        val pinnedManifest = PropertyManifestJson.decode(PropertyManifestJson.encode(manifest))
         val precondition = mapping.precondition?.exactTargetOrNull()
         val guidedSelectionSupported = !machineOptions.useMerging && !machineOptions.loopIterativeDeepening &&
             machineOptions.loopIterationLimit == null
         val guidance = coverageFeedback?.let { feedback ->
             UsvmEdgeGuidance(
                 scene = scene,
-                manifest = manifest,
+                manifest = pinnedManifest,
                 mapping = mapping,
                 feedback = feedback,
                 selectionSupported = guidedSelectionSupported,
             )
         }
 
-        return executeSearch(
-            manifest = manifest,
+        return prepareSession(
+            manifest = pinnedManifest,
             predicate = predicate,
             precondition = precondition,
             capability = capability,
             guidance = guidance,
-        ).copy(edgeGuidance = guidance?.snapshot())
+            sourceRoots = mapping.provenance.sourceRoots.map(Path::of),
+        )
     }
 
-    private fun executeSearch(
+    private fun completedSession(result: UsvmPropertySearchResult) = UsvmPropertySearchSession(
+        advanceSearch = { result },
+        searchFinished = { true },
+        applyCoverage = { UsvmCoverageUpdateResult(status = UsvmCoverageUpdateStatus.UNSUPPORTED) },
+        release = {},
+    )
+
+    private fun prepareSession(
         manifest: PropertyManifest,
         predicate: EtsEntryPointTarget,
         precondition: EtsEntryPointTarget?,
         capability: UsvmPropertyProjectionCapability,
         guidance: UsvmEdgeGuidance?,
-    ): UsvmPropertySearchResult {
+        sourceRoots: List<Path>,
+    ): UsvmPropertySearchSession {
+        val identity = captureCoverageIdentity(manifest, sourceRoots)
         lateinit var projection: UsvmDeclaredDomainProjection
         val target = UsvmViolationTsTarget()
         lateinit var observer: UsvmViolationObserver
@@ -125,15 +158,17 @@ class UsvmPropertySearcher(
         val objectShapes = PlainObjectInputShapes(scene, manifest.inputs.map { it.domain })
         val domainProjector = UsvmDomainProjector(projectionOptions, objectShapes)
 
-        return TsMachine(
+        val machine = TsMachine(
             scene = objectShapes.scene,
             options = machineOptions,
             tsOptions = tsOptions,
             machineObserver = observer,
             deadlineReached = deadlineReached,
             pathSelectorFactory = guidance?.takeIf { it.selectionSupported }?.let { it::selector },
-        ).use { machine ->
-            val analysis = machine.analyzeWithMetadata(
+        )
+        var prepared = false
+        val analysis = try {
+            val retained = machine.openAnalysis(
                 methods = listOf(predicate.method),
                 targets = listOf(target),
                 configureInitialState = { method, state ->
@@ -152,34 +187,136 @@ class UsvmPropertySearcher(
                     }
                 },
             )
-            val violationState = observer.violationStates.firstOrNull { state ->
-                state.methodResult is TsMethodResult.Success
-            } ?: observer.violationStates.firstOrNull()
-            val candidate = violationState?.let { state ->
-                violationResult(
-                    manifest = manifest,
-                    capability = capability,
-                    violationState = state,
-                    projection = projection,
-                )
+            prepared = true
+            retained
+        } finally {
+            if (!prepared) machine.close()
+        }
+        var released = false
+        var invalidated = false
+
+        fun release() {
+            if (released) return
+
+            released = true
+            try {
+                analysis.close()
+            } finally {
+                machine.close()
             }
-            val terminalFailure = classifyTerminalFailure(
+        }
+
+        fun invalidateChangedSource(): Boolean {
+            if (invalidated) return true
+
+            val unchanged = try {
+                captureCoverageIdentity(manifest, sourceRoots) == identity
+            } catch (_: IOException) {
+                false
+            }
+            if (!unchanged) {
+                invalidated = true
+                release()
+            }
+            return invalidated
+        }
+
+        return UsvmPropertySearchSession(
+            advanceSearch = { maxSteps ->
+                val sourceChanged = invalidateChangedSource()
+                val result = if (sourceChanged) {
+                    invalidatedSourceResult(manifest, capability)
+                } else {
+                    val snapshot = analysis.advance(maxSteps)
+                    classifySearchResult(
+                        manifest = manifest,
+                        capability = capability,
+                        analysis = snapshot,
+                        observer = observer,
+                        projection = { projection },
+                        finished = analysis.isFinished,
+                    )
+                }
+                result.copy(edgeGuidance = guidance?.snapshot())
+            },
+            searchFinished = { invalidated || analysis.isFinished },
+            applyCoverage = { artifact ->
+                val sourceChanged = invalidateChangedSource()
+                val update = if (sourceChanged) {
+                    UsvmCoverageUpdateResult(status = UsvmCoverageUpdateStatus.SOURCE_CHANGED)
+                } else {
+                    guidance?.applyCoverage(artifact)
+                        ?: UsvmCoverageUpdateResult(status = UsvmCoverageUpdateStatus.UNSUPPORTED)
+                }
+                if (update.status == UsvmCoverageUpdateStatus.SOURCE_CHANGED) {
+                    invalidated = true
+                    release()
+                }
+                update
+            },
+            release = ::release,
+        )
+    }
+
+    private fun invalidatedSourceResult(
+        manifest: PropertyManifest,
+        capability: UsvmPropertyProjectionCapability,
+    ) = result(
+        manifest = manifest,
+        status = UsvmPropertySearchStatus.SOURCE_INVALIDATED,
+        capability = capability,
+        additionalDiagnostic = diagnostic(
+            code = PbtDiagnosticCode.USVM_SESSION_SOURCE_CHANGED,
+            message = "The original property source changed; the retained analysis cannot continue",
+            path = "source",
+        ),
+    )
+
+    private fun classifySearchResult(
+        manifest: PropertyManifest,
+        capability: UsvmPropertyProjectionCapability,
+        analysis: TsMachineAnalysisResult,
+        observer: UsvmViolationObserver,
+        projection: () -> UsvmDeclaredDomainProjection,
+        finished: Boolean,
+    ): UsvmPropertySearchResult {
+        val violationState = observer.violationStates.firstOrNull { state ->
+            state.methodResult is TsMethodResult.Success
+        } ?: observer.violationStates.firstOrNull()
+        val candidate = violationState?.let { state ->
+            violationResult(
                 manifest = manifest,
                 capability = capability,
-                analysis = analysis,
+                violationState = state,
+                projection = projection(),
             )
-            if (terminalFailure != null) {
-                return@use terminalFailure.withCandidate(candidate)
-            }
-
-            candidate
-                ?: noViolationResult(
-                    manifest = manifest,
-                    capability = capability,
-                    analysis = analysis,
-                    observer = observer,
-                )
         }
+        val terminalFailure = classifyTerminalFailure(
+            manifest = manifest,
+            capability = capability,
+            analysis = analysis,
+        )
+        if (!finished) {
+            val progress = result(
+                manifest = manifest,
+                status = UsvmPropertySearchStatus.IN_PROGRESS,
+                capability = capability,
+            ).withCandidate(candidate)
+            return progress.copy(
+                diagnostics = (progress.diagnostics + terminalFailure?.diagnostics.orEmpty()).distinct(),
+            )
+        }
+        if (terminalFailure != null) {
+            return terminalFailure.withCandidate(candidate)
+        }
+
+        if (candidate != null) return candidate
+        return noViolationResult(
+            manifest = manifest,
+            capability = capability,
+            analysis = analysis,
+            observer = observer,
+        )
     }
 
     private fun classifyTerminalFailure(

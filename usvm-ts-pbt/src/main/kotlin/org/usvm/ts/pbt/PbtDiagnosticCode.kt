@@ -44,6 +44,7 @@ internal object PbtDiagnosticCode {
     const val USVM_PREDICATE_MAPPING_NON_EXACT = "usvm.predicate.mapping.non-exact"
     const val USVM_PREDICATE_RESULT_NON_BOOLEAN = "usvm.predicate.result.non-boolean"
     const val USVM_SOLVER_UNKNOWN = "usvm.solver.unknown"
+    const val USVM_SESSION_SOURCE_CHANGED = "usvm.session.source.changed"
 
     const val PROPERTY_ID_INVALID = "property.id.invalid"
     const val PROPERTY_ASSERTION_INVALID = "property.assertion.invalid"

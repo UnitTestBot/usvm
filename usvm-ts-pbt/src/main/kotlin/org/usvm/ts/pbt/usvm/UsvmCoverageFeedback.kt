@@ -10,6 +10,22 @@ data class UsvmCoverageFeedback(
     val replay: (inputs: List<JsConcreteValue>) -> PropertyRunResult?,
 )
 
+/** Outcome of applying a later native report to the original property session. */
+enum class UsvmCoverageUpdateStatus {
+    ACCEPTED,
+    STALE,
+    INCOMPATIBLE,
+    NO_ADMITTED_INPUTS,
+    UNSUPPORTED,
+    SOURCE_CHANGED,
+}
+
+/** Only accepted, exactly mapped native hits can appear in [additions]. */
+data class UsvmCoverageUpdateResult(
+    val status: UsvmCoverageUpdateStatus,
+    val additions: Set<UsvmCoverageEdge> = emptySet(),
+)
+
 /** Why a report can or cannot supply exact coverage goals for this property/source snapshot. */
 enum class UsvmCoverageEvidenceStatus {
     ABSENT,

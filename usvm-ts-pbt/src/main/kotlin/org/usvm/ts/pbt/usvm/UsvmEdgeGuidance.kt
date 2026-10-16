@@ -11,6 +11,8 @@ import org.usvm.machine.TsMethodCall
 import org.usvm.machine.state.TsState
 import org.usvm.ps.BfsPathSelector
 import org.usvm.ps.CoverageGuidedPathSelector
+import org.usvm.ts.pbt.backend.CoverageArtifactKind
+import org.usvm.ts.pbt.backend.CoverageProvenance
 import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
 import org.usvm.ts.pbt.backend.PropertyFailureKind
 import org.usvm.ts.pbt.backend.PropertyRunResult
@@ -22,6 +24,7 @@ import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
 import org.usvm.ts.pbt.mapping.PropertyEtsMappingArtifact
 import org.usvm.ts.pbt.model.JsConcreteValue
+import java.io.IOException
 import java.nio.file.Path
 import java.util.concurrent.CancellationException
 import kotlin.time.TimeSource
@@ -37,6 +40,25 @@ internal class UsvmEdgeGuidance(
     private val roots = mapping.provenance.sourceRoots.map(Path::of)
     private val started = TimeSource.Monotonic.markNow()
     private val identity = captureCoverageIdentity(manifest, roots)
+    private val environment = feedback.initialCoverage?.let { coverage ->
+        val provenance = coverage.provenance
+        val request = provenance.request
+        val pinnedRequest = request.copy(
+            scopes = request.scopes.toSet(),
+            includePatterns = request.includePatterns.toList(),
+            excludePatterns = request.excludePatterns.toList(),
+        )
+        val pinnedProvenance = provenance.copy(
+            sourceRoots = provenance.sourceRoots.toList(),
+            request = pinnedRequest,
+        )
+        NativeEnvironment(
+            backendId = coverage.backendId,
+            backendVersion = coverage.backendVersion,
+            kind = coverage.kind,
+            provenance = pinnedProvenance,
+        )
+    }
     private val targets = linkedMapOf<UsvmCoverageEdge, EtsBranchArmTarget>()
     private val covered = linkedSetOf<UsvmCoverageEdge>()
     private val attempted = linkedSetOf<UsvmCoverageEdge>()
@@ -143,7 +165,6 @@ internal class UsvmEdgeGuidance(
 
         val replayStarted = TimeSource.Monotonic.markNow()
         val decision = replay(inputs, claimed, expectsViolation)
-        activeSelector?.updateCoverage()
         val exhaustedRetry = claimed.any { attemptsByGoal.getValue(it) == MAX_REPLAY_ATTEMPTS_PER_GOAL }
         if (exhaustedRetry && decision.status != UsvmEdgeReplayStatus.CONFIRMED) {
             activeSelector?.refreshPriorities()
@@ -156,6 +177,36 @@ internal class UsvmEdgeGuidance(
             remainingGoals = pendingGoals(),
             elapsedMillis = replayStarted.elapsedNow().inWholeMilliseconds,
         )
+    }
+
+    fun sourceUnchanged(): Boolean = try {
+        captureCoverageIdentity(manifest, roots) == identity
+    } catch (_: IOException) {
+        false
+    }
+
+    fun applyCoverage(coverage: PropertyCoverageArtifact): UsvmCoverageUpdateResult {
+        if (!sourceUnchanged()) return UsvmCoverageUpdateResult(status = UsvmCoverageUpdateStatus.SOURCE_CHANGED)
+
+        val anchored = evidenceStatus == UsvmCoverageEvidenceStatus.EXACT ||
+            evidenceStatus == UsvmCoverageEvidenceStatus.PARTIAL
+        if (!anchored) return UsvmCoverageUpdateResult(status = UsvmCoverageUpdateStatus.UNSUPPORTED)
+
+        val incomingStatus = evidenceStatus(coverage)
+        val rejection = when (incomingStatus) {
+            UsvmCoverageEvidenceStatus.STALE -> UsvmCoverageUpdateStatus.STALE
+            UsvmCoverageEvidenceStatus.NO_ADMITTED_INPUTS -> UsvmCoverageUpdateStatus.NO_ADMITTED_INPUTS
+            UsvmCoverageEvidenceStatus.EXACT, UsvmCoverageEvidenceStatus.PARTIAL -> null
+            else -> UsvmCoverageUpdateStatus.UNSUPPORTED
+        }
+        if (rejection != null) return UsvmCoverageUpdateResult(status = rejection)
+
+        if (!compatibleEnvironment(coverage)) {
+            return UsvmCoverageUpdateResult(status = UsvmCoverageUpdateStatus.INCOMPATIBLE)
+        }
+
+        val additions = updateEdges(exactEdges(coverage))
+        return UsvmCoverageUpdateResult(status = UsvmCoverageUpdateStatus.ACCEPTED, additions = additions)
     }
 
     // Feedback is optional: an arbitrary backend/transport exception must not
@@ -201,11 +252,18 @@ internal class UsvmEdgeGuidance(
         val confirmed = observed.filter { it.hits > 0 }.mapTo(hashSetOf()) { it.edge }
         if (!confirmed.containsAll(claimed)) return ReplayDecision(status = UsvmEdgeReplayStatus.EDGE_MISMATCH)
 
+        val additions = updateEdges(observed)
+        return ReplayDecision(status = UsvmEdgeReplayStatus.CONFIRMED, additions = additions)
+    }
+
+    private fun updateEdges(observed: List<ObservedEdge>): Set<UsvmCoverageEdge> {
         observed.forEach { targets.putIfAbsent(it.edge, it.target) }
-        val additions = confirmed - covered
+        val additions = observed.filter { it.hits > 0 }.mapTo(linkedSetOf()) { it.edge } - covered
         covered += additions
         if (additions.isNotEmpty()) revision += 1
-        return ReplayDecision(status = UsvmEdgeReplayStatus.CONFIRMED, additions = additions)
+
+        activeSelector?.updateCoverage()
+        return additions
     }
 
     private fun matchesOracle(
@@ -221,13 +279,16 @@ internal class UsvmEdgeGuidance(
     }
 
     private fun isCompatible(coverage: PropertyCoverageArtifact): Boolean {
-        val original = feedback.initialCoverage ?: return false
+        val fresh = coverage.identity == identity && sourceUnchanged() &&
+            coverage.diagnostics.none { it.code == "coverage.source.stale" }
+        return compatibleEnvironment(coverage) && fresh && coverage.admittedInvocations == 1
+    }
+
+    private fun compatibleEnvironment(coverage: PropertyCoverageArtifact): Boolean {
+        val original = environment ?: return false
         val sameBackend = coverage.backendId == original.backendId &&
             coverage.backendVersion == original.backendVersion && coverage.kind == original.kind
-        val fresh = coverage.identity == identity && captureCoverageIdentity(manifest, roots) == identity &&
-            coverage.diagnostics.none { it.code == "coverage.source.stale" }
-        val sameRuntime = coverage.provenance == original.provenance && coverage.admittedInvocations == 1
-        return sameBackend && fresh && sameRuntime
+        return sameBackend && coverage.provenance == original.provenance
     }
 
     private fun pendingGoals(): Set<UsvmCoverageEdge> = targets.keys - covered
@@ -266,6 +327,13 @@ internal class UsvmEdgeGuidance(
     )
 
     private data class ObservedEdge(val edge: UsvmCoverageEdge, val target: EtsBranchArmTarget, val hits: Long)
+    private data class NativeEnvironment(
+        val backendId: String,
+        val backendVersion: String,
+        val kind: CoverageArtifactKind,
+        val provenance: CoverageProvenance,
+    )
+
     private data class GoalDistance(val goal: UsvmCoverageEdge, val distance: Int)
     private data class ReplayDecision(
         val status: UsvmEdgeReplayStatus,

@@ -4,8 +4,9 @@ import org.usvm.ts.pbt.backend.CapabilityDiagnostic
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyId
 
-/** Terminal outcome of one USVM property-violation search. */
+/** Current search outcome; IN_PROGRESS can retain a reached candidate while other paths remain queued. */
 enum class UsvmPropertySearchStatus {
+    IN_PROGRESS,
     VIOLATION_REACHED,
     NO_VIOLATION_REACHED,
     PRECONDITION_REJECTED,
@@ -15,6 +16,7 @@ enum class UsvmPropertySearchStatus {
     UNSUPPORTED,
     ENGINE_FAILURE,
     FAILED_INPUT_RESOLUTION,
+    SOURCE_INVALIDATED,
 }
 
 /** Supported ways in which a mapped predicate can violate its property. */
@@ -46,6 +48,7 @@ data class UsvmPropertySearchResult(
                 require(inputs == null) { "An input-resolution failure cannot contain candidate inputs" }
             }
 
+            UsvmPropertySearchStatus.IN_PROGRESS,
             UsvmPropertySearchStatus.PROPERTY_ERROR,
             UsvmPropertySearchStatus.UNSUPPORTED,
             UsvmPropertySearchStatus.ENGINE_FAILURE,
