@@ -39,6 +39,7 @@ internal class SourceLocationNormalizer(sourceRoots: List<Path>) {
 }
 
 private class SourcePathResolver(sourceRoots: List<Path>) {
+    private val sourcePaths = hashMapOf<String, Set<Path>>()
     private val sourceRootResolutions = sourceRoots.mapIndexed { index, root ->
         normalizeSourceRoot(index, root)
     }
@@ -48,7 +49,7 @@ private class SourcePathResolver(sourceRoots: List<Path>) {
         resolution.diagnostic
     }
 
-    fun sourcePathCandidates(value: String): Set<Path> {
+    fun sourcePathCandidates(value: String): Set<Path> = sourcePaths.getOrPut(value) {
         val path = Path.of(value)
         val candidates = if (path.isAbsolute) {
             listOf(path)
@@ -56,7 +57,7 @@ private class SourcePathResolver(sourceRoots: List<Path>) {
             normalizedSourceRoots.map { root -> root.resolve(path) }
         }
 
-        return candidates.mapTo(linkedSetOf()) { candidate -> candidate.canonicalizeIfExisting() }
+        candidates.mapTo(linkedSetOf()) { candidate -> candidate.canonicalizeIfExisting() }
     }
 
     fun resolveSourceFile(sourcePath: String): Path {

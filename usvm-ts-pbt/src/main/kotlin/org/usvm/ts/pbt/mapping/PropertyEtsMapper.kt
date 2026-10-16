@@ -8,19 +8,21 @@ import java.nio.file.Path
 
 /** Coordinates entry-point and coverage mapping for one project scene. */
 class PropertyEtsMapper(
-    scene: EtsScene,
+    private val scene: EtsScene,
     sourceRoots: List<Path>,
 ) {
-    private val sourceLocations = SourceLocationNormalizer(sourceRoots)
+    private val sourceRoots = sourceRoots.toList()
     private val branchSuccessorOrder = EtsBranchSuccessorOrder.TRUE_FALSE
-    private val entryPointResolver = EtsEntryPointResolver(scene, sourceLocations)
-    private val coverageMapper = EtsCoverageMapper(scene, sourceLocations, branchSuccessorOrder)
 
     /** Produces a complete mapping artifact even when individual entry points or coverage locations do not map. */
     fun map(
         manifest: PropertyManifest,
         coverage: PropertyCoverageArtifact? = null,
     ): PropertyEtsMappingArtifact {
+        val sourceLocations = SourceLocationNormalizer(sourceRoots)
+        val entryPointResolver = EtsEntryPointResolver(scene, sourceLocations)
+        val coverageMapper = EtsCoverageMapper(scene, sourceLocations, branchSuccessorOrder)
+
         val propertyId = PropertyId(manifest.propertyId)
         val predicate = entryPointResolver.resolve(manifest.predicate, manifest)
         val precondition = manifest.precondition?.let { entryPoint ->
