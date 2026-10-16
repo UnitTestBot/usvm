@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--steps', type=int, default=100000)
     parser.add_argument('--timeout-ms', type=int, default=120000)
     parser.add_argument('--repetitions', type=int, default=2)
+    parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--output', type=Path)
     parser.add_argument('--codec-jar', type=Path)
     parser.add_argument('--guava-jar', type=Path)
@@ -46,7 +47,7 @@ def main():
         run_modes = modes if repetition % 2 else list(reversed(modes))
         for case in cases:
             for mode in run_modes:
-                label = f'{case}-{mode}-r{repetition}'
+                label = f'{case}-{mode}-s{args.seed}-r{repetition}'
                 print(f'START {label}', flush=True)
                 log_file = output / f'{label}.log'
                 command = [
@@ -55,12 +56,12 @@ def main():
                     f'-PcoveragePerfCase={case}', f'-PcoveragePerfMode={mode}',
                     f'-PcoveragePerfSteps={args.steps}',
                     f'-PcoveragePerfTimeoutMillis={args.timeout_ms}',
-                    f'-PcoveragePerfRepetition={repetition}',
+                    f'-PcoveragePerfRepetition={repetition}', f'-PcoveragePerfSeed={args.seed}',
                     f'-PcoveragePerfResults={results_file}', f'-PcoveragePerfJars={jars}',
                     '--offline', '--console=plain',
                 ]
                 started = time.monotonic()
-                outcome = dict(program=case, mode=mode, repetition=repetition, log=log_file.name)
+                outcome = dict(program=case, mode=mode, repetition=repetition, randomSeed=args.seed, log=log_file.name)
                 try:
                     with log_file.open('w') as log:
                         process = subprocess.run(

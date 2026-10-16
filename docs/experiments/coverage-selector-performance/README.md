@@ -6,7 +6,7 @@ This experiment drives the production `JcInterpreter` through `UMachine.run`, wi
 
 The periodic selector remains expensive on these programs. Most measured selector time is outside full refreshes: every ordinary state update still scans the entire goal snapshot through the per-target distance callback. Increasing the interval to 512 does not remove that cost.
 
-The retained dataset contains 16 runs and 1,328,129 interpreter steps. Commons Codec has two fresh-process repetitions per mode; Guava and LoanExam have one run per mode. Numeric entries below are per-metric medians where there are two runs.
+The distance-guidance comparison below contains 16 runs and 1,328,129 interpreter steps. The random comparison adds 12 runs; the complete retained dataset contains 28 runs and 2,422,205 interpreter steps. Commons Codec has two fresh-process repetitions per mode; Guava and LoanExam have one run per mode. Numeric entries below are per-metric medians where there are two runs.
 
 | Program | Mode | Steps | Stop | Analysis seconds | Selector seconds | Selector share | Refresh ms |
 | --- | --- | ---: | --- | ---: | ---: | ---: | ---: |
@@ -31,7 +31,7 @@ For interval 128:
 | Guava gcd | 673 | 17 | 3,022 | 43,862,759 | 10.762 |
 | LoanExam | 126 | 123 | 4,378 | 886,279 | 0.717 |
 
-All modes reached the same final covered-goal count within each program in these runs. Queue order and solver work still differed. For example, Guava interval 128 made more steps than `existing` within the same time budget despite spending much more time in the selector. The measurements do not establish that the complete analysis is always slower.
+All distance-guidance modes in the preceding table reached the same final covered-goal count within each program in these runs. Queue order and solver work still differed. For example, Guava interval 128 made more steps than `existing` within the same time budget despite spending much more time in the selector. The measurements do not establish that the complete analysis is always slower.
 
 Codec whole-analysis times varied substantially between repetitions: interval 128 took 15.007–27.930 seconds, and `existing` took 14.066–20.224 seconds. Its per-target callback count was identical in both repetitions, and its selector share was 29.33–29.62%. Do not treat the median wall-time ratio as a stable speedup estimate.
 
@@ -43,7 +43,36 @@ The production selector files match the recorded source hashes throughout the re
 
 Raw data: [results.jsonl](results.jsonl). Full median summary: [summary.csv](summary.csv). Source/settings checksums: [manifest.json](manifest.json).
 
-Validation after the HashSet change: `:usvm-core:check` passed (274 tests passed, one existing skipped test). Strict Detekt on the changed core main/tests and the manual JVM experiment reported no findings. All 16 retained experiment processes completed successfully; Guava analyses ended at the explicit time limit. The experiment is excluded from ordinary JVM test runs.
+Validation after the HashSet change: `:usvm-core:check` passed (274 tests passed, one existing skipped test). Strict Detekt on the changed core main/tests and the manual JVM experiment reported no findings. All 28 retained experiment processes completed successfully. The four distance-guidance Guava analyses ended at the explicit time limit; the random Guava runs reached 100,000 steps. The experiment is excluded from ordinary JVM test runs.
+
+
+## Random baselines
+
+Two additional strategies were measured once for each selector RNG seed, 0 and 1, with the same step/time limits and production interpreter:
+
+- `random-path`: the actual `RandomTreePathSelector.fromRoot` used by `RANDOM_PATH`; it samples branches of the execution tree and traverses that tree on selection.
+- `uniform`: the existing `RandomizedPriorityCollection` with constant weight 1.0 in a `WeightedPathSelector`, giving uniform random selection among queued states. It performs no goal-distance calculations and does not traverse the execution tree.
+
+| Program | Mode | Seed | Steps | Analysis seconds | Selector seconds | Covered goals |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| codec | random-path | 0 | 100,000 | 13.359 | 6.585 | 74 |
+| codec | random-path | 1 | 100,000 | 7.283 | 3.991 | 74 |
+| codec | uniform | 0 | 100,000 | 3.937 | 0.339 | 74 |
+| codec | uniform | 1 | 100,000 | 3.430 | 0.315 | 74 |
+| gcd | random-path | 0 | 100,000 | 19.171 | 3.411 | 28 |
+| gcd | random-path | 1 | 100,000 | 18.281 | 3.186 | 28 |
+| gcd | uniform | 0 | 100,000 | 10.153 | 0.572 | 28 |
+| gcd | uniform | 1 | 100,000 | 7.328 | 0.351 | 28 |
+| loan | random-path | 0 | 73,519 | 3.868 | 0.883 | 123 |
+| loan | random-path | 1 | 73,519 | 5.003 | 1.155 | 123 |
+| loan | uniform | 0 | 73,519 | 3.046 | 0.254 | 123 |
+| loan | uniform | 1 | 73,519 | 2.745 | 0.224 | 123 |
+
+Uniform random was a strong inexpensive baseline on both library methods in these runs. Codec reached the same covered-goal count (74) in 3.430–3.937 seconds, versus a 21.468-second median for interval 128. Guava uniform random reached 100,000 steps and 28 covered goals in 7.328–10.153 seconds; interval 128 reached 63,808 steps and 17 covered goals at the 120-second timeout. LoanExam is a counterexample: uniform random took 2.745–3.046 seconds, versus 2.333 seconds for interval 128, with the same 73,519 steps and 123 covered goals.
+
+The standard `RANDOM_PATH` strategy was itself relatively expensive on Codec: 3.991–6.585 seconds spent in its selector, versus 0.315–0.339 seconds for uniform random. A random strategy's data structure and selection distribution matter.
+
+Different exploration order changes work outside the selector as well. Guava's wall-time difference cannot be explained by selector overhead alone; its interpreter/solver cost has not been separately profiled. Two seeds and three programs support using cheap uniform random as a baseline, not a universal claim that it dominates all coverage guidance. Goal counts do not establish equality of covered-goal sets or concrete replay coverage.
 
 ## Programs and setup
 
@@ -65,7 +94,7 @@ The recorded host was an Apple M3 Pro (arm64), 18 GiB RAM, Zulu JDK 11.0.32.1+1.
 - `eager`: the original #526 algorithm, refreshing via `drain().toList()` and re-adding states after changed coverage. It uses the same cached-ordering fix and queue implementation as the periodic variants.
 - `128` and `512`: the new `CoverageGuidedPathSelector`, using `HashSet` snapshots and the respective refresh interval.
 
-The variants may explore different paths. Whole-analysis times, allocations and step counts therefore include differences in solver work and exploration order; they are not isolated measurements of the queue implementation.
+For the random strategies, the selector RNG seed is recorded separately for every row and CSV group. The variants may explore different paths. Whole-analysis times, allocations and step counts therefore include differences in solver work and exploration order; they are not isolated measurements of the queue implementation.
 
 `selectorMs` measures add/update/remove/peek and coverage-report handling, including distance evaluation. `refreshMs` identifies distance work inside `peek` and includes heap rebuilding plus selecting its root. `distanceCalls` counts per-target callbacks in eager/periodic modes, but aggregate calculator calls in `existing`; those are different units of work. `allocatedBytes` is all allocation on the analysis thread, not retained heap, native memory, or allocation attributed specifically to the selector.
 
@@ -77,6 +106,14 @@ Use JDK 11 and cached project dependencies. The runner locates the two library j
 JAVA_HOME=/path/to/jdk11 python3 docs/experiments/coverage-selector-performance/run.py \
   --cases codec,gcd,loan --modes existing,128,eager,512 \
   --steps 100000 --timeout-ms 120000 --repetitions 1 \
+  --output build/coverage-selector-performance
+
+JAVA_HOME=/path/to/jdk11 python3 docs/experiments/coverage-selector-performance/run.py \
+  --cases codec,gcd,loan --modes random-path,uniform --seed 0 --repetitions 1 \
+  --output build/coverage-selector-performance
+
+JAVA_HOME=/path/to/jdk11 python3 docs/experiments/coverage-selector-performance/run.py \
+  --cases codec,gcd,loan --modes random-path,uniform --seed 1 --repetitions 1 \
   --output build/coverage-selector-performance
 
 python3 docs/experiments/coverage-selector-performance/summarize.py \

@@ -11,7 +11,7 @@ gradle.projectsEvaluated {
         maxHeapSize = '4g'
         def logging = jvm.rootProject.file('docs/experiments/coverage-selector-performance/logback.xml')
         jvmArgs "-Dlogback.configurationFile=${logging.absolutePath}"
-        ['case', 'mode', 'steps', 'timeoutMillis', 'results', 'jars', 'repetition'].each { key ->
+        ['case', 'mode', 'steps', 'timeoutMillis', 'results', 'jars', 'repetition', 'seed'].each { key ->
             systemProperty("coverage.perf.${key}", jvm.findProperty("coveragePerf${key.capitalize()}"))
         }
         outputs.upToDateWhen { false }

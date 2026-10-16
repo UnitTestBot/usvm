@@ -12,6 +12,7 @@ import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.UPathSelector
 import org.usvm.algorithms.DeterministicPriorityCollection
+import org.usvm.algorithms.RandomizedPriorityCollection
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcComponents
 import org.usvm.machine.JcContext
@@ -21,6 +22,7 @@ import org.usvm.machine.interpreter.JcInterpreter
 import org.usvm.machine.state.JcState
 import org.usvm.ps.BfsPathSelector
 import org.usvm.ps.CoverageGuidedPathSelector
+import org.usvm.ps.RandomTreePathSelector
 import org.usvm.ps.WeightedPathSelector
 import org.usvm.samples.JacoDBContainer
 import org.usvm.statistics.CompositeUMachineObserver
@@ -33,6 +35,7 @@ import org.usvm.stopstrategies.StopStrategy
 import org.usvm.util.originalInst
 import java.io.File
 import java.lang.management.ManagementFactory
+import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 
 /** Manual end-to-end runs over real JVM bytecode; not a microbenchmark or concrete replay. */
@@ -74,6 +77,7 @@ class CoverageSelectorPerformanceTest {
 
 private class PerformanceMachine(cp: JcClasspath) : UMachine<JcState>() {
     override val options = UMachineOptions(
+        randomSeed = System.getProperty("coverage.perf.seed", "0").toLong(),
         solverType = SolverType.YICES,
         solverTimeout = 250.milliseconds,
         typeOperationsTimeout = 250.milliseconds,
@@ -95,7 +99,8 @@ private class PerformanceMachine(cp: JcClasspath) : UMachine<JcState>() {
         val coverage = CoverageStatistics<JcMethod, JcInst, JcState>(methodsToCover.toHashSet(), graph)
         val goals = coverage.getUncoveredStatements()
         val metrics = Metrics()
-        val (base, markCovered) = createGuidance(mode, goals, metrics)
+        val initial = interpreter.getInitialState(method)
+        val (base, markCovered) = createGuidance(mode, goals, metrics, initial)
         val selector = MeasuredSelector(base, metrics)
         coverage.addOnCoveredObserver { _, _, statement ->
             val started = System.nanoTime()
@@ -104,7 +109,6 @@ private class PerformanceMachine(cp: JcClasspath) : UMachine<JcState>() {
             metrics.coverageReports++
         }
         val observer = metrics.observer()
-        val initial = interpreter.getInitialState(method)
         val gcCountBefore = gcCount()
         val gcMillisBefore = gcMillis()
         val allocatedBefore = allocatedBytes()
@@ -148,6 +152,7 @@ private class PerformanceMachine(cp: JcClasspath) : UMachine<JcState>() {
         mode: String,
         goals: Collection<JcInst>,
         metrics: Metrics,
+        initial: JcState,
     ): Pair<UPathSelector<JcState>, (JcInst) -> Unit> {
         val cfg = CfgStatisticsImpl(graph)
         val calculators = MultiTargetDistanceCalculator<JcMethod, JcInst, UInt> { target ->
@@ -173,6 +178,9 @@ private class PerformanceMachine(cp: JcClasspath) : UMachine<JcState>() {
                 },
             )
             markCovered = { statement -> aggregate.removeTarget(graph.methodOf(statement), statement) }
+        } else if (mode == "random-path" || mode == "uniform") {
+            base = createRandomSelector(mode, initial)
+            markCovered = {}
         } else if (mode == "bfs") {
             base = BfsPathSelector()
             markCovered = {}
@@ -186,6 +194,26 @@ private class PerformanceMachine(cp: JcClasspath) : UMachine<JcState>() {
             markCovered = { periodic.markCovered(targets = listOf(it)) }
         }
         return base to markCovered
+    }
+
+    private fun createRandomSelector(mode: String, initial: JcState): UPathSelector<JcState> {
+        val random = Random(seed = options.randomSeed)
+        if (mode == "uniform") {
+            return WeightedPathSelector(
+                priorityCollectionFactory = {
+                    RandomizedPriorityCollection(
+                        comparator = compareBy<JcState> { it.id },
+                        unitIntervalRandom = { random.nextDouble() },
+                    )
+                },
+                weighter = { 1.0 },
+            )
+        }
+
+        return RandomTreePathSelector.fromRoot(
+            root = initial.pathNode,
+            randomNonNegativeInt = { bound -> random.nextInt(from = 0, until = bound) },
+        )
     }
 
     override fun close() = components.close()
@@ -312,10 +340,12 @@ private fun Metrics.report(
     totals: AnalysisTotals,
 ): String {
     val repetition = System.getProperty("coverage.perf.repetition", "1").toInt()
+    val randomSeed = System.getProperty("coverage.perf.seed", "0").toLong()
     return """
         {"program":"$program",
         "mode":"$mode",
         "repetition":$repetition,
+        "randomSeed":$randomSeed,
         "steps":$steps,
         "stop":"$stop",
         "elapsedMs":${totals.elapsedNanos / 1_000_000.0},
