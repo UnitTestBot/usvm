@@ -12,8 +12,13 @@ fun TsContext.resolveEtsMethods(
     method: EtsMethodSignature,
     instanceType: EtsType = EtsUnknownType,
 ): List<EtsMethod> {
+    // Source-model helpers need their exact private owner. Name-based application lookup must never discover them.
+    val resolutionClasses = scene.projectAndSdkClasses.filter { owner ->
+        !isSourceModelClass(owner.signature) || owner.signature == method.enclosingClass
+    }
+
     if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-        val classes = scene.projectAndSdkClasses.filter {
+        val classes = resolutionClasses.filter {
             it.name == method.enclosingClass.name
         }
         val methods = classes.flatMap {
@@ -25,11 +30,11 @@ fun TsContext.resolveEtsMethods(
     }
 
     val classes = if (instanceType is EtsClassType) {
-        scene.projectAndSdkClasses.filter {
+        resolutionClasses.filter {
             it.name == instanceType.signature.name
         }
     } else {
-        scene.projectAndSdkClasses
+        resolutionClasses
     }
     val methods = classes.flatMap {
         it.methods

@@ -14,7 +14,7 @@ import org.usvm.util.EtsHierarchy
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.inputStream
 
-private val coreRuntimeClassNames = setOf("Object", "Function", "Array")
+private val coreRuntimeClassNames = setOf("Object", "Function", "Array", "Date")
 
 // JacoDB ships the matching TypeScript lib*.d.ts next to its frontend. Single-file conversion supports
 // declarations, while project mode deliberately skips them. Cache the DTO, not mutable scene-owned classes.
@@ -23,8 +23,23 @@ private val coreRuntimeSdk: EtsFileDto by lazy {
     val ir = generateEtsIR(library, loadEntrypoints = false, provider = EtsIrProvider.TS_FRONTEND)
     try {
         val file = ir.inputStream().use { EtsFileDto.loadFromJson(it) }
+        // The ES5 library augments Date in several interface declarations with one identity.
+        val runtimeClasses = file.classes.filter { it.signature.name in coreRuntimeClassNames }
+        val mergedClasses = runtimeClasses.groupBy { it.signature }.values.map { declarations ->
+            val first = declarations.first()
+            // Date supplies nominal identity only. Its APIs retain their existing unknown-call boundary.
+            val methods = if (first.signature.name == "Date") {
+                emptyList()
+            } else {
+                declarations.flatMap { it.methods }.distinctBy { it.signature }
+            }
+            first.copy(
+                fields = declarations.flatMap { it.fields }.distinctBy { it.signature },
+                methods = methods,
+            )
+        }
         file.copy(
-            classes = file.classes.filter { it.signature.name in coreRuntimeClassNames },
+            classes = mergedClasses,
             namespaces = emptyList(),
         )
     } finally {
@@ -38,9 +53,9 @@ internal fun EtsClassType.isCoreRuntimePrototypeIdentity(): Boolean =
         signature.name in setOf("Function", "Array")
 
 /**
- * Load Object, Function and Array from the standard declarations bundled in the pinned JacoDB dependency.
- * Keep their signatures and members and preserve SDK declarations supplied by the caller. Declaration files
- * describe prototypes and APIs; executing an SDK API still requires an interpreter implementation or model.
+ * Load Object, Function, Array and Date from the standard declarations bundled in the pinned JacoDB dependency.
+ * Keep existing Object/Function/Array members and add nominal Date identity. Preserve SDK declarations
+ * supplied by the caller. Date APIs continue through the existing unknown-call and semantic-model boundary.
  */
 internal fun EtsScene.withCoreRuntimeSdk(): EtsScene {
     val missingNames = coreRuntimeClassNames - sdkClasses.map { it.name }.toSet()

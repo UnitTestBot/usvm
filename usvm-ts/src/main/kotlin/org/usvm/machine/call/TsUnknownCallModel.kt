@@ -39,6 +39,9 @@ interface TsUnknownCallModel {
     val additionalSceneFiles: List<EtsFile>
         get() = emptyList()
 
+    /** Model-owned invariants may require stopping a prefix instead of inventing a helper result. */
+    fun residualPolicy(state: TsState, call: TsUnknownCall): TsResidualCallPolicy? = null
+
     fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution?
 }
 
@@ -84,7 +87,8 @@ class TsUnknownCallModelSuccessor(
  * A semantic-model execution plan.
  *
  * [residualGuard] is the input domain not covered by the model. `null` means that the model completely handles every
- * state accepted by [TsUnknownCallModel.apply].
+ * state accepted by [TsUnknownCallModel.apply]. States excluded by every successor guard are pruned, for example
+ * when a model-owned assumption is inconsistent with the current path.
  */
 class TsUnknownCallModelExecution(
     successors: List<TsUnknownCallModelSuccessor>,

@@ -384,7 +384,8 @@ internal class ClassStartObserver(
         assignmentCompleted: Boolean,
     ): Boolean {
         val advanced = state.pathNode !== previousPath || state.methodResult !== previousResult || assignmentCompleted
-        return advanced && !state.pathConstraints.isFalse && state.unsupportedReason == null
+        return advanced && !state.pathConstraints.isFalse &&
+            state.unsupportedReason == null && state.engineFailureReason == null
     }
 }
 

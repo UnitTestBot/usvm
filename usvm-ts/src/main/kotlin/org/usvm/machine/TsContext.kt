@@ -69,6 +69,11 @@ class TsContext(
     internal val applicationAndSdkClasses: List<EtsClass> = scene.projectAndSdkClasses,
     internal val dateNowMilliseconds: Double? = null,
 ) : UContext<TsSizeSort>(components) {
+    private val applicationAndSdkClassSignatures = applicationAndSdkClasses.mapTo(hashSetOf()) { it.signature }
+
+    internal fun isSourceModelClass(signature: EtsClassSignature): Boolean =
+        signature !in applicationAndSdkClassSignatures
+
     val undefinedSort: TsUndefinedSort by lazy { TsUndefinedSort(this) }
 
     val unresolvedSort: TsUnresolvedSort = TsUnresolvedSort(this)
