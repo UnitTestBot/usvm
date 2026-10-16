@@ -181,6 +181,49 @@ test('imported class implements an erased interface without a runtime initializa
 })
 
 for (const [name, declaration] of [
+  ['literal string', "export class Subject { ['value'] = 1; ['read']() { return this.value; } }"],
+  ['signed number', 'export class Subject { [-2] = 1; [3]() { return 7; } }'],
+  ['primitive constant', "const KEY = 'read'; export class Subject { [KEY]() { return 7; } }"],
+  ['intrinsic iterator', 'export class Subject { [Symbol.iterator]() { return { next() { return { done: true }; } }; } }'],
+  ['static empty cache', 'export class Subject { private static cache: number[] = []; }'],
+  ['static constant alias', 'const CACHE = [1, 2]; export class Subject { private static cache = CACHE; }'],
+] as const) {
+  test(`imported class accepts pure ${name} without evaluating its body`, () => {
+    workspace({
+      'wrapper.ts': "import { Subject } from './subject'; export function scenario() { return new Subject(); }",
+      'subject.ts': declaration,
+    }, root => {
+      const result = inspectLocalSourceClosure(root, path.join(root, 'wrapper.ts'))
+
+      assert.deepEqual(result, { files: ['subject.ts', 'wrapper.ts'] })
+    })
+  })
+}
+
+for (const [name, declaration] of [
+  ['effectful call', "function key() { throw Error('must not execute'); } export class Subject { [key()]() {} }"],
+  ['mutable binding', "let KEY = 'read'; export class Subject { [KEY]() {} }"],
+  ['object coercion', "const KEY = { toString() { throw Error('must not execute'); } }; export class Subject { [KEY]() {} }"],
+  ['shadowed Symbol', "const Symbol = { iterator: 'read' }; export class Subject { [Symbol.iterator]() {} }"],
+  ['getter on shadowed Symbol', "const Symbol = { get iterator() { throw Error('must not execute'); } }; export class Subject { [Symbol.iterator]() {} }"],
+  ['other Symbol property', 'export class Subject { [Symbol.toStringTag]() {} }'],
+  ['static accessor collision', "export class Subject { static set cache(value: unknown) { throw Error('must not execute'); } static cache = []; }"],
+  ['constructor property assignment', "export class Subject { static name = 'renamed'; }"],
+] as const) {
+  test(`imported class keeps ${name} outside the initialization contract`, () => {
+    workspace({
+      'wrapper.ts': "import { Subject } from './subject'; export function scenario() { return new Subject(); }",
+      'subject.ts': declaration,
+    }, root => {
+      const result = inspectLocalSourceClosure(root, path.join(root, 'wrapper.ts'))
+
+      assert.equal(result.reasonCode, 'TOP_LEVEL_INITIALIZATION_UNSUPPORTED')
+      assert.match(result.diagnostic!, /subject\.ts/)
+    })
+  })
+}
+
+for (const [name, declaration] of [
   ['effectful extends expression', 'function base() { throw new Error("must not execute"); } export class Subject extends base() {}'],
   ['plain runtime extends', 'class Base {} export class Subject extends Base {}'],
   ['decorated implements class', 'interface Contract {} function decorate(value: unknown) { return value; } @decorate export class Subject implements Contract {}'],
