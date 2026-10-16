@@ -182,6 +182,33 @@ class CallsClassStartSmokeTest {
     }
 
     @Test
+    fun `interface before runtime class keeps lifted closures in the frozen IR universe`() {
+        assertMergedClosureUniverse(interfaceFirst = true)
+    }
+
+    @Test
+    fun `interface after runtime class keeps lifted closures in the frozen IR universe`() {
+        assertMergedClosureUniverse(interfaceFirst = false)
+    }
+
+    private fun assertMergedClosureUniverse(interfaceFirst: Boolean) {
+        val augmentation = "export interface Target { read(value: number): number; }"
+        val implementation = "export class Target { read(value: number): number { " +
+            "const increment = (input: number): number => { return input + 1; }; return increment(value); } }"
+        val source = if (interfaceFirst) augmentation + implementation else implementation + augmentation
+
+        val result = runFixture(sourceText = source, exploratory = true)
+
+        assertTrue(result.started, result.toString())
+        val raw = checkNotNull(result.rawAnalysis)
+        val closurePoints = raw.sourceMappedIrUniverse.filter { it.method.contains("%AM") }
+        assertTrue(closurePoints.isNotEmpty(), raw.toString())
+        assertTrue(raw.sourceMappedIrEntered.any { it in closurePoints }, raw.toString())
+        assertTrue(raw.sourceMappedIrUniverse.containsAll(raw.sourceMappedIrEntered), raw.toString())
+        assertTrue(raw.returnedStates > 0, raw.toString())
+    }
+
+    @Test
     fun `lowered closures keep complete IR but require their owning member environment`() {
         val result = runFixture(
             sourceText = "export class Target { value = 1; read(): number { " +
