@@ -340,7 +340,7 @@ internal fun TsExprResolver.handleAssignToStaticField(
     expr: UExpr<*>,
 ): Unit? = with(ctx) {
     if (lhv.field.name == "prototype") {
-        val constructor = classConstructorRef(lhv.field.enclosingClass)
+        val constructor = classConstructorRef(lhv.field.enclosingClass, scope)
         if (!ensureSupportedArrayPrototypeAccess(constructor, lhv.field.name)) return null
     }
 
