@@ -143,15 +143,26 @@ export async function verifySourceHash(
   expectedSha256: string,
   sourceRoots: string[],
 ): Promise<void> {
-  const modulePath = await resolveModule(module, sourceRoots, 'observationRequest.sources');
-  const actual = createHash('sha256').update(await readFile(modulePath)).digest('hex');
-  if (actual !== expectedSha256) {
+  const matches = await sourceHashMatches(module, expectedSha256, sourceRoots);
+  if (!matches) {
     throw protocolError(
       adapterDiagnostic.entryPointSourceHashMismatch,
       `Selected TypeScript source changed: ${module}`,
       'observationRequest.sources',
     );
   }
+}
+
+/** A replay may reject a stale source revision as an expected outcome before loading the original callback. */
+export async function sourceHashMatches(
+  module: string,
+  expectedSha256: string,
+  sourceRoots: string[],
+): Promise<boolean> {
+  const modulePath = await resolveModule(module, sourceRoots, 'observationRequest.sources');
+  const actual = createHash('sha256').update(await readFile(modulePath)).digest('hex');
+
+  return actual === expectedSha256;
 }
 
 async function resolveModule(

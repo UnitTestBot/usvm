@@ -8,6 +8,7 @@ import {
 import {
   EntryPointInvocationError,
   isNamedCheckFailure,
+  type NamedCheckFailure,
   type ExecutionKind,
   loadEntryPoint,
   verifySourceHash,
@@ -196,12 +197,13 @@ function buildProperty(
 }
 
 /** One invocation boundary; #353 exact replay uses the same shape after integration. */
-function invokePropertyOnce(
+export function invokePropertyOnce(
   values: JsConcreteValue[],
   predicate: LoadedEntryPoint,
   precondition: LoadedEntryPoint | undefined,
   recorder: ObservationRecorder | undefined,
   phase: 'generation' | 'explicit' | 'shrink' | 'replay' | 'unknown',
+  onPredicate?: () => void,
 ): boolean | null | Promise<boolean | null> {
   const invocationValues = cloneArguments(values);
   const invoke = (): boolean | null | Promise<boolean | null> => {
@@ -219,6 +221,7 @@ function invokePropertyOnce(
         }
 
         try {
+          onPredicate?.();
           const result = await predicate.invoke(invocationValues);
           recorder?.finish('admitted', result ? 'holds' : 'false');
 
@@ -242,6 +245,7 @@ function invokePropertyOnce(
     }
 
     try {
+      onPredicate?.();
       const result = predicate.invoke(invocationValues) as boolean;
       recorder?.finish('admitted', result ? 'holds' : 'false');
 
@@ -458,18 +462,7 @@ function failureDetails(details: RunDetails<[JsConcreteValue[]]>): FastCheckFail
     : details.errorInstance;
 
   if (isNamedCheckFailure(error)) {
-    const description = error.exception === undefined
-      ? describePropertyFailure(error)
-      : describePropertyFailure(error.exception.value);
-    return {
-      kind: 'property',
-      ...description,
-      checkId: error.checkId,
-      ...(error.exception === undefined ? {
-        actual: encodeJsValue(error.actual),
-        expected: encodeJsValue(error.expected),
-      } : {}),
-    };
+    return describeNamedCheckFailure(error);
   }
 
   return {
@@ -478,7 +471,23 @@ function failureDetails(details: RunDetails<[JsConcreteValue[]]>): FastCheckFail
   };
 }
 
-function describePropertyFailure(value: unknown): Pick<FastCheckFailureDetails, 'errorName' | 'message'> {
+export function describeNamedCheckFailure(error: NamedCheckFailure): FastCheckFailureDetails {
+  const description = error.exception === undefined
+    ? describePropertyFailure(error)
+    : describePropertyFailure(error.exception.value);
+
+  return {
+    kind: 'property',
+    ...description,
+    checkId: error.checkId,
+    ...(error.exception === undefined ? {
+      actual: encodeJsValue(error.actual),
+      expected: encodeJsValue(error.expected),
+    } : {}),
+  };
+}
+
+export function describePropertyFailure(value: unknown): Pick<FastCheckFailureDetails, 'errorName' | 'message'> {
   try {
     if (value instanceof Error) {
       return {
@@ -506,7 +515,7 @@ function isFastCheckReplayFailure(error: unknown): boolean {
   return error instanceof Error && error.message.startsWith(FAST_CHECK_REPLAY_FAILURE_PREFIX);
 }
 
-function validateRequest(value: unknown): FastCheckExecutionRequest {
+export function validateRequest(value: unknown): FastCheckExecutionRequest {
   const request = requireRecord(
     value,
     adapterDiagnostic.protocolRequestInvalid,
