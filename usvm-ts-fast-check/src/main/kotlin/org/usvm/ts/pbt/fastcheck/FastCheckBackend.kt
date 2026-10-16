@@ -82,6 +82,17 @@ class FastCheckBackend(
         deadline = deadline,
     )
 
+    internal fun confirmOriginalWitness(
+        property: PropertyDefinition,
+        candidate: ExternalWitnessCandidate,
+        configuration: WitnessReplayConfiguration,
+        deadline: WitnessReplayDeadline,
+    ): WitnessEvidenceDelta = FastCheckWitnessCoordinator(
+        client = client,
+        sourceRoots = sourceRoots,
+        tsconfig = tsconfig?.toRealPath()?.toString(),
+    ).confirmOriginal(property, candidate, configuration, deadline)
+
     private fun validateConfiguration(
         property: PropertyDefinition,
         configuration: PropertyRunConfiguration,
