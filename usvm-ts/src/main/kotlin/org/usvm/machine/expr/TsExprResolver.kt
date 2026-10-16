@@ -46,7 +46,6 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsLtEqExpr
 import org.jacodb.ets.model.EtsLtExpr
 import org.jacodb.ets.model.EtsMethod
-import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsMulExpr
 import org.jacodb.ets.model.EtsNegExpr
 import org.jacodb.ets.model.EtsNewArrayExpr
@@ -153,7 +152,6 @@ import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.mkStringBackingLengthLValue
-import org.usvm.util.resolveEtsMethods
 import org.usvm.util.resolveImportInfo
 
 private val logger = KotlinLogging.logger {}
@@ -189,7 +187,7 @@ class TsExprResolver(
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
-        TsSimpleValueResolver(ctx, scope)
+        TsSimpleValueResolver(ctx, scope, observer = observer)
 
     fun resolve(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
@@ -1638,7 +1636,18 @@ class TsExprResolver(
 class TsSimpleValueResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
+    private val observer: TsInterpreterObserver? = null,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
+
+    private fun stopFunctionReferenceResolution(detail: String) {
+        val reason = TsRuntimeFeatureLimitationReason.FUNCTION_REFERENCE_RESOLUTION
+        scope.doWithState {
+            observer?.onRuntimeFeatureLimitationSafely(
+                TsRuntimeFeatureLimitationEvent(statement = lastStmt, reason = reason, detail = detail),
+            )
+            terminateAsUnsupported(reason = "$reason: $detail")
+        }
+    }
 
     private fun hasSourceBinding(local: EtsLocal): Boolean {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
@@ -1785,8 +1794,10 @@ class TsSimpleValueResolver(
                 .flatMap { it.methods }
                 .filter { it.signature == signature && it.cfg.stmts.isNotEmpty() }
             if (methods.size != 1) {
-                logger.error { "Cannot resolve named function reference: $local" }
-                scope.assert(ctx.mkFalse())
+                stopFunctionReferenceResolution(
+                    detail = "Cannot uniquely resolve named function reference $local: " +
+                        "${methods.size} executable targets",
+                )
                 return null
             }
 
@@ -1795,21 +1806,19 @@ class TsSimpleValueResolver(
 
         if (local.name.startsWith(ANONYMOUS_METHOD_PREFIX)) {
             val currentMethod = scope.calcOnState { lastEnteredMethod }
-            val sig = EtsMethodSignature(
-                enclosingClass = currentMethod.signature.enclosingClass,
-                name = local.name,
-                parameters = emptyList(),
-                returnType = EtsUnknownType,
-            )
-            val methods = ctx.resolveEtsMethods(sig)
-            if (methods.isEmpty()) {
-                logger.error { "Cannot resolve anonymous method for local: $local" }
-                scope.assert(ctx.mkFalse())
-                return null
-            }
-            if (methods.size > 1) {
-                logger.error { "Multiple methods found for anonymous method local: $local" }
-                scope.assert(ctx.mkFalse())
+            // Anonymous names repeat across files, including the synthetic %dflt classes.
+            val referenceOwner = (local.type as? EtsFunctionType)?.signature?.enclosingClass
+            val hasSourceOwner = referenceOwner != null && referenceOwner.file != EtsFileSignature.UNKNOWN
+            val owner = if (hasSourceOwner) referenceOwner else currentMethod.signature.enclosingClass
+            val methods = ctx.scene.projectAndSdkClasses
+                .filter { it.signature == owner }
+                .flatMap { it.methods }
+                .filter { it.name == local.name && it.cfg.stmts.isNotEmpty() }
+            if (methods.size != 1) {
+                stopFunctionReferenceResolution(
+                    detail = "Cannot uniquely resolve anonymous function reference $local in $owner: " +
+                        "${methods.size} executable targets",
+                )
                 return null
             }
             val method = methods.single()

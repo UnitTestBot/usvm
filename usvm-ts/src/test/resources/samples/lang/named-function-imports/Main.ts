@@ -1,8 +1,12 @@
-import { named as first, replace } from "./First";
-import { named as second } from "./Second";
+import { named as first, replace, firstArrow } from "./First";
+import { named as second, secondArrow } from "./Second";
 import * as namespace from "./First";
 
 class NamedFunctionImports {
+    anonymousOwners(): number {
+        return firstArrow(10) * 100 + secondArrow(20);
+    }
+
     distinctOwners(): number {
         const alias = first;
         return alias() * 10 + second();
