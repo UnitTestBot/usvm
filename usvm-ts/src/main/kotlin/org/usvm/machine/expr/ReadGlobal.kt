@@ -16,6 +16,9 @@ fun TsContext.readGlobal(
 
     val savedSort = getSortForDfltObjectField(file, name)
     if (savedSort == null) {
+        val native = nativeMathGlobal(file = file, name = name)
+        if (native != null) return@calcOnState native
+
         // Missing storage also covers native globals that this runtime has not modeled.
         // It does not establish that the reached path is unsatisfiable.
         terminateAsUnsupported(

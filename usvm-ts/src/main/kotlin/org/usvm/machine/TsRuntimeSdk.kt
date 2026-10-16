@@ -14,7 +14,7 @@ import org.usvm.util.EtsHierarchy
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.inputStream
 
-private val coreRuntimeClassNames = setOf("Object", "Function", "Array", "Date")
+private val coreRuntimeClassNames = setOf("Object", "Function", "Array", "Date", "Math")
 
 // JacoDB ships the matching TypeScript lib*.d.ts next to its frontend. Single-file conversion supports
 // declarations, while project mode deliberately skips them. Cache the DTO, not mutable scene-owned classes.
@@ -53,8 +53,8 @@ internal fun EtsClassType.isCoreRuntimePrototypeIdentity(): Boolean =
         signature.name in setOf("Function", "Array")
 
 /**
- * Load Object, Function, Array and Date from the standard declarations bundled in the pinned JacoDB dependency.
- * Keep existing Object/Function/Array members and add nominal Date identity. Preserve SDK declarations
+ * Load Object, Function, Array, Date and Math from the standard declarations bundled in the pinned JacoDB dependency.
+ * Keep existing Object/Function/Array/Math members and add nominal Date identity. Preserve SDK declarations
  * supplied by the caller. Date APIs continue through the existing unknown-call and semantic-model boundary.
  */
 internal fun EtsScene.withCoreRuntimeSdk(): EtsScene {
@@ -71,7 +71,7 @@ internal fun EtsScene.withCoreRuntimeSdk(): EtsScene {
 
 /** An undeclared frontend local denotes a standard-library constructor, rather than a project binding. */
 internal fun EtsScene.sdkConstructorForGlobal(local: EtsLocal): EtsClass? =
-    sdkClasses.singleOrNull { it.name == local.name }
+    sdkClasses.singleOrNull { it.name == local.name && it.name != "Math" }
 
 internal fun EtsScene.runtimeFunctionType(): EtsClassType {
     val functionClass = sdkClasses.singleOrNull { it.name == "Function" }
