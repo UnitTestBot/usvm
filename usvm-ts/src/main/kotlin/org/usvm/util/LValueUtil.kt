@@ -26,7 +26,7 @@ import org.usvm.sizeSort
 import org.usvm.types.singleOrNull
 
 /** Local type widening does not change the regions backing an array. */
-internal fun TsState.arrayStorageType(ref: UHeapRef, staticType: EtsType): EtsType {
+fun TsState.arrayStorageType(ref: UHeapRef, staticType: EtsType): EtsType {
     if (ref !is UConcreteHeapRef && ref !is USymbolicHeapRef) return staticType
 
     val memoryType = memory.typeStreamOf(ref).singleOrNull()

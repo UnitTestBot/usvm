@@ -40,8 +40,11 @@ import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.model.contains
 import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import org.usvm.util.EtsHierarchy
+import org.usvm.util.arrayStorageType
 import org.usvm.util.componentType
 import org.usvm.util.declaredInstanceProperty
+import org.usvm.util.hasBoxedArrayElement
+import org.usvm.util.knownArrayIndexPresence
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -247,15 +250,28 @@ private class ClassObservationValueResolver(
     private fun resolveArray(domain: ArrayDomain, type: EtsType, value: UExpr<out USort>): JsConcreteValue = with(
         state.ctx
     ) {
-        val arrayType = type as? EtsArrayType ?: error("Observed array has no declared array type: $type")
+        val declaredArrayType = type as? EtsArrayType ?: error("Observed array has no declared array type: $type")
         val reference = value.asExpr(addressSort)
+        val arrayType = state.arrayStorageType(reference, declaredArrayType) as? EtsArrayType
+            ?: error("Observed array has no supported array storage: $type")
         val length = model.eval(state.memory.read(mkArrayLengthLValue(reference, arrayType))).extractInt()
         require(length in 0..domain.maxLength) { "Observed array exceeds the frozen observation capacity" }
         val elementSort = typeToSort(arrayType.componentType)
         val storageSort = if (elementSort is TsUnresolvedSort) addressSort else elementSort
         val elements = (0 until length).map { index ->
-            val lValue = mkArrayIndexLValue(storageSort, reference, mkBv(index), arrayType)
-            resolve(domain.element, arrayType.componentType, state.memory.read(lValue))
+            val symbolicIndex = mkBv(index)
+            val present = state.knownArrayIndexPresence(reference, symbolicIndex)
+            require(present == null || model.eval(present).isTrue) {
+                "Sparse array slot $index cannot be represented in class observations"
+            }
+
+            val boxed = state.hasBoxedArrayElement(reference, symbolicIndex)
+            require(!model.eval(boxed).isTrue) {
+                "BOXED array slot $index cannot be represented in class observations"
+            }
+
+            val lValue = mkArrayIndexLValue(storageSort, reference, symbolicIndex, arrayType)
+            resolve(domain.element, declaredArrayType.componentType, state.memory.read(lValue))
         }
         JsConcreteValue.Array(elements)
     }
