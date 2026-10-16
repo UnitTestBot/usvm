@@ -148,3 +148,17 @@ export function optionalNumberArrayMutationProperty(values: (number | undefined)
   values[0] = undefined;
   return old !== 2;
 }
+
+export function unsupportedSliceProperty(value: number): boolean {
+  const values = [value];
+  return values.slice().length === 1;
+}
+
+export function unsupportedTypedArrayProperty(value: number): boolean {
+  const values = new Float64Array(1);
+  return values[0] === value;
+}
+
+export function modeledAbsoluteProperty(value: number): boolean {
+  return Math.abs(value) >= 0;
+}

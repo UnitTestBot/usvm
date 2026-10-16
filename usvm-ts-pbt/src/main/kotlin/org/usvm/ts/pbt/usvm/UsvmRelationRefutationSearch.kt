@@ -12,6 +12,7 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsMachineAnalysisResult
 import org.usvm.machine.TsOptions
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
+import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsEntryPointGuardOutcome
 import org.usvm.machine.state.TsState
@@ -199,6 +200,10 @@ internal open class UsvmRelationRefutationObserver : TsInterpreterObserver {
 
     override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
         runtimeLimitations.onRuntimeFeatureLimitation(event)
+    }
+
+    override fun onUnknownCall(event: TsUnknownCallEvent) {
+        runtimeLimitations.onUnknownCall(event)
     }
 }
 

@@ -1,5 +1,7 @@
 package org.usvm.ts.pbt.usvm
 
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
@@ -34,6 +36,30 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 
 class UsvmPropertySearcherTest {
+    @Test
+    fun `unknown call diagnostics survive public result serialization`() {
+        assertUnknownCallDiagnostic(
+            predicate = "unsupportedSliceProperty",
+            callee = "Array::slice",
+            reason = "PARTIAL_APPROXIMATION",
+            sourceLine = 154,
+        )
+        assertUnknownCallDiagnostic(
+            predicate = "unsupportedTypedArrayProperty",
+            callee = "Float64Array::constructor",
+            reason = "RECEIVER_CLASS_NOT_FOUND",
+            sourceLine = 158,
+        )
+    }
+
+    @Test
+    fun `an applied call model does not introduce an unknown call limitation`() {
+        val result = search(manifest(predicateExport = "modeledAbsoluteProperty"))
+
+        assertEquals(UsvmPropertySearchStatus.NO_VIOLATION_REACHED, result.status)
+        assertTrue(result.diagnostics.none { it.code.startsWith("usvm.unknown-call.") }, result.diagnostics.toString())
+    }
+
     @Test
     fun `reports when no violation is reachable`() {
         val manifest = manifest(predicateExport = "validProperty")
@@ -353,6 +379,19 @@ class UsvmPropertySearcherTest {
 
         assertEquals(UsvmPropertySearchStatus.TIMEOUT, result.status)
         assertNull(result.inputs)
+    }
+
+    private fun assertUnknownCallDiagnostic(predicate: String, callee: String, reason: String, sourceLine: Int) {
+        val result = search(manifest(predicateExport = predicate))
+        val restored = Json.decodeFromString<UsvmPropertySearchResult>(Json.encodeToString(result))
+
+        assertEquals(UsvmPropertySearchStatus.UNSUPPORTED, restored.status)
+        val diagnostic = restored.diagnostics.single { it.code == "usvm.unknown-call.path-stopped" }
+        assertTrue(callee in diagnostic.message, diagnostic.message)
+        assertTrue("reason=$reason" in diagnostic.message, diagnostic.message)
+        assertTrue("PATH_STOPPED" in diagnostic.message, diagnostic.message)
+        assertTrue(diagnostic.path.contains("UsvmPropertySearchFixture.ts:$sourceLine:"), diagnostic.path)
+        assertEquals(result.diagnostics, restored.diagnostics)
     }
 
     private fun search(manifest: PropertyManifest): UsvmPropertySearchResult = searcher.search(
