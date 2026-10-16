@@ -1,6 +1,7 @@
 package org.usvm.machine.expr
 
 import io.mockk.mockk
+import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsType
@@ -169,11 +170,11 @@ class ExprUtilConditionalValueTest {
     @Test
     fun `inactive unmodeled reference payload does not reject a numeric wrapper`() = with(ctx) {
         val number = mkFp64(7.0)
-        val unmodeledString = state.mkInitializedStringConstant(value = "42")
+        val unmodeledObject = state.memory.allocConcrete(EtsAnyType)
         val wrapper = state.mkFakeValue(
             scope = null,
             fpValue = number,
-            refValue = unmodeledString,
+            refValue = unmodeledObject,
             valueType = EtsFakeType.mkFp(ctx),
         )
 
@@ -188,14 +189,14 @@ class ExprUtilConditionalValueTest {
     fun `numeric conversion retains a supported conditional wrapper and records its unsupported sibling`() = with(ctx) {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
         val number = mkFp64(7.0)
-        val unmodeledString = state.mkInitializedStringConstant(value = "42")
+        val unmodeledObject = state.memory.allocConcrete(EtsAnyType)
         val numberWrapper = state.mkFakeValue(scope = null, fpValue = number, valueType = EtsFakeType.mkFp(ctx))
-        val stringWrapper = state.mkFakeValue(
+        val referenceWrapper = state.mkFakeValue(
             scope = null,
-            refValue = unmodeledString,
+            refValue = unmodeledObject,
             valueType = EtsFakeType.mkRef(ctx),
         )
-        val conditional = mkIte(selected, numberWrapper, stringWrapper)
+        val conditional = mkIte(selected, numberWrapper, referenceWrapper)
         assertIs<UIteExpr<*>>(conditional)
 
         val numeric = mkNumericExpr(conditional, scope)
@@ -210,10 +211,26 @@ class ExprUtilConditionalValueTest {
     }
 
     @Test
+    fun `literal string and numeric conditional wrappers both retain exact conversion`() = with(ctx) {
+        val selected = mkRegisterReading(idx = 0, sort = boolSort)
+        val number = mkFp64(7.0)
+        val string = state.mkInitializedStringConstant(value = "42")
+        val numberWrapper = state.mkFakeValue(scope = null, fpValue = number, valueType = EtsFakeType.mkFp(ctx))
+        val stringWrapper = state.mkFakeValue(scope = null, refValue = string, valueType = EtsFakeType.mkRef(ctx))
+        val conditional = mkIte(selected, numberWrapper, stringWrapper)
+
+        val numeric = mkNumericExpr(conditional, scope)
+
+        assertEquals(mkIte(selected, number, mkFp64(42.0)), numeric)
+        assertNull(state.unsupportedReason)
+        assertEquals(emptyList(), scope.stepResult().forkedStates.toList())
+    }
+
+    @Test
     fun `binary arithmetic retains the numeric result of joined operator wrappers`() = with(ctx) {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
-        val unmodeledString = state.mkInitializedStringConstant(value = "42")
-        val joined = with(TsBinaryOperator.Or) { ctx.resolve(boolToFp(selected), unmodeledString, scope) }
+        val unmodeledObject = state.memory.allocConcrete(EtsAnyType)
+        val joined = with(TsBinaryOperator.Or) { ctx.resolve(boolToFp(selected), unmodeledObject, scope) }
         val conditional = assertNotNull(joined)
         assertIs<UIteExpr<*>>(conditional)
 
@@ -232,8 +249,8 @@ class ExprUtilConditionalValueTest {
     @Test
     fun `binary arithmetic retains a numeric conditional right operand`() = with(ctx) {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
-        val unmodeledString = state.mkInitializedStringConstant(value = "42")
-        val joined = with(TsBinaryOperator.Or) { ctx.resolve(boolToFp(selected), unmodeledString, scope) }
+        val unmodeledObject = state.memory.allocConcrete(EtsAnyType)
+        val joined = with(TsBinaryOperator.Or) { ctx.resolve(boolToFp(selected), unmodeledObject, scope) }
         val conditional = assertNotNull(joined)
         assertIs<UIteExpr<*>>(conditional)
 
@@ -252,7 +269,7 @@ class ExprUtilConditionalValueTest {
     @Test
     fun `numeric binary operators ignore inactive populated reference payloads on either side`() = with(ctx) {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
-        val unmodeledString = state.mkInitializedStringConstant(value = "42")
+        val unmodeledObject = state.memory.allocConcrete(EtsAnyType)
         val kinds = EtsFakeType(
             boolTypeExpr = selected,
             fpTypeExpr = mkNot(selected),
@@ -262,7 +279,7 @@ class ExprUtilConditionalValueTest {
             scope = null,
             boolValue = trueExpr,
             fpValue = mkFp64(7.0),
-            refValue = unmodeledString,
+            refValue = unmodeledObject,
             valueType = kinds,
         )
         val operators = listOf(TsBinaryOperator.Add, TsBinaryOperator.Lt, TsBinaryOperator.Gt)
@@ -311,7 +328,7 @@ class ExprUtilConditionalValueTest {
     @Test
     fun `addition retains symbolic numeric kinds while rejecting the selected reference kind`() = with(ctx) {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
-        val unmodeledString = state.mkInitializedStringConstant(value = "42")
+        val string = state.mkInitializedStringConstant(value = "42")
         val kinds = EtsFakeType(
             boolTypeExpr = falseExpr,
             fpTypeExpr = selected,
@@ -320,7 +337,7 @@ class ExprUtilConditionalValueTest {
         val wrapper = state.mkFakeValue(
             scope = null,
             fpValue = mkFp64(7.0),
-            refValue = unmodeledString,
+            refValue = string,
             valueType = kinds,
         )
 
@@ -372,10 +389,10 @@ class ExprUtilConditionalValueTest {
     @Test
     fun `numeric binary support failures stay under the enclosing active guard`() = with(ctx) {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
-        val unmodeledString = state.mkInitializedStringConstant(value = "42")
+        val unmodeledObject = state.memory.allocConcrete(EtsAnyType)
 
         val resolved = with(TsBinaryOperator.Sub) {
-            ctx.resolve(unmodeledString, mkFp64(1.0), scope, activeGuard = selected)
+            ctx.resolve(unmodeledObject, mkFp64(1.0), scope, activeGuard = selected)
         }
         val result = assertNotNull(resolved)
         val unsupported = scope.stepResult().forkedStates.single()
