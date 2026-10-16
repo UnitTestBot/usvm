@@ -9,6 +9,7 @@ internal fun EtsMethod.executableOverloadImplementation(): EtsMethod {
         ?.methods
         ?.filter { candidate ->
             candidate.name == name &&
+                candidate.signature.wellKnownSymbol == signature.wellKnownSymbol &&
                 candidate.isStatic == isStatic &&
                 candidate.cfg.stmts.isNotEmpty()
         }

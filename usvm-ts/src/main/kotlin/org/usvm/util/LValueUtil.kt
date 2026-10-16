@@ -56,7 +56,10 @@ fun <Sort : USort> mkFieldLValue(
     sort: Sort,
     ref: UHeapRef,
     field: EtsFieldSignature,
-): UFieldLValue<String, Sort> = mkFieldLValue(sort, ref, field.name)
+): UFieldLValue<String, Sort> {
+    field.requireStringKey()
+    return mkFieldLValue(sort, ref, field.name)
+}
 
 fun <Sort : USort> mkFieldLValue(
     sort: Sort,

@@ -12,6 +12,7 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.types.singleOrNull
 import org.usvm.util.EtsHierarchy
+import org.usvm.util.hasStringName
 
 internal const val PROTOTYPE_PROPERTY_NAME = "__proto__"
 
@@ -44,7 +45,7 @@ internal fun TsContext.objectLiteralClass(
 }
 
 internal fun EtsClass.hasOwnProperty(name: String): Boolean =
-    fields.any { it.name == name } || methods.any { it.name == name }
+    fields.any { it.hasStringName(name) } || methods.any { it.hasStringName(name) }
 
 private fun TsStepScope.hasPrototypeMutation(instance: UHeapRef, clazz: EtsClass): Boolean = calcOnState {
     clazz.fields.any { it.name == PROTOTYPE_PROPERTY_NAME } ||
