@@ -1,12 +1,38 @@
 package org.usvm.samples.reflection
 
 import org.junit.jupiter.api.Test
+import org.usvm.machine.JcMachine
+import org.usvm.machine.state.JcMethodResult
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.getJcMethodByName
+import kotlin.test.assertTrue
 
 internal class ArrayComponentTypeTest : JavaMethodTestRunner() {
     init {
         options = options.copy(throwExceptionOnStepFailure = true)
+    }
+
+    @Test
+    fun testInputClassDoesNotRequireConcreteMetadata() {
+        val method = cp.getJcMethodByName(ArrayComponentType::inputClass).method
+
+        val states = JcMachine(cp, options).use { machine ->
+            machine.analyze(method)
+        }
+
+        assertTrue(states.any { it.methodResult is JcMethodResult.Success })
+    }
+
+    @Test
+    fun testInputArrayComponentDoesNotRequireConcreteMetadata() {
+        val method = cp.getJcMethodByName(ArrayComponentType::inputArray).method
+
+        val states = JcMachine(cp, options).use { machine ->
+            machine.analyze(method)
+        }
+
+        assertTrue(states.any { it.methodResult is JcMethodResult.Success })
     }
 
     @Test

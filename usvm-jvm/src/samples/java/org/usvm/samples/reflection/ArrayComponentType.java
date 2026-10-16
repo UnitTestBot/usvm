@@ -3,6 +3,14 @@ package org.usvm.samples.reflection;
 import java.lang.reflect.Array;
 
 public class ArrayComponentType {
+    public Class<?> inputClass(Class<?> type) {
+        return type.getComponentType();
+    }
+
+    public Object inputArray(Class<?> type) {
+        return Array.newInstance(type, 1);
+    }
+
     public Class<?> primitiveArray() {
         return boolean[].class.getComponentType();
     }

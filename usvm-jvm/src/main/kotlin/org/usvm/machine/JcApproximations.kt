@@ -300,18 +300,15 @@ class JcMethodApproximationResolver(
 
         if (method.name == "getComponentType") {
             val classRef = arguments.single().asExpr(ctx.addressSort)
-            scope.doWithState {
-                val classTypeRepresentative =
-                    memory.read(UFieldLValue(ctx.addressSort, classRef, ctx.classTypeSyntheticField))
-                classTypeRepresentative as UConcreteHeapRef
-                val classType = memory.types.typeOf(classTypeRepresentative.address)
-                val componentType = classType.ifArrayGetElementType
-                val componentClassRef = if (componentType != null) {
-                    exprResolver.simpleValueResolver.resolveClassRef(componentType)
-                } else {
-                    ctx.nullRef
-                }
+            val classType = resolveRepresentedClassType(classRef) ?: return false
+            val componentType = classType.ifArrayGetElementType
+            val componentClassRef = if (componentType != null) {
+                exprResolver.simpleValueResolver.resolveClassRef(componentType)
+            } else {
+                ctx.nullRef
+            }
 
+            scope.doWithState {
                 skipMethodInvocationWithValue(methodCall, componentClassRef)
             }
 
@@ -334,6 +331,16 @@ class JcMethodApproximationResolver(
         }
 
         return false
+    }
+
+    private fun resolveRepresentedClassType(classRef: UHeapRef): JcType? {
+        val representative = scope.calcOnState {
+            memory.read(UFieldLValue(ctx.addressSort, classRef, ctx.classTypeSyntheticField))
+        }
+        // Only class mirrors created by resolveClassRef carry a concrete type representative.
+        if (representative !is UConcreteHeapRef || representative == ctx.nullRef) return null
+
+        return scope.calcOnState { memory.types.typeOf(representative.address) }
     }
 
     private fun approximateObjectVirtualMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
@@ -407,12 +414,10 @@ class JcMethodApproximationResolver(
 
     private fun approximateArrayReflectionMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         if (method.name == "newInstance" && method.parameters[1].type.isPrimitive) {
+            val componentTypeRef = arguments[0].asExpr(ctx.addressSort)
+            val componentType = resolveRepresentedClassType(componentTypeRef) ?: return false
+
             scope.doWithState {
-                val componentTypeRef = arguments[0].asExpr(ctx.addressSort)
-                val componentTypeRepresentative =
-                    memory.read(UFieldLValue(ctx.addressSort, componentTypeRef, ctx.classTypeSyntheticField))
-                componentTypeRepresentative as UConcreteHeapRef
-                val componentType = memory.types.typeOf(componentTypeRepresentative.address)
                 val arrayType = ctx.cp.arrayTypeOf(componentType)
                 val arrayRef = memory.allocConcrete(arrayType)
                 val descriptor = ctx.arrayDescriptorOf(arrayType)
