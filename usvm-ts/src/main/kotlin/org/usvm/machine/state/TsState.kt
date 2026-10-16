@@ -19,7 +19,6 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UState
-import org.usvm.api.allocateConcreteRef
 import org.usvm.api.initializeArray
 import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.getOrPut
@@ -38,6 +37,7 @@ import org.usvm.machine.expr.TsStringIterator
 import org.usvm.machine.interpreter.PromiseCallback
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
+import org.usvm.machine.interpreter.getDfltClass
 import org.usvm.machine.runtimeFunctionType
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
@@ -308,7 +308,7 @@ class TsState(
 
     fun getDfltObject(file: EtsFile): UConcreteHeapRef {
         val (updated, result) = dfltObject.getOrPut(file.signature, ownership) {
-            ctx.allocateConcreteRef()
+            memory.allocConcrete(file.getDfltClass().type)
         }
         dfltObject = updated
         return result
