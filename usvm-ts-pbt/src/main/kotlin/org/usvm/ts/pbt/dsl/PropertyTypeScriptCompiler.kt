@@ -20,6 +20,8 @@ data class CompiledDslProperty(
     val typeScript: String,
     val expressionLocations: Map<Int, List<GeneratedPropertyRange>>,
     val numericLocalCapture: CompiledDslNumericLocalCapture? = null,
+    /** Retains import decisions so a point consumer can reproduce this compiler output from the original program. */
+    val resolvedModules: Map<String, String> = emptyMap(),
 )
 
 /** One expression occurrence in generated TypeScript; columns are one-based UTF-16 and end-exclusive. */
@@ -58,6 +60,7 @@ private class PropertyEmitter(
     private val capture = numericLocalCapture?.let { program.selectNumericLocalCapture(it) }
     private val source = StringBuilder()
     private val functions = linkedMapOf<PropertyFunctionReference, String>()
+    private val resolvedModules = linkedMapOf<String, String>()
     private val expressionLocations = mutableMapOf<Int, MutableList<GeneratedPropertyRange>>()
     private val assertions = mutableListOf<PropertyAssertion>()
     private var line = 1
@@ -69,6 +72,10 @@ private class PropertyEmitter(
         allExpressions().forEach(::collectFunctions)
         functions.forEach { (function, alias) ->
             val path = resolveModule(function.module)
+            val previous = resolvedModules.putIfAbsent(function.module, path)
+            require(capture == null || previous == null || previous == path) {
+                "A captured program requires one stable import resolution per module"
+            }
             appendLine("import { ${function.exportName} as $alias } from ${quote(path)};")
         }
         val parameters = program.inputs.joinToString { input ->
@@ -107,7 +114,7 @@ private class PropertyEmitter(
             companionAssignment = requireNotNull(companionAssignment),
         )
 
-        return CompiledDslProperty(program, definition, typeScript, locations, localCapture)
+        return CompiledDslProperty(program, definition, typeScript, locations, localCapture, resolvedModules.toMap())
     }
 
     private fun emitPredicate(parameters: String, diagnostic: Boolean) {
