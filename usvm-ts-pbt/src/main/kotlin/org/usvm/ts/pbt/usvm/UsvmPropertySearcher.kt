@@ -26,7 +26,6 @@ import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.ts.pbt.backend.ProjectionLevel
 import org.usvm.ts.pbt.inference.ScalarRelation
 import org.usvm.ts.pbt.inference.ScalarRelationInference
-import org.usvm.ts.pbt.inference.ScalarRelationTemplate
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.EtsEntryPointTarget
 import org.usvm.ts.pbt.mapping.EtsMappingStatus
@@ -146,16 +145,7 @@ class UsvmPropertySearcher(
                         generator = manifest.generator,
                     )
                     if (focus != null) {
-                        with(state.ctx) {
-                            val left = projection.inputs[focus.leftInputIndex].value.asExpr(fp64Sort)
-                            val right = projection.inputs[focus.rightInputIndex].value.asExpr(fp64Sort)
-                            val hypothesis = when (focus.relation.template) {
-                                ScalarRelationTemplate.STRICT_EQUAL -> mkFpEqualExpr(left, right)
-                                ScalarRelationTemplate.LESS_OR_EQUAL -> mkFpLessOrEqualExpr(left, right)
-                            }
-
-                            state.pathConstraints += hypothesis.not()
-                        }
+                        state.pathConstraints += focus.negatedRelation(state, projection)
                     }
                     if (precondition != null) {
                         state.prependBooleanEntryPointGuard(

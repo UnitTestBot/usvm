@@ -11,6 +11,103 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const module = 'properties/witness/ExternalWitness.ts';
 const sha256 = createHash('sha256').update(await readFile(path.join(root, module))).digest('hex');
 const binding = (pointId: string) => ({ pointId, contextId: 'original', revision: 'v1', occurrence: 0 });
+const entryModule = 'properties/inference/EntryRelations.ts';
+const entryHash = createHash('sha256').update(await readFile(path.join(root, entryModule))).digest('hex');
+
+function entryRequest(
+  left: number, right: number, template: 'STRICT_EQUAL' | 'LESS_OR_EQUAL' = 'LESS_OR_EQUAL', predicate = 'always',
+) {
+  const target: WitnessTarget = {
+    id: 'entry-relation', role: 'HYPOTHESIS',
+    binding: { pointId: 'entry-relation', contextId: 'original-entry', revision: entryHash, occurrence: 0 },
+    entryRelation: { leftInputIndex: 0, rightInputIndex: 1, template },
+  };
+  const domain = { kind: 'number', min: { value: 'negative-infinity' }, max: { value: 'positive-infinity' }, allowNaN: true };
+
+  return {
+    manifest: {
+      propertyId: 'witness.entry', predicate: { module: entryModule, exportName: predicate, executionKind: 'sync' },
+      inputs: [{ name: 'left', domain }, { name: 'right', domain }], assertions: [],
+    },
+    sourceRoots: [root], examples: [], numRuns: 1, timeoutMillis: 5000,
+    witness: {
+      mode: 'replay', target, inputs: [encodeJsValue(left), encodeJsValue(right)],
+      sources: [{ module: entryModule, sha256: entryHash }],
+    },
+  };
+}
+
+test('adapter-owned entry comparisons retain JavaScript NaN signed-zero and infinity semantics', async () => {
+  const cases = [
+    [-0, 0, 'STRICT_EQUAL', true],
+    [Number.NaN, Number.NaN, 'STRICT_EQUAL', false],
+    [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, 'STRICT_EQUAL', true],
+    [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, 'LESS_OR_EQUAL', true],
+    [Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, 'LESS_OR_EQUAL', false],
+    [Number.NaN, 0, 'LESS_OR_EQUAL', false],
+  ] as const;
+
+  for (const [left, right, template, holds] of cases) {
+    const replay = (await executeWitness(entryRequest(left, right, template))).witnessReplay;
+
+    assert.equal(replay?.outcome, 'HOLDS');
+    assert.equal(replay?.events[0]?.holds, holds);
+    assert.equal(replay?.targetMatched, !holds);
+  }
+});
+
+test('entry refutation snapshots precede callback mutation and only admitted inputs receive an event', async () => {
+  const mutation = (await executeWitness(entryRequest(80, 0, 'LESS_OR_EQUAL', 'entryMutation'))).witnessReplay;
+  const rejected = entryRequest(80, 0);
+  const guarded = { ...rejected, manifest: {
+    ...rejected.manifest, precondition: { module: entryModule, exportName: 'ordered', executionKind: 'sync' },
+  } };
+
+  const skipped = (await executeWitness(guarded)).witnessReplay;
+
+  assert.equal(mutation?.outcome, 'HOLDS');
+  assert.equal(mutation?.events[0]?.holds, false);
+  assert.equal(mutation?.targetMatched, true);
+  assert.equal(skipped?.admission, 'PRECONDITION_REJECTED');
+  assert.equal(skipped?.targetMatched, false);
+  assert.deepEqual(skipped?.events, []);
+});
+
+test('native reduction retains the same admitted entry relation and holding original oracle', async () => {
+  const initial = entryRequest(80, 0);
+  const domain = { kind: 'integer', min: 0, max: 100 };
+  const selected = { ...initial, manifest: {
+    ...initial.manifest, inputs: [{ name: 'left', domain }, { name: 'right', domain }],
+  } };
+  const expected = (await executeWitness(selected)).witnessReplay;
+
+  const reduced = (await executeWitness({ ...selected, witness: { ...selected.witness, mode: 'reduce', expected } })).witnessReduction;
+  const final = (await executeWitness({ ...selected, witness: { ...selected.witness, inputs: reduced?.inputs } })).witnessReplay;
+
+  assert.equal(reduced?.status, 'EXHAUSTED');
+  assert.ok((reduced?.acceptedShrinks ?? 0) > 0);
+  assert.deepEqual(reduced?.inputs, [encodeJsValue(1), encodeJsValue(0)]);
+  assert.equal(final?.outcome, 'HOLDS');
+  assert.equal(final?.targetMatched, true);
+  assert.deepEqual(final?.events[0]?.binding, initial.witness.target.binding);
+});
+
+test('entry target indices templates context and occurrence are validated before execution', async () => {
+  const original = entryRequest(80, 0);
+  const target = original.witness.target;
+  const cases = [
+    { ...target, entryRelation: { ...target.entryRelation!, leftInputIndex: -1 } },
+    { ...target, entryRelation: { ...target.entryRelation!, rightInputIndex: 2 } },
+    { ...target, entryRelation: { ...target.entryRelation!, template: 'COERCING_EQUAL' } },
+    { ...target, binding: { ...target.binding!, contextId: 'helper' } },
+    { ...target, binding: { ...target.binding!, occurrence: 1 } },
+  ];
+
+  for (const selected of cases) {
+    await assert.rejects(executeWitness({ ...original, witness: { ...original.witness, target: selected } }),
+      (error: unknown) => error instanceof ProtocolError && error.code === 'protocol.request.invalid');
+  }
+});
 
 function request(predicate: string, target: WitnessTarget = { id: predicate, role: 'PROPERTY' }, inputs = [encodeJsValue(80)]) {
   return {

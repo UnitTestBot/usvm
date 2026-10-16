@@ -1,9 +1,13 @@
 package org.usvm.ts.pbt.usvm
 
+import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsNumberType
+import org.usvm.UBoolExpr
+import org.usvm.machine.state.TsState
 import org.usvm.ts.pbt.inference.ScalarRelation
 import org.usvm.ts.pbt.inference.ScalarRelationInference
 import org.usvm.ts.pbt.inference.ScalarRelationStatus
+import org.usvm.ts.pbt.inference.ScalarRelationTemplate
 import org.usvm.ts.pbt.inference.matches
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.manifest.toManifest
@@ -28,6 +32,20 @@ data class UsvmEntryRelationBinding(
     val right: EtsInputBinding,
     val relation: ScalarRelation,
 )
+
+internal fun UsvmEntryRelationBinding.negatedRelation(
+    state: TsState,
+    projection: UsvmDeclaredDomainProjection,
+): UBoolExpr = with(state.ctx) {
+    val leftValue = projection.inputs[leftInputIndex].value.asExpr(fp64Sort)
+    val rightValue = projection.inputs[rightInputIndex].value.asExpr(fp64Sort)
+    val hypothesis = when (relation.template) {
+        ScalarRelationTemplate.STRICT_EQUAL -> mkFpEqualExpr(leftValue, rightValue)
+        ScalarRelationTemplate.LESS_OR_EQUAL -> mkFpLessOrEqualExpr(leftValue, rightValue)
+    }
+
+    hypothesis.not()
+}
 
 /** An explicitly focused original-property search; no-finding does not exhaust the original domain. */
 data class UsvmEntryRelationSearchResult(
