@@ -1,13 +1,14 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsStringType
 import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.api.allocateConcreteRef
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isAllocatedConcreteHeapRef
@@ -27,6 +28,8 @@ enum class PromiseState {
     FULFILLED,
     REJECTED;
 }
+
+private val intrinsicPromiseInstanceType = EtsClassType(EtsClassSignature.UNKNOWN.copy(name = "Promise"))
 
 /** A settlement callback queued for a modeled Promise. */
 data class PromiseCallback(
@@ -70,7 +73,7 @@ internal fun TsContext.createSettledPromise(
 ): UConcreteHeapRef {
     require(settlement != PromiseState.PENDING)
 
-    val promise = allocateConcreteRef()
+    val promise = scope.calcOnState { memory.allocConcrete(intrinsicPromiseInstanceType) }
     val storedValue = value.toFakeObject(scope)
     scope.doWithState {
         markResolved(promise)
