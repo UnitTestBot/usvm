@@ -31,6 +31,22 @@ def symbolic_artifact(outcome="HOLDS"):
                                          "completedWithinDeadline": True, "predictedOutcomes": [outcome]}]}}
 
 
+def auxiliary_artifact():
+    artifact = symbolic_artifact()
+    raw = artifact["result"]["symbolicInputReplays"][0]
+    candidate = copy.deepcopy(raw["candidate"])
+    candidate["target"] = {"id": "relation", "role": "HYPOTHESIS", "binding": {"pointId": "relation", "revision": "hash"}}
+    native = copy.deepcopy(raw["replay"])
+    confirmation = {"status": "CONFIRMED_HYPOTHESIS_REFUTATION", "candidate": candidate, "originalReplay": native,
+                    "contextualRefutations": [{"binding": candidate["target"]["binding"], "guard": True, "holds": False}],
+                    "reduction": {"inputs": [number(0)]}}
+    artifact["result"].pop("symbolicInputReplays")
+    artifact["result"].pop("symbolic")
+    artifact["result"]["relationGuidance"] = {"attempts": [{"searchStatus": "REFUTATION_REACHED", "witness": candidate,
+                                                          "confirmation": confirmation, "completedWithinDeadline": True}]}
+    return artifact
+
+
 class ExperimentTest(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -162,6 +178,58 @@ class ExperimentTest(unittest.TestCase):
         manifest["maxObservationBytes"] += 1
         with self.assertRaisesRegex(ValueError, "64MiB"):
             driver.validate_manifest(manifest)
+
+
+    def test_confirmed_auxiliary_refutation_with_passing_original_retains_its_original_input(self):
+        artifact = auxiliary_artifact()
+
+        batches, omissions = driver.replay_inputs(artifact)
+
+        self.assertEqual(batches[0]["id"], "auxiliary")
+        self.assertEqual(batches[0]["inputs"], [{"inputs": [number(1)], "admission": "ADMITTED", "outcome": "HOLDS"}])
+        self.assertTrue(batches[0]["isolateInputs"])
+        self.assertFalse(any(omissions.values()))
+
+
+    def test_unchecked_late_or_wrong_identity_auxiliary_inputs_never_become_class_coverage(self):
+        for change in ("late", "raw", "missing-identity", "missing-original", "different-input", "no-context"):
+            artifact = auxiliary_artifact()
+            attempt = artifact["result"]["relationGuidance"]["attempts"][0]
+            if change == "late":
+                attempt["completedWithinDeadline"] = False
+            elif change == "raw":
+                attempt["confirmation"]["status"] = "PROPERTY_HOLDS"
+            elif change == "missing-identity":
+                attempt["confirmation"]["originalReplay"]["coverage"].pop("identity")
+            elif change == "missing-original":
+                attempt["confirmation"].pop("originalReplay")
+            elif change == "different-input":
+                attempt["confirmation"]["candidate"] = dict(attempt["witness"], inputs=[number(2)])
+            else:
+                attempt["confirmation"]["contextualRefutations"] = []
+
+            batches, omissions = driver.replay_inputs(artifact)
+
+            self.assertEqual(batches[0]["inputs"], [], change)
+            self.assertEqual(omissions["auxiliaryUncheckedInputs"], 1, change)
+
+
+    def test_auxiliary_original_fault_requires_its_named_original_check_and_preserves_false(self):
+        artifact = auxiliary_artifact()
+        artifact["property"]["assertions"] = [{"id": "bound"}]
+        confirmation = artifact["result"]["relationGuidance"]["attempts"][0]["confirmation"]
+        confirmation["status"] = "CONFIRMED_PROPERTY_VIOLATION"
+        confirmation["originalReplay"].update(outcome="FALSE", failure={"checkId": "bound"}, targetMatched=False)
+
+        batches, omissions = driver.replay_inputs(artifact)
+
+        self.assertEqual(batches[0]["inputs"][0]["outcome"], "FALSE")
+        self.assertFalse(any(omissions.values()))
+
+        confirmation["originalReplay"]["failure"]["checkId"] = "other"
+        batches, omissions = driver.replay_inputs(artifact)
+        self.assertEqual(batches[0]["inputs"], [])
+        self.assertEqual(omissions["auxiliaryUncheckedInputs"], 1)
 
 
     def test_process_timeout_retains_raw_output_and_failure(self):

@@ -192,12 +192,37 @@ def confirmed_symbolic_input(artifact):
     return {"inputs": candidate["inputs"], "admission": "ADMITTED", "outcome": native["outcome"]}
 
 
+def confirmed_auxiliary_input(artifact, attempt):
+    """Consume a complete original-oracle confirmation, preserving the original input rather than a shrink."""
+    confirmation = attempt.get("confirmation") or {}
+    candidate = confirmation.get("candidate") or {}
+    native = confirmation.get("originalReplay") or {}
+    target = candidate.get("target") or {}
+    status = confirmation.get("status")
+    original_fault = status == "CONFIRMED_PROPERTY_VIOLATION" and native.get("outcome") in ("FALSE", "THREW")
+    hypothesis_refuted = status == "CONFIRMED_HYPOTHESIS_REFUTATION" and native.get("outcome") == "HOLDS" \
+        and native.get("targetMatched") is True \
+        and any(event.get("binding") == target.get("binding") and event.get("guard") is True
+                and event.get("holds") is False for event in confirmation.get("contextualRefutations", []))
+    declared_checks = {assertion["id"] for assertion in artifact["property"].get("assertions", [])}
+    original_check_matches = not declared_checks or (native.get("failure") or {}).get("checkId") in declared_checks
+    eligible = attempt.get("completedWithinDeadline") is True and attempt.get("searchStatus") == "REFUTATION_REACHED" \
+        and candidate == attempt.get("witness") and candidate.get("inputs") is not None \
+        and candidate.get("propertyId") == artifact["result"].get("propertyId") \
+        and target.get("role") == "HYPOTHESIS" and not confirmation.get("diagnostic") \
+        and native_coverage_matches(candidate, native) \
+        and (hypothesis_refuted or original_fault and original_check_matches)
+    if not eligible:
+        return None
+    return {"inputs": candidate["inputs"], "admission": "ADMITTED", "outcome": native["outcome"]}
+
+
 def replay_inputs(artifact):
     result = artifact["result"]
     concrete = result.get("concrete")
     omissions = {"pbtDroppedInvocations": 0, "pbtUnavailableInputs": 0, "pbtUnsupportedInputs": 0,
                  "pbtPendingInvocations": 0, "symbolicOmittedInputs": 0,
-                 "symbolicUncheckedInputs": 0}
+                 "symbolicUncheckedInputs": 0, "auxiliaryUncheckedInputs": 0}
     batches = []
     if concrete is not None:
         export = concrete.get("inputExport")
@@ -251,6 +276,19 @@ def replay_inputs(artifact):
         elif symbolic.get("target") is not None and input_key(symbolic.get("inputs")) not in replay_keys:
             omissions["symbolicUncheckedInputs"] += 1
         batches.append({"id": "symbolic", "inputs": invocations, "isolateInputs": True})
+    auxiliary = (result.get("relationGuidance") or {}).get("attempts", [])
+    if auxiliary:
+        invocations = []
+        for attempt in auxiliary:
+            has_candidate = attempt.get("witness") is not None or attempt.get("searchStatus") == "REFUTATION_REACHED"
+            if not has_candidate:
+                continue
+            confirmed = confirmed_auxiliary_input(artifact, attempt)
+            if confirmed is None:
+                omissions["auxiliaryUncheckedInputs"] += 1
+            else:
+                invocations.append(confirmed)
+        batches.append({"id": "auxiliary", "inputs": invocations, "isolateInputs": True})
     if concrete is None and result["mode"] != "SYMBOLIC_ONLY":
         omissions["pbtUnavailableInputs"] += 1
     return batches, omissions
@@ -305,6 +343,15 @@ def run_cell(frozen, case, seed, mode, output):
         artifact = read_json(directory / "campaign.json")
         result = artifact["result"]
         summary["campaignElapsedMillis"] = result["elapsedMillis"]
+        relation_trace = result.get("relationGuidance") or {}
+        relation_attempts = relation_trace.get("attempts", [])
+        summary["relationElapsedMillis"] = relation_trace.get("elapsedMillis", 0)
+        summary["originalQueryElapsedMillis"] = relation_trace.get("originalElapsedMillis")
+        summary["relationStatuses"] = [attempt["searchStatus"] for attempt in relation_attempts]
+        summary["relationDiagnostics"] = relation_trace.get("diagnostics", []) + [
+            diagnostic for attempt in relation_attempts
+            for diagnostic in attempt.get("diagnostics", []) + attempt.get("bindingDiagnostics", [])
+        ]
         confirmation = result.get("confirmation") or {}
         failure = (result.get("concrete") or {}).get("failure") or {}
         summary["confirmedViolation"] = failure.get("kind") == "property" or confirmation.get("status") == "CONFIRMED_PROPERTY_VIOLATION"
@@ -322,9 +369,11 @@ def run_cell(frozen, case, seed, mode, output):
         symbolic_supported = summary["symbolicStatus"] in (
             "VIOLATION_REACHED", "NO_VIOLATION_REACHED", "PRECONDITION_REJECTED", "TIMEOUT",
         )
-        stopped_on_pbt_fault = result.get("symbolic") is None and failure.get("kind") == "property"
-        summary["analysisSupported"] = (mode == "PBT_ONLY" or symbolic_supported or stopped_on_pbt_fault) \
-            and not summary["symbolicDiagnostics"]
+        stopped_on_original_fault = result.get("symbolic") is None and summary["confirmedViolation"]
+        relation_supported = all(status in ("REFUTATION_REACHED", "NO_REFUTATION_REACHED", "PRECONDITION_REJECTED", "TIMEOUT")
+                                 for status in summary["relationStatuses"])
+        summary["analysisSupported"] = (mode == "PBT_ONLY" or symbolic_supported or stopped_on_original_fault) \
+            and not summary["symbolicDiagnostics"] and relation_supported and not summary["relationDiagnostics"]
         if summary["confirmedViolation"]:
             summary["findingReturnedByMillis"] = int((time.monotonic() - started) * 1000) + preparation_cost
             summary["confirmedViolationWithinBudget"] = summary["findingReturnedByMillis"] <= frozen["totalBudgetMillis"] \
@@ -417,6 +466,8 @@ def summarize(output):
                 row.pop("replayProcesses", None)
                 row["omissions"] = json.dumps(row.get("omissions", {}), sort_keys=True)
                 row["symbolicDiagnostics"] = json.dumps(row.get("symbolicDiagnostics", []), sort_keys=True)
+                row["relationDiagnostics"] = json.dumps(row.get("relationDiagnostics", []), sort_keys=True)
+                row["relationStatuses"] = json.dumps(row.get("relationStatuses", []))
                 rows.append(row)
     columns = sorted(set().union(*(row.keys() for row in rows)))
     with (output / "summary.csv").open("w", newline="", encoding="utf-8") as file:
