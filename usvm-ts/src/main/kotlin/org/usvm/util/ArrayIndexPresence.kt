@@ -21,8 +21,8 @@ fun TsState.markDenseArrayOwnSlots(
     knownArrayPropertyPresence += array
 }
 
-/** Presence of own numeric slots in source arrays and generated array inputs. */
-internal fun TsState.knownArrayIndexPresence(array: UHeapRef, index: UExpr<TsSizeSort>): UBoolExpr? {
+/** Presence of own numeric slots in source arrays and generated inputs; null means provenance is unknown. */
+fun TsState.knownArrayIndexPresence(array: UHeapRef, index: UExpr<TsSizeSort>): UBoolExpr? {
     if (array !in knownArrayPropertyPresence) return null
 
     return writtenArrayIndexPresence(array, index)

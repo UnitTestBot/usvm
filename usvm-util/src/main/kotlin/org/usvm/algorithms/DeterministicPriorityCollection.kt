@@ -17,10 +17,12 @@ class DeterministicPriorityCollection<T, Priority>(private val comparator: Compa
     override val count: Int get() = priorityQueue.size + if (topElement == null) 0 else 1
 
     override fun peek(): T {
-        if (topElement == null) {
-            topElement = priorityQueue.remove()
-        }
-        return topElement!!.first
+        val currentTop = topElement
+        if (currentTop != null) return currentTop.first
+
+        val next = priorityQueue.remove()
+        topElement = next
+        return next.first
     }
 
     override fun update(element: T, priority: Priority) {
@@ -44,7 +46,7 @@ class DeterministicPriorityCollection<T, Priority>(private val comparator: Compa
         assert({ !priorityQueue.any { (e, _) -> e == element } }) { "Element already exists in priority queue" }
 
         val currentTop = topElement
-        if (currentTop != null && comparator.compare(currentTop.second, priority) < 0) {
+        if (currentTop != null && comparator.compare(currentTop.second, priority) > 0) {
             topElement = element to priority
             priorityQueue.add(currentTop)
             return

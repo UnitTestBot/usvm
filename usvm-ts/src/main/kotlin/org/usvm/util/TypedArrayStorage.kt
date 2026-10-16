@@ -32,6 +32,14 @@ internal fun TsContext.typedArrayOverrideLValue(array: UHeapRef, index: UExpr<Ts
 internal fun TsContext.typedArrayBoxedLValue(array: UHeapRef, index: UExpr<TsSizeSort>) =
     UArrayIndexLValue(addressSort, array, index, TsTypedArrayStorage.BOXED_VALUE)
 
+/** Reads existing override metadata without initializing or changing array storage. */
+fun TsState.hasBoxedArrayElement(array: UHeapRef, index: UExpr<TsSizeSort>): UBoolExpr = with(ctx) {
+    val initialized = mkOr(initializedTypedArrayOverrides.map { prior -> mkHeapRefEq(array, prior) })
+    val overridden = memory.read(typedArrayOverrideLValue(array, index))
+
+    mkAnd(initialized, overridden)
+}
+
 internal data class TsTypedArrayElement(
     val nativeValue: UExpr<*>,
     val hasBoxedValue: UBoolExpr,
