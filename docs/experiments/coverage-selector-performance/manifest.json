@@ -1,0 +1,36 @@
+{
+  "recordedDate": "2026-10-16",
+  "productionRevision": "deca5d3bc",
+  "cpu": "Apple M3 Pro",
+  "architecture": "arm64",
+  "memoryBytes": 19327352832,
+  "java": "Zulu 11.0.32.1+1",
+  "testHeapBytes": 4294967296,
+  "settings": {
+    "stepLimit": 100000,
+    "timeoutMillis": 120000,
+    "solver": "YICES",
+    "solverTimeoutMillis": 250,
+    "typeTimeoutMillis": 250,
+    "arrayMaxSize": 1500,
+    "useSoftConstraints": false,
+    "assertions": false,
+    "dynamicGoals": false
+  },
+  "counts": {
+    "runs": 16,
+    "interpreterSteps": 1328129
+  },
+  "librarySha256": {
+    "commons-codec-1.16.0.jar": "56595fb20b0b85bc91d0d503dad50bb7f1b9afc0eed5dffa6cbb25929000484d",
+    "guava-32.0.1-jre.jar": "bd7fa227591fb8509677d0d1122cf95158f3b8a9f45653f58281d879f6dc48c5"
+  },
+  "sourceSha256": {
+    "usvm-core/src/main/kotlin/org/usvm/ps/CoverageGuidedPathSelector.kt": "5905b62b890e94b7390058e46c07fbd9dbb7285521ccc3c65abfceb458ce6b1e",
+    "usvm-util/src/main/kotlin/org/usvm/algorithms/DeterministicPriorityCollection.kt": "e55fd73657139ec726574f5ddfca43eccfe8d615520b5c30111146a65019bc32",
+    "usvm-jvm/src/test/kotlin/org/usvm/experiments/CoverageSelectorPerformanceTest.kt": "602ecb571d50078a628fcc0b8d05ee7259e1a67949040b752db52dcae4b890cd",
+    "docs/experiments/coverage-selector-performance/run.py": "fa4dfa0bc6a328daf8bcdb736c08a719581bdf8bd46f29e388f03e77a74da0f5",
+    "docs/experiments/coverage-selector-performance/performance.gradle": "119f882bfba0d7222daaab9a844e7f7498b5a4b82600d9fd108ffe7ecab2bfbf"
+  },
+  "harnessProvenance": "Final reproducible harness; setup-helper extraction and report-formatting refinements occurred during exploratory runs. Production selector sources, measured execution loop and settings were unchanged."
+}
