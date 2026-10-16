@@ -94,39 +94,11 @@ internal class CallsClassInputCandidates(output: Path, private val profile: Call
         val started = TimeSource.Monotonic.markNow()
         val extracted = runCatching {
             val method = state.entrypoint
-            val binding = checkNotNull(bindings[method]) { "Missing original entry bindings" }
-            val initial = binding.getOrThrow()
-            val prototypes = IdentityHashMap<TsTestValue.TsClass, CallsConcretePrototype>()
-            val resolver = TsTestResolver(onClassResolved = { value, owner ->
-                val builtinObject = owner.name == "Object" && owner.signature.file == EtsFileSignature.UNKNOWN
-                prototypes[value] = CallsConcretePrototype(
-                    signature = owner.signature,
-                    ordinaryObject = owner.category == EtsClassCategory.OBJECT || builtinObject,
-                )
-            })
-            var environmentFailure: String? = null
-            val inputs = try {
-                resolver.resolveInputs(
-                    method = method,
-                    state = state,
-                    inputValues = initial.parameters,
-                    receiverValue = initial.receiver,
-                )
-            } catch (failure: TsUnsupportedEnvironmentWitnessException) {
-                environmentFailure = "${failure::class.java.name}: ${failure.message}"
-                resolver.resolveInputs(
-                    method = method,
-                    state = state,
-                    inputValues = initial.parameters,
-                    receiverValue = initial.receiver,
-                    resolveEnvironment = false,
-                )
-            }
-            val heap = concreteCallsInputHeap(inputs = inputs, prototypes = prototypes)
+            val environment = resolveOriginalEnvironment(state = state)
             val suspended = outcome != "RETURNED" && outcome != "THREW"
             val reason = if (suspended) state.engineFailureReason ?: state.unsupportedReason ?: outcome else null
             val currentMethod = state.lastStmt.location.method.signature
-            val candidate = CallsClassInputCandidate(
+            CallsClassInputCandidate(
                 stateId = state.id.toString(),
                 entryMethod = method.signature.toString(),
                 currentMethod = currentMethod.toString(),
@@ -153,11 +125,10 @@ internal class CallsClassInputCandidates(output: Path, private val profile: Call
                 suspensionReason = reason,
                 suspendedAtMachineStop = suspended && stopped,
                 emittedAtMillis = emittedAtMillis,
-                inputs = heap,
-                environmentComplete = environmentFailure == null,
-                environmentLimitations = listOfNotNull(environmentFailure),
+                inputs = environment.heap,
+                environmentComplete = environment.limitation == null,
+                environmentLimitations = listOfNotNull(environment.limitation),
             )
-            ExtractedCandidate(candidate = candidate, environmentFailure = environmentFailure)
         }
         extractionElapsedNanos += started.elapsedNow().inWholeNanoseconds
 
@@ -165,9 +136,8 @@ internal class CallsClassInputCandidates(output: Path, private val profile: Call
         try {
             extracted.fold(
                 onSuccess = { result ->
-                    candidates.append(encodeCallsArtifact(result.candidate))
-                    val environmentFailure = result.environmentFailure
-                    if (environmentFailure != null) {
+                    candidates.append(encodeCallsArtifact(result))
+                    for (environmentFailure in result.environmentLimitations) {
                         val diagnostic = CallsClassInputExtractionFailure(
                             stateId = state.id.toString(),
                             entryMethod = state.entrypoint.signature.toString(),
@@ -196,6 +166,42 @@ internal class CallsClassInputCandidates(output: Path, private val profile: Call
         }
     }
 
+    private fun resolveOriginalEnvironment(state: TsState): ResolvedEnvironment {
+        val method = state.entrypoint
+        val binding = checkNotNull(bindings[method]) { "Missing original entry bindings" }
+        val initial = binding.getOrThrow()
+        val prototypes = IdentityHashMap<TsTestValue.TsClass, CallsConcretePrototype>()
+        val resolver = TsTestResolver(onClassResolved = { value, owner ->
+            val builtinObject = owner.name == "Object" && owner.signature.file == EtsFileSignature.UNKNOWN
+            prototypes[value] = CallsConcretePrototype(
+                signature = owner.signature,
+                ordinaryObject = owner.category == EtsClassCategory.OBJECT || builtinObject,
+            )
+        })
+
+        var environmentFailure: String? = null
+        val inputs = try {
+            resolver.resolveInputs(
+                method = method,
+                state = state,
+                inputValues = initial.parameters,
+                receiverValue = initial.receiver,
+            )
+        } catch (failure: TsUnsupportedEnvironmentWitnessException) {
+            environmentFailure = "${failure::class.java.name}: ${failure.message}"
+            resolver.resolveInputs(
+                method = method,
+                state = state,
+                inputValues = initial.parameters,
+                receiverValue = initial.receiver,
+                resolveEnvironment = false,
+            )
+        }
+
+        val heap = concreteCallsInputHeap(inputs = inputs, prototypes = prototypes)
+        return ResolvedEnvironment(heap = heap, limitation = environmentFailure)
+    }
+
     fun checkpoint() {
         candidates.flush()
         failures.flush()
@@ -209,10 +215,7 @@ internal class CallsClassInputCandidates(output: Path, private val profile: Call
 
     private data class EntryBindings(val receiver: UExpr<*>, val parameters: List<UExpr<*>>)
 
-    private data class ExtractedCandidate(
-        val candidate: CallsClassInputCandidate,
-        val environmentFailure: String?,
-    )
+    private data class ResolvedEnvironment(val heap: CallsConcreteHeap, val limitation: String?)
 }
 
 private class InputJournal(private val path: Path) {
