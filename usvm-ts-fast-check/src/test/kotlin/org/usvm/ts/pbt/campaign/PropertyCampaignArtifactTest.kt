@@ -10,8 +10,10 @@ import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyFailureKind
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.WitnessReductionStatus
+import org.usvm.ts.pbt.backend.WitnessReplayConfiguration
 import org.usvm.ts.pbt.backend.WitnessReplayStatus
 import org.usvm.ts.pbt.backend.WitnessRole
+import org.usvm.ts.pbt.fastcheck.FastCheckBackend
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.ConstantDomain
@@ -181,28 +183,51 @@ class PropertyCampaignArtifactTest {
 
     @Test
     fun `saved confirmation timeout retains its candidate and campaign stop phase`() {
+        val property = symbolicProperty()
+        val sourceRoot = root.resolve("properties/campaign")
+        val prepared = PropertyCampaignRunner(sourceRoot = sourceRoot).runArtifact(
+            property = property,
+            mode = PropertyCampaignMode.SYMBOLIC_ONLY,
+            configuration = configuration,
+        )
+        val candidate = assertNotNull(prepared.result.confirmation).candidate
+        assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, prepared.result.symbolic?.status)
+
         val executable = directory.resolve("waiting-node")
-        executable.writeText("#!/bin/sh\nexec node -e 'setInterval(() => {}, 1000)'\n")
+        val started = directory.resolve("waiting-node-started")
+        executable.writeText(
+            "#!/bin/sh\nprintf started > \"$started\"\nexec node -e 'setInterval(() => {}, 1000)'\n",
+        )
         check(executable.toFile().setExecutable(true))
-        val runner = PropertyCampaignRunner(
-            sourceRoot = root.resolve("properties/campaign"),
+        val backend = FastCheckBackend(
+            sourceRoots = listOf(sourceRoot),
             nodeExecutable = executable.toString(),
         )
-        val artifact = runner.runArtifact(
-            property = symbolicProperty(),
-            mode = PropertyCampaignMode.SYMBOLIC_ONLY,
-            configuration = configuration.copy(timeoutMillis = 10_000),
-            validationReserveMillis = 1_000,
+
+        val confirmation = backend.confirmWitness(
+            property = property,
+            candidate = candidate,
+            configuration = WitnessReplayConfiguration(timeoutMillis = 1_000, validationReserveMillis = 250),
         )
 
+        // Serialization needs a real timeout snapshot without charging frontend startup to the replay budget.
+        val artifact = prepared.copy(
+            result = prepared.result.copy(
+                confirmation = confirmation,
+                stop = PropertyCampaignStop.DEADLINE,
+                stoppedAt = PropertyCampaignPhase.CONFIRMATION,
+            ),
+        )
         val restored = saveAndRead(artifact)
 
+        assertTrue(Files.isRegularFile(started), "The native confirmation process did not start")
         assertEquals(PropertyCampaignStop.DEADLINE, restored.result.stop)
         assertEquals(PropertyCampaignPhase.CONFIRMATION, restored.result.stoppedAt)
         assertEquals(WitnessReplayStatus.TIMEOUT, restored.result.confirmation?.status)
         assertEquals(listOf(JsConcreteValue.number(42.0)), restored.result.confirmation?.candidate?.inputs)
-        assertEquals(10_000, restored.configuration.timeoutMillis)
-        assertEquals(1_000, restored.validationReserveMillis)
+        assertEquals(candidate, restored.result.confirmation?.candidate)
+        assertEquals(configuration, restored.configuration)
+        assertEquals(prepared.validationReserveMillis, restored.validationReserveMillis)
         assertFalse(restored.result.confirmedViolation)
         assertEquals(artifact, restored)
     }
