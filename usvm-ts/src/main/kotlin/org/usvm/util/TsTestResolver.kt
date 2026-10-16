@@ -701,19 +701,23 @@ open class TsTestStateResolver(
                     else -> error("TODO")
                 }
             }
-            if (classes.size == 1) {
-                return classes.single()
-            }
+            val resolved = uniqueClassDeclaration(classes)
+            if (resolved != null) return resolved
         }
 
         // Sad signature:
         val classes = ctx.scene.projectAndSdkClasses.filter { it.signature.name == name }
-        if (classes.size == 1) {
-            return classes.single()
-        }
+        val resolved = uniqueClassDeclaration(classes)
+        if (resolved != null) return resolved
 
         throw TsUnsupportedWitnessException("Concrete class identity is unresolved or ambiguous: $name")
     }
+
+    private fun uniqueClassDeclaration(classes: List<EtsClass>): EtsClass? = classes
+        .groupBy { it.signature }
+        .values
+        .flatMap(::canonicalClassDeclarations)
+        .singleOrNull()
 
     private fun resolveTsClass(
         concreteRef: UConcreteHeapRef,

@@ -387,6 +387,20 @@ class CallsClassStartSmokeTest {
         assertTrue(raw.sourceMappedIrEntered.any { it in closurePoints }, raw.toString())
         assertTrue(raw.sourceMappedIrUniverse.containsAll(raw.sourceMappedIrEntered), raw.toString())
         assertTrue(raw.returnedStates > 0, raw.toString())
+
+        val failures = Files.readAllLines(directory.resolve("output/input-extraction-failures.jsonl"))
+        val candidates = Files.readAllLines(directory.resolve("output/input-candidates.jsonl")).map {
+            CallsExperimentJson.json.decodeFromString<CallsClassInputCandidate>(it)
+        }
+        val memberCandidates = candidates.filter { it.methodName == "read" }
+
+        assertTrue(failures.isEmpty(), failures.toString())
+        assertTrue(memberCandidates.isNotEmpty())
+        for (candidate in memberCandidates) {
+            val receiverId = checkNotNull(candidate.inputs.receiver?.objectId)
+            val receiver = candidate.inputs.objects.single { it.id == receiverId }
+            assertEquals(result.targetSignature, receiver.classSignature)
+        }
     }
 
     @Test
