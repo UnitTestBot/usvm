@@ -107,3 +107,18 @@ internal fun SelectedDslNumericLocalCapture.compileCapture(
 
     return CompiledDslNumericLocalCapture(binding, result, inputPoint)
 }
+
+internal fun CompiledDslProperty.isReproducibleCompilerOutput(): Boolean = try {
+    val capture = requireNotNull(numericLocalCapture)
+    val regenerated = PropertyTypeScriptCompiler().compile(
+        program,
+        generatedModule = definition.predicate.module,
+        resolveModule = { module -> requireNotNull(resolvedModules[module]) { "Unretained module: $module" } },
+        numericLocalCapture = DslNumericLocalCapture(capture.binding.localName, capture.result.assertionId),
+    )
+
+    definition == regenerated.definition && typeScript == regenerated.typeScript &&
+        numericLocalCapture == regenerated.numericLocalCapture
+} catch (_: IllegalArgumentException) {
+    false
+}
