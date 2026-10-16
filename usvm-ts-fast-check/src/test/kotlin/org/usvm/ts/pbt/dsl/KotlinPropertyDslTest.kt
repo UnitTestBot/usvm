@@ -239,7 +239,7 @@ class KotlinPropertyDslTest {
         "elapsedMillis=$elapsedMillis, budgetMillis=$budgetMillis, " +
             "symbolicSkippedDueToDeadline=$symbolicSkippedDueToDeadline, symbolicStatus=${symbolic?.status}, " +
             "concreteStatus=${concrete?.status}, replayStatus=${symbolicReplay?.status}, " +
-            "replayFailure=${symbolicReplay?.failure}"
+            "replayFailure=${symbolicReplay?.originalReplay?.failure}"
 
     private fun addition(exportName: String): DslProperty = defineProperty(id = "calculator.$exportName") {
         val sum = function<(Double, Double) -> Double>(module = "calculator.ts", exportName = exportName)

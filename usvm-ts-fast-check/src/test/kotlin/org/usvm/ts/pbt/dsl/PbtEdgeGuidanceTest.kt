@@ -119,7 +119,7 @@ class PbtEdgeGuidanceTest {
         assertTrue(trace.selections.isNotEmpty())
         assertTrue(trace.selections.all { it.goal == null && it.originalObjectiveTurn })
         assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, run.symbolic?.status)
-        assertEquals("original", run.symbolicReplay?.failure?.checkId)
+        assertEquals("original", run.symbolicReplay?.originalReplay?.failure?.checkId)
     }
 
     private fun positiveResult(exportName: String): DslProperty = defineProperty(id = "edge-guidance.$exportName") {
