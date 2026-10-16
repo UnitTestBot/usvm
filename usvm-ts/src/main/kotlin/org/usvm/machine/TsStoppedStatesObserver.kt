@@ -11,6 +11,7 @@ import org.usvm.statistics.UMachineObserver
  * Call [collectRemainingStates] after a successful analysis, while the machine is still open. Queue extraction
  * is deferred because `onMachineStopped` also runs on exceptional exits, and draining changes stop metadata.
  * No additional execution steps or satisfiability checks are performed for queued states.
+ * Failed-step snapshots retain [TsState.engineFailureReason] and are not completed program results.
  */
 class TsStoppedStatesObserver(
     private val consumeState: (TsState) -> Unit,
@@ -31,7 +32,8 @@ class TsStoppedStatesObserver(
 
             override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
                 val isStoppedPrefix = stateReachable && state.unsupportedReason != null
-                if (isStoppedPrefix) {
+                val isFailedPrefix = state.engineFailureReason != null
+                if (isStoppedPrefix || isFailedPrefix) {
                     consumeState(state.clone())
                 }
             }

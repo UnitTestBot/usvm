@@ -59,6 +59,9 @@ tasks.processResources {
 tasks.test {
     dependsOn(":usvm-ts-fast-check:buildFastCheckAdapter")
     systemProperty(fastCheckRuntimeProperty, fastCheckAdapterDir.asFile.absolutePath)
+    doFirst {
+        systemProperty("org.usvm.ts.calls.test.runtimeClasspath", sourceSets.test.get().runtimeClasspath.asPath)
+    }
 }
 
 application {
