@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.backend.CoverageScope
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyFailureKind
+import org.usvm.ts.pbt.backend.PropertyInputExportRequest
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.backend.WitnessReductionStatus
@@ -15,6 +16,7 @@ import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
+import org.usvm.ts.pbt.observation.PropertyObservationSource
 import org.usvm.ts.pbt.testResourcesRoot
 import org.usvm.ts.pbt.usvm.UsvmEdgeReplayStatus
 import org.usvm.ts.pbt.usvm.UsvmPropertySearchStatus
@@ -59,6 +61,28 @@ class GuidedPropertyCampaignTest {
         assertTrue(trace.replays.any { missingNested in it.additions }, trace.toString())
         assertTrue(trace.remainingGoals.isEmpty(), trace.toString())
         assertEquals(UsvmPropertySearchStatus.NO_VIOLATION_REACHED, artifact.result.symbolic?.status)
+    }
+
+    @Test
+    fun `compact export supplies native inputs without allocating automatic point observations`() {
+        val configuration = configuration.copy(
+            examples = examples(1),
+            inputExportRequest = PropertyInputExportRequest(
+                sources = listOf(PropertyObservationSource(module = MODULE, sha256 = campaignSourceSha256(root.resolve(MODULE)))),
+            ),
+        )
+
+        val artifact = runner.runArtifact(
+            property = property(exportName = "branchHolds"),
+            mode = PropertyCampaignMode.COVERAGE_FEEDBACK,
+            configuration = configuration,
+            pbtAllocationMillis = 15_000,
+        )
+
+        assertEquals(1, artifact.result.concrete?.inputExport?.records?.size)
+        assertNull(artifact.result.concrete?.observations)
+        assertNotNull(artifact.result.symbolic?.edgeGuidance)
+        assertTrue(assertNotNull(artifact.result.concrete?.coverage).provenance.request.admittedOnly)
     }
 
     @Test

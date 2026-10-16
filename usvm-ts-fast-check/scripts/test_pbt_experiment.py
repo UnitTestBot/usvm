@@ -1,4 +1,5 @@
 import importlib.util
+import copy
 import os
 from pathlib import Path
 import struct
@@ -14,6 +15,20 @@ SPEC.loader.exec_module(driver)
 
 def number(value):
     return {"kind": "number", "value": "finite", "bits": struct.pack(">d", value).hex()}
+
+
+def symbolic_artifact(outcome="HOLDS"):
+    candidate = {"propertyId": "p", "manifestSha256": "hash", "inputs": [number(1)],
+                 "target": {"id": "predicate", "role": "PROPERTY", "expectedOutcome": outcome}}
+    native = {"admission": "ADMITTED", "outcome": outcome, "targetMatched": True,
+              "coverage": {"propertyId": "p", "admittedInvocations": 1,
+                           "identity": {"manifestSha256": "hash"},
+                           "provenance": {"request": {"admittedOnly": True}}}}
+    return {"property": {"predicate": {"exportName": "predicate"}},
+            "result": {"propertyId": "p", "mode": "SYMBOLIC_ONLY", "symbolic": {
+                "inputs": candidate["inputs"], "completedInputs": [{"inputs": candidate["inputs"]}]},
+                "symbolicInputReplays": [{"candidate": candidate, "replay": native,
+                                         "completedWithinDeadline": True, "predictedOutcomes": [outcome]}]}}
 
 
 class ExperimentTest(unittest.TestCase):
@@ -47,6 +62,94 @@ class ExperimentTest(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "implementation changed"):
             driver.verify_runtime(frozen)
+
+
+    def test_compact_export_takes_priority_and_preserves_all_omission_kinds(self):
+        concrete = {"inputExport": {"droppedInvocations": 3, "unsupportedInputs": 2,
+                                   "pendingInvocations": 1, "records": [
+            {"phase": "generation", "input": {"status": "captured", "value": {"kind": "array", "elements": [number(1)]}},
+             "admission": "admitted", "outcome": "holds"}]},
+                    "observations": {"droppedInvocations": 99, "invocations": []}}
+
+        batches, omissions = driver.replay_inputs({"result": {"mode": "PBT_ONLY", "concrete": concrete}})
+
+        self.assertEqual(len(batches[0]["inputs"]), 1)
+        self.assertEqual(omissions["pbtDroppedInvocations"], 3)
+        self.assertEqual(omissions["pbtUnsupportedInputs"], 2)
+        self.assertEqual(omissions["pbtPendingInvocations"], 1)
+
+
+    def test_raw_false_or_exception_does_not_bypass_original_confirmation(self):
+        for outcome in ("FALSE", "THREW"):
+            artifact = symbolic_artifact(outcome)
+
+            batches, omissions = driver.replay_inputs(artifact)
+
+            self.assertEqual(batches[0]["inputs"], [])
+            self.assertEqual(omissions["symbolicUncheckedInputs"], 1)
+
+
+    def test_healthy_symbolic_coverage_requires_the_existing_admitted_receipt_contract(self):
+        artifact = symbolic_artifact()
+        batches, omissions = driver.replay_inputs(artifact)
+        self.assertEqual(len(batches[0]["inputs"]), 1)
+        self.assertFalse(any(omissions.values()))
+
+        for change in ("late", "unadmitted", "missing-identity", "different-manifest", "diagnostic"):
+            invalid = copy.deepcopy(artifact)
+            replay = invalid["result"]["symbolicInputReplays"][0]
+            if change == "late":
+                replay["completedWithinDeadline"] = False
+            elif change == "unadmitted":
+                replay["replay"]["coverage"]["admittedInvocations"] = 0
+            elif change == "missing-identity":
+                replay["replay"]["coverage"].pop("identity")
+            elif change == "different-manifest":
+                replay["replay"]["coverage"]["identity"]["manifestSha256"] = "other"
+            else:
+                replay["replay"]["diagnostic"] = "mismatch"
+
+            batches, omissions = driver.replay_inputs(invalid)
+
+            self.assertEqual(batches[0]["inputs"], [], change)
+            self.assertEqual(omissions["symbolicUncheckedInputs"], 1, change)
+
+
+    def test_confirmed_named_fault_uses_the_original_input_and_check_receipt(self):
+        artifact = symbolic_artifact("FALSE")
+        artifact["property"]["assertions"] = [{"id": "named"}]
+        raw = artifact["result"]["symbolicInputReplays"][0]
+        candidate = copy.deepcopy(raw["candidate"])
+        candidate["target"]["id"] = "named"
+        native = copy.deepcopy(raw["replay"])
+        native["failure"] = {"checkId": "named"}
+        confirmation = {"status": "CONFIRMED_PROPERTY_VIOLATION", "candidate": candidate, "originalReplay": native}
+        artifact["result"]["confirmation"] = confirmation
+
+        batches, omissions = driver.replay_inputs(artifact)
+
+        self.assertEqual(batches[0]["inputs"], [{"inputs": candidate["inputs"], "admission": "ADMITTED", "outcome": "FALSE"}])
+        self.assertFalse(any(omissions.values()))
+
+        confirmation["originalReplay"]["failure"]["checkId"] = "different"
+
+        batches, omissions = driver.replay_inputs(artifact)
+
+        self.assertEqual(batches[0]["inputs"], [])
+        self.assertEqual(omissions["symbolicUncheckedInputs"], 1)
+
+
+    def test_functional_quota_and_early_success_are_not_full_budget_results(self):
+        row = {"comparisonKind": "functional-quota", "primaryEligible": True, "mode": "PBT_ONLY",
+               "pbtQuotaReached": True, "confirmedViolation": False}
+
+        self.assertFalse(driver.full_budget_eligible(row))
+        row["comparisonKind"] = "equal-budget"
+        self.assertFalse(driver.full_budget_eligible(row))
+        row["confirmedViolation"] = True
+        self.assertTrue(driver.full_budget_eligible(row))
+        row.update(mode="SYMBOLIC_ONLY", confirmedViolation=False)
+        self.assertTrue(driver.full_budget_eligible(row))
 
 
     def test_process_timeout_retains_raw_output_and_failure(self):
