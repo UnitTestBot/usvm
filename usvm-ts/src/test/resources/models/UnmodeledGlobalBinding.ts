@@ -1,7 +1,7 @@
-const nativeMath = Math;
+const nativeJson = JSON;
 
 export class UnmodeledGlobalBinding {
     read(): any {
-        return nativeMath;
+        return nativeJson;
     }
 }
