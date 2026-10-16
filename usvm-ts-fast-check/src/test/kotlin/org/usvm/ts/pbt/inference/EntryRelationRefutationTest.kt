@@ -172,6 +172,25 @@ class EntryRelationRefutationTest {
         assertNull(refutation.inputs)
     }
 
+    @Test
+    fun `swapped positional slots cannot activate an entry auxiliary target`() {
+        val inference = observe(predicate = "reflexive")
+        val equality = inference.relations.single { it.template == ScalarRelationTemplate.STRICT_EQUAL }
+        val manifest = inference.property.toManifest()
+        val mapping = mapper.map(manifest)
+        val target = mapping.predicate.targets.single()
+        val inputs = target.bindings.inputs
+        val swapped = inputs.mapIndexed { index, input -> input.copy(stackSlot = inputs[1 - index].stackSlot) }
+        val changedTarget = target.copy(bindings = target.bindings.copy(inputs = swapped))
+        val changed = mapping.copy(predicate = mapping.predicate.copy(targets = listOf(changedTarget)))
+
+        val refutation = UsvmEntryRelationRefuter(scene).refute(manifest, changed, CONCRETE, inference, equality)
+
+        assertEquals(UsvmEntryRefutationStatus.UNSUPPORTED, refutation.status)
+        assertEquals("usvm.entry-relation.slots-mismatch", refutation.binding.diagnostics.single().code)
+        assertNull(refutation.inputs)
+    }
+
     private fun refute(inference: ScalarRelationInference, relation: ScalarRelation): UsvmEntryRelationRefutation {
         val manifest = inference.property.toManifest()
 

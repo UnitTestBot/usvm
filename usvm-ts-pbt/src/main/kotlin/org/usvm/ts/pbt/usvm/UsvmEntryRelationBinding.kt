@@ -16,6 +16,7 @@ import org.usvm.ts.pbt.mapping.EtsMappingDiagnostic
 import org.usvm.ts.pbt.mapping.EtsMappingResult
 import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMappingArtifact
+import org.usvm.ts.pbt.mapping.inputBindingsFor
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.observation.ObservationPointKind
 import java.io.IOException
@@ -120,7 +121,9 @@ internal fun bindEntryRelation(
     }
     val target = predicate.targets.singleOrNull()
         ?: return unsupported(reason = "entry-ambiguous", message = "Exactly one original entry point is required")
-    if (target.bindings.inputs.size != manifest.inputs.size) {
+    val expectedInputs = target.method.inputBindingsFor(manifest.inputs)
+    val inputsMatch = expectedInputs.size == manifest.inputs.size && target.bindings.inputs == expectedInputs
+    if (!inputsMatch) {
         return unsupported(reason = "slots-mismatch", message = "Original inputs do not match the entry slots")
     }
     val leftIndex = requireNotNull(points[0].inputIndex)
