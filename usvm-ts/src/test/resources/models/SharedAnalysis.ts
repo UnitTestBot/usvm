@@ -14,6 +14,10 @@ export class SharedAnalysis {
         return 7;
     }
 
+    forkable(value: boolean): boolean {
+        return value;
+    }
+
     unknown(): number {
         const result = External.value();
         return result;

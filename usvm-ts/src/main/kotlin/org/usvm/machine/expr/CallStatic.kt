@@ -78,7 +78,18 @@ private fun TsExprResolver.resolveStaticMethod(
 ): TsResolutionResult<EtsMethod> {
     // Perfect signature:
     if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-        val classes = hierarchy.classesForType(EtsClassType(method.enclosingClass))
+        val classes = hierarchy.classesForType(EtsClassType(method.enclosingClass)).filter { owner ->
+            val privateModelOwner = ctx.isSourceModelClass(owner.signature)
+            if (!privateModelOwner) {
+                true
+            } else {
+                val hasOwningModelFrame = scope.calcOnState {
+                    val callerIsSourceModel = ctx.isSourceModelClass(lastEnteredMethod.signature.enclosingClass)
+                    callerIsSourceModel && isUnknownCallModelFileActive(owner.signature)
+                }
+                owner.signature == method.enclosingClass && hasOwningModelFrame
+            }
+        }
         if (classes.size > 1) {
             val methods = classes
                 .flatMap { clazz -> clazz.methods.filter { it.isStaticCallTarget(method.name) } }
