@@ -10,9 +10,22 @@ import { installObservationHook, ObservationRecorder, type ObservationRequest } 
 import { encodeJsValue, ProtocolError } from '../src/js-value.js';
 import {
   executeProperty,
+  validateRequest,
   type FastCheckExecutionRequest,
   type FastCheckRunResult,
 } from '../src/execute-property.js';
+
+test('private generation allowance must fit inside the operation timeout', () => {
+  const request = executionRequest('/unused', 'alwaysTrue');
+
+  for (const generationTimeoutMillis of [0, -1, 0.5, request.timeoutMillis + 1, Number.NaN]) {
+    assert.throws(() => validateRequest({ ...request, generationTimeoutMillis }), (error: unknown) =>
+      error instanceof ProtocolError && error.path === 'generationTimeoutMillis');
+  }
+
+  assert.equal(validateRequest({ ...request, generationTimeoutMillis: 1 }).generationTimeoutMillis, 1);
+  assert.equal(validateRequest(request).generationTimeoutMillis, undefined);
+});
 
 test('shrinking a named check does not switch to another violated check', async () => {
   await withPropertyModule(async (sourceRoot) => {

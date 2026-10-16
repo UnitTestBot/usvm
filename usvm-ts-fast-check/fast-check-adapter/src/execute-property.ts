@@ -79,6 +79,7 @@ export interface FastCheckExecutionRequest {
   replayPath?: string;
   numRuns: number;
   timeoutMillis: number;
+  generationTimeoutMillis?: number;
   examples: TaggedJsValue[][];
   observationRequest?: ObservationRequest;
   inputExportRequest?: InputExportRequest;
@@ -442,7 +443,7 @@ function buildParameters(
 
   const parameters: Parameters<[JsConcreteValue[]]> = {
     numRuns: request.numRuns,
-    interruptAfterTimeLimit: request.timeoutMillis,
+    interruptAfterTimeLimit: request.generationTimeoutMillis ?? request.timeoutMillis,
     markInterruptAsFailure: true,
     examples: decodedExamples,
   };
@@ -596,6 +597,13 @@ export function validateRequest(value: unknown): FastCheckExecutionRequest {
   if (request.tsconfig !== undefined && typeof request.tsconfig !== 'string') {
     throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'TypeScript config must be a path', 'tsconfig');
   }
+  const invalidGenerationTimeout = request.generationTimeoutMillis !== undefined
+    && (!Number.isInteger(request.generationTimeoutMillis) || (request.generationTimeoutMillis as number) < 1
+      || (request.generationTimeoutMillis as number) > (request.timeoutMillis as number));
+  if (invalidGenerationTimeout) {
+    throw protocolError(adapterDiagnostic.protocolRequestInvalid,
+      'Generation allowance must fit within the operation timeout', 'generationTimeoutMillis');
+  }
 
   if (request.seed !== undefined && !isSignedInt(request.seed)) {
     throw protocolError(
@@ -640,6 +648,7 @@ export function validateRequest(value: unknown): FastCheckExecutionRequest {
   if (request.tsconfig !== undefined) validated.tsconfig = request.tsconfig as string;
   if (request.seed !== undefined) validated.seed = request.seed as number;
   if (request.replayPath !== undefined) validated.replayPath = request.replayPath as string;
+  if (request.generationTimeoutMillis !== undefined) validated.generationTimeoutMillis = request.generationTimeoutMillis as number;
   if (request.admittedCoverage === true) validated.admittedCoverage = true;
   if (request.exactReplay === true) {
     if (request.numRuns !== 1 || examples.length !== 1 || request.replayPath !== undefined) {

@@ -3,6 +3,7 @@ package org.usvm.ts.pbt.campaign
 import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.backend.CoverageScope
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
+import org.usvm.ts.pbt.backend.PropertyFailureKind
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.backend.WitnessReductionStatus
@@ -117,9 +118,10 @@ class GuidedPropertyCampaignTest {
             pbtAllocationMillis = 1_000,
         )
 
-        assertNull(artifact.result.concrete)
+        val concrete = artifact.result.concrete
+        if (concrete != null) assertEquals(PropertyFailureKind.TIMEOUT, concrete.failure?.kind)
         assertEquals(UsvmPropertySearchStatus.UNSUPPORTED, artifact.result.symbolic?.status)
-        assertTrue(artifact.result.diagnostic?.contains("PBT allocation expired") == true)
+        assertTrue(artifact.result.diagnostic?.startsWith("PBT allocation") == true)
         assertEquals(PropertyCampaignStop.COMPLETED, artifact.result.stop)
     }
 

@@ -32,7 +32,6 @@ internal class FastCheckProcessClient(
         request: FastCheckExecutionRequest,
         remainingMillis: (() -> Long)? = null,
     ): PropertyRunResult {
-        val encodedRequest = encodeRequest(request)
         val coverageSession = request.coverageRequest?.let {
             if (remainingMillis == null) {
                 FastCheckCoverageSession.prepare(
@@ -59,8 +58,18 @@ internal class FastCheckProcessClient(
             val processBudget = remainingMillis?.invoke()?.coerceAtMost(phaseLimit) ?: phaseLimit
             if (processBudget <= 0) throw deadlineExpired(request, "Property campaign deadline expired")
 
+            // The existing transport grace must fit inside a caller-owned deadline, including startup and response I/O.
+            val generationRequest = if (remainingMillis == null) {
+                request
+            } else {
+                val generationBudgetMillis = (processBudget - transportGraceMillis).coerceAtLeast(minimumValue = 1)
+                request.copy(
+                    timeoutMillis = minOf(request.timeoutMillis, processBudget),
+                    generationTimeoutMillis = minOf(request.timeoutMillis, generationBudgetMillis),
+                )
+            }
             val output = invokeAdapter(
-                encodedRequest = encodedRequest,
+                encodedRequest = encodeRequest(generationRequest),
                 request = request,
                 command = coverageSession?.adapterCommand
                     ?: listOf(nodeExecutable, adapterEntryPoint.toString()),

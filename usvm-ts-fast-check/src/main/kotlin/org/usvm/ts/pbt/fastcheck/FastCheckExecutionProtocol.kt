@@ -23,6 +23,7 @@ internal data class FastCheckExecutionRequest(
     val replayPath: String? = null,
     val numRuns: Int,
     val timeoutMillis: Long,
+    val generationTimeoutMillis: Long? = null,
     val examples: List<List<JsConcreteValue>> = emptyList(),
     val observationRequest: PropertyObservationRequest? = null,
     val inputExportRequest: PropertyInputExportRequest? = null,
