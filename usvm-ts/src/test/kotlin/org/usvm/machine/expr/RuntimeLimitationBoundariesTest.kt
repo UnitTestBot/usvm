@@ -195,10 +195,10 @@ class RuntimeLimitationBoundariesTest : TsMethodTestRunner() {
             assertTrue(unsupportedReason in outcome.unsupportedPaths)
             assertTrue(witnesses.isNotEmpty())
             witnesses.forEach { witness ->
-                val useString = witness.before.parameters.single() as TsTestValue.TsBoolean
+                val unsupportedBranch = witness.before.parameters.single() as TsTestValue.TsBoolean
                 val result = witness.returnValue as TsTestValue.TsNumber
 
-                assertTrue(!useString.value)
+                assertTrue(!unsupportedBranch.value)
                 assertEquals(expected, result.number)
             }
         }

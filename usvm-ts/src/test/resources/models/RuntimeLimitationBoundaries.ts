@@ -18,9 +18,9 @@ export class RuntimeLimitationBoundaries {
         return record.length;
     }
 
-    static unsupportedNumericConversionOrSupportedSibling(useString: boolean): number {
+    static unsupportedNumericConversionOrSupportedSibling(useObject: boolean): number {
         const values: unknown[] = [7];
-        if (useString) values[0] = "42";
+        if (useObject) values[0] = { value: 42 };
 
         return +values[0];
     }
@@ -39,9 +39,9 @@ export class RuntimeLimitationBoundaries {
             && Number.isNaN(+"x");
     }
 
-    static unsupportedNumericBinaryConversionOrSupportedSibling(useString: boolean): number {
+    static unsupportedNumericBinaryConversionOrSupportedSibling(useObject: boolean): number {
         const values: unknown[] = [7];
-        if (useString) values[0] = "42";
+        if (useObject) values[0] = { value: 42 };
 
         return values[0] - 1;
     }

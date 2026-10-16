@@ -17,6 +17,8 @@ private val ecmaScriptWhitespace = listOf(
     '\u2028', '\u2029', '\u202f', '\u205f', '\u3000', '\ufeff',
 ) + ('\u2000'..'\u200a')
 
+internal fun isEcmaScriptWhitespace(character: Char): Boolean = character in ecmaScriptWhitespace
+
 /** ECMAScript WhiteSpace and LineTerminator, kept as one predicate rather than execution branches. */
 internal fun TsContext.mkEcmaScriptWhitespace(codeUnit: UExpr<KBv16Sort>): UBoolExpr {
     val matches = ecmaScriptWhitespace.map { character ->
