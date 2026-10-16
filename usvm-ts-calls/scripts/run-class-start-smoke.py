@@ -7,8 +7,22 @@ import os
 import re
 import signal
 import shutil
+import shlex
 from pathlib import Path
 import subprocess
+
+
+MEASUREMENT_LOGGING_CONFIGURATION = b'<configuration>\n    <root level="OFF" />\n</configuration>\n'
+
+
+def measurement_logging(output):
+    configuration = output / 'logback-off.xml'
+    if configuration.exists():
+        if configuration.read_bytes() != MEASUREMENT_LOGGING_CONFIGURATION:
+            raise ValueError('Frozen measurement logging configuration changed')
+    else:
+        configuration.write_bytes(MEASUREMENT_LOGGING_CONFIGURATION)
+    return configuration
 
 
 def read(path):
@@ -190,13 +204,16 @@ def main():
     environment = dict(os.environ)
     if environment.get('ETS_FRONTEND_SCRIPT') is not None or environment.get('ETS_FRONTEND_DIR') is not None:
         raise ValueError('Startup probes require the pinned bundled frontend')
-    environment['USVM_TS_CALLS_OPTS'] = '-Xms1g -Xmx6g -XX:+UseG1GC'
+    logging_configuration = measurement_logging(output)
+    logging_option = shlex.quote(f'-Dlogback.configurationFile={logging_configuration}')
+    environment['USVM_TS_CALLS_OPTS'] = f'-Xms1g -Xmx6g -XX:+UseG1GC {logging_option}'
     environment['USVM_TS_STARTUP_IR_CACHE'] = str((args.ir_cache or output / 'ir-cache').resolve())
     runtime = runtime_identity(calls)
     freeze(output / 'identity.json', {'manifestSha256': fingerprint, 'calls': str(calls), 'runtime': runtime,
                                     'childTimeoutSeconds': args.child_timeout_seconds,
                                     'command': args.command, 'irCache': environment['USVM_TS_STARTUP_IR_CACHE'],
-                                    'JVMOptions': environment['USVM_TS_CALLS_OPTS']})
+                                    'JVMOptions': environment['USVM_TS_CALLS_OPTS'],
+                                    'loggingConfigurationSha256': sha(logging_configuration)})
     for index, case in enumerate(classes):
         directory = output / 'classes' / case['classId']
         result_path = directory / 'result.json'

@@ -66,7 +66,11 @@ tasks.test {
 
 application {
     mainClass = "org.usvm.ts.calls.CallsExperimentCliKt"
-    applicationDefaultJvmArgs = listOf("-Dfile.encoding=UTF-8", "-Dsun.stdout.encoding=UTF-8")
+    applicationDefaultJvmArgs = listOf(
+        "-Dfile.encoding=UTF-8",
+        "-Dsun.stdout.encoding=UTF-8",
+        "-Dlogback.configurationFile=usvm-calls-logback-off.xml",
+    )
 }
 
 tasks.named<JavaExec>("run") {

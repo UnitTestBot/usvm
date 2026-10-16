@@ -92,16 +92,16 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     )
     val unsupportedIndexIsFeasible = scope.checkSat(mkNot(indexIsSupported)) != null
     if (unsupportedIndexIsFeasible) {
-        logger.warn { "Unsupported named array property write for key: $resolvedIndex" }
+        logger.warn { "Unsupported named array property write: key is not a supported numeric array index" }
         reportRuntimeFeatureLimitation(
             reason = TsRuntimeFeatureLimitationReason.ARRAY_NAMED_PROPERTY_WRITE,
-            detail = "property key is not a supported numeric array index: $resolvedIndex",
+            detail = "property key is not a supported numeric array index",
         )
     }
     scope.fork(indexIsSupported, blockOnFalseState = {
         terminateAsUnsupported(
             reason = "${TsRuntimeFeatureLimitationReason.ARRAY_NAMED_PROPERTY_WRITE}: " +
-                "Property key is not a supported numeric array index: $resolvedIndex",
+                "Property key is not a supported numeric array index",
         )
     }) ?: return null
 
@@ -170,7 +170,8 @@ fun TsContext.assignToArrayIndex(
     val indexIsBelowLength = mkBvSignedLessExpr(index, length)
     val indexIsInRange = mkAnd(indexIsNonNegative, indexIsBelowLength)
     if (scope.checkSat(mkNot(indexIsInRange)) != null) {
-        logger.warn { "Unsupported array growth through index write: index=$index, length=$length" }
+        // Printing symbolic indices or lengths can recursively expand collection updates into enormous strings.
+        logger.warn { "Unsupported array growth through index write: sparse growth is not modeled" }
         onUnsupportedGrowth?.invoke()
     }
     scope.assert(indexIsInRange) ?: return null
