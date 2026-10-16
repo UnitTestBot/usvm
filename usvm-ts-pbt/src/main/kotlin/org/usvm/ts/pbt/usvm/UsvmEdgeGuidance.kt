@@ -15,6 +15,9 @@ import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
 import org.usvm.ts.pbt.backend.PropertyFailureKind
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.backend.PropertyRunStatus
+import org.usvm.ts.pbt.backend.WitnessAdmission
+import org.usvm.ts.pbt.backend.WitnessNativeReplay
+import org.usvm.ts.pbt.backend.WitnessOracleOutcome
 import org.usvm.ts.pbt.coverage.captureCoverageIdentity
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.EtsBranchArmTarget
@@ -161,11 +164,21 @@ internal class UsvmEdgeGuidance(
         claimed: Set<UsvmCoverageEdge>,
         expectsViolation: Boolean,
     ): ReplayDecision = try {
-        val result = feedback.replay(inputs)
-        if (result == null) {
-            ReplayDecision(status = UsvmEdgeReplayStatus.NOT_RUN)
+        val nativeReplay = feedback.nativeReplay
+        if (nativeReplay != null) {
+            val result = nativeReplay(inputs)
+            if (result == null) {
+                ReplayDecision(status = UsvmEdgeReplayStatus.NOT_RUN)
+            } else {
+                confirmNativeReplay(result, claimed, expectsViolation)
+            }
         } else {
-            confirmReplay(result, inputs, claimed, expectsViolation)
+            val result = feedback.replay(inputs)
+            if (result == null) {
+                ReplayDecision(status = UsvmEdgeReplayStatus.NOT_RUN)
+            } else {
+                confirmReplay(result, inputs, claimed, expectsViolation)
+            }
         }
     } catch (error: InterruptedException) {
         Thread.currentThread().interrupt()
@@ -192,7 +205,33 @@ internal class UsvmEdgeGuidance(
             return ReplayDecision(status = UsvmEdgeReplayStatus.REJECTED_OR_INCOMPATIBLE)
         }
 
-        val mapped = mapper().map(manifest, requireNotNull(coverage)).coverage
+        return confirmCoverage(requireNotNull(coverage), claimed)
+    }
+
+    private fun confirmNativeReplay(
+        result: WitnessNativeReplay,
+        claimed: Set<UsvmCoverageEdge>,
+        expectsViolation: Boolean,
+    ): ReplayDecision {
+        result.diagnostic?.let { diagnostics += "Native replay: $it" }
+        val coverage = result.coverage
+        val violated = result.outcome == WitnessOracleOutcome.FALSE || result.outcome == WitnessOracleOutcome.THREW
+        val completed = result.outcome == WitnessOracleOutcome.HOLDS || violated
+        val matchesOracle = result.admission == WitnessAdmission.ADMITTED && completed &&
+            violated == expectsViolation && result.diagnostic == null
+        val compatible = coverage != null && isCompatible(coverage)
+        if (!matchesOracle || !compatible) {
+            return ReplayDecision(status = UsvmEdgeReplayStatus.REJECTED_OR_INCOMPATIBLE)
+        }
+
+        return confirmCoverage(requireNotNull(coverage), claimed)
+    }
+
+    private fun confirmCoverage(
+        coverage: PropertyCoverageArtifact,
+        claimed: Set<UsvmCoverageEdge>,
+    ): ReplayDecision {
+        val mapped = mapper().map(manifest, coverage).coverage
         val observed = exactEdges(mapped)
         val confirmed = observed.filter { it.hits > 0 }.mapTo(hashSetOf()) { it.edge }
         if (!confirmed.containsAll(claimed)) return ReplayDecision(status = UsvmEdgeReplayStatus.EDGE_MISMATCH)

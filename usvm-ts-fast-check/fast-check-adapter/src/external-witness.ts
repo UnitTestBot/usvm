@@ -7,6 +7,7 @@ import { describeNamedCheckFailure, describePropertyFailure, invokePropertyOnce,
 import { decodeJsValue, encodeJsValue, ProtocolError, protocolError, type JsConcreteValue, type TaggedJsValue } from './js-value.js';
 import { buildPropertyArbitrary } from './property-arbitrary.js';
 import { stringifyProtocolJson } from './protocol-json.js';
+import type { ExecutionCoverage } from './execution-coverage.js';
 import { inWitnessSupport } from './witness-support.js';
 
 export interface WitnessBinding {
@@ -92,7 +93,7 @@ export function installWitnessHook(): void {
 }
 
 /** Uses the same invocation boundary, original entrypoints, codecs, and fast-check shrink stream as ordinary PBT. */
-export async function executeWitness(value: unknown): Promise<WitnessExecutionSuccess> {
+export async function executeWitness(value: unknown, coverage?: ExecutionCoverage): Promise<WitnessExecutionSuccess> {
   const request = validateRequest(value);
   const operation = validateOperation((value as Record<string, unknown>).witness, request.manifest.inputs.length);
   const identity = { witnessPropertyId: request.manifest.propertyId, witnessTarget: operation.target };
@@ -151,10 +152,11 @@ export async function executeWitness(value: unknown): Promise<WitnessExecutionSu
     : await loadEntryPoint(
       request.manifest.precondition, request.sourceRoots, 'manifest.precondition', request.tsconfig,
     );
-  const replay = (input: JsConcreteValue[]) => replayOnce(input, operation.target, predicate, precondition, diagnosticCheck);
+  const replay = (input: JsConcreteValue[], collect?: ExecutionCoverage) =>
+    replayOnce(input, operation.target, predicate, precondition, diagnosticCheck, collect);
 
   if (operation.mode === 'replay') {
-    const first = await replay(values);
+    const first = await replay(values, coverage);
     const second = await replay(values);
     if (signature(first) !== signature(second)) first.diagnostic = 'nondeterministic';
 
@@ -242,6 +244,7 @@ class ExternalValueArbitrary extends fc.Arbitrary<JsConcreteValue[]> {
 async function replayOnce(
   values: JsConcreteValue[], target: WitnessTarget, predicate: LoadedEntryPoint, precondition: LoadedEntryPoint | undefined,
   diagnosticCheck: boolean,
+  coverage?: ExecutionCoverage,
 ): Promise<WitnessNativeReplay> {
   const context: WitnessContext = { events: [], active: false };
   const result: WitnessNativeReplay = {
@@ -249,7 +252,7 @@ async function replayOnce(
   };
   try {
     const holds = await contexts.run(context, () => invokePropertyOnce(
-      values, predicate, precondition, undefined, 'replay', undefined, () => { context.active = true; },
+      values, predicate, precondition, undefined, 'replay', coverage, () => { context.active = true; },
     ));
     if (holds === null) {
       result.admission = 'PRECONDITION_REJECTED';
