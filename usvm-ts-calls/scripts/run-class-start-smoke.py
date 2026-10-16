@@ -190,7 +190,10 @@ def main():
     environment = dict(os.environ)
     if environment.get('ETS_FRONTEND_SCRIPT') is not None or environment.get('ETS_FRONTEND_DIR') is not None:
         raise ValueError('Startup probes require the pinned bundled frontend')
-    environment['USVM_TS_CALLS_OPTS'] = '-Xms1g -Xmx6g -XX:+UseG1GC'
+    environment['USVM_TS_CALLS_OPTS'] = (
+        '-Xms1g -Xmx6g -XX:+UseG1GC '
+        '-Dlogback.configurationFile=usvm-calls-logback-off.xml'
+    )
     environment['USVM_TS_STARTUP_IR_CACHE'] = str((args.ir_cache or output / 'ir-cache').resolve())
     runtime = runtime_identity(calls)
     freeze(output / 'identity.json', {'manifestSha256': fingerprint, 'calls': str(calls), 'runtime': runtime,
