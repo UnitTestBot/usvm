@@ -237,6 +237,9 @@ fun TsContext.assignToInstanceField(
     if (wroteModeledErrorField) return Unit
 
     val objectLiteralClass = objectLiteralClass(scope, unwrappedInstance, hierarchy)
+    if (objectLiteralClass == null) {
+        ensureSupportedDeclaredMemberAccess(scope, unwrappedInstance, instanceLocal, field.name, hierarchy)
+    }
 
     // An object literal can acquire a new own property after creation. Requiring its
     // allocation type to declare the field would reject that valid JavaScript write.
