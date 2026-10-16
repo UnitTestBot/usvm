@@ -47,6 +47,9 @@ class DomainImpliedScalarRelationTest {
         assertEquals(ScalarRelationStatus.REFUTED, result.relations.single().status)
         assertEquals(SOURCES, result.sources)
         assertEquals(property, result.property)
+        val selected = selectScalarGuidance(result)
+        val excludedOrder = selected.excluded.single { it.relation == implied }
+        assertEquals(ScalarGuidanceExclusionReason.DOMAIN_IMPLIED, excludedOrder.reason)
     }
 
     @Test
@@ -77,6 +80,29 @@ class DomainImpliedScalarRelationTest {
         assertTrue(result.relations.isEmpty())
         assertEquals(ScalarRelationTemplate.entries.toSet(), result.domainImpliedRelations.map { it.template }.toSet())
         assertTrue(result.domainImpliedRelations.all { it.status == ScalarRelationStatus.SAMPLED })
+    }
+
+    @Test
+    fun `guidance reuses domain facts and keeps NaN capable reflexive comparisons as unknown candidates`() {
+        val pair = ScalarObservationPair(LEFT, RIGHT.copy(inputIndex = 0))
+        val samples = listOf(sample(id = 0, left = 0.0, right = 0.0), sample(id = 1, left = 1.0, right = 1.0))
+        val snapshots = samples.map { invocation ->
+            invocation.copy(points = listOf(invocation.points.first(), invocation.points.last().copy(inputIndex = 0)))
+        }
+        val integers = property(IntegerDomain(min = 0, max = 1), IntegerDomain(min = 0, max = 1))
+        val numbers = property(NumberDomain(), IntegerDomain(min = 0, max = 1))
+        val tautologies = infer(integers, snapshots, pair)
+        val nanCapable = infer(numbers, snapshots, pair)
+
+        val excluded = selectScalarGuidance(tautologies)
+        val retained = selectScalarGuidance(nanCapable)
+
+        assertTrue(excluded.candidates.isEmpty())
+        assertEquals(tautologies.domainImpliedRelations, excluded.excluded.map { it.relation })
+        assertTrue(excluded.excluded.all { it.reason == ScalarGuidanceExclusionReason.TAUTOLOGY })
+        assertEquals(nanCapable.relations, retained.candidates.map { it.relation })
+        assertTrue(retained.candidates.all { it.relevance == ScalarGuidanceRelevance.UNKNOWN })
+        assertTrue(retained.excluded.isEmpty())
     }
 
     @Test
