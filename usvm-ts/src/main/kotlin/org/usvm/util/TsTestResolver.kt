@@ -8,6 +8,7 @@ import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldImpl
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsLiteralType
 import org.jacodb.ets.model.EtsMethod
@@ -71,7 +72,9 @@ open class TsUnsupportedWitnessException(message: String) : IllegalStateExceptio
 class TsUnsupportedEnvironmentWitnessException(message: String) : TsUnsupportedWitnessException(message)
 
 /** Materializes concrete test values from an existing symbolic model. */
-class TsTestResolver {
+class TsTestResolver(
+    private val onClassResolved: (TsTestValue.TsClass, EtsClass) -> Unit = { _, _ -> },
+) {
     /**
      * Resolves original entry inputs from the model without requiring a completed call.
      * [inputValues] pins the entry registers when execution is suspended inside a nested call.
@@ -94,6 +97,7 @@ class TsTestResolver {
             maxStringLength = state.maxStringLength,
             stringLengthBounds = state.boundedStringBackingRefs,
             propertyState = state,
+            onClassResolved = onClassResolved,
             inputValues = inputValues,
             receiverValue = receiverValue,
         )
@@ -122,6 +126,7 @@ class TsTestResolver {
             state.maxStringLength,
             stringLengthBounds = state.boundedStringBackingRefs,
             propertyState = state,
+            onClassResolved = onClassResolved,
         )
         val afterMemoryScope = MemoryScope(
             this,
@@ -132,6 +137,7 @@ class TsTestResolver {
             state.maxStringLength,
             stringLengthBounds = state.boundedStringBackingRefs,
             propertyState = state,
+            onClassResolved = onClassResolved,
         )
 
         val result = when (val res = state.methodResult) {
@@ -236,6 +242,7 @@ class TsTestResolver {
         propertyState: TsState,
         inputValues: List<UExpr<*>>? = null,
         receiverValue: UExpr<*>? = null,
+        onClassResolved: (TsTestValue.TsClass, EtsClass) -> Unit = { _, _ -> },
     ) : TsTestStateResolver(
         ctx = ctx,
         model = model,
@@ -247,6 +254,7 @@ class TsTestResolver {
         propertyState = propertyState,
         inputValues = inputValues,
         receiverValue = receiverValue,
+        onClassResolved = onClassResolved,
     ) {
         fun resolveState(
             includeReceiver: Boolean = true,
@@ -272,6 +280,7 @@ open class TsTestStateResolver(
     private val propertyState: TsState? = null,
     private val inputValues: List<UExpr<*>>? = null,
     private val receiverValue: UExpr<*>? = null,
+    private val onClassResolved: (TsTestValue.TsClass, EtsClass) -> Unit = { _, _ -> },
 ) {
     private var initialEnvironmentHeap: TsInitialEnvironmentHeap? = null
     private val resolutionMemory get() = initialEnvironmentHeap?.memory ?: finalStateMemory
@@ -670,7 +679,16 @@ open class TsTestStateResolver(
             else -> error("Unsupported $refType")
         }
 
-        if (name == "Object") {
+        val sdkObject = refType is EtsClassType && ctx.scene.sdkClasses.any {
+            it.name == "Object" && it.signature == refType.signature
+        }
+        val unknownObjectSignature = refType is EtsClassType && refType.signature.file == EtsFileSignature.UNKNOWN
+        val isCanonicalObject = name == "Object" && (unknownObjectSignature || sdkObject)
+        if (isCanonicalObject) return createObjectClass()
+
+        if (name == "Object" && refType is EtsUnclearRefType) {
+            val hasNamedClass = ctx.scene.projectClasses.any { it.name == name }
+            if (hasNamedClass) throw TsUnsupportedWitnessException("Ambiguous Object prototype identity")
             return createObjectClass()
         }
 
@@ -683,20 +701,23 @@ open class TsTestStateResolver(
                     else -> error("TODO")
                 }
             }
-            if (classes.size == 1) {
-                return classes.single()
-            }
+            val resolved = uniqueClassDeclaration(classes)
+            if (resolved != null) return resolved
         }
 
         // Sad signature:
         val classes = ctx.scene.projectAndSdkClasses.filter { it.signature.name == name }
-        if (classes.size == 1) {
-            return classes.single()
-        }
+        val resolved = uniqueClassDeclaration(classes)
+        if (resolved != null) return resolved
 
-        // TODO incorrect
-        return classes.first()
+        throw TsUnsupportedWitnessException("Concrete class identity is unresolved or ambiguous: $name")
     }
+
+    private fun uniqueClassDeclaration(classes: List<EtsClass>): EtsClass? = classes
+        .groupBy { it.signature }
+        .values
+        .flatMap(::canonicalClassDeclarations)
+        .singleOrNull()
 
     private fun resolveTsClass(
         concreteRef: UConcreteHeapRef,
@@ -715,6 +736,7 @@ open class TsTestStateResolver(
         val properties = linkedMapOf<String, TsTestValue>()
         val result = TsTestValue.TsClass(clazz.name, properties)
         resolvedClasses[concreteRef] = result
+        onClassResolved(result, clazz)
 
         val tracked = trackedProperties
             .filter { evaluateInModel(it.instance) == concreteRef }

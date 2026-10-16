@@ -23,7 +23,13 @@ class CallsClassRawAnalysisTest {
         val admitted = statement(methodName = "read")
         val unexpected = statement(methodName = "%AM0\$read")
         val universe = mutableListOf(point(admitted))
-        val observer = ClassRawAnalysisObserver(sourceFile = "Target.ts", universe = universe, output = directory)
+        val observer = ClassRawAnalysisObserver(
+            sourceFile = "Target.ts",
+            universe = universe,
+            output = directory,
+            retainRawStateDiagnostics = false,
+            profile = CallsExperimentProfile.EMPTY_FRESH,
+        )
 
         observer.recordOriginalEntry(admitted)
         universe += point(unexpected)

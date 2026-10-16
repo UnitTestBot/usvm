@@ -22,6 +22,10 @@ class ConcreteWitnessInput {
         return ConcreteWitnessExternal.operation();
     }
 
+    plainObject(): object {
+        return { value: 7 };
+    }
+
     alias(left: number[], right: number[]): number {
         if (left === right && left.length === 1) return left[0];
 

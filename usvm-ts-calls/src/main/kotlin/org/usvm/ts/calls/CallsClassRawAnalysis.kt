@@ -90,11 +90,35 @@ internal data class CallsClassRawAnalysis(
     val sourceMappedIrUniverse: List<CallsClassRawIrPoint>,
     val sourceMappedIrEntered: List<CallsClassRawIrPoint>,
     val statementUniverseSha256: String,
-    val stateSnapshots: CallsClassRawJournalMetadata,
-    val symbolicExpressions: CallsClassRawJournalMetadata,
+    val stateSnapshots: CallsClassRawJournalMetadata? = null,
+    val symbolicExpressions: CallsClassRawJournalMetadata? = null,
+    val inputCandidates: CallsClassInputJournalMetadata? = null,
+    val inputExtractionFailures: CallsClassInputJournalMetadata? = null,
+    val candidateExtractionElapsedNanos: Long = 0,
+    val candidateWriteElapsedNanos: Long = 0,
+    val searchCandidateElapsedNanos: Long = 0,
+    val drainCandidateElapsedNanos: Long = 0,
+    val rawStateDiagnosticsEnabled: Boolean = false,
     val engineFailureStates: Long = 0L,
     val proof: String = "Symbolic source-mapped IR entry only; " +
-        "diagnostic state metadata is not a native replay witness",
+        "concrete input candidates are not native replay coverage; environment completeness is explicit",
+)
+
+/** Search metrics survive an interrupted frontier materialization; this is explicitly a partial result. */
+@Serializable
+internal data class CallsClassSearchCheckpoint(
+    val stopReason: String?,
+    val searchElapsedMillis: Long,
+    val returnedStates: Long,
+    val exceptionalStates: Long,
+    val unsupportedTerminalStates: Long,
+    val engineFailureStates: Long,
+    val stoppedPrefixStates: Long,
+    val sourceMappedIrUniverse: List<CallsClassRawIrPoint>,
+    val sourceMappedIrEntered: List<CallsClassRawIrPoint>,
+    val inputCandidatesPath: String = "input-candidates.jsonl",
+    val inputExtractionFailuresPath: String = "input-extraction-failures.jsonl",
+    val remainingStateDrainComplete: Boolean = false,
 )
 
 /** Retains raw symbolic outcomes without requiring finite native observation domains. */
@@ -102,6 +126,8 @@ internal class ClassRawAnalysisObserver(
     private val sourceFile: String,
     universe: List<CallsClassRawIrPoint>,
     private val output: Path,
+    private val retainRawStateDiagnostics: Boolean,
+    private val profile: CallsExperimentProfile,
 ) : UMachineObserver<TsState> {
     private val universe = universe.toList()
     private val universePoints = this.universe.toSet()
@@ -112,7 +138,8 @@ internal class ClassRawAnalysisObserver(
     }
 
     private val entered = linkedSetOf<CallsClassRawIrPoint>()
-    private val snapshots = CallsClassRawSnapshotStore(output = output)
+    private val snapshots = if (retainRawStateDiagnostics) CallsClassRawSnapshotStore(output = output) else null
+    private val candidates = CallsClassInputCandidates(output = output, profile = profile)
     private val snapshotFailures = mutableListOf<String>()
     private val methodSteps = linkedMapOf<String, Long>()
     private val sourceKinds = linkedMapOf<String, Long>()
@@ -136,6 +163,12 @@ internal class ClassRawAnalysisObserver(
     private var remainingStateDrainMillis = 0L
     private var searchSnapshotNanos = 0L
     private var drainSnapshotNanos = 0L
+    private var searchCandidateNanos = 0L
+    private var drainCandidateNanos = 0L
+
+    fun registerInitialState(method: EtsMethod, state: TsState) {
+        candidates.registerInitialState(method = method, state = state)
+    }
 
     override fun onMachineStarted() {
         searchStarted = TimeSource.Monotonic.markNow()
@@ -202,6 +235,22 @@ internal class ClassRawAnalysisObserver(
         saveSnapshot(state = state, outcome = "STOPPED_PREFIX: $reason")
     }
 
+    fun checkpointBeforeDrain(stopReason: String?) {
+        candidates.checkpoint()
+        val checkpoint = CallsClassSearchCheckpoint(
+            stopReason = stopReason,
+            searchElapsedMillis = searchElapsedMillis,
+            returnedStates = returnedStates,
+            exceptionalStates = exceptionalStates,
+            unsupportedTerminalStates = unsupportedStates,
+            engineFailureStates = engineFailureStates,
+            stoppedPrefixStates = stoppedStates,
+            sourceMappedIrUniverse = universe,
+            sourceMappedIrEntered = entered.toList(),
+        )
+        writeCallsArtifactAtomically(output.resolve("search-checkpoint.json"), encodeCallsArtifact(checkpoint))
+    }
+
     /** Drain only after analyzeWithMetadata has computed its real stop reason. */
     fun retainRemainingStates(selector: UPathSelector<TsState>?) {
         val started = TimeSource.Monotonic.markNow()
@@ -229,9 +278,29 @@ internal class ClassRawAnalysisObserver(
     }
 
     private fun saveSnapshot(state: TsState, outcome: String) {
+        val candidateStarted = TimeSource.Monotonic.markNow()
+        val candidateWrite = runCatching {
+            candidates.append(
+                state = state,
+                outcome = outcome,
+                emittedAtMillis = searchStarted?.elapsedNow()?.inWholeMilliseconds ?: 0,
+                stopped = draining,
+            )
+        }
+        candidateWrite.exceptionOrNull()?.let { failure ->
+            snapshotFailures += "Concrete candidate write failed: ${failure::class.java.name}: ${failure.message}"
+        }
+        val candidateNanos = candidateStarted.elapsedNow().inWholeNanoseconds
+        if (draining) drainCandidateNanos += candidateNanos else searchCandidateNanos += candidateNanos
+
+        val rawSnapshots = snapshots ?: return
+        saveRawSnapshot(store = rawSnapshots, state = state, outcome = outcome)
+    }
+
+    private fun saveRawSnapshot(store: CallsClassRawSnapshotStore, state: TsState, outcome: String) {
         val started = TimeSource.Monotonic.markNow()
         val saved = runCatching {
-            snapshots.append { reference ->
+            store.append { reference ->
                 val stmt = state.lastStmt
                 val result = state.methodResult
                 CallsClassRawStateSnapshot(
@@ -279,7 +348,8 @@ internal class ClassRawAnalysisObserver(
     fun result(manifest: CallsClassStartManifest, analysisElapsedMillis: Long): CallsClassRawAnalysis {
         val encodedUniverse = encodeCallsArtifact(universe).toByteArray(Charsets.UTF_8)
         val finalizeStarted = TimeSource.Monotonic.markNow()
-        val journals = snapshots.finish()
+        val journals = snapshots?.finish()
+        val inputs = candidates.finish()
         val journalFinalizeMillis = finalizeStarted.elapsedNow().inWholeMilliseconds
 
         // Exploratory execution may retain interpreter failures as terminal states.
@@ -292,7 +362,7 @@ internal class ClassRawAnalysisObserver(
             budgetMillis = manifest.budgetMillis,
             analysisElapsedMillis = analysisElapsedMillis,
             budgetOverrunMillis = (searchElapsedMillis - manifest.budgetMillis).coerceAtLeast(0),
-            timingSchemaVersion = 1,
+            timingSchemaVersion = 2,
             analysisSetupElapsedMillis = (analysisElapsedMillis - searchElapsedMillis).coerceAtLeast(0),
             searchElapsedMillis = searchElapsedMillis,
             remainingStateDrainMillis = remainingStateDrainMillis,
@@ -321,8 +391,15 @@ internal class ClassRawAnalysisObserver(
             sourceMappedIrUniverse = universe,
             sourceMappedIrEntered = entered.toList(),
             statementUniverseSha256 = callsArtifactSha256(encodedUniverse),
-            stateSnapshots = journals.first,
-            symbolicExpressions = journals.second,
+            stateSnapshots = journals?.first,
+            symbolicExpressions = journals?.second,
+            inputCandidates = inputs.first,
+            inputExtractionFailures = inputs.second,
+            candidateExtractionElapsedNanos = candidates.extractionElapsedNanos,
+            candidateWriteElapsedNanos = candidates.writeElapsedNanos,
+            searchCandidateElapsedNanos = searchCandidateNanos,
+            drainCandidateElapsedNanos = drainCandidateNanos,
+            rawStateDiagnosticsEnabled = retainRawStateDiagnostics,
             engineFailureStates = engineFailureStates,
         )
     }
@@ -333,12 +410,20 @@ internal class ClassRawAnalysisObserver(
             sourceFile: String,
             sourceText: String,
             output: Path,
+            retainRawStateDiagnostics: Boolean,
+            profile: CallsExperimentProfile,
         ): ClassRawAnalysisObserver {
             val target = methods.first().signature.enclosingClass
             val universe = methods.flatMap { it.cfg.stmts }.filter {
                 isOriginalClassStartupStep(stmt = it, target = target, sourceFile = sourceFile, sourceText = sourceText)
             }.map { it.toClassRawIrPoint(sourceFile = sourceFile) }
-            return ClassRawAnalysisObserver(sourceFile = sourceFile, universe = universe, output = output)
+            return ClassRawAnalysisObserver(
+                sourceFile = sourceFile,
+                universe = universe,
+                output = output,
+                retainRawStateDiagnostics = retainRawStateDiagnostics,
+                profile = profile,
+            )
         }
     }
 }
