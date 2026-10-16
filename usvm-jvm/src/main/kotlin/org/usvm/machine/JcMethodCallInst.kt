@@ -11,6 +11,7 @@ import org.jacodb.impl.cfg.JcInstLocationImpl
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.machine.interpreter.JcLambdaCallSite
 
 /**
  * An interface for instructions that replace or surround some [originalInst].
@@ -101,4 +102,14 @@ data class JcDynamicMethodCallInst(
     override val location: JcInstLocation = returnSite.location
     override val method: JcMethod = dynamicCall.method.method
     override val originalInst: JcInst = returnSite
+}
+
+/** Adapts a lambda's invocation arguments in their own step, after receiver dispatch has forked. */
+data class JcLambdaMethodCallInst(
+    val virtualCall: JcVirtualMethodCallInst,
+    val callSite: JcLambdaCallSite,
+) : JcMethodCallBaseInst {
+    override val method: JcMethod = callSite.lambda.actualMethod.method.method
+    override val location: JcInstLocation = virtualCall.location
+    override val originalInst: JcInst = virtualCall.originalInst
 }

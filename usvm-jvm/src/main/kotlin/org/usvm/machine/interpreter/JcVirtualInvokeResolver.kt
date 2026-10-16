@@ -7,6 +7,7 @@ import org.jacodb.api.jvm.JcClassOrInterface
 import org.jacodb.api.jvm.JcRefType
 import org.jacodb.api.jvm.JcType
 import org.jacodb.api.jvm.ext.enumValues
+import org.jacodb.api.jvm.ext.findType
 import org.jacodb.api.jvm.ext.isEnum
 import org.jacodb.api.jvm.ext.toType
 import org.usvm.UBoolExpr
@@ -19,6 +20,7 @@ import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
+import org.usvm.machine.JcLambdaMethodCallInst
 import org.usvm.machine.JcVirtualMethodCallInst
 import org.usvm.machine.interpreter.statics.JcStaticFieldLValue
 import org.usvm.machine.state.JcState
@@ -76,7 +78,7 @@ private fun resolveVirtualInvokeWithModel(
     if (isAllocatedConcreteHeapRef(concreteRef) || isStaticHeapRef(concreteRef)) {
         val callSite = findLambdaCallSite(methodCall, scope, concreteRef)
         if (callSite != null) {
-            val lambdaCall = makeLambdaCallSiteCall(scope, callSite)
+            val lambdaCall = JcLambdaMethodCallInst(virtualCall = methodCall, callSite = callSite)
             scope.doWithState {
                 newStmt(lambdaCall)
             }
@@ -233,7 +235,7 @@ private fun resolveVirtualInvokeWithoutModel(
     }
 
     lambdaCallSitesWithConditions.mapTo(conditionsWithBlocks) { (callSite, condition) ->
-        val concreteCall = makeLambdaCallSiteCall(scope, callSite)
+        val concreteCall = JcLambdaMethodCallInst(virtualCall = methodCall, callSite = callSite)
         condition to { state: JcState -> state.newStmt(concreteCall) }
     }
 
@@ -300,7 +302,7 @@ private fun findLambdaCallSite(
     val callSites = scope.calcOnState { memory.getRegion(ctx.lambdaCallSiteRegionId) as JcLambdaCallSiteMemoryRegion }
     val callSite = callSites.findCallSite(ref) ?: return null
 
-    val lambdaMethodType = callSite.lambda.dynamicMethodType
+    val lambdaMethodType = callSite.lambda.interfaceMethodType
 
     // Match function signature
     when {
@@ -312,22 +314,40 @@ private fun findLambdaCallSite(
     return callSite
 }
 
-private fun JcVirtualMethodCallInst.makeLambdaCallSiteCall(
+internal fun resolveLambdaInvoke(
+    instruction: JcLambdaMethodCallInst,
     scope: JcStepScope,
-    callSite: JcLambdaCallSite,
-): JcConcreteMethodCallInst {
+    exprResolver: JcExprResolver,
+): JcConcreteMethodCallInst? {
+    val call = instruction.virtualCall
+    val callSite = instruction.callSite
     val lambda = callSite.lambda
     val lambdaMethod = lambda.actualMethod.method
-    // Instance was already resolved to the call site
-    var callArgsWithoutInstance = this.arguments.drop(1)
+    val classpath = scope.calcOnState { ctx.cp }
+    val invocationArgumentTypes = lambda.dynamicMethodType.argumentTypes.map { classpath.findType(it.typeName) }
+    var arguments = callSite.callSiteArgs + call.arguments.drop(1)
+    var argumentTypes = lambda.callSiteArgTypes + invocationArgumentTypes
+    var parameterTypes = lambdaMethod.parameters.map { it.type }
+
+    if (!lambdaMethod.method.isStatic) {
+        parameterTypes = listOf(lambdaMethod.enclosingType) + parameterTypes
+    }
+
     if (lambda.isNewInvokeSpecial) {
         check(lambdaMethod.method.isConstructor) {
-            "unexpected JcLambdaExpr: calling NEWINVOKESPECIAL for non-constructor method"
+            "Unexpected constructor reference to ${lambdaMethod.method}"
         }
-        val thisArg = scope.calcOnState { memory.allocConcrete(lambdaMethod.enclosingType) }
-        callArgsWithoutInstance = listOf(thisArg) + callArgsWithoutInstance
+        val receiver = scope.calcOnState { memory.allocConcrete(lambdaMethod.enclosingType) }
+        arguments = listOf(receiver) + arguments
+        argumentTypes = listOf(lambdaMethod.enclosingType) + argumentTypes
     }
-    val lambdaMethodArgs = callSite.callSiteArgs + callArgsWithoutInstance
 
-    return JcConcreteMethodCallInst(location, lambdaMethod.method, lambdaMethodArgs, returnSite)
+    require(arguments.size == argumentTypes.size && arguments.size == parameterTypes.size) {
+        "Lambda argument count differs from implementation ${lambdaMethod.method}"
+    }
+    val adaptedArguments = arguments.indices.map { index ->
+        exprResolver.resolveLambdaArgument(arguments[index], argumentTypes[index], parameterTypes[index]) ?: return null
+    }
+
+    return JcConcreteMethodCallInst(call.location, lambdaMethod.method, adaptedArguments, call.returnSite)
 }
