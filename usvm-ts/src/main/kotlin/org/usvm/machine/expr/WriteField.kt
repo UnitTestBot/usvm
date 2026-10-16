@@ -238,7 +238,14 @@ fun TsContext.assignToInstanceField(
 
     val objectLiteralClass = objectLiteralClass(scope, unwrappedInstance, hierarchy)
     if (objectLiteralClass == null) {
-        ensureSupportedDeclaredMemberAccess(scope, unwrappedInstance, instanceLocal, field.name, hierarchy)
+        ensureSupportedDeclaredMemberAccess(
+            scope = scope,
+            instance = unwrappedInstance,
+            local = instanceLocal,
+            fieldName = field.name,
+            hierarchy = hierarchy,
+            isWrite = true,
+        )
     }
 
     // An object literal can acquire a new own property after creation. Requiring its

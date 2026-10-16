@@ -31,7 +31,8 @@ class DeclaredMemberReadsTest : TsMethodTestRunner() {
     @Test
     fun `getter and method value reads stop with an explicit limitation`() {
         val unsupported = listOf(
-            "getter", "inheritedGetter", "methodValue", "inheritedMethodValue", "methodWrite", "getterWrite",
+            "getter", "inheritedGetter", "methodValue", "inheritedMethodValue",
+            "methodWrite", "getterWrite", "setterWrite",
         )
         for (name in unsupported) {
             val method = getMethod(name, className = "DeclaredMemberReads")
@@ -62,6 +63,7 @@ class DeclaredMemberReadsTest : TsMethodTestRunner() {
             "ownData" to 7.0,
             "ownWrite" to 9.0,
             "callableData" to 11.0,
+            "capturedArgumentWrite" to 5.0,
         )
 
         for ((name, value) in expected) {
@@ -84,7 +86,10 @@ class DeclaredMemberReadsTest : TsMethodTestRunner() {
                 for (const name of ['methodValue', 'inheritedMethodValue']) {
                     if (subject[name]() !== 'function') throw Error(name);
                 }
-                const expected = { directCall: 5, inheritedCall: 5, ownData: 7, ownWrite: 9, callableData: 11 };
+                const expected = {
+                    directCall: 5, inheritedCall: 5, ownData: 7, ownWrite: 9, callableData: 11,
+                    capturedArgumentWrite: 5, setterWrite: 9,
+                };
                 for (const [name, value] of Object.entries(expected)) {
                     if (subject[name]() !== value) throw Error(name);
                 }
