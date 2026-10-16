@@ -81,9 +81,9 @@ def validate_manifest(manifest):
         raise ValueError("PBT, runner validation and class replay allocations must fit the total budget")
     valid_limits = manifest["numRuns"] > 0 and 0 < manifest["pbtInputLimit"] <= 100_000 \
         and manifest["symbolicInputLimit"] > 0 and 1 <= manifest["maxArrayElements"] <= 64 \
-        and 1024 <= manifest["maxObservationBytes"] <= 2 * 1024 * 1024
+        and 1024 <= manifest["maxObservationBytes"] <= 64 * 1024 * 1024
     if not valid_limits:
-        raise ValueError("Frozen limits must fit the compact export's 100000-record/64-element/2MiB contract")
+        raise ValueError("Frozen limits must fit the compact export's 100000-record/64-element/64MiB contract")
     unique_cases = manifest["cases"] and len({case["id"] for case in manifest["cases"]}) == len(manifest["cases"])
     if not unique_cases:
         raise ValueError("The manifest must contain distinct case identities")

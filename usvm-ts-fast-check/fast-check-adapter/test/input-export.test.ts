@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { executeProperty } from '../src/execute-property.js';
 import { ProtocolError } from '../src/js-value.js';
+import { validateInputExportRequest } from '../src/input-export.js';
 
 const source = `export async function delayed(value: number): Promise<boolean> {
   await new Promise(resolve => setTimeout(resolve, 100)); return true;
@@ -14,7 +15,7 @@ const source = `export async function delayed(value: number): Promise<boolean> {
 function request(sourceRoot: string) {
   return {
     manifest: { propertyId: 'input.late', inputs: [{ name: 'value', domain: { kind: 'integer', min: 0, max: 1 } }],
-      predicate: { module: 'properties.ts', exportName: 'delayed', executionKind: 'async' } },
+      predicate: { module: 'properties.ts', exportName: 'delayed', executionKind: 'async' as const } },
     sourceRoots: [sourceRoot], seed: 37, numRuns: 1, timeoutMillis: 10, examples: [],
     inputExportRequest: { sources: [{ module: 'properties.ts', sha256: createHash('sha256').update(source).digest('hex') }],
       maxInvocations: 100, maxBytes: 65_536, maxArrayElements: 16 },
@@ -41,7 +42,7 @@ test('a late asynchronous outcome cannot rewrite the already published input rec
 
 test('input export rejects invalid wire bounds and source identities before loading the property', async () => {
   const invalid = [
-    { ...request('/missing').inputExportRequest, maxBytes: 2 * 1024 * 1024 + 1 },
+    { ...request('/missing').inputExportRequest, maxBytes: 64 * 1024 * 1024 + 1 },
     { ...request('/missing').inputExportRequest, maxInvocations: 100_001 },
     { ...request('/missing').inputExportRequest, sources: [null] },
     { ...request('/missing').inputExportRequest, sources: [{ module: 'other.ts', sha256: '0'.repeat(64) }] },
@@ -50,4 +51,12 @@ test('input export rejects invalid wire bounds and source identities before load
     await assert.rejects(executeProperty({ ...request('/missing'), inputExportRequest }),
       error => error instanceof ProtocolError && error.code === 'protocol.request.invalid');
   }
+});
+
+test('explicit large input export remains bounded without changing the ordinary byte allowance', () => {
+  const ordinary = request('/unused');
+  const large = { ...ordinary.inputExportRequest, maxBytes: 64 * 1024 * 1024 };
+
+  assert.equal(validateInputExportRequest(large, ordinary.manifest).maxBytes, 64 * 1024 * 1024);
+  assert.equal(validateInputExportRequest(ordinary.inputExportRequest, ordinary.manifest).maxBytes, 65_536);
 });

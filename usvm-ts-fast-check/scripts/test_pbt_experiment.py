@@ -152,6 +152,18 @@ class ExperimentTest(unittest.TestCase):
         self.assertTrue(driver.full_budget_eligible(row))
 
 
+    def test_budget_driven_quota_is_independent_of_the_explicit_large_capture_limit(self):
+        manifest = driver.read_json(ROOT.parent / "experiments/two-phase-smoke/manifest.json")
+        manifest.update(comparisonKind="equal-budget", numRuns=1_000_000,
+                        pbtInputLimit=100_000, maxObservationBytes=64 * 1024 * 1024)
+
+        driver.validate_manifest(manifest)
+
+        manifest["maxObservationBytes"] += 1
+        with self.assertRaisesRegex(ValueError, "64MiB"):
+            driver.validate_manifest(manifest)
+
+
     def test_process_timeout_retains_raw_output_and_failure(self):
         process = driver.run_process(
             ["node", "-e", "process.stdout.write('started'); setInterval(() => {}, 1000)"], self.root, "slow", 0.2,

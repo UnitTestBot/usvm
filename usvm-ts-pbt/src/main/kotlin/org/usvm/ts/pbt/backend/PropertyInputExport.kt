@@ -13,13 +13,18 @@ import org.usvm.ts.pbt.observation.PropertyObservationValue
 data class PropertyInputExportRequest(
     val sources: List<PropertyObservationSource>,
     val maxInvocations: Int = 20_000,
-    val maxBytes: Int = MAX_INPUT_EXPORT_BYTES,
+    val maxBytes: Int = DEFAULT_MAX_BYTES,
     val maxArrayElements: Int = MAX_INPUT_EXPORT_ARRAY_ELEMENTS,
 ) {
     init {
         require(maxInvocations in 1..MAX_INPUT_EXPORT_INVOCATIONS)
-        require(maxBytes in MIN_INPUT_EXPORT_BYTES..MAX_INPUT_EXPORT_BYTES)
+        require(maxBytes in MIN_INPUT_EXPORT_BYTES..MAX_BYTES)
         require(maxArrayElements in 1..MAX_INPUT_EXPORT_ARRAY_ELEMENTS)
+    }
+
+    companion object {
+        const val DEFAULT_MAX_BYTES: Int = 2 * 1024 * 1024
+        const val MAX_BYTES: Int = 64 * 1024 * 1024
     }
 }
 
@@ -50,6 +55,5 @@ data class PropertyInputExportArtifact(
 }
 
 internal const val MIN_INPUT_EXPORT_BYTES = 1024
-internal const val MAX_INPUT_EXPORT_BYTES = 2 * 1024 * 1024
 internal const val MAX_INPUT_EXPORT_INVOCATIONS = 100_000
 internal const val MAX_INPUT_EXPORT_ARRAY_ELEMENTS = 64

@@ -100,6 +100,45 @@ class FastCheckInputExportTest {
     }
 
     @Test
+    fun `explicit large input export crosses the ordinary stdout limit without losing inputs`() {
+        val text = JsConcreteValue.String("x".repeat(n = 9000) + "\uD800")
+        val property = property(predicate = "textHolds", domain = ConstantDomain(value = text))
+        val requests = listOf(
+            PropertyInputExportRequest(sources = sources),
+            PropertyInputExportRequest(sources = sources, maxBytes = 8 * 1024 * 1024),
+        )
+
+        val results = requests.map { request ->
+            backend.run(
+                property,
+                configuration.copy(
+                    numRuns = 600,
+                    inputExportRequest = request,
+                    observationRequest = PropertyObservationRequest(points = emptyList(), sources = sources),
+                    coverageRequest = PropertyCoverageRequest(admittedOnly = true),
+                ),
+            )
+        }
+
+        val ordinary = assertNotNull(results[0].inputExport)
+        val large = assertNotNull(results[1].inputExport)
+        val encodedBytes = PropertyManifestJson.json.encodeToUtf8SafeString(large).toByteArray(Charsets.UTF_8).size
+        assertEquals(2 * 1024 * 1024, requests[0].maxBytes)
+        assertEquals(PropertyRunStatus.SUCCESS, results[1].status)
+        assertEquals(600, large.records.size)
+        assertTrue(encodedBytes > 4 * 1024 * 1024)
+        assertTrue(encodedBytes <= requests[1].maxBytes)
+        assertTrue(ordinary.droppedInvocations > 0)
+        assertEquals(0, large.droppedInvocations)
+        assertEquals(0, large.unsupportedInputs)
+        assertEquals(0, large.pendingInvocations)
+        assertNotNull(results[1].coverage)
+        assertNotNull(results[1].observations)
+        val firstInput = large.records.first().input.value as JsConcreteValue.Array
+        assertEquals(text, firstInput.elements.single())
+    }
+
+    @Test
     fun `UTF16 and array inputs survive the actual process and artifact roundtrip`() {
         val values = JsConcreteValue.Array(listOf(JsConcreteValue.String("\uD800"), JsConcreteValue.String("\uDC00")))
         val property = property(
