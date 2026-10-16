@@ -336,6 +336,18 @@ internal class FastCheckWitnessCoordinator(
         if (!inputs.hasWitnessEncoding()) return WitnessReplayStatus.UNREPRESENTABLE_INPUT
         if (!inDeclaredSupport(property, inputs)) return WitnessReplayStatus.DOMAIN_REJECTED
 
+        val entryRelation = candidate.target.entryRelation
+        if (entryRelation != null) {
+            val numericInputs = inputs.getOrNull(entryRelation.leftInputIndex) is JsConcreteValue.Number &&
+                inputs.getOrNull(entryRelation.rightInputIndex) is JsConcreteValue.Number
+            if (!numericInputs) return WitnessReplayStatus.UNSUPPORTED_REPLAY
+        }
+
+        val localRelation = candidate.target.dslNumericLocalRelation
+        if (localRelation != null && inputs.getOrNull(localRelation.inputIndex) !is JsConcreteValue.Number) {
+            return WitnessReplayStatus.UNSUPPORTED_REPLAY
+        }
+
         val sourceModules = candidate.sources.mapTo(hashSetOf()) { source -> source.module }
         val requiredModules = listOfNotNull(property.predicate.module, property.precondition?.module)
         val validSources = candidate.sources.all { source -> source.sha256.matches(SHA256_REGEX) } &&

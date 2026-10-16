@@ -25,8 +25,11 @@ import org.usvm.ts.pbt.backend.CapabilityDiagnostic
 import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.ts.pbt.backend.ProjectionLevel
 import org.usvm.ts.pbt.backend.WitnessOracleOutcome
+import org.usvm.ts.pbt.inference.ScalarRelation
+import org.usvm.ts.pbt.inference.ScalarRelationInference
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.EtsEntryPointTarget
+import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMappingArtifact
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyId
@@ -59,6 +62,35 @@ class UsvmPropertySearcher(
         manifest: PropertyManifest,
         mapping: PropertyEtsMappingArtifact,
         concreteCapability: ProjectionCapability,
+        deadlineReached: (() -> Boolean)? = null,
+        coverageFeedback: UsvmCoverageFeedback? = null,
+        completedInputLimit: Int = 0,
+    ): UsvmPropertySearchResult = searchWithFocus(
+        manifest, mapping, concreteCapability, focus = null, deadlineReached, coverageFeedback, completedInputLimit,
+    )
+
+    /** Restricts one query to NOT(sampled entry relation); the ordinary search remains unrestricted. */
+    fun searchFocusedOnEntryRelation(
+        manifest: PropertyManifest,
+        mapping: PropertyEtsMappingArtifact,
+        concreteCapability: ProjectionCapability,
+        inference: ScalarRelationInference,
+        relation: ScalarRelation,
+    ): UsvmEntryRelationSearchResult {
+        val binding = bindEntryRelation(manifest, mapping, inference, relation)
+        val focus = if (binding.status == EtsMappingStatus.EXACT) binding.targets.single() else null
+        val search = focus?.let {
+            searchWithFocus(manifest, mapping, concreteCapability, focus = it)
+        }
+
+        return UsvmEntryRelationSearchResult(binding, inference, search)
+    }
+
+    private fun searchWithFocus(
+        manifest: PropertyManifest,
+        mapping: PropertyEtsMappingArtifact,
+        concreteCapability: ProjectionCapability,
+        focus: UsvmEntryRelationBinding?,
         deadlineReached: (() -> Boolean)? = null,
         coverageFeedback: UsvmCoverageFeedback? = null,
         completedInputLimit: Int = 0,
@@ -111,6 +143,7 @@ class UsvmPropertySearcher(
             deadlineReached = deadlineReached ?: this.deadlineReached,
             guidance = guidance,
             completedInputLimit = completedInputLimit,
+            focus = focus,
         ).copy(edgeGuidance = guidance?.snapshot())
     }
 
@@ -122,6 +155,7 @@ class UsvmPropertySearcher(
         deadlineReached: (() -> Boolean)?,
         guidance: UsvmEdgeGuidance?,
         completedInputLimit: Int,
+        focus: UsvmEntryRelationBinding?,
     ): UsvmPropertySearchResult {
         lateinit var projection: UsvmDeclaredDomainProjection
         val completedInputs = linkedSetOf<UsvmCompletedInput>()
@@ -181,6 +215,9 @@ class UsvmPropertySearcher(
                         bindings = predicate.bindings.inputs,
                         generator = manifest.generator,
                     )
+                    if (focus != null) {
+                        state.pathConstraints += focus.negatedRelation(state, projection)
+                    }
                     if (precondition != null) {
                         state.prependBooleanEntryPointGuard(
                             guard = precondition.method,
@@ -205,9 +242,16 @@ class UsvmPropertySearcher(
                 capability = capability,
                 analysis = analysis,
             )
+            val focusInfeasible = focus != null && analysis.infeasibleEntryPoints.isNotEmpty()
+            val infeasibleFocusResult = if (focusInfeasible) {
+                result(manifest, UsvmPropertySearchStatus.NO_VIOLATION_REACHED, capability)
+            } else {
+                null
+            }
             val runtimeDiagnostics = runtimeLimitations.diagnostics
             val searchResult = terminalFailure?.withCandidate(candidate)
                 ?: candidate
+                ?: infeasibleFocusResult
                 ?: noViolationResult(
                     manifest = manifest,
                     capability = capability,

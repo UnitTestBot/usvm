@@ -19,6 +19,7 @@ import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.manifest.PropertyManifest
+import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import java.util.IdentityHashMap
 
@@ -240,19 +241,6 @@ internal class EtsEntryPointResolver(
         return modulePaths.any(filePaths::contains)
     }
 
-    private fun EtsMethod.bindingParameters(): EtsBindingParameters {
-        // The frontend lifts arrow-function captures into one leading lexical-environment parameter.
-        // It is not a source argument; the interpreter recognizes the same parameter by its semantic type.
-        val hiddenClosure = parameters.firstOrNull()?.takeIf { parameter ->
-            parameter.type is EtsLexicalEnvType
-        }
-
-        return EtsBindingParameters(
-            lexicalEnvironment = hiddenClosure,
-            inputs = if (hiddenClosure == null) parameters else parameters.drop(1),
-        )
-    }
-
     private fun EtsMethod.bindingsFor(
         manifest: PropertyManifest,
         parameters: EtsBindingParameters,
@@ -261,13 +249,7 @@ internal class EtsEntryPointResolver(
             signature = signature.enclosingClass,
             typeParameters = requireNotNull(enclosingClass).typeParameters,
         )
-        val inputBindings = manifest.inputs.zip(parameters.inputs).map { (input, parameter) ->
-            EtsInputBinding(
-                propertyInputName = input.name,
-                parameter = parameter,
-                stackSlot = parameter.index + RECEIVER_STACK_SLOTS,
-            )
-        }
+        val inputBindings = inputBindingsFor(manifest.inputs)
 
         return EtsEntryPointBindings(
             receiver = EtsReceiverBinding(
@@ -284,6 +266,27 @@ internal class EtsEntryPointResolver(
             },
         )
     }
+}
+
+/** The same positional transport used by the entry mapper and consumers of its mapping artifacts. */
+internal fun EtsMethod.inputBindingsFor(inputs: List<PropertyInput>): List<EtsInputBinding> =
+    inputs.zip(bindingParameters().inputs).map { (input, parameter) ->
+        EtsInputBinding(
+            propertyInputName = input.name,
+            parameter = parameter,
+            stackSlot = parameter.index + RECEIVER_STACK_SLOTS,
+        )
+    }
+
+private fun EtsMethod.bindingParameters(): EtsBindingParameters {
+    // The frontend lifts arrow-function captures into one leading lexical-environment parameter.
+    // It is not a source argument; the interpreter recognizes the same parameter by its semantic type.
+    val hiddenClosure = parameters.firstOrNull()?.takeIf { parameter -> parameter.type is EtsLexicalEnvType }
+
+    return EtsBindingParameters(
+        lexicalEnvironment = hiddenClosure,
+        inputs = if (hiddenClosure == null) parameters else parameters.drop(1),
+    )
 }
 
 private data class EtsBindingParameters(
