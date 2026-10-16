@@ -88,9 +88,17 @@ internal data class CallsClassRawAnalysis(
 /** Retains raw symbolic outcomes without requiring finite native observation domains. */
 internal class ClassRawAnalysisObserver(
     private val sourceFile: String,
-    private val universe: List<CallsClassRawIrPoint>,
+    universe: List<CallsClassRawIrPoint>,
     private val output: Path,
 ) : UMachineObserver<TsState> {
+    private val universe = universe.toList()
+    private val universePoints = this.universe.toSet()
+    private val universeViolations = linkedSetOf<CallsClassRawIrPoint>()
+
+    init {
+        require(universePoints.size == this.universe.size) { "Class IR universe contains duplicate points" }
+    }
+
     private val entered = linkedSetOf<CallsClassRawIrPoint>()
     private val snapshots = CallsClassRawSnapshotStore(output = output)
     private val snapshotFailures = mutableListOf<String>()
@@ -111,7 +119,13 @@ internal class ClassRawAnalysisObserver(
     private var quantumOverruns = 0L
 
     fun recordOriginalEntry(stmt: EtsStmt) {
-        entered += stmt.toClassRawIrPoint(sourceFile = sourceFile)
+        val point = stmt.toClassRawIrPoint(sourceFile = sourceFile)
+        if (point !in universePoints) {
+            universeViolations += point
+            error("Original class IR entry is outside its frozen universe: $point")
+        }
+
+        entered += point
         sourceKinds.merge(stmt::class.java.simpleName, 1L, Long::plus)
     }
 
@@ -217,6 +231,12 @@ internal class ClassRawAnalysisObserver(
     fun result(manifest: CallsClassStartManifest, analysisElapsedMillis: Long): CallsClassRawAnalysis {
         val encodedUniverse = encodeCallsArtifact(universe).toByteArray(Charsets.UTF_8)
         val journals = snapshots.finish()
+        // Exploratory execution may retain interpreter failures as terminal states.
+        // Such a failure must still invalidate this diagnostic denominator.
+        check(universeViolations.isEmpty()) {
+            "Original class IR entries are outside their frozen universe: $universeViolations"
+        }
+
         return CallsClassRawAnalysis(
             budgetMillis = manifest.budgetMillis,
             analysisElapsedMillis = analysisElapsedMillis,
