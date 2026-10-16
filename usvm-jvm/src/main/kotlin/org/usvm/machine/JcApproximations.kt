@@ -39,6 +39,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.Engine
 import org.usvm.api.SymbolicIdentityMap
@@ -84,6 +85,7 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.getIntValue
+import org.usvm.isTrue
 import org.usvm.jvm.util.allInstanceFields
 import org.usvm.jvm.util.javaName
 import org.usvm.machine.interpreter.JcExprResolver
@@ -837,7 +839,10 @@ class JcMethodApproximationResolver(
     }
 
     private fun approximateObjectClone(methodCall: JcMethodCall): Boolean {
-        val instance = methodCall.arguments.first().asExpr(ctx.addressSort)
+        val receiver = methodCall.arguments.first().asExpr(ctx.addressSort)
+        val instance = resolveCloneReceiver(receiver) ?: return true
+        exprResolver.checkNullPointer(instance) ?: return true
+
         val type = scope.calcOnState { memory.types.getTypeStream(instance).commonSuperType }
         if (type is JcArrayType) {
             exprResolver.resolveArrayClone(methodCall, instance, type)
@@ -853,14 +858,30 @@ class JcMethodApproximationResolver(
         return false
     }
 
+    /** Preserve each feasible receiver alternative before querying its individual runtime type. */
+    private fun resolveCloneReceiver(ref: UHeapRef): UHeapRef? {
+        var receiver = ref
+        while (receiver is UIteExpr<*>) {
+            val conditional = receiver
+            val takeTrueBranch = scope.calcOnState { models.first().eval(conditional.condition).isTrue }
+            val branchCondition = if (takeTrueBranch) conditional.condition else ctx.mkNot(conditional.condition)
+            scope.fork(branchCondition) ?: return null
+
+            receiver = if (takeTrueBranch) {
+                conditional.trueBranch.asExpr(ctx.addressSort)
+            } else {
+                conditional.falseBranch.asExpr(ctx.addressSort)
+            }
+        }
+        return receiver
+    }
+
     private fun JcExprResolver.resolveObjectClone(
         methodCall: JcMethodCall,
         instance: UHeapRef,
         type: JcClassType,
     ) = with(ctx) {
         scope.doWithState {
-            checkNullPointer(instance) ?: return@doWithState
-
             val clonedRef = memory.allocHeapRef(type, useStaticAddress = useStaticAddressForAllocation())
             for (field in type.allInstanceFields) {
                 val fieldSort = ctx.typeToSort(field.type)
@@ -879,8 +900,6 @@ class JcMethodApproximationResolver(
         arrayType: JcArrayType,
     ) = with(ctx) {
         scope.doWithState {
-            checkNullPointer(instance) ?: return@doWithState
-
             val arrayDescriptor = arrayDescriptorOf(arrayType)
             val elementType = requireNotNull(arrayType.ifArrayGetElementType)
 
