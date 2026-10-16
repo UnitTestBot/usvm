@@ -103,7 +103,7 @@ class UsvmPropertySearcher(
             predicate = predicate,
             precondition = precondition,
             capability = capability,
-            deadlineReached = deadlineReached,
+            deadlineReached = deadlineReached ?: this.deadlineReached,
             guidance = guidance,
         ).copy(edgeGuidance = guidance?.snapshot())
     }

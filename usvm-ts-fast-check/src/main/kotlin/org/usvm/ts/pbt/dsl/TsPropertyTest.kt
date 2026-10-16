@@ -330,13 +330,6 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
         }.toList()
     }
 
-    private fun remainingBudget(deadline: WitnessReplayDeadline): Long {
-        val remaining = deadline.remainingMillis()
-        check(remaining > 0) { "Property execution deadline expired" }
-
-        return remaining
-    }
-
     private fun resolveModule(module: String, directory: Path): String {
         val modulePath = Path.of(module)
         val normalized = !modulePath.isAbsolute && '\\' !in module &&
