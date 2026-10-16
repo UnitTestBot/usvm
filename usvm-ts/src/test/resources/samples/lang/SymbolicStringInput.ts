@@ -15,6 +15,10 @@ class LongLiteralStringFieldInput {
 }
 
 class SymbolicStringInput {
+    unusedDynamicInput(value: any): number {
+        return 7;
+    }
+
     identity(value: string): string {
         return value;
     }

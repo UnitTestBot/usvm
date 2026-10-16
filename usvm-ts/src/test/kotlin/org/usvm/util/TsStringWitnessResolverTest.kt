@@ -1,14 +1,20 @@
 package org.usvm.util
 
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
+import org.usvm.UConcreteHeapRef
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
+import org.usvm.api.evalTypeEquals
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.expr.mkNotNullOrUndefined
+import org.usvm.solver.USatResult
 import java.nio.file.Path
 import kotlin.io.path.readText
 import kotlin.test.assertEquals
@@ -23,6 +29,51 @@ class TsStringWitnessResolverTest : TsMethodTestRunner() {
     private val tsPath = "/samples/lang/SymbolicStringInput.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
+
+    @Test
+    fun `unused dynamic input preserves its constant return value`() {
+        val method = getMethod(methodName = "unusedDynamicInput", className = "SymbolicStringInput")
+
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+            method = method,
+            { _, result -> result.number == 7.0 },
+            invariants = arrayOf({ _, result -> result.number == 7.0 }),
+        )
+    }
+
+    @Test
+    fun `unused dynamic input has a string witness when its completed type model selects string`() {
+        val method = getMethod(methodName = "unusedDynamicInput", className = "SymbolicStringInput")
+        val options = UMachineOptions(
+            solverType = SolverType.YICES,
+            solverTimeout = Duration.INFINITE,
+            typeOperationsTimeout = Duration.INFINITE,
+        )
+
+        TsMachine(scene = scene, options = options, tsOptions = TsOptions()).use { machine ->
+            val state = machine.analyze(methods = listOf(method)).single()
+            val reference = state.symbolicStringCandidates.single()
+            with(state.ctx) {
+                // Exercise witness completion after analysis; execution never needed this input's contents.
+                val parameter = state.memory.read(mkRegisterStackLValue(addressSort, idx = 1)) as UConcreteHeapRef
+                state.pathConstraints += parameter.getFakeType(state.memory).refTypeExpr
+                state.pathConstraints += state.memory.types.evalTypeEquals(reference, EtsStringType)
+                state.pathConstraints += mkNotNullOrUndefined(reference)
+
+                val result = solver<EtsType>().check(state.pathConstraints)
+
+                assertTrue(result is USatResult)
+                state.models = listOf(result.model)
+            }
+
+            val witness = TsTestResolver().resolve(method = method, state = state)
+
+            assertIs<TsTestValue.TsString>(witness.before.parameters.single())
+            assertEquals(witness.before.parameters, witness.after.parameters)
+            assertEquals(7.0, assertIs<TsTestValue.TsNumber>(witness.returnValue).number)
+            assertTrue(state.boundedStringBackingRefs.isEmpty())
+        }
+    }
 
     @Test
     fun `string inferred from any has replayable length witnesses`() {
