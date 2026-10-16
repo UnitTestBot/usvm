@@ -177,7 +177,9 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
             } else {
                 null
             }
-            val symbolic = if (engine != PropertyEngine.FAST_CHECK) {
+            val concreteViolation = concrete?.failure?.kind == PropertyFailureKind.PROPERTY
+            val shouldSearch = engine != PropertyEngine.FAST_CHECK && !concreteViolation && remainingMillis() > 0L
+            val symbolic = if (shouldSearch) {
                 search(
                     compiled = compiled,
                     directory = directory,
@@ -190,7 +192,7 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
             } else {
                 null
             }
-            val replay = if (symbolic?.inputs != null) {
+            val replay = if (symbolic?.inputs != null && remainingMillis() > 0L) {
                 backend.confirmOriginalWitness(
                     property = compiled.definition,
                     candidate = symbolic.captureWitness(property = compiled.definition, sources = sources),
@@ -211,7 +213,8 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
                 symbolicReplay = replay,
                 elapsedMillis = started.elapsedNow().inWholeMilliseconds,
                 budgetMillis = configuration.timeoutMillis,
-                symbolicSkippedDueToDeadline = engine != PropertyEngine.FAST_CHECK && symbolic == null,
+                symbolicSkippedDueToDeadline = engine != PropertyEngine.FAST_CHECK &&
+                    !concreteViolation && symbolic == null,
             )
         } finally {
             Files.walk(directory).use { paths ->
@@ -295,6 +298,7 @@ class DslPropertyRunner(sourceRoots: List<Path>) {
             manifest = manifest,
             mapping = mapping,
             concreteCapability = ProjectionCapability(level = ProjectionLevel.EXACT),
+            deadlineReached = { symbolicRemainingMillis() <= 0L },
             coverageFeedback = feedback,
         )
     }

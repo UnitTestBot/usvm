@@ -211,8 +211,8 @@ class KotlinPropertyDslTest {
 
         assertEquals("unexpected", run.concrete?.failure?.checkId)
         assertEquals("Error", run.concrete?.failure?.errorName)
-        assertEquals("unexpected", run.symbolicReplay?.originalReplay?.failure?.checkId)
-        assertEquals(WitnessOracleOutcome.THREW, run.symbolicReplay?.candidate?.target?.expectedOutcome)
+        assertNull(run.symbolic)
+        assertNull(run.symbolicReplay)
         assertFailsWith<DslPropertyAssertionError> { run.requireSuccess() }
     }
 
