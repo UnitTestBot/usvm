@@ -67,6 +67,7 @@ interface InvocationRecord {
   input: ObservationValue;
   admission: 'pending' | 'admitted' | 'rejected' | 'threw';
   outcome: 'pending' | 'holds' | 'false' | 'threw' | 'skipped';
+  pointsTruncated: boolean;
   points: Array<Omit<ObservationPointRequest, 'id'> & {
     pointId: string;
     occurrence: number;
@@ -176,6 +177,7 @@ export class ObservationRecorder {
       admission: 'pending',
       outcome: 'pending',
       points: [],
+      pointsTruncated: false,
     };
     this.artifact.invocations.push(record);
     if (this.reservedArtifactBytes() > this.request.maxBytes) {
@@ -207,6 +209,7 @@ export class ObservationRecorder {
     // Adapter entry snapshots and compiler callbacks own these points; public hooks cannot replace them.
     if (point?.kind === 'entry-argument' || point?.compilerLocal !== undefined) return;
     if (point === undefined) {
+      record.pointsTruncated = true;
       this.artifact.droppedPoints = incrementCounter(this.artifact.droppedPoints);
 
       return;
@@ -217,6 +220,7 @@ export class ObservationRecorder {
 
   private capturePoint(record: InvocationRecord, point: ObservationPointRequest, value: unknown, unsupportedReason?: string): void {
     if (record.points.length >= this.request.maxPointsPerInvocation) {
+      record.pointsTruncated = true;
       this.artifact.droppedPoints = incrementCounter(this.artifact.droppedPoints);
 
       return;
@@ -235,8 +239,10 @@ export class ObservationRecorder {
       eventOrdinal: record.points.length,
       value: unsupportedReason === undefined ? this.snapshot(value) : { status: 'unsupported', reason: unsupportedReason },
     });
+    if (record.points.at(-1)?.value.status === 'truncated') record.pointsTruncated = true;
     if (this.reservedArtifactBytes() > this.request.maxBytes) {
       record.points.pop();
+      record.pointsTruncated = true;
       this.artifact.droppedPoints = incrementCounter(this.artifact.droppedPoints);
     }
   }

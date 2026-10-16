@@ -191,6 +191,21 @@ class EntryRelationRefutationTest {
         assertNull(refutation.inputs)
     }
 
+    @Test
+    fun `bounded native entry samples retain exact binding without bypassing original admission`() {
+        val inference = observe(predicate = "reflexive", precondition = "ordered", numRuns = 100)
+        val order = inference.relations.single { it.template == ScalarRelationTemplate.LESS_OR_EQUAL }
+
+        val refutation = refute(inference, order)
+
+        assertEquals(ScalarRelationStatus.SAMPLED, order.status)
+        assertTrue(ScalarRelationLimitation.INCOMPLETE_CAPTURE in order.limitations)
+        assertTrue(inference.droppedInvocations > 0)
+        assertEquals(EtsMappingStatus.EXACT, refutation.binding.status)
+        assertEquals(UsvmEntryRefutationStatus.PRECONDITION_REJECTED, refutation.status)
+        assertNull(refutation.inputs)
+    }
+
     private fun refute(inference: ScalarRelationInference, relation: ScalarRelation): UsvmEntryRelationRefutation {
         val manifest = inference.property.toManifest()
 
@@ -203,6 +218,7 @@ class EntryRelationRefutationTest {
         leftDomain: PropertyDomain = IntegerDomain(min = 0, max = 2),
         points: List<PropertyObservationPoint> = listOf(LEFT, RIGHT),
         seed: Int = 1,
+        numRuns: Int = 2,
     ): ScalarRelationInference {
         val property = PropertyDefinition(
             id = PropertyId("entry.auxiliary"),
@@ -226,7 +242,7 @@ class EntryRelationRefutationTest {
             property,
             PropertyRunConfiguration(
                 seed = seed,
-                numRuns = 2,
+                numRuns = numRuns,
                 observationRequest = PropertyObservationRequest(points = points, sources = sources),
             ),
         )

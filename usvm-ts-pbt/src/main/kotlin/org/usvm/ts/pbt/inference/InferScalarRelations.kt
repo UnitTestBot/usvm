@@ -18,6 +18,8 @@ import org.usvm.ts.pbt.observation.PropertyPointEvent
  * At least two distinct original admitted generation inputs and two observed value pairs are
  * required for sample agreement. Replay, shrinking and solver evidence can refute a relation,
  * but cannot increase independent support. Repeated points and nested contexts are unsupported.
+ * Recording limits bound the sample, not the PBT executions: only complete recorded pairs supply
+ * evidence. Omission and truncation warnings remain visible without claiming agreement on lost executions.
  *
  * Only selected module hashes are available for provenance; a declared predicate source hash
  * is checked when present. Executable build status is carried through without promotion.
@@ -85,6 +87,11 @@ private fun evaluatePair(
         limitations += ScalarRelationLimitation.INCOMPLETE_CAPTURE
     }
 
+    val unmarkedInvocation = observations.invocations.any { it.pointsTruncated == null }
+    val markedTruncation = observations.invocations.any { it.pointsTruncated == true }
+    val unattributedPointDrops = observations.droppedPoints > 0 && (unmarkedInvocation || !markedTruncation)
+    if (unattributedPointDrops) limitations += ScalarRelationLimitation.UNATTRIBUTED_POINT_DROPS
+
     val matched = if (validPair && sourcesPresent) {
         invocations.mapNotNull { invocation -> numericPair(invocation, pair, limitations) }
     } else {
@@ -119,7 +126,7 @@ private fun evaluatePair(
         val status = when {
             refuted -> ScalarRelationStatus.REFUTED
             matched.isEmpty() && unsupported -> ScalarRelationStatus.UNSUPPORTED
-            limitations.isNotEmpty() -> ScalarRelationStatus.INSUFFICIENT
+            limitations.any { !it.isSamplingWarning } -> ScalarRelationStatus.INSUFFICIENT
             else -> ScalarRelationStatus.SAMPLED
         }
 
@@ -145,26 +152,39 @@ private fun numericPair(
         return null
     }
 
+    val truncated = invocation.pointsTruncated == true || invocation.input.status == ObservationValueStatus.TRUNCATED
     val leftEvents = invocation.points.filter { it.pointId == pair.left.id }
     val rightEvents = invocation.points.filter { it.pointId == pair.right.id }
-    if (leftEvents.isEmpty() || rightEvents.isEmpty()) {
-        limitations += ScalarRelationLimitation.MISSING_POINT
-        return null
-    }
-    if (leftEvents.size != 1 || rightEvents.size != 1) {
+    if (leftEvents.size > 1 || rightEvents.size > 1) {
         limitations += ScalarRelationLimitation.REPEATED_POINT
         return null
     }
 
-    val left = leftEvents.single()
-    val right = rightEvents.single()
-    val identitiesMatch = left.matches(pair.left) && right.matches(pair.right)
+    val left = leftEvents.singleOrNull()
+    val right = rightEvents.singleOrNull()
+    val identitiesMatch = (left == null || left.matches(pair.left)) && (right == null || right.matches(pair.right))
     if (!identitiesMatch) {
         limitations += ScalarRelationLimitation.POINT_IDENTITY_MISMATCH
         return null
     }
-    val numeric = left.isNumber() && right.isNumber()
-    if (!numeric) {
+    val malformedValues = listOfNotNull(left, right).any { event ->
+        !event.isNumber() && !(truncated && event.value.status == ObservationValueStatus.TRUNCATED)
+    }
+    if (malformedValues) {
+        limitations += ScalarRelationLimitation.UNSUPPORTED_VALUE
+        return null
+    }
+    if (truncated) {
+        limitations += ScalarRelationLimitation.TRUNCATED_INVOCATION
+        return null
+    }
+    if (left == null || right == null) {
+        limitations += ScalarRelationLimitation.MISSING_POINT
+        return null
+    }
+    val inputCaptured = invocation.input.status == ObservationValueStatus.CAPTURED &&
+        invocation.input.value is JsConcreteValue.Array
+    if (!inputCaptured) {
         limitations += ScalarRelationLimitation.UNSUPPORTED_VALUE
         return null
     }

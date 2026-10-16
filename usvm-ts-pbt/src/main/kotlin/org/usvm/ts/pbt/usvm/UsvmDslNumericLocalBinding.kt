@@ -8,7 +8,7 @@ import org.usvm.ts.pbt.dsl.CompiledDslProperty
 import org.usvm.ts.pbt.dsl.isReproducibleCompilerOutput
 import org.usvm.ts.pbt.inference.ScalarRelation
 import org.usvm.ts.pbt.inference.ScalarRelationInference
-import org.usvm.ts.pbt.inference.ScalarRelationStatus
+import org.usvm.ts.pbt.inference.hasSampledSupport
 import org.usvm.ts.pbt.inference.matches
 import org.usvm.ts.pbt.mapping.EtsEntryPointTarget
 import org.usvm.ts.pbt.mapping.EtsInputBinding
@@ -58,8 +58,7 @@ fun bindDslNumericLocalRelation(
             message = "The retained program must reproduce the compiler output"
         )
     }
-    val sampled = relation in inference.relations && relation.status == ScalarRelationStatus.SAMPLED &&
-        relation.limitations.isEmpty() && relation.evidence.isNotEmpty()
+    val sampled = relation in inference.relations && relation.hasSampledSupport() && relation.evidence.isNotEmpty()
     if (!sampled) return unbound(reason = "not-sampled", message = "A complete sampled relation is required")
 
     val resultIsLeft = relation.pair.left == capture.result && relation.pair.right == capture.input

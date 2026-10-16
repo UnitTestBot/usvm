@@ -6,8 +6,8 @@ import org.usvm.UBoolExpr
 import org.usvm.machine.state.TsState
 import org.usvm.ts.pbt.inference.ScalarRelation
 import org.usvm.ts.pbt.inference.ScalarRelationInference
-import org.usvm.ts.pbt.inference.ScalarRelationStatus
 import org.usvm.ts.pbt.inference.ScalarRelationTemplate
+import org.usvm.ts.pbt.inference.hasSampledSupport
 import org.usvm.ts.pbt.inference.matches
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.manifest.toManifest
@@ -67,8 +67,7 @@ internal fun bindEntryRelation(
         return unsupported(reason = "property-mismatch", message = "Property definition or declared support changed")
     }
 
-    val sampled = relation in inference.relations && relation.status == ScalarRelationStatus.SAMPLED &&
-        relation.limitations.isEmpty()
+    val sampled = relation in inference.relations && relation.hasSampledSupport()
     if (!sampled) {
         return unsupported(reason = "not-sampled", message = "A sampled relation from this inference is required")
     }
