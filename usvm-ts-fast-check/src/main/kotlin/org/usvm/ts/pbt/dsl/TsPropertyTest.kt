@@ -30,11 +30,11 @@ import org.usvm.ts.pbt.usvm.UsvmCoverageFeedback
 import org.usvm.ts.pbt.usvm.UsvmPropertySearchResult
 import org.usvm.ts.pbt.usvm.UsvmPropertySearchStatus
 import org.usvm.ts.pbt.usvm.UsvmPropertySearcher
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.TimeSource
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TimeSource
 
 /** Selects execution without changing the author property or its JavaScript semantics. */
 enum class PropertyEngine {

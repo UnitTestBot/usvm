@@ -131,6 +131,7 @@ class UsvmPropertySearcher(
                 if (inputs != null) guidance.confirm(replayState, inputs, expectsViolation = violation != null)
             }
         }
+        val runtimeLimitations = UsvmRuntimeLimitationObserver()
         val objectShapes = PlainObjectInputShapes(scene, manifest.inputs.map { it.domain })
         val domainProjector = UsvmDomainProjector(projectionOptions, objectShapes)
 
@@ -141,6 +142,7 @@ class UsvmPropertySearcher(
             machineObserver = observer,
             deadlineReached = deadlineReached,
             pathSelectorFactory = guidance?.takeIf { it.selectionSupported }?.let { it::selector },
+            observer = runtimeLimitations,
         ).use { machine ->
             val analysis = machine.analyzeWithMetadata(
                 methods = listOf(predicate.method),
@@ -177,17 +179,18 @@ class UsvmPropertySearcher(
                 capability = capability,
                 analysis = analysis,
             )
-            if (terminalFailure != null) {
-                return@use terminalFailure.withCandidate(candidate)
-            }
-
-            candidate
+            val runtimeDiagnostics = runtimeLimitations.diagnostics
+            val searchResult = terminalFailure?.withCandidate(candidate)
+                ?: candidate
                 ?: noViolationResult(
                     manifest = manifest,
                     capability = capability,
                     analysis = analysis,
                     observer = observer,
+                    runtimeLimited = runtimeDiagnostics.isNotEmpty(),
                 )
+
+            searchResult.copy(diagnostics = (searchResult.diagnostics + runtimeDiagnostics).distinct())
         }
     }
 
@@ -324,6 +327,7 @@ class UsvmPropertySearcher(
         capability: UsvmPropertyProjectionCapability,
         analysis: TsMachineAnalysisResult,
         observer: UsvmViolationObserver,
+        runtimeLimited: Boolean,
     ): UsvmPropertySearchResult {
         val predicateCompleted = analysis.states.any { state ->
             state.entryPointGuardOutcome == TsEntryPointGuardOutcome.NONE &&
@@ -335,6 +339,7 @@ class UsvmPropertySearcher(
         val status = when {
             analysis.timedOut -> UsvmPropertySearchStatus.TIMEOUT
             observer.solverUnknown -> UsvmPropertySearchStatus.SOLVER_UNKNOWN
+            runtimeLimited -> UsvmPropertySearchStatus.UNSUPPORTED
             predicateCompleted -> UsvmPropertySearchStatus.NO_VIOLATION_REACHED
             preconditionRejected -> UsvmPropertySearchStatus.PRECONDITION_REJECTED
             else -> UsvmPropertySearchStatus.ENGINE_FAILURE
