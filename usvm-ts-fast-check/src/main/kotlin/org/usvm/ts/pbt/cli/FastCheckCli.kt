@@ -123,6 +123,10 @@ class FastCheckCli(
             coverageRequest = options.coverageRequest,
         )
 
+        if (options.mode != null) {
+            return executeCampaign(options, properties.single(), configuration, output)
+        }
+
         val backend = backendFactory(options.sourceRoots)
         requireCoverageSupport(options, backend)
         val results = properties.map { property -> backend.run(property, configuration) }
@@ -187,12 +191,16 @@ class FastCheckCli(
     }
 
     private fun requireSinglePropertyForRunScopedControls(options: CliOptions, propertyCount: Int) {
-        val usesRunScopedControls = options.replayPath != null || options.examplesFile != null
+        val usesRunScopedControls = options.replayPath != null || options.examplesFile != null || options.mode != null
 
         if (usesRunScopedControls && propertyCount != 1) {
             throw CliUsageException(
                 code = FastCheckDiagnosticCode.CLI_SINGLE_PROPERTY_REQUIRED,
-                message = "Replay paths and explicit examples require exactly one selected property",
+                message = if (options.mode == null) {
+                    "Replay paths and explicit examples require exactly one selected property"
+                } else {
+                    "Campaign artifacts require exactly one selected property"
+                },
                 path = "property",
             )
         }

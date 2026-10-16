@@ -8,6 +8,7 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
 import com.github.ajalt.clikt.parameters.types.path
@@ -15,6 +16,7 @@ import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.CoverageScope
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
+import org.usvm.ts.pbt.campaign.PropertyCampaignMode
 import org.usvm.ts.pbt.model.PropertyId
 import java.nio.file.Path
 
@@ -34,6 +36,9 @@ internal data class CliOptions(
     val timeoutMillis: Long,
     val examplesFile: Path?,
     val coverageRequest: PropertyCoverageRequest?,
+    val mode: PropertyCampaignMode?,
+    val artifactFile: Path?,
+    val validationReserveMillis: Long?,
 )
 
 internal class CliUsageException(
@@ -94,13 +99,28 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-fast-check")
 
     private val timeoutMillis by option(
         "--timeout-ms",
-        help = "Property timeout in milliseconds",
+        help = "Property or total campaign timeout in milliseconds",
     ).long().default(PropertyRunConfiguration.DEFAULT_TIMEOUT_MILLIS)
 
     private val examplesFile by option(
         "--examples",
         help = "JSON file with positional tagged examples",
     ).path()
+
+    private val mode by option(
+        "--mode",
+        help = "Run one original-property campaign with FastCheck/USVM",
+    ).choice(PropertyCampaignMode.entries.associateBy { it.name })
+
+    private val artifactFile by option(
+        "--artifact",
+        help = "Write the campaign artifact JSON; requires --mode and one property/source root",
+    ).path()
+
+    private val validationReserveMillis by option(
+        "--validation-reserve-ms",
+        help = "Reserve within the total campaign timeout for native confirmation and reduction; requires --mode",
+    ).long()
 
     private val coverageEnabled by option(
         "--coverage",
@@ -129,6 +149,7 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-fast-check")
         requireSourceRoots()
         requirePositiveRunControls()
         requireCoverageFlag()
+        requireCampaignControls()
 
         options = CliOptions(
             sourceRoots = sourceRoots,
@@ -140,6 +161,9 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-fast-check")
             timeoutMillis = timeoutMillis,
             examplesFile = examplesFile,
             coverageRequest = buildCoverageRequest(),
+            mode = mode,
+            artifactFile = artifactFile,
+            validationReserveMillis = validationReserveMillis,
         )
     }
 
@@ -169,6 +193,37 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-fast-check")
                 path = "timeoutMillis",
             )
         }
+    }
+
+    private fun requireCampaignControls() {
+        val hasCampaignDetails = artifactFile != null || validationReserveMillis != null
+        val reserve = validationReserveMillis
+        val error = when {
+            mode == null && hasCampaignDetails -> CliUsageException(
+                code = FastCheckDiagnosticCode.CLI_CAMPAIGN_MODE_REQUIRED,
+                message = "--artifact and --validation-reserve-ms require --mode",
+                path = "mode",
+            )
+            mode != null && artifactFile == null -> CliUsageException(
+                code = FastCheckDiagnosticCode.CLI_CAMPAIGN_ARTIFACT_REQUIRED,
+                message = "--mode requires --artifact",
+                path = "artifact",
+            )
+            mode != null && sourceRoots.size != 1 -> CliUsageException(
+                code = FastCheckDiagnosticCode.CLI_CAMPAIGN_SOURCE_ROOT_INVALID,
+                message = "A campaign requires exactly one --source-root",
+                path = "sourceRoot",
+            )
+            reserve != null && reserve <= 0 -> CliUsageException(
+                code = FastCheckDiagnosticCode.CLI_CAMPAIGN_RESERVE_INVALID,
+                message = "--validation-reserve-ms must be positive",
+                path = "validationReserveMillis",
+            )
+
+            else -> null
+        }
+
+        if (error != null) throw error
     }
 
     private fun requireCoverageFlag() {
