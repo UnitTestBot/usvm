@@ -23,6 +23,21 @@ class CallsClassStartSmokeTest {
     lateinit var directory: Path
 
     @Test
+    fun `class manifest fork threshold reaches the machine and result telemetry`() {
+        val result = runFixture(
+            sourceText = "export class Target { branch(flag: boolean): number { if (flag) return 1; return 2; } }",
+            exploratory = true,
+            forkLimit = 1UL,
+        )
+
+        assertEquals(expected = "FORK_LIMIT", actual = result.stopReason)
+        assertEquals(expected = 1UL, actual = result.forkLimit)
+        assertEquals(expected = 1UL, actual = result.generatedForks)
+        assertFalse(result.engineFailed, result.toString())
+        assertTrue(requireNotNull(result.rawAnalysis).remainingStates > 0)
+    }
+
+    @Test
     fun `synthetic default return and foreign class do not prove original target execution`() {
         val target = EtsClassSignature(
             name = "Target",
@@ -247,6 +262,7 @@ class CallsClassStartSmokeTest {
         sourceText: String,
         profile: CallsExperimentProfile = CallsExperimentProfile.FROZEN_STOP,
         exploratory: Boolean = false,
+        forkLimit: ULong? = null,
     ): CallsClassStartResult {
         val source = directory.resolve("Target.ts")
         Files.writeString(source, sourceText)
@@ -272,6 +288,7 @@ class CallsClassStartSmokeTest {
             profile = profile,
             budgetMillis = if (exploratory) 30_000 else 2_000,
             collectedStatesLimit = if (exploratory) null else 10,
+            forkLimit = forkLimit,
             classes = listOf(case),
         )
         val path = directory.resolve("manifest.json")

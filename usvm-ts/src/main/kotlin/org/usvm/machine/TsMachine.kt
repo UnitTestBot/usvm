@@ -9,6 +9,7 @@ import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
+import org.usvm.UMachineStopReason
 import org.usvm.UPathSelector
 import org.usvm.api.targets.TsTarget
 import org.usvm.machine.call.TsBuiltInUnknownCallModels
@@ -49,10 +50,7 @@ import kotlin.time.Duration.Companion.seconds
 private val logger = KotlinLogging.logger {}
 
 /** Whether symbolic analysis exhausted its paths or a configured strategy stopped it. */
-enum class TsAnalysisStopReason {
-    EXHAUSTED,
-    STOPPED,
-}
+typealias TsAnalysisStopReason = UMachineStopReason
 
 /** Collected states together with the machine completion kind. */
 data class TsAnalysisResult(
@@ -61,6 +59,8 @@ data class TsAnalysisResult(
     /** Reasons for satisfiable paths excluded by an explicit engine model bound. */
     val unsupportedPaths: List<String>,
     val infeasibleEntryPoints: List<String> = emptyList(),
+    val generatedForks: ULong = 0UL,
+    val forkLimit: ULong? = null,
 )
 
 /** Terminal states and failure metadata for one TypeScript analysis. */
@@ -73,6 +73,8 @@ data class TsMachineAnalysisResult(
     val unsupportedPaths: List<String>,
     /** Entry signatures whose initial constraints were UNSAT, distinct from unsupported inputs. */
     val infeasibleEntryPoints: List<String> = emptyList(),
+    val generatedForks: ULong = 0UL,
+    val forkLimit: ULong? = null,
 ) {
     /** Includes execution bounds and unsupported entry inputs retained in [unsupportedPaths]. */
     val runtimeLimited: Boolean get() = unsupportedPaths.isNotEmpty()
@@ -176,6 +178,8 @@ class TsMachine(
             stopReason = result.stopReason,
             unsupportedPaths = result.unsupportedPaths,
             infeasibleEntryPoints = result.infeasibleEntryPoints,
+            generatedForks = result.generatedForks,
+            forkLimit = result.forkLimit,
         )
     }
 
@@ -303,7 +307,7 @@ class TsMachine(
             CompositeUMachineObserver(outcomeObserver, factoryObserver)
         }
 
-        run(
+        val runResult = run(
             interpreter = interpreter,
             pathSelector = pathSelector,
             observer = executionObserver,
@@ -311,17 +315,16 @@ class TsMachine(
             stopStrategy = stopStrategy,
         )
 
-        val exhausted = pathSelector.isEmpty()
-        val stopReason = if (exhausted) TsAnalysisStopReason.EXHAUSTED else TsAnalysisStopReason.STOPPED
-
         return TsMachineAnalysisResult(
             states = statesCollector.collectedStates,
-            stopReason = stopReason,
+            stopReason = runResult.stopReason,
             timedOut = timedOut,
             unsupportedCall = failureTrackingUnknownCallObserver.pathStopped,
             engineFailed = interpreter.stepFailed,
             unsupportedPaths = unsupportedPaths.toList(),
             infeasibleEntryPoints = infeasibleEntryPoints,
+            generatedForks = runResult.generatedForks,
+            forkLimit = runResult.forkLimit,
         )
     }
 
@@ -374,6 +377,7 @@ class TsMachine(
         engineFailed = false,
         unsupportedPaths = unsupportedPaths.toList(),
         infeasibleEntryPoints = infeasibleEntryPoints,
+        forkLimit = options.forkLimit,
     )
 
     private data class InitialStatesResult(

@@ -273,4 +273,11 @@ data class UMachineOptions(
      * Disable this for budget/exhaustion experiments that must retain those states between turns.
      */
     val removeCoveredEntryPoints: Boolean = true,
+    /**
+     * Stops a machine run once it has emitted at least this many additional successor states.
+     * Checked between complete interpreter steps: a multiway step can exceed the threshold.
+     * All pending successors are retained; this does not cap allocations within a step.
+     * Null disables the limit, while zero stops before the first step of a nonempty run.
+     */
+    val forkLimit: ULong? = null,
 )
