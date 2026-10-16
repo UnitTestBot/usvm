@@ -10,6 +10,29 @@ import kotlin.test.assertTrue
 
 class DslNumericLocalCompilerTest {
     @Test
+    fun `captured program rejects inconsistent module decisions instead of claiming reproducible identity`() {
+        val program = defineProperty(id = "dsl.unstable-imports") {
+            val first = function<(Double) -> Double>(module = "helpers.ts", exportName = "first")
+            val second = function<(Double) -> Double>(module = "helpers.ts", exportName = "second")
+            val input by int()
+            val result by value(first(input))
+
+            check(name = "bound") { result lessOrEqual input }
+            check(name = "other") { second(input) lessOrEqual input }
+        }
+        var resolutions = 0
+
+        assertFailsWith<IllegalArgumentException> {
+            PropertyTypeScriptCompiler().compile(
+                program,
+                generatedModule = "generated.ts",
+                resolveModule = { "./helper-${resolutions++}.ts" },
+                numericLocalCapture = DslNumericLocalCapture(localName = "result", checkName = "bound"),
+            )
+        }
+    }
+
+    @Test
     fun `capture is opt in and its receipt identifies both generated assignments`() {
         val program = program()
         val compiler = PropertyTypeScriptCompiler()
