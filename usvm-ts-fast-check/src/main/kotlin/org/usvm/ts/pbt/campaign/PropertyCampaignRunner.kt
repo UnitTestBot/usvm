@@ -19,7 +19,6 @@ import org.usvm.ts.pbt.backend.WitnessEvidenceDelta
 import org.usvm.ts.pbt.backend.WitnessReplayConfiguration
 import org.usvm.ts.pbt.backend.WitnessReplayDeadline
 import org.usvm.ts.pbt.backend.WitnessReplayStatus
-import org.usvm.ts.pbt.backend.WitnessTarget
 import org.usvm.ts.pbt.backend.captureWitness
 import org.usvm.ts.pbt.fastcheck.BackendErrorKind
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
@@ -63,6 +62,7 @@ data class PropertyCampaignResult(
     val stoppedAt: PropertyCampaignPhase?,
     val elapsedMillis: Long,
     val diagnostic: String?,
+    val symbolicInputReplays: List<SymbolicInputReplay> = emptyList(),
 ) {
     val confirmedViolation: Boolean
         get() = concrete?.failure?.kind == PropertyFailureKind.PROPERTY ||
@@ -76,7 +76,8 @@ class PropertyCampaignRunner(
     private val nodeExecutable: String = "node",
     private val machineOptions: UMachineOptions = UMachineOptions(solverType = SolverType.YICES),
 ) {
-    /** Captures the requested direct controls and their actual result without repeating execution. */
+    /** Keeps phase transitions and retained partial results under the same deadline. */
+    @Suppress("LongMethod")
     fun runArtifact(
         property: PropertyDefinition,
         mode: PropertyCampaignMode,
@@ -84,7 +85,12 @@ class PropertyCampaignRunner(
         validationReserveMillis: Long = DEFAULT_VALIDATION_RESERVE_MILLIS,
         pbtAllocationMillis: Long? = null,
         shrinkWitness: Boolean = true,
+        completedInputLimit: Int = 0,
     ): PropertyCampaignArtifact {
+        require(completedInputLimit >= 0) { "Completed input limit must not be negative" }
+        require(completedInputLimit == 0 || mode != PropertyCampaignMode.PBT_ONLY) {
+            "Completed input capture requires a symbolic campaign mode"
+        }
         validateControls(mode, configuration, validationReserveMillis, pbtAllocationMillis)
         val guided = mode == PropertyCampaignMode.COVERAGE_FEEDBACK
         val startedAt = System.nanoTime()
@@ -98,6 +104,7 @@ class PropertyCampaignRunner(
         var concrete: PropertyRunResult? = null
         var symbolic: UsvmPropertySearchResult? = null
         var confirmation: WitnessEvidenceDelta? = null
+        var inputReplays: SymbolicInputReplayCollector? = null
 
         fun result(
             stop: PropertyCampaignStop = PropertyCampaignStop.COMPLETED,
@@ -108,12 +115,14 @@ class PropertyCampaignRunner(
             validationReserveMillis = validationReserveMillis,
             pbtAllocationMillis = pbtAllocationMillis,
             shrinkWitness = shrinkWitness,
+            completedInputLimit = completedInputLimit,
             result = PropertyCampaignResult(
                 propertyId = property.id,
                 mode = mode,
                 concrete = concrete,
                 symbolic = symbolic,
                 confirmation = confirmation,
+                symbolicInputReplays = inputReplays?.replays.orEmpty(),
                 stop = stop,
                 stoppedAt = phase.takeUnless { stop == PropertyCampaignStop.COMPLETED },
                 elapsedMillis = (System.nanoTime() - startedAt) / NANOS_PER_MILLISECOND,
@@ -133,7 +142,9 @@ class PropertyCampaignRunner(
             val backend = FastCheckBackend(listOf(root), nodeExecutable = nodeExecutable, tsconfig = tsconfig)
             if (deadline.remainingMillis() <= 0) return result(PropertyCampaignStop.DEADLINE)
 
-            usedConfiguration = evidenceConfiguration(configuration, requireNotNull(metadata).sources, guided)
+            usedConfiguration = evidenceConfiguration(
+                configuration, requireNotNull(metadata).sources, guided, captureNative = completedInputLimit > 0,
+            )
 
             if (mode != PropertyCampaignMode.SYMBOLIC_ONLY) {
                 phase = PropertyCampaignPhase.PBT
@@ -163,38 +174,47 @@ class PropertyCampaignRunner(
             }
 
             val sources = captureSources(property, root)
+            val coverageRequest = usedConfiguration.coverageRequest ?: PropertyCoverageRequest()
+            if (guided || completedInputLimit > 0) {
+                inputReplays = SymbolicInputReplayCollector(
+                    property, backend, root, sources, coverageRequest.copy(admittedOnly = true),
+                    deadline, validationReserveMillis, limit = completedInputLimit,
+                )
+            }
             symbolic = search(
                 property = property,
                 root = root,
                 deadline = deadline,
                 validationReserveMillis = validationReserveMillis,
                 feedback = if (guided) {
-                    coverageFeedback(
-                        property, concrete, backend, sources, usedConfiguration, deadline, validationReserveMillis,
+                    UsvmCoverageFeedback(
+                        initialCoverage = concrete?.coverage,
+                        nativeReplay = requireNotNull(inputReplays)::replayForGuidance,
                     )
                 } else {
                     null
                 },
+                completedInputLimit = completedInputLimit,
             )
             if (symbolic == null) return result(PropertyCampaignStop.DEADLINE)
 
-            val searchTimedOut = symbolic.status == UsvmPropertySearchStatus.TIMEOUT
-            if (symbolic.target == null) {
-                val stop = if (searchTimedOut) PropertyCampaignStop.DEADLINE else PropertyCampaignStop.COMPLETED
-                return result(stop)
+            val hasNativeWork = symbolic.target != null || symbolic.completedInputs.isNotEmpty()
+            if (hasNativeWork) phase = PropertyCampaignPhase.CONFIRMATION
+            if (symbolic.target != null) {
+                confirmation = confirm(
+                    backend, property, symbolic, inputReplays?.sources ?: sources, usedConfiguration, deadline,
+                    validationReserveMillis, shrinkWitness,
+                )
             }
+            inputReplays?.collect(symbolic.completedInputs)
+            phaseDiagnostic = listOfNotNull(phaseDiagnostic, inputReplays?.diagnostic)
+                .joinToString(separator = "; ").takeIf(String::isNotEmpty)
 
-            phase = PropertyCampaignPhase.CONFIRMATION
-            confirmation = confirm(
-                backend, property, symbolic, sources, usedConfiguration, deadline,
-                validationReserveMillis, shrinkWitness,
-            )
-
-            return if (confirmation.status == WitnessReplayStatus.TIMEOUT) {
-                result(PropertyCampaignStop.DEADLINE)
-            } else {
-                result()
-            }
+            val expired = symbolic.status == UsvmPropertySearchStatus.TIMEOUT ||
+                confirmation?.status == WitnessReplayStatus.TIMEOUT || inputReplays?.timedOut == true ||
+                deadline.remainingMillis() <= 0
+            val stop = if (expired) PropertyCampaignStop.DEADLINE else PropertyCampaignStop.COMPLETED
+            return result(stop)
         } catch (error: PbtBackendException) {
             val stop = if (error.kind == BackendErrorKind.TIMEOUT) {
                 PropertyCampaignStop.DEADLINE
@@ -228,6 +248,7 @@ class PropertyCampaignRunner(
         validationReserveMillis: Long = DEFAULT_VALIDATION_RESERVE_MILLIS,
         pbtAllocationMillis: Long? = null,
         shrinkWitness: Boolean = true,
+        completedInputLimit: Int = 0,
     ): PropertyCampaignResult = runArtifact(
         property = property,
         mode = mode,
@@ -235,6 +256,7 @@ class PropertyCampaignRunner(
         validationReserveMillis = validationReserveMillis,
         pbtAllocationMillis = pbtAllocationMillis,
         shrinkWitness = shrinkWitness,
+        completedInputLimit = completedInputLimit,
     ).result
 
     private fun validateControls(
@@ -258,16 +280,18 @@ class PropertyCampaignRunner(
         configuration: PropertyRunConfiguration,
         sources: List<PropertyObservationSource>,
         guided: Boolean,
+        captureNative: Boolean,
     ): PropertyRunConfiguration {
-        if (!guided) return configuration
+        if (!guided && !captureNative) return configuration
 
         val request = configuration.coverageRequest ?: PropertyCoverageRequest()
         return configuration.copy(
             coverageRequest = request.copy(admittedOnly = true),
-            observationRequest = configuration.observationRequest ?: PropertyObservationRequest(
-                points = emptyList(),
-                sources = sources,
-            ),
+            observationRequest = if (guided) {
+                configuration.observationRequest ?: PropertyObservationRequest(points = emptyList(), sources = sources)
+            } else {
+                configuration.observationRequest
+            },
         )
     }
 
@@ -338,6 +362,7 @@ class PropertyCampaignRunner(
         deadline: WitnessReplayDeadline,
         validationReserveMillis: Long,
         feedback: UsvmCoverageFeedback?,
+        completedInputLimit: Int,
     ): UsvmPropertySearchResult? {
         if (deadline.remainingMillis() <= validationReserveMillis) return null
 
@@ -359,6 +384,7 @@ class PropertyCampaignRunner(
             concreteCapability = ProjectionCapability(level = ProjectionLevel.EXACT),
             deadlineReached = { deadline.remainingMillis() <= validationReserveMillis },
             coverageFeedback = feedback,
+            completedInputLimit = completedInputLimit,
         )
     }
 
@@ -385,37 +411,6 @@ class PropertyCampaignRunner(
             backend.confirmOriginalWitness(property, candidate, replayConfiguration, deadline)
         }
     }
-
-    private fun coverageFeedback(
-        property: PropertyDefinition,
-        concrete: PropertyRunResult?,
-        backend: FastCheckBackend,
-        sources: List<PropertyObservationSource>,
-        configuration: PropertyRunConfiguration,
-        deadline: WitnessReplayDeadline,
-        validationReserveMillis: Long,
-    ) = UsvmCoverageFeedback(
-        initialCoverage = concrete?.coverage,
-        nativeReplay = { inputs ->
-            val remainingMillis = deadline.remainingMillis() - validationReserveMillis
-            if (remainingMillis <= 0) {
-                null
-            } else {
-                val candidate = property.captureWitness(
-                    inputs = inputs,
-                    target = WitnessTarget(id = property.predicate.exportName),
-                    sources = sources,
-                    provenance = "usvm:coverage",
-                )
-                backend.replayInput(
-                    property = property,
-                    candidate = candidate,
-                    coverageRequest = requireNotNull(configuration.coverageRequest),
-                    deadline = WitnessReplayDeadline(timeoutMillis = remainingMillis),
-                )
-            }
-        },
-    )
 
     private fun captureSources(property: PropertyDefinition, root: Path): List<PropertyObservationSource> {
         val modules = listOfNotNull(property.predicate.module, property.precondition?.module).distinct()

@@ -30,6 +30,7 @@ internal fun executeCampaign(
         validationReserveMillis = reserve ?: PropertyCampaignRunner.DEFAULT_VALIDATION_RESERVE_MILLIS,
         pbtAllocationMillis = options.pbtAllocationMillis,
         shrinkWitness = options.shrinkWitness,
+        completedInputLimit = options.completedInputLimit,
     )
 
     val json = PropertyManifestJson.json.encodeToUtf8SafeString(artifact)
