@@ -19,6 +19,7 @@ const entryPoint = (code: string): AdapterDiagnosticDescriptor => ({
 export const adapterDiagnostic = {
   protocolJsonInvalid: invalidRequest('protocol.json.invalid'),
   protocolRequestInvalid: invalidRequest('protocol.request.invalid'),
+  witnessEventsInvalid: invalidRequest('witness.events.invalid'),
   protocolSeedInvalid: invalidRequest('protocol.seed.invalid'),
   protocolReplayPathInvalid: invalidRequest('protocol.replay-path.invalid'),
   protocolExamplesInvalid: invalidRequest('protocol.examples.invalid'),

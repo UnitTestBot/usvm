@@ -44,4 +44,5 @@ internal object FastCheckDiagnosticCode {
 
     const val PROTOCOL_REQUEST_INVALID = "protocol.request.invalid"
     const val SOURCE_ROOT_INVALID = "source-root.invalid"
+    const val ENTRY_POINT_SOURCE_HASH_MISMATCH = "entrypoint.source-hash.mismatch"
 }
