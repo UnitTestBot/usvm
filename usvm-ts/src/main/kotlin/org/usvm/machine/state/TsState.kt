@@ -38,6 +38,7 @@ import org.usvm.machine.expr.TsStringIterator
 import org.usvm.machine.interpreter.PromiseCallback
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
+import org.usvm.machine.runtimeFunctionType
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
 import org.usvm.memory.UReadOnlyMemoryRegion
@@ -273,11 +274,13 @@ class TsState(
         closure: UHeapRef? = null,
     ): UConcreteHeapRef {
         val result = if (closure == null) {
-            val (updated, methodRef) = methodToRef.getOrPut(method, ownership) { ctx.allocateConcreteRef() }
+            val (updated, methodRef) = methodToRef.getOrPut(method, ownership) {
+                memory.allocConcrete(ctx.scene.runtimeFunctionType())
+            }
             methodToRef = updated
             methodRef
         } else {
-            ctx.allocateConcreteRef()
+            memory.allocConcrete(ctx.scene.runtimeFunctionType())
         }
         associatedFunction = associatedFunction.put(result, TsFunction(method, thisInstance, closure), ownership)
         return result

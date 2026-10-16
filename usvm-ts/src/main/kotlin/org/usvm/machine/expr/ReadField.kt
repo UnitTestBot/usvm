@@ -441,7 +441,7 @@ internal fun TsExprResolver.handleStaticFieldRef(
     value: EtsStaticFieldRef,
 ): UExpr<*>? = with(ctx) {
     if (value.field.name == "prototype") {
-        val constructor = classConstructorRef(value.field.enclosingClass)
+        val constructor = classConstructorRef(value.field.enclosingClass, scope)
         if (!ensureSupportedArrayPrototypeAccess(constructor, value.field.name)) return null
         ensureSupportedDatePrototypeAccess(constructor, value.field.name)
     }
