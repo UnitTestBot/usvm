@@ -50,6 +50,7 @@ internal data class CallsClassRawStateSnapshot(
     val resultKind: String,
     val symbolicResultId: Long? = null,
     val unsupportedReason: String? = null,
+    val engineFailureReason: String? = null,
 )
 
 @Serializable
@@ -81,6 +82,7 @@ internal data class CallsClassRawAnalysis(
     val statementUniverseSha256: String,
     val stateSnapshots: CallsClassRawJournalMetadata,
     val symbolicExpressions: CallsClassRawJournalMetadata,
+    val engineFailureStates: Long = 0L,
     val proof: String = "Symbolic source-mapped IR entry only; " +
         "diagnostic state metadata is not a native replay witness",
 )
@@ -109,6 +111,7 @@ internal class ClassRawAnalysisObserver(
     private var returnedStates = 0L
     private var exceptionalStates = 0L
     private var unsupportedStates = 0L
+    private var engineFailureStates = 0L
     private var otherStates = 0L
     private var unreachableStates = 0L
     private var stoppedStates = 0L
@@ -139,6 +142,12 @@ internal class ClassRawAnalysisObserver(
     }
 
     override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
+        if (state.engineFailureReason != null) {
+            engineFailureStates++
+            saveSnapshot(state = state, outcome = "ENGINE_FAILURE")
+            return
+        }
+
         if (!stateReachable) {
             unreachableStates++
             return
@@ -210,6 +219,7 @@ internal class ClassRawAnalysisObserver(
                         else -> null
                     },
                     unsupportedReason = state.unsupportedReason,
+                    engineFailureReason = state.engineFailureReason,
                 )
             }
         }
@@ -265,6 +275,7 @@ internal class ClassRawAnalysisObserver(
             statementUniverseSha256 = callsArtifactSha256(encodedUniverse),
             stateSnapshots = journals.first,
             symbolicExpressions = journals.second,
+            engineFailureStates = engineFailureStates,
         )
     }
 

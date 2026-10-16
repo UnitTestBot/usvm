@@ -217,7 +217,11 @@ class TsInterpreter(
             logger.error {
                 "Exception: $e\n${e.stackTrace.take(5).joinToString("\n") { "    $it" }}"
             }
-            return StepResult(forkedStates = emptySequence(), originalStateAlive = false)
+
+            // Preserve the failed prefix and any forks whose callbacks already completed.
+            // The machine stops this state separately from unsupported or returned paths.
+            state.engineFailureReason = "${e::class.java.name}: ${e.message}"
+            return scope.stepResult()
         }
 
         return scope.stepResult()

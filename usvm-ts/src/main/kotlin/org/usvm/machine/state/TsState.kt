@@ -126,6 +126,8 @@ class TsState(
     /** Exception delivered to the current catch block, before its binding is initialized. */
     var caughtException: UExpr<*>? = null,
     var unsupportedReason: String? = null,
+    /** Diagnostic prefix of a failed interpreter step, never a completed program result. */
+    var engineFailureReason: String? = null,
     var trackedObjectProperties: Set<TrackedObjectProperty> = emptySet(),
     var writtenConcreteFields: Set<Pair<UHeapRef, String>> = emptySet(),
     var initializedTypedArrayOverrides: Set<UHeapRef> = emptySet(),
@@ -381,6 +383,7 @@ class TsState(
             symbolicStringCandidates = symbolicStringCandidates,
             caughtException = caughtException,
             unsupportedReason = unsupportedReason,
+            engineFailureReason = engineFailureReason,
             trackedObjectProperties = trackedObjectProperties,
             writtenConcreteFields = writtenConcreteFields,
             initializedTypedArrayOverrides = initializedTypedArrayOverrides,
