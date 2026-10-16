@@ -66,7 +66,13 @@ class UsvmPropertySearcher(
         coverageFeedback: UsvmCoverageFeedback? = null,
         completedInputLimit: Int = 0,
     ): UsvmPropertySearchResult = searchWithFocus(
-        manifest, mapping, concreteCapability, focus = null, deadlineReached, coverageFeedback, completedInputLimit,
+        manifest,
+        mapping,
+        concreteCapability,
+        focus = null,
+        deadlineReached,
+        coverageFeedback,
+        completedInputLimit,
     )
 
     /** Restricts one query to NOT(sampled entry relation); the ordinary search remains unrestricted. */
@@ -242,16 +248,10 @@ class UsvmPropertySearcher(
                 capability = capability,
                 analysis = analysis,
             )
-            val focusInfeasible = focus != null && analysis.infeasibleEntryPoints.isNotEmpty()
-            val infeasibleFocusResult = if (focusInfeasible) {
-                result(manifest, UsvmPropertySearchStatus.NO_VIOLATION_REACHED, capability)
-            } else {
-                null
-            }
             val runtimeDiagnostics = runtimeLimitations.diagnostics
             val searchResult = terminalFailure?.withCandidate(candidate)
                 ?: candidate
-                ?: infeasibleFocusResult
+                ?: infeasibleFocusedEntry(focus, analysis, manifest, capability)
                 ?: noViolationResult(
                     manifest = manifest,
                     capability = capability,
@@ -265,6 +265,20 @@ class UsvmPropertySearcher(
                 completedInputs = completedInputs.toList(),
                 omittedCompletedInputs = omittedCompletedInputs,
             )
+        }
+    }
+
+    private fun infeasibleFocusedEntry(
+        focus: UsvmEntryRelationBinding?,
+        analysis: TsMachineAnalysisResult,
+        manifest: PropertyManifest,
+        capability: UsvmPropertyProjectionCapability,
+    ): UsvmPropertySearchResult? {
+        val focusInfeasible = focus != null && analysis.infeasibleEntryPoints.isNotEmpty()
+        return if (focusInfeasible) {
+            result(manifest, UsvmPropertySearchStatus.NO_VIOLATION_REACHED, capability)
+        } else {
+            null
         }
     }
 
