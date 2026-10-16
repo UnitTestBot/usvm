@@ -16,6 +16,7 @@ import org.usvm.machine.call.TsEtsIrUnknownCallModel
 import org.usvm.machine.call.TsEtsIrUnknownCallModelArtifact
 import org.usvm.machine.call.TsEtsIrUnknownCallModelDomainGuard
 import org.usvm.machine.call.TsEtsIrUnknownCallModelInputAdapter
+import org.usvm.machine.call.TsResidualCallPolicy
 import org.usvm.machine.call.TsUnknownCall
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModel
@@ -388,6 +389,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 methodName = "requireDense",
                 arity = 1,
                 implementation = TsDenseArrayPrimitives::requireDense,
+                unsupportedCallPolicy = TsResidualCallPolicy.STOP_PATH,
             ),
             primitiveModel(
                 methodName = "prepareOwnSlots",
@@ -476,6 +478,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         methodName: String,
         arity: Int,
         implementation: (TsState, List<UExpr<*>>) -> TsUnknownCallModelExecution?,
+        unsupportedCallPolicy: TsResidualCallPolicy? = null,
     ): TsUnknownCallModel = TsPrimitiveUnknownCallModel(
         idPrefix = "ts.array.primitive",
         methodName = methodName,
@@ -485,6 +488,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         sourceClassSignature = { baseArtifact.entryPoint.signature.enclosingClass },
         owningModelIds = { sourceModelIds },
         implementation = implementation,
+        unsupportedCallPolicy = unsupportedCallPolicy,
     )
 
     private fun growArray(

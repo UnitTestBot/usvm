@@ -1,7 +1,13 @@
 package org.usvm.machine.call
 
+import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
@@ -17,11 +23,16 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
+import org.usvm.machine.expr.extractInt
+import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.state.TsState
+import org.usvm.memory.URegisterStackLValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
 import org.usvm.util.assertNodeReplay
 import org.usvm.util.getResourcePath
 import org.usvm.util.jsString
+import org.usvm.util.mkArrayLengthLValue
 import java.nio.file.Path
 import kotlin.io.path.readText
 import kotlin.test.assertEquals
@@ -289,6 +300,46 @@ class TsGapModelsSourceTest : TsMethodTestRunner() {
 
         assertTrue(analysis.states.isEmpty())
         assertTrue(limitations.any { it.reason == TsRuntimeFeatureLimitationReason.ARRAY_ELEMENT_DELETE })
+    }
+
+    @Test
+    fun `rejected reduce invariant retains callback mutation as a stopped prefix in fresh mode`() {
+        val events = mutableListOf<TsUnknownCallEvent>()
+        val prefixLengths = mutableListOf<Int>()
+        var callbackReturns = 0
+        val observer = object : TsInterpreterObserver {
+            override fun onStatementEntered(stmt: EtsStmt, scope: TsStepScope) {
+                val isCallbackReturn = stmt is EtsReturnStmt &&
+                    stmt.location.method.name.startsWith(ANONYMOUS_METHOD_PREFIX)
+                if (isCallbackReturn) callbackReturns++
+            }
+
+            override fun onPathStopped(state: TsState, reason: String) {
+                val receiver = state.memory.read(URegisterStackLValue(state.ctx.addressSort, idx = 1))
+                    .asExpr(state.ctx.addressSort)
+                val arrayType = EtsArrayType(EtsStringType, dimensions = 1)
+                val length = state.memory.read(mkArrayLengthLValue(receiver, arrayType))
+                prefixLengths += state.models.first().eval(length).extractInt()
+            }
+
+            override fun onUnknownCall(event: TsUnknownCallEvent) {
+                events += event
+            }
+        }
+
+        val analysis = TsMachine(
+            scene = scene,
+            options = options,
+            tsOptions = tsOptions.copy(unknownCallFallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN),
+            observer = observer,
+        ).use { machine -> machine.analyzeWithMetadata(listOf(method("reduceShrink"))) }
+
+        assertTrue(analysis.states.isEmpty())
+        assertTrue(analysis.unsupportedCall)
+        assertEquals(listOf(0), prefixLengths)
+        assertEquals(expected = 1, actual = callbackReturns)
+        val invariantEvent = events.single { it.callee.name == "requireDense" }
+        assertEquals(TsUnknownCallDecision.ResidualFallback(TsResidualCallPolicy.STOP_PATH), invariantEvent.decision)
     }
 
     @Test
