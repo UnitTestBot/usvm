@@ -76,6 +76,13 @@ export class RegExpRuntime {
             && !expression.ignoreCase && !expression.multiline && !expression.sticky && !expression.unicode;
     }
 
+    static bracketProperties(): boolean {
+        const expression = /^D+$/;
+        expression["lastIndex"] = 7;
+        return expression["lastIndex"] === 7 && expression["source"] === "^D+$"
+            && expression["flags"] === "" && expression.test("DD");
+    }
+
     static overriddenTest(): boolean {
         const expression = /^D+$/;
         expression.test = (value: string): boolean => false;
@@ -104,6 +111,11 @@ export class RegExpRuntime {
         const expression: any = /x/;
         expression.source = "different";
         return expression.test("x");
+    }
+
+    static unsupportedPropertyRead(): boolean {
+        const expression: any = /x/;
+        return expression.unknownProperty === undefined;
     }
 
 }

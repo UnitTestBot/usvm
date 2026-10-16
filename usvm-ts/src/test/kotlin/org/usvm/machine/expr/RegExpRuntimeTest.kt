@@ -132,6 +132,7 @@ class RegExpRuntimeTest : TsMethodTestRunner() {
             "unsupportedUnanchoredRun",
             "unsupportedExecOverride",
             "unsupportedPropertyWrite",
+            "unsupportedPropertyRead",
         )
         for (name in names) {
             TsMachine(scene = scene, options = options, tsOptions = tsOptions).use { machine ->
@@ -196,6 +197,7 @@ class RegExpRuntimeTest : TsMethodTestRunner() {
             "freshResults",
             "lastIndex",
             "literalProperties",
+            "bracketProperties",
         )
     }
 }
