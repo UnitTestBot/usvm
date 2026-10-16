@@ -39,6 +39,8 @@ internal data class CliOptions(
     val mode: PropertyCampaignMode?,
     val artifactFile: Path?,
     val validationReserveMillis: Long?,
+    val pbtAllocationMillis: Long? = null,
+    val shrinkWitness: Boolean = true,
 )
 
 internal class CliUsageException(
@@ -122,6 +124,16 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-fast-check")
         help = "Reserve within the total campaign timeout for native confirmation and reduction; requires --mode",
     ).long()
 
+    private val pbtAllocationMillis by option(
+        "--pbt-allocation-ms",
+        help = "PBT allocation within a two-phase campaign; required for COVERAGE_FEEDBACK",
+    ).long()
+
+    private val noShrinking by option(
+        "--no-shrinking",
+        help = "Disable native candidate reduction; requires --mode",
+    ).flag()
+
     private val coverageEnabled by option(
         "--coverage",
         help = "Collect source-mapped coverage for every property run",
@@ -164,6 +176,8 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-fast-check")
             mode = mode,
             artifactFile = artifactFile,
             validationReserveMillis = validationReserveMillis,
+            pbtAllocationMillis = pbtAllocationMillis,
+            shrinkWitness = !noShrinking,
         )
     }
 
@@ -196,12 +210,17 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-fast-check")
     }
 
     private fun requireCampaignControls() {
-        val hasCampaignDetails = artifactFile != null || validationReserveMillis != null
+        val hasCampaignDetails = artifactFile != null || validationReserveMillis != null ||
+            pbtAllocationMillis != null || noShrinking
         val reserve = validationReserveMillis
+        val allocation = pbtAllocationMillis
+        val twoPhase = mode == PropertyCampaignMode.SEQUENTIAL || mode == PropertyCampaignMode.COVERAGE_FEEDBACK
+        val invalidAllocation = allocation != null && (!twoPhase || allocation !in 1 until timeoutMillis)
+        val missingAllocation = mode == PropertyCampaignMode.COVERAGE_FEEDBACK && allocation == null
         val error = when {
             mode == null && hasCampaignDetails -> CliUsageException(
                 code = FastCheckDiagnosticCode.CLI_CAMPAIGN_MODE_REQUIRED,
-                message = "--artifact and --validation-reserve-ms require --mode",
+                message = "Campaign artifact and allocation controls require --mode",
                 path = "mode",
             )
             mode != null && artifactFile == null -> CliUsageException(
@@ -213,6 +232,12 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-fast-check")
                 code = FastCheckDiagnosticCode.CLI_CAMPAIGN_SOURCE_ROOT_INVALID,
                 message = "A campaign requires exactly one --source-root",
                 path = "sourceRoot",
+            )
+            invalidAllocation || missingAllocation -> CliUsageException(
+                code = FastCheckDiagnosticCode.CLI_ARGUMENT_INVALID,
+                message = "COVERAGE_FEEDBACK requires --pbt-allocation-ms between 1 and the total timeout; " +
+                    "an explicit allocation is supported only by two-phase modes",
+                path = "pbtAllocationMillis",
             )
             reserve != null && reserve <= 0 -> CliUsageException(
                 code = FastCheckDiagnosticCode.CLI_CAMPAIGN_RESERVE_INVALID,
