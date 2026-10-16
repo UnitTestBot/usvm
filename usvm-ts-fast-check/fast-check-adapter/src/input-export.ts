@@ -88,7 +88,7 @@ export function validateInputExportRequest(value: unknown, manifest: PropertyMan
     && Number.isInteger(request.maxInvocations) && (request.maxInvocations as number) >= 1
     && (request.maxInvocations as number) <= 100_000
     && Number.isInteger(request.maxBytes) && (request.maxBytes as number) >= 1024
-    && (request.maxBytes as number) <= 2 * 1024 * 1024
+    && (request.maxBytes as number) <= 64 * 1024 * 1024
     && Number.isInteger(request.maxArrayElements) && (request.maxArrayElements as number) >= 1
     && (request.maxArrayElements as number) <= 64 && Array.isArray(request.sources);
   if (!valid) throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Invalid input export bounds', 'inputExportRequest');

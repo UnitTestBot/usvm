@@ -2,6 +2,7 @@ package org.usvm.ts.pbt.fastcheck
 
 import kotlinx.serialization.decodeFromString
 import org.usvm.ts.pbt.FastCheckDiagnosticCode
+import org.usvm.ts.pbt.backend.PropertyInputExportRequest
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.JsConcreteValue
@@ -19,10 +20,22 @@ internal class FastCheckProcessClient(
     private val transportGraceMillis: Long = DEFAULT_TRANSPORT_GRACE_MILLIS,
     private val shutdownGraceMillis: Long = DEFAULT_SHUTDOWN_GRACE_MILLIS,
 ) {
-    private val transport = FastCheckProcessTransport(
+    private val defaultTransport = createTransport(maxStdoutBytes = MAX_STDOUT_BYTES)
+
+    private fun transport(request: FastCheckExecutionRequest): FastCheckProcessTransport {
+        val requestedBytes = request.inputExportRequest?.maxBytes ?: PropertyInputExportRequest.DEFAULT_MAX_BYTES
+        val additionalExportBytes = (requestedBytes - PropertyInputExportRequest.DEFAULT_MAX_BYTES)
+            .coerceAtLeast(minimumValue = 0)
+
+        if (additionalExportBytes == 0) return defaultTransport
+
+        return createTransport(maxStdoutBytes = MAX_STDOUT_BYTES + additionalExportBytes)
+    }
+
+    private fun createTransport(maxStdoutBytes: Int) = FastCheckProcessTransport(
         nodeExecutable = nodeExecutable,
         maxRequestBytes = MAX_REQUEST_BYTES,
-        maxStdoutBytes = MAX_STDOUT_BYTES,
+        maxStdoutBytes = maxStdoutBytes,
         maxStderrBytes = MAX_STDERR_BYTES,
         shutdownGraceMillis = shutdownGraceMillis,
     )
@@ -179,7 +192,7 @@ internal class FastCheckProcessClient(
         command: List<String>,
         timeoutMillis: Long,
     ): FastCheckOperationResult<FastCheckProcessOutput> = try {
-        transport.invokeWithResult(
+        transport(request).invokeWithResult(
             command = command,
             request = encodedRequest,
             timeoutMillis = timeoutMillis,
@@ -202,7 +215,7 @@ internal class FastCheckProcessClient(
         command: List<String>,
         timeoutMillis: Long = saturatedAdd(request.timeoutMillis, transportGraceMillis),
     ): FastCheckProcessOutput = try {
-        transport.invoke(
+        transport(request).invoke(
             command = command,
             request = encodedRequest,
             timeoutMillis = timeoutMillis,
