@@ -75,4 +75,6 @@ data class ScalarRelationInference(
     val droppedInvocations: Int,
     val droppedPoints: Int,
     val property: PropertyDefinition,
+    /** Sampled entry relations already implied by declared numeric input support, retained for audit. */
+    val domainImpliedRelations: List<ScalarRelation> = emptyList(),
 )

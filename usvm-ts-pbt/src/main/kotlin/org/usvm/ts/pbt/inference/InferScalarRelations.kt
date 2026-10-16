@@ -22,8 +22,9 @@ import org.usvm.ts.pbt.observation.PropertyPointEvent
  * Only selected module hashes are available for provenance; a declared predicate source hash
  * is checked when present. Executable build status is carried through without promotion.
  *
- * This first slice does not inspect original formulas or declared support. A sampled relation
- * may repeat them; callers must not use this result as a trusted symbolic constraint.
+ * Sampled relations already implied by declared numeric input domains are separated only for
+ * adapter-owned entry arguments. Arbitrary point labels never establish original-input identity.
+ * Original formulas and preconditions are not inspected; retained relations remain empirical.
  */
 fun inferScalarRelations(
     property: PropertyDefinition,
@@ -44,17 +45,20 @@ fun inferScalarRelations(
         evaluatePair(property, observations, pair, invocations, omittedInvocations)
     }
 
+    val (domainImplied, retained) = relations.partition { relation -> relation.isDomainImplied(property) }
+
     return ScalarRelationInference(
         propertyId = property.id,
         runId = observations.runId,
         sources = observations.verifiedSources,
         buildStatus = observations.buildStatus,
-        relations = relations,
+        relations = retained,
         omittedPairs = distinctPairs.size - selectedPairs.size,
         omittedInvocations = omittedInvocations,
         droppedInvocations = observations.droppedInvocations,
         droppedPoints = observations.droppedPoints,
         property = property,
+        domainImpliedRelations = domainImplied,
     )
 }
 

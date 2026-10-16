@@ -105,21 +105,24 @@ class EntryRelationSearchTest {
     }
 
     @Test
-    fun `an infeasible focus is a scoped no-finding rather than an engine failure`() {
+    fun `domain implied entry order is retained for audit and cannot activate focused search`() {
         val property = property(
             exportName = "reflexive",
             leftDomain = IntegerDomain(min = 0, max = 1),
             rightDomain = IntegerDomain(min = 2, max = 3),
         )
         val inference = capture(property)
-        val order = inference.relations.single { it.template == ScalarRelationTemplate.LESS_OR_EQUAL }
+        val order = inference.domainImpliedRelations.single { it.template == ScalarRelationTemplate.LESS_OR_EQUAL }
         val manifest = property.toManifest()
 
         val focused = searcher.searchFocusedOnEntryRelation(manifest, mapper.map(manifest), CONCRETE, inference, order)
 
         assertEquals(ScalarRelationStatus.SAMPLED, order.status)
-        assertEquals(EtsMappingStatus.EXACT, focused.binding.status)
-        assertEquals(UsvmPropertySearchStatus.NO_VIOLATION_REACHED, focused.search?.status)
+        assertEquals(2, order.distinctGenerationInputs.size)
+        assertTrue(order.evidence.all { it.holds })
+        assertTrue(inference.relations.none { it.template == ScalarRelationTemplate.LESS_OR_EQUAL })
+        assertEquals(EtsMappingStatus.UNSUPPORTED, focused.binding.status)
+        assertNull(focused.search)
     }
 
     @Test
