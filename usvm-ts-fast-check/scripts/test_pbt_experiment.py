@@ -1,5 +1,6 @@
 import importlib.util
 import copy
+import json
 import os
 from pathlib import Path
 import struct
@@ -32,19 +33,42 @@ def symbolic_artifact(outcome="HOLDS"):
 
 
 def auxiliary_artifact():
-    artifact = symbolic_artifact()
-    raw = artifact["result"]["symbolicInputReplays"][0]
-    candidate = copy.deepcopy(raw["candidate"])
-    candidate["target"] = {"id": "relation", "role": "HYPOTHESIS", "binding": {"pointId": "relation", "revision": "hash"}}
-    native = copy.deepcopy(raw["replay"])
+    source = {"module": "p.ts", "line": 1, "column": 1}
+    sources = [{"module": "p.ts", "sha256": "a" * 64}]
+    left = {"id": "left", "assertionId": "bound", "operandId": "left", "source": source,
+            "callSite": source, "kind": "entry-argument", "inputIndex": 0}
+    right = dict(left, id="right", operandId="right", inputIndex=1)
+    relation = {"pair": {"left": left, "right": right}, "template": "STRICT_EQUAL", "status": "SAMPLED"}
+    selected = {"relation": relation, "relevance": "UNKNOWN"}
+    property = {"id": "p", "predicate": {"module": "p.ts", "exportName": "predicate", "executionKind": "sync"},
+                "inputs": [{"name": name, "domain": {"kind": "integer", "min": 0, "max": 10}} for name in ("a", "b")],
+                "assertions": [{"id": "bound", "source": source, "testedCall": source,
+                                "operands": [{"id": name, "source": source} for name in ("left", "right")]}]}
+    manifest = dict(property, propertyId="p")
+    manifest.pop("id")
+    target_id = "bound:left:STRICT_EQUAL:right"
+    binding = {"pointId": target_id, "contextId": "original-entry", "revision": "b" * 64, "occurrence": 0}
+    candidate = {"propertyId": "p", "manifestSha256": "b" * 64, "manifest": manifest,
+                 "sources": sources, "inputs": [number(1), number(2)],
+                 "target": {"id": target_id, "role": "HYPOTHESIS", "binding": binding,
+                            "entryRelation": {"leftInputIndex": 0, "rightInputIndex": 1, "template": "STRICT_EQUAL"}}}
+    event = {"binding": binding, "guard": True, "holds": False}
+    native = {"admission": "ADMITTED", "outcome": "HOLDS", "targetMatched": True, "events": [event],
+              "coverage": {"propertyId": "p", "admittedInvocations": 1,
+                           "identity": {"manifestSha256": "b" * 64, "sourceSha256": {"/fixture/p.ts": "a" * 64}},
+                           "provenance": {"sourceRoots": ["/fixture"], "request": {"admittedOnly": True}}}}
     confirmation = {"status": "CONFIRMED_HYPOTHESIS_REFUTATION", "candidate": candidate, "originalReplay": native,
-                    "contextualRefutations": [{"binding": candidate["target"]["binding"], "guard": True, "holds": False}],
-                    "reduction": {"inputs": [number(0)]}}
-    artifact["result"].pop("symbolicInputReplays")
-    artifact["result"].pop("symbolic")
-    artifact["result"]["relationGuidance"] = {"attempts": [{"searchStatus": "REFUTATION_REACHED", "witness": candidate,
-                                                          "confirmation": confirmation, "completedWithinDeadline": True}]}
-    return artifact
+                    "contextualRefutations": [event], "reduction": {"inputs": [number(0)]}}
+    artifact = {"property": property, "metadata": {"sourceRoot": "/fixture", "sources": sources},
+                "configuration": {"observationRequest": {"sources": sources}},
+                "relationGuidanceControls": {"pairs": [relation["pair"]]},
+                "result": {"propertyId": "p", "mode": "SEQUENTIAL", "relationGuidance": {
+                    "selection": {"candidates": [selected], "inference": {
+                        "propertyId": "p", "property": property, "sources": sources, "relations": [relation]}},
+                    "attempts": [{"selected": selected, "bindingStatus": "EXACT", "bindingDiagnostics": [],
+                                  "searchStatus": "REFUTATION_REACHED", "witness": candidate,
+                                  "confirmation": confirmation, "completedWithinDeadline": True}]}}}
+    return json.loads(json.dumps(artifact))
 
 
 class ExperimentTest(unittest.TestCase):
@@ -186,9 +210,9 @@ class ExperimentTest(unittest.TestCase):
         batches, omissions = driver.replay_inputs(artifact)
 
         self.assertEqual(batches[0]["id"], "auxiliary")
-        self.assertEqual(batches[0]["inputs"], [{"inputs": [number(1)], "admission": "ADMITTED", "outcome": "HOLDS"}])
+        self.assertEqual(batches[0]["inputs"], [{"inputs": [number(1), number(2)], "admission": "ADMITTED", "outcome": "HOLDS"}])
         self.assertTrue(batches[0]["isolateInputs"])
-        self.assertFalse(any(omissions.values()))
+        self.assertEqual(omissions["auxiliaryUncheckedInputs"], 0)
 
 
     def test_unchecked_late_or_wrong_identity_auxiliary_inputs_never_become_class_coverage(self):
@@ -216,19 +240,109 @@ class ExperimentTest(unittest.TestCase):
 
     def test_auxiliary_original_fault_requires_its_named_original_check_and_preserves_false(self):
         artifact = auxiliary_artifact()
-        artifact["property"]["assertions"] = [{"id": "bound"}]
         confirmation = artifact["result"]["relationGuidance"]["attempts"][0]["confirmation"]
         confirmation["status"] = "CONFIRMED_PROPERTY_VIOLATION"
-        confirmation["originalReplay"].update(outcome="FALSE", failure={"checkId": "bound"}, targetMatched=False)
+        confirmation["originalReplay"].update(outcome="FALSE", failure={"checkId": "bound"}, targetMatched=True)
 
         batches, omissions = driver.replay_inputs(artifact)
 
         self.assertEqual(batches[0]["inputs"][0]["outcome"], "FALSE")
-        self.assertFalse(any(omissions.values()))
+        self.assertEqual(omissions["auxiliaryUncheckedInputs"], 0)
 
+        artifact["result"]["confirmation"] = confirmation
+        self.assertTrue(driver.confirmed_original_violation(artifact))
+        confirmation["originalReplay"]["targetMatched"] = False
+        self.assertFalse(driver.confirmed_original_violation(artifact))
+        self.assertIsNone(driver.confirmed_auxiliary_input(artifact, artifact["result"]["relationGuidance"]["attempts"][0]))
+        confirmation["originalReplay"]["targetMatched"] = True
         confirmation["originalReplay"]["failure"]["checkId"] = "other"
         batches, omissions = driver.replay_inputs(artifact)
         self.assertEqual(batches[0]["inputs"], [])
+        self.assertEqual(omissions["auxiliaryUncheckedInputs"], 1)
+
+
+    def test_auxiliary_receipts_require_trusted_registration_selected_point_and_complete_binding(self):
+        changes = ("manifest", "source", "missing-binding", "wrong-binding", "ambiguous", "wrong-target",
+                   "unselected", "unconfigured-pair", "wrong-point", "missing-native-event", "wrong-input")
+        for change in changes:
+            with self.subTest(change=change):
+                artifact = auxiliary_artifact()
+                attempt = artifact["result"]["relationGuidance"]["attempts"][0]
+                confirmation = attempt["confirmation"]
+                candidate = confirmation["candidate"]
+                native = confirmation["originalReplay"]
+                if change == "manifest":
+                    candidate["manifest"]["predicate"]["exportName"] = "other"
+                    candidate["manifestSha256"] = "c" * 64
+                    native["coverage"]["identity"]["manifestSha256"] = "c" * 64
+                    candidate["target"]["binding"]["revision"] = "c" * 64
+                elif change == "source":
+                    candidate["sources"][0]["sha256"] = "c" * 64
+                    native["coverage"]["identity"]["sourceSha256"]["/fixture/p.ts"] = "c" * 64
+                elif change == "missing-binding":
+                    candidate["target"]["binding"] = None
+                    native["events"][0]["binding"] = None
+                    confirmation["contextualRefutations"][0]["binding"] = None
+                elif change == "wrong-binding":
+                    candidate["target"]["binding"]["contextId"] = "helper"
+                elif change == "ambiguous":
+                    attempt["bindingStatus"] = "AMBIGUOUS"
+                elif change == "wrong-target":
+                    candidate["target"]["entryRelation"]["leftInputIndex"] = 1
+                elif change == "unselected":
+                    artifact["result"]["relationGuidance"]["selection"]["candidates"] = []
+                elif change == "unconfigured-pair":
+                    artifact["relationGuidanceControls"]["pairs"] = []
+                elif change == "wrong-point":
+                    attempt["selected"]["relation"]["pair"]["left"]["id"] = "other"
+                elif change == "missing-native-event":
+                    native["events"] = []
+                else:
+                    candidate["inputs"] = []
+                attempt["witness"] = copy.deepcopy(candidate)
+
+                batches, omissions = driver.replay_inputs(artifact)
+
+                self.assertEqual(batches[0]["inputs"], [])
+                self.assertEqual(omissions["auxiliaryUncheckedInputs"], 1)
+
+
+    def test_canonical_auxiliary_fault_keeps_its_role_and_requires_the_timely_named_attempt(self):
+        artifact = auxiliary_artifact()
+        attempt = artifact["result"]["relationGuidance"]["attempts"][0]
+        attempt["confirmation"]["status"] = "CONFIRMED_PROPERTY_VIOLATION"
+        attempt["confirmation"]["originalReplay"].update(outcome="FALSE", failure={"checkId": "bound"})
+        artifact["result"]["confirmation"] = copy.deepcopy(attempt["confirmation"])
+        artifact["result"]["symbolic"] = None
+
+        self.assertTrue(driver.confirmed_original_violation(artifact))
+        self.assertEqual(artifact["result"]["confirmation"]["candidate"]["target"]["role"], "HYPOTHESIS")
+
+        artifact["result"]["relationGuidance"]["attempts"] = []
+        self.assertFalse(driver.confirmed_original_violation(artifact))
+        _, omissions = driver.replay_inputs(artifact)
+        self.assertEqual(omissions["auxiliaryUncheckedInputs"], 1)
+
+
+    def test_relation_summary_retains_capture_limits_costs_and_failed_coverage_confirmation(self):
+        artifact = auxiliary_artifact()
+        trace = artifact["result"]["relationGuidance"]
+        trace.update(elapsedMillis=4980, originalElapsedMillis=70, diagnostics=["trace-note"])
+        trace["selection"]["inference"].update(droppedInvocations=56, droppedPoints=4, omittedInvocations=2, omittedPairs=1)
+        trace["selection"]["inference"]["relations"][0]["limitations"] = ["INCOMPLETE_CAPTURE", "TRUNCATED_INVOCATION"]
+        trace["attempts"][0]["confirmation"]["diagnostic"] = "backend.process.timeout"
+
+        summary = driver._relation_summary(artifact["result"])
+
+        self.assertEqual(summary["relationElapsedMillis"], 4980)
+        self.assertEqual(summary["originalQueryElapsedMillis"], 70)
+        self.assertEqual(summary["relationDiagnostics"], ["trace-note", "backend.process.timeout"])
+        self.assertEqual(summary["relationDroppedInvocations"], 56)
+        self.assertEqual(summary["relationDroppedPoints"], 4)
+        self.assertEqual(summary["relationOmittedInvocations"], 2)
+        self.assertEqual(summary["relationOmittedPairs"], 1)
+        self.assertEqual(summary["relationLimitations"], ["INCOMPLETE_CAPTURE", "TRUNCATED_INVOCATION"])
+        _, omissions = driver.replay_inputs(artifact)
         self.assertEqual(omissions["auxiliaryUncheckedInputs"], 1)
 
 
