@@ -529,6 +529,14 @@ class TsExprResolver(
                 checkUndefinedOrNullPropertyRead(scope, rawInstance, operand.field.name) ?: return null
                 val instance = resolveHeapRef(scope, rawInstance) ?: return null
 
+                val nativeMathConstant = scope.calcOnState { isNativeMathConstant(instance, operand.field.name) }
+                if (nativeMathConstant) {
+                    scope.doWithState {
+                        terminateAsUnsupported(reason = "Deleting readonly native Math constants is not modeled")
+                    }
+                    return null
+                }
+
                 val prototypeFallback = prototypeFallbackReason(instance, operand)
                 if (prototypeFallback != null) {
                     throw UnsupportedOperationException(prototypeFallback)
@@ -1779,12 +1787,28 @@ class TsSimpleValueResolver(
             }
         }
 
+        val nativeMath = scope.calcOnState { nativeMathGlobal(file = file, name = local.name) }
+        if (nativeMath != null) return nativeMath
+
         logger.error { "Cannot resolve local variable '$local' in method: $currentMethod" }
         scope.assert(falseExpr)
         return null
     }
 
     override fun visit(local: EtsLocal): UExpr<out USort>? {
+        if (local.name == "Math") {
+            val currentMethod = scope.calcOnState { lastEnteredMethod }
+            val sourceParameter = currentMethod.parameters.any { it.name == local.name }
+            val sourceAssignment = currentMethod.cfg.stmts.filterIsInstance<EtsAssignStmt>()
+                .any { (it.lhv as? EtsLocal)?.name == local.name }
+            // Frontend locals also contain reads of implicit globals; only actual bindings shadow Math.
+            if (!sourceParameter && !sourceAssignment) {
+                val file = requireNotNull(currentMethod.enclosingClass?.declaringFile)
+                val nativeMath = scope.calcOnState { nativeMathGlobal(file = file, name = local.name) }
+                if (nativeMath != null) return nativeMath
+            }
+        }
+
         val isNonFiniteNumericName = local.name == "NaN" || local.name == "Infinity"
         if (isNonFiniteNumericName && hasSourceBinding(local)) {
             return resolveLocal(local)
@@ -1860,6 +1884,8 @@ class TsSimpleValueResolver(
             if (local.name == "Symbol") {
                 throw UnsupportedOperationException("Builtin Symbol values are not modeled")
             }
+
+            if (local.name == "Math") return resolveLocal(local)
 
             val sdkConstructor = ctx.scene.sdkConstructorForGlobal(local)
             if (sdkConstructor != null) return ctx.classConstructorRef(sdkConstructor.signature, scope)

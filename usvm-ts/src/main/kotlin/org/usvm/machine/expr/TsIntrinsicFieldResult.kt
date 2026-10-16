@@ -51,6 +51,14 @@ internal fun TsContext.tryWriteIntrinsicField(
     field: EtsFieldSignature,
     value: UExpr<*>,
 ): TsIntrinsicFieldResult<Unit> {
+    val nativeMathConstant = scope.calcOnState { isNativeMathConstant(instance, field.name) }
+    if (nativeMathConstant) {
+        scope.doWithState {
+            terminateAsUnsupported(reason = "Writing readonly native Math constants is not modeled")
+        }
+        return TsIntrinsicFieldResult.Stopped
+    }
+
     val regularExpression = intrinsicRegExpReference(scope, instance)
     if (regularExpression != null) {
         return TsIntrinsicFieldResult.from(writeRegExpField(scope, regularExpression, field.name, value))
