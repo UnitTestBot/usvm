@@ -90,7 +90,13 @@ export function instrumentClassCoverage(file: ts.SourceFile, className: string):
         if (asynchronous) return unsupported('Async or generator callable properties are unsupported')
         members.push({ name, node: member, body: initializer.body, publicSurface, isStatic })
       } else {
-        if (isStatic) return unsupported('Static property initialization is outside constructor coverage')
+        if (isStatic) {
+          if (!emptyStaticCache(member, selected.members)) {
+            return unsupported('Static property initialization is outside constructor coverage')
+          }
+          // Pure module-loading allocations stay outside the selected constructor/method statement universe.
+          continue
+        }
         initializers.push({ name, node: member, body: initializer, publicSurface: true, isStatic: false })
       }
     }
@@ -294,6 +300,15 @@ function memberName(member: ts.ClassElement): string | null {
   const name = member.name
   if (name !== undefined && (ts.isIdentifier(name) || ts.isPrivateIdentifier(name) || ts.isStringLiteral(name))) return name.text
   return null
+}
+
+function emptyStaticCache(member: ts.PropertyDeclaration, members: ts.NodeArray<ts.ClassElement>): boolean {
+  if (!ts.isIdentifier(member.name) || !member.initializer || !ts.isArrayLiteralExpression(member.initializer)
+    || member.initializer.elements.length !== 0) return false
+  const name = member.name.text
+  if (['prototype', '__proto__', 'name', 'length', 'caller', 'arguments'].includes(name)) return false
+  return !members.some(other => other !== member && memberName(other) === name
+    && ts.canHaveModifiers(other) && ts.getModifiers(other)?.some(modifier => modifier.kind === ts.SyntaxKind.StaticKeyword))
 }
 
 function executableStatement(node: ts.Statement): boolean {

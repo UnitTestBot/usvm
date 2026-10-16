@@ -84,6 +84,26 @@ class NativeClassCoverageTest(unittest.TestCase):
         self.assertEqual(record["creditedStatementIds"], [])
 
 
+    def test_pure_static_cache_preserves_repeated_native_observations_without_module_coverage(self):
+        (self.root / "Subject.ts").write_text(
+            "export class Subject { private static cache: number[] = []; "
+            "value(x: number): number { Subject.cache.push(x); return Subject.cache.length; } }\n",
+            encoding="utf-8",
+        )
+        self.case["sourceSha256"] = {name: digest(self.root / name) for name in ("Subject.ts", "Properties.ts")}
+        prepared = self.native("prepare", self.case)
+        self.assertTrue(prepared["supported"], prepared)
+        self.assertIn("module-loading", prepared["excludedExecutionScopes"])
+        self.assertEqual({statement["memberName"] for statement in prepared["universe"]["statements"]}, {"value"})
+        inputs = [{"inputs": [number(value)], "admission": "ADMITTED", "outcome": "HOLDS"} for value in (4, 7)]
+
+        replay = self.native("replay", dict(self.case, prepared=prepared, inputs=inputs))
+
+        self.assertTrue(all(record["verified"] for record in replay["records"]), replay)
+        covered = {item for record in replay["records"] for item in record["creditedStatementIds"]}
+        self.assertEqual(covered, {statement["id"] for statement in prepared["universe"]["statements"]})
+
+
     def test_diagnostic_module_state_does_not_change_the_oracle_input_trajectory(self):
         (self.root / "Subject.ts").write_text(
             "export class Subject { value(x: number): number { if (x === 2) return 2; return 1; } }\n",
