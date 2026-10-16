@@ -335,6 +335,12 @@ open class TsTestStateResolver(
 
         val values = (0 until length.number.toInt()).map { i ->
             val index = mkSizeExpr(i)
+            if (resolveMode == ResolveMode.CURRENT) {
+                val present = propertyState?.knownArrayIndexPresence(heapRef, index)
+                if (present != null && !model.eval(present).isTrue) {
+                    throw TsUnsupportedWitnessException("Sparse array slot $i cannot be represented in TsTestValue")
+                }
+            }
             val sort = typeToSort(type.componentType)
 
             if (sort is TsUnresolvedSort) {
