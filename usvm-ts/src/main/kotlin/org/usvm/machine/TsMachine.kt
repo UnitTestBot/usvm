@@ -301,7 +301,7 @@ class TsMachine(
             interpreter = interpreter,
             pathSelector = pathSelector,
             observer = executionObserver,
-            isStateTerminated = { state -> state.callStack.isEmpty() },
+            isStateTerminated = { state -> state.callStack.isEmpty() || state.engineFailureReason != null },
             stopStrategy = stopStrategy,
         )
 
@@ -448,6 +448,8 @@ private class UnsupportedPathsObserver(
     private val unsupportedPaths: MutableSet<String>,
 ) : UMachineObserver<TsState> by delegate {
     override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
+        if (state.engineFailureReason != null) return
+
         val unsupportedReason = state.unsupportedReason
         if (unsupportedReason != null) {
             if (stateReachable) {
