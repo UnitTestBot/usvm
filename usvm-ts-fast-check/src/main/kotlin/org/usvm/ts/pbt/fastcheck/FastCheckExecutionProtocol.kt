@@ -20,6 +20,8 @@ internal data class FastCheckExecutionRequest(
     val timeoutMillis: Long,
     val examples: List<List<JsConcreteValue>> = emptyList(),
     val observationRequest: PropertyObservationRequest? = null,
+    val admittedCoverage: Boolean = false,
+    val exactReplay: Boolean = false,
     @Transient
     val coverageRequest: PropertyCoverageRequest? = null,
 )

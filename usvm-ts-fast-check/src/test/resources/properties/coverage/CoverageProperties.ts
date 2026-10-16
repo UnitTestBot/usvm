@@ -1,6 +1,7 @@
 import { classify } from './source-under-test.ts';
 import { classifyNested } from './nested-source-under-test.ts';
 import { nonterminal } from './nonterminal-source-under-test.ts';
+import { logical } from './logical-source-under-test.ts';
 
 export function coversPositive(value: number): boolean {
   return classify(value) === 'positive';
@@ -27,5 +28,10 @@ export function coversNested(value: number): boolean {
 
 export function coversNonterminal(value: number): boolean {
   nonterminal(value);
+  return true;
+}
+
+export function coversLogical(value: number): boolean {
+  logical(value);
   return true;
 }

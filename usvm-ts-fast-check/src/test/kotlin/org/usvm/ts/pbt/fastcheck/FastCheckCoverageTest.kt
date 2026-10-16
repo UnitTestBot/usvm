@@ -160,7 +160,7 @@ class FastCheckCoverageTest {
     }
 
     @Test
-    fun `unsupported TypeScript branch retains exact statement coverage`() {
+    fun `nonterminating if without else retains exact branch counts`() {
         val result = backend.run(
             property = property(
                 exportName = "coversNonterminal",
@@ -175,8 +175,30 @@ class FastCheckCoverageTest {
         }
 
         assertTrue(file.statements.any { statement -> statement.hits > 0 })
+        assertEquals(listOf(1L, 0L), exactIf(file).arms.map { arm -> arm.hits })
+    }
+
+    @Test
+    fun `unsupported TypeScript branch retains exact statement coverage`() {
+        val result = backend.run(
+            property = property(
+                exportName = "coversLogical",
+                domain = IntegerDomain(min = 1, max = 1),
+            ),
+            configuration = configuration,
+        )
+
+        val coverage = assertNotNull(result.coverage)
+        val file = coverage.files.single { candidate ->
+            candidate.path.endsWith("properties/coverage/logical-source-under-test.ts")
+        }
+
+        assertTrue(file.statements.any { statement -> statement.hits > 0 })
         assertTrue(file.branches.none { branch -> branch.type == "if" })
-        assertTrue(coverage.diagnostics.any { diagnostic -> diagnostic.code == "coverage.branch.unsupported" })
+        val unsupportedBranch = coverage.diagnostics.any { diagnostic ->
+            diagnostic.code == "coverage.branch.unsupported" && diagnostic.path == file.path
+        }
+        assertTrue(unsupportedBranch)
     }
 
     @Test

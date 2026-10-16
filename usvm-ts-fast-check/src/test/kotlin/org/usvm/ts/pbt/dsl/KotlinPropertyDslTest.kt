@@ -10,12 +10,15 @@ import org.usvm.ts.pbt.usvm.UsvmPropertySearchStatus
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class KotlinPropertyDslTest {
     private val roots = listOf(testResourcesRoot().resolve("properties/dsl"))
     private val runner = DslPropertyRunner(sourceRoots = roots)
-    private val configuration = PropertyRunConfiguration(seed = 42, numRuns = 50, timeoutMillis = 10_000)
+
+    // Functional assertions include cold frontend initialization in the runner's shared timeout.
+    private val configuration = PropertyRunConfiguration(seed = 42, numRuns = 50)
 
     @Test
     fun `calculator runs through existing concrete and symbolic execution`() {
@@ -197,11 +200,38 @@ class KotlinPropertyDslTest {
 
         val run = runner.run(program = program, engine = PropertyEngine.BOTH, configuration = configuration)
 
-        assertEquals("unexpected", run.concrete?.failure?.checkId)
-        assertEquals("Error", run.concrete?.failure?.errorName)
-        assertEquals("unexpected", run.symbolicReplay?.failure?.checkId)
+        val diagnostic = run.executionDiagnostic()
+        assertEquals("unexpected", run.concrete?.failure?.checkId, diagnostic)
+        assertEquals("Error", run.concrete?.failure?.errorName, diagnostic)
+        val replay = assertNotNull(run.symbolicReplay, diagnostic)
+        assertEquals("unexpected", replay.failure?.checkId, diagnostic)
         assertFailsWith<DslPropertyAssertionError> { run.requireSuccess() }
     }
+
+    @Test
+    fun `expired total deadline skips symbolic analysis and cannot report success`() {
+        val program = addition(exportName = "add")
+
+        val run = runner.run(
+            program = program,
+            engine = PropertyEngine.USVM,
+            configuration = configuration.copy(timeoutMillis = 1),
+        )
+
+        val diagnostic = run.executionDiagnostic()
+        assertTrue(run.symbolicSkippedDueToDeadline, diagnostic)
+        assertNull(run.concrete, diagnostic)
+        assertNull(run.symbolic, diagnostic)
+        assertNull(run.symbolicReplay, diagnostic)
+        assertTrue(run.elapsedMillis >= 1, diagnostic)
+        assertFailsWith<DslPropertyExecutionError> { run.requireSuccess() }
+    }
+
+    private fun DslPropertyRun.executionDiagnostic(): String =
+        "elapsedMillis=$elapsedMillis, budgetMillis=$budgetMillis, " +
+            "symbolicSkippedDueToDeadline=$symbolicSkippedDueToDeadline, symbolicStatus=${symbolic?.status}, " +
+            "concreteStatus=${concrete?.status}, replayStatus=${symbolicReplay?.status}, " +
+            "replayFailure=${symbolicReplay?.failure}"
 
     private fun addition(exportName: String): DslProperty = defineProperty(id = "calculator.$exportName") {
         val sum = function<(Double, Double) -> Double>(module = "calculator.ts", exportName = exportName)

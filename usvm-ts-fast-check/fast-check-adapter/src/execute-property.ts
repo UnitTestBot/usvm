@@ -1,3 +1,4 @@
+import type { ExecutionCoverage } from './execution-coverage.js';
 import { performance } from 'node:perf_hooks';
 import fc from 'fast-check';
 import type { Parameters, RunDetails } from 'fast-check';
@@ -76,6 +77,8 @@ export interface FastCheckExecutionRequest {
   timeoutMillis: number;
   examples: TaggedJsValue[][];
   observationRequest?: ObservationRequest;
+  admittedCoverage?: boolean;
+  exactReplay?: boolean;
 }
 
 export interface FastCheckFailureDetails {
@@ -106,7 +109,7 @@ export interface FastCheckExecutionSuccess {
   result: FastCheckRunResult;
 }
 
-export async function executeProperty(requestValue: unknown): Promise<FastCheckExecutionSuccess> {
+export async function executeProperty(requestValue: unknown, coverage?: ExecutionCoverage): Promise<FastCheckExecutionSuccess> {
   const request = validateRequest(requestValue);
   const startedAt = performance.now();
   const recorder = request.observationRequest === undefined
@@ -127,12 +130,12 @@ export async function executeProperty(requestValue: unknown): Promise<FastCheckE
 
   const contractErrors: ContractErrorState = { first: undefined };
   const baseArbitrary = buildPropertyArbitrary(request.manifest);
-  const tracker = recorder === undefined ? undefined : new PhaseTrackingArbitrary(baseArbitrary);
+  const tracker = recorder === undefined && !coverage?.admittedOnly ? undefined : new PhaseTrackingArbitrary(baseArbitrary);
   const arbitrary = tracker ?? baseArbitrary;
   const phaseOf = (values: JsConcreteValue[]) => request.replayPath === undefined
     ? tracker?.phaseOf(values) ?? 'unknown'
     : 'replay';
-  const property = buildProperty(arbitrary, predicate, precondition, contractErrors, recorder, phaseOf);
+  const property = buildProperty(arbitrary, predicate, precondition, contractErrors, recorder, phaseOf, coverage);
   const parameters = buildParameters(request, tracker);
 
   const details = await checkProperty(property, parameters, request.replayPath);
@@ -158,6 +161,7 @@ function buildProperty(
   contractErrors: ContractErrorState,
   recorder: ObservationRecorder | undefined,
   phaseOf: (values: JsConcreteValue[]) => 'generation' | 'explicit' | 'shrink' | 'replay' | 'unknown',
+  coverage: ExecutionCoverage | undefined,
 ): fc.IProperty<[JsConcreteValue[]]> | fc.IAsyncProperty<[JsConcreteValue[]]> {
   const asynchronous = predicate.executionKind === 'async' || precondition?.executionKind === 'async';
   let selectedCheckId: string | undefined;
@@ -166,7 +170,7 @@ function buildProperty(
     return fc.asyncProperty(arbitrary, (values: JsConcreteValue[]): Promise<boolean> => preserveAsyncContractError(
       contractErrors,
       async () => {
-        const result = await invokePropertyOnce(values, predicate, precondition, recorder, phaseOf(values));
+        const result = await invokePropertyOnce(values, predicate, precondition, recorder, phaseOf(values), coverage);
         if (result === null) fc.pre(false);
 
         return result;
@@ -179,7 +183,7 @@ function buildProperty(
     () => {
       let result: boolean | null;
       try {
-        result = invokePropertyOnce(values, predicate, precondition, recorder, phaseOf(values)) as boolean | null;
+        result = invokePropertyOnce(values, predicate, precondition, recorder, phaseOf(values), coverage) as boolean | null;
       } catch (error: unknown) {
         if (isNamedCheckFailure(error)) {
           selectedCheckId ??= error.checkId;
@@ -202,6 +206,7 @@ function invokePropertyOnce(
   precondition: LoadedEntryPoint | undefined,
   recorder: ObservationRecorder | undefined,
   phase: 'generation' | 'explicit' | 'shrink' | 'replay' | 'unknown',
+  coverage?: ExecutionCoverage,
 ): boolean | null | Promise<boolean | null> {
   const invocationValues = cloneArguments(values);
   const invoke = (): boolean | null | Promise<boolean | null> => {
@@ -218,6 +223,9 @@ function invokePropertyOnce(
           throw error;
         }
 
+        const collect = coverage?.admittedOnly === true && phase !== 'shrink' && phase !== 'unknown';
+        if (collect) coverage.reset();
+
         try {
           const result = await predicate.invoke(invocationValues);
           recorder?.finish('admitted', result ? 'holds' : 'false');
@@ -226,6 +234,8 @@ function invokePropertyOnce(
         } catch (error: unknown) {
           recorder?.finish('admitted', predicateExceptionOutcome(error));
           throw error;
+        } finally {
+          if (collect) coverage.admit();
         }
       })();
     }
@@ -241,6 +251,9 @@ function invokePropertyOnce(
       throw error;
     }
 
+    const collect = coverage?.admittedOnly === true && phase !== 'shrink' && phase !== 'unknown';
+    if (collect) coverage.reset();
+
     try {
       const result = predicate.invoke(invocationValues) as boolean;
       recorder?.finish('admitted', result ? 'holds' : 'false');
@@ -249,6 +262,8 @@ function invokePropertyOnce(
     } catch (error: unknown) {
       recorder?.finish('admitted', predicateExceptionOutcome(error));
       throw error;
+    } finally {
+      if (collect) coverage.admit();
     }
   };
 
@@ -403,6 +418,10 @@ function buildParameters(
 
   if (request.seed !== undefined) parameters.seed = request.seed;
   if (request.replayPath !== undefined) parameters.path = request.replayPath;
+  if (request.exactReplay) {
+    parameters.maxSkipsPerRun = 0;
+    parameters.endOnFailure = true;
+  }
 
   return parameters;
 }
@@ -582,6 +601,14 @@ function validateRequest(value: unknown): FastCheckExecutionRequest {
   if (request.tsconfig !== undefined) validated.tsconfig = request.tsconfig as string;
   if (request.seed !== undefined) validated.seed = request.seed as number;
   if (request.replayPath !== undefined) validated.replayPath = request.replayPath as string;
+  if (request.admittedCoverage === true) validated.admittedCoverage = true;
+  if (request.exactReplay === true) {
+    if (request.numRuns !== 1 || examples.length !== 1 || request.replayPath !== undefined) {
+      throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Exact replay requires one explicit example', 'exactReplay');
+    }
+    validated.exactReplay = true;
+  }
+
   if (request.observationRequest !== undefined) {
     validated.observationRequest = validateObservationRequest(request.observationRequest, manifest);
   }
