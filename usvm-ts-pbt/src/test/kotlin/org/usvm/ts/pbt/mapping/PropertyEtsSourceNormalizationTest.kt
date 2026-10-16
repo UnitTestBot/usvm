@@ -88,6 +88,59 @@ class PropertyEtsSourceNormalizationTest {
     }
 
     @Test
+    fun `reusing a mapper reads current source offsets`() {
+        val source = tempDirectory.resolve("Predicate.ts")
+        Files.writeString(source, "a\nb")
+        val propertyId = PropertyId("mapping.updated-source")
+        val coverage = coverageArtifact(
+            sourceRoots = listOf(tempDirectory),
+            sourcePath = source,
+            propertyId = propertyId,
+            statements = listOf(statement(statementId = 0, line = 2)),
+        )
+        val propertyManifest = manifest(propertyId, module = "Predicate.ts")
+        val mapper = PropertyEtsMapper(scene = EtsScene(emptyList()), sourceRoots = listOf(tempDirectory))
+        val initial = mapper.map(propertyManifest, coverage)
+
+        Files.writeString(source, "abc\nb")
+        val updated = mapper.map(propertyManifest, coverage)
+
+        assertEquals(2, assertNotNull(initial.coverage.statements.single().location).start.offset)
+        assertEquals(4, assertNotNull(updated.coverage.statements.single().location).start.offset)
+    }
+
+    @Test
+    fun `reusing a mapper resolves a retargeted source root symlink`() {
+        val firstRoot = Files.createDirectory(tempDirectory.resolve("first"))
+        val secondRoot = Files.createDirectory(tempDirectory.resolve("second"))
+        val firstSource = firstRoot.resolve("Predicate.ts")
+        val secondSource = secondRoot.resolve("Predicate.ts")
+        Files.writeString(firstSource, "x")
+        Files.writeString(secondSource, "y")
+        val symlinkRoot = Files.createSymbolicLink(tempDirectory.resolve("alias"), firstRoot)
+        val propertyId = PropertyId("mapping.retargeted-root")
+        val coverage = coverageArtifact(
+            sourceRoots = listOf(symlinkRoot),
+            sourcePath = Path.of("Predicate.ts"),
+            propertyId = propertyId,
+            statements = listOf(statement(statementId = 0, line = 1)),
+        )
+        val propertyManifest = manifest(propertyId, module = "Predicate.ts")
+        val mapper = PropertyEtsMapper(scene = EtsScene(emptyList()), sourceRoots = listOf(symlinkRoot))
+        val initial = mapper.map(propertyManifest, coverage)
+
+        Files.delete(symlinkRoot)
+        Files.createSymbolicLink(symlinkRoot, secondRoot)
+        val updated = mapper.map(propertyManifest, coverage)
+
+        val initialLocation = initial.coverage.statements.single().location
+        val updatedLocation = updated.coverage.statements.single().location
+        assertEquals(firstSource.toRealPath().toString(), initialLocation?.path)
+        assertEquals(secondSource.toRealPath().toString(), updatedLocation?.path)
+        assertEquals(listOf(secondRoot.toRealPath().toString()), updated.provenance.sourceRoots)
+    }
+
+    @Test
     fun `TypeScript line terminators produce UTF-16 source offsets`() {
         val source = tempDirectory.resolve("LineTerminators.ts")
         Files.writeString(source, "a\r\nb\rc\u2028d\u2029e")
