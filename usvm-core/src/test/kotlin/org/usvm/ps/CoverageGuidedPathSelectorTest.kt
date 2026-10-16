@@ -15,15 +15,21 @@ import kotlin.test.assertTrue
 
 class CoverageGuidedPathSelectorTest {
     @Test
-    fun `reported coverage reprioritizes every pending state without state updates`() {
+    fun `reported coverage reprioritizes every pending state after a completed selection`() {
         val selector = selector(targets = listOf("left", "right"))
         selector.add(states = listOf("left", "right"))
 
+        assertEquals(expected = "left", actual = selector.peek())
+
         selector.markCovered(targets = listOf("left"))
+        selector.update(state = "left")
+
         assertEquals(expected = "right", actual = selector.peek())
 
         selector.addTargets(targets = listOf("new-left"))
         selector.markCovered(targets = listOf("right"))
+        selector.update(state = "right")
+
         assertEquals(expected = "left", actual = selector.peek())
         assertEquals(expected = setOf("left", "right"), actual = selector.drain().toSet())
     }
@@ -51,7 +57,7 @@ class CoverageGuidedPathSelectorTest {
     }
 
     @Test
-    fun `multiple reports are applied together before the next selection`() {
+    fun `multiple reports are applied together at the refresh boundary`() {
         var refreshing = false
         var evaluations = 0
         val selector = CoverageGuidedPathSelector<String, String>(
@@ -64,12 +70,15 @@ class CoverageGuidedPathSelectorTest {
 
                 if (state == target) 0u else 10u
             },
+            priorityRefreshInterval = 1,
         )
         selector.add(states = listOf("first", "third"))
-        refreshing = true
+        val selected = selector.peek()
 
         selector.markCovered(targets = listOf("first"))
         selector.markCovered(targets = listOf("second"))
+        selector.update(state = selected)
+        refreshing = true
 
         assertEquals(expected = "third", actual = selector.peek())
         assertEquals(expected = 2, actual = evaluations)
@@ -99,10 +108,13 @@ class CoverageGuidedPathSelectorTest {
         val selector = CoverageGuidedPathSelector<Set<Edge>, Edge>(
             targets = listOf(firstEdge, secondEdge),
             distance = { path, edge -> if (edge in path) 0u else UInt.MAX_VALUE },
+            priorityRefreshInterval = 1,
         )
         selector.add(states = listOf(firstPath, secondPath))
+        val selected = selector.peek()
 
         selector.markCovered(targets = listOf(firstEdge))
+        selector.update(state = selected)
 
         assertSame(expected = secondPath, actual = selector.peek())
         assertEquals(expected = setOf(firstPath, secondPath), actual = selector.drain().toSet())
@@ -226,12 +238,15 @@ class CoverageGuidedPathSelectorTest {
             distance = { state, target ->
                 distances.calculateDistance(state.currentStatement, state.callStack, target)
             },
+            priorityRefreshInterval = 1,
         )
         val left = mockState(id = 1u, startMethod = "method", startInstruction = 1)
         val right = mockState(id = 2u, startMethod = "method", startInstruction = 3)
         selector.add(states = listOf(left, right))
+        val selected = selector.peek()
 
         selector.markCovered(targets = listOf(firstTarget))
+        selector.update(state = selected)
 
         assertSame(expected = right, actual = selector.peek())
         assertEquals(expected = setOf(left, right), actual = selector.drain().toSet())
@@ -240,14 +255,15 @@ class CoverageGuidedPathSelectorTest {
     @Test
     fun `coverage guidance composes with a standard selector on shared states`() {
         val coverage = selector(targets = listOf("left", "right"))
-        val combined = InterleavedPathSelector(selectors = listOf(coverage, BfsPathSelector()))
+        val combined = InterleavedPathSelector(selectors = listOf(BfsPathSelector(), coverage))
         combined.add(states = listOf("left", "right"))
         assertEquals(expected = "left", actual = combined.peek())
 
         coverage.markCovered(targets = listOf("left"))
-        combined.add(states = listOf("fork"))
+        combined.update(state = "left")
 
         assertEquals(expected = "right", actual = combined.peek())
+        combined.add(states = listOf("fork"))
         combined.remove(state = "right")
         assertEquals(expected = setOf("left", "fork"), actual = combined.drain().toSet())
         assertTrue(combined.isEmpty())
@@ -259,6 +275,7 @@ class CoverageGuidedPathSelectorTest {
             val destination = if (target == "new-left") "left" else target
             if (state == destination) 0u else 10u
         },
+        priorityRefreshInterval = 1,
     )
 
     private data class Edge(val from: Int, val to: Int)
