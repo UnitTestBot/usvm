@@ -1,6 +1,0 @@
-{"program": "codec", "mode": "nurs", "repetition": 1, "randomSeed": 0, "log": "codec-nurs-s0-r1.log", "exitCode": 0, "status": "completed", "wallSeconds": 22.268}
-{"program": "codec", "mode": "uniform", "repetition": 1, "randomSeed": 0, "log": "codec-uniform-s0-r1.log", "exitCode": 0, "status": "completed", "wallSeconds": 19.444}
-{"program": "gcd", "mode": "nurs", "repetition": 1, "randomSeed": 0, "log": "gcd-nurs-s0-r1.log", "exitCode": 0, "status": "completed", "wallSeconds": 15.125}
-{"program": "gcd", "mode": "uniform", "repetition": 1, "randomSeed": 0, "log": "gcd-uniform-s0-r1.log", "exitCode": 0, "status": "completed", "wallSeconds": 16.442}
-{"program": "loan", "mode": "nurs", "repetition": 1, "randomSeed": 0, "log": "loan-nurs-s0-r1.log", "exitCode": 0, "status": "completed", "wallSeconds": 10.253}
-{"program": "loan", "mode": "uniform", "repetition": 1, "randomSeed": 0, "log": "loan-uniform-s0-r1.log", "exitCode": 0, "status": "completed", "wallSeconds": 13.169}
