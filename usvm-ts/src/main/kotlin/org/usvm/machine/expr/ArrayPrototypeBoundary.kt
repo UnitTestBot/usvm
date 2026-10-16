@@ -11,6 +11,7 @@ import org.usvm.UHeapRef
 import org.usvm.UIteExpr
 import org.usvm.isFalse
 import org.usvm.machine.TsVirtualMethodCallStmt
+import org.usvm.machine.throwTypeError
 import org.usvm.util.arrayStorageType
 
 /** Missing own array slots may yield undefined only while prototype changes stay outside the supported domain. */
@@ -19,6 +20,8 @@ internal fun TsExprResolver.ensureSupportedArrayPrototypeAccess(receiver: UHeapR
         val resolved = ctx.resolveHeapRef(scope, receiver) ?: return false
         return ensureSupportedArrayPrototypeAccess(resolved, fieldName)
     }
+
+    if (receiver == ctx.mkTsNullValue() || receiver == ctx.mkUndefinedValue()) return true
 
     if (fieldName == "__proto__") {
         val runtimeType = scope.calcOnState { arrayStorageType(receiver, EtsUnknownType) }
@@ -56,6 +59,11 @@ internal fun TsExprResolver.ensureSupportedObjectMutation(stmt: TsVirtualMethodC
     }
 
     val target = stmt.args.firstOrNull() ?: return true
+    val requiresCoercibleTarget = stmt.call.callee.name in setOf(
+        "assign", "defineProperty", "defineProperties", "setPrototypeOf",
+    )
+    if (requiresCoercibleTarget && !ensureObjectTargetCoercible(target)) return false
+
     val staticType = stmt.call.args.firstOrNull()?.type ?: EtsUnknownType
     val targetsArray = arrayTargetCondition(target, staticType)
     if (targetsArray.isFalse) return true
@@ -68,6 +76,7 @@ internal fun TsExprResolver.ensureSupportedObjectMutation(stmt: TsVirtualMethodC
 
 private fun TsExprResolver.arrayTargetCondition(target: UExpr<*>, staticType: EtsType): UBoolExpr = with(ctx) {
     if (target.sort != addressSort) return falseExpr
+    if (target == mkTsNullValue() || target == mkUndefinedValue()) return falseExpr
     if (target.isFakeObject()) {
         val referenceKind = target.getFakeType(scope).refTypeExpr
         val reference = target.extractRef(scope)
@@ -84,4 +93,18 @@ private fun TsExprResolver.arrayTargetCondition(target: UExpr<*>, staticType: Et
     val reference = target.asExpr(addressSort)
     val runtimeType = scope.calcOnState { arrayStorageType(reference, staticType) }
     mkBool(runtimeType is EtsArrayType)
+}
+
+private fun TsExprResolver.ensureObjectTargetCoercible(target: UExpr<*>): Boolean = with(ctx) {
+    if (target.sort != addressSort) return true
+
+    val nullish = if (target.isFakeObject()) {
+        val referenceKind = target.getFakeType(scope).refTypeExpr
+        val reference = target.extractRef(scope)
+        mkAnd(referenceKind, mkIsNullOrUndefined(reference))
+    } else {
+        mkIsNullOrUndefined(target.asExpr(addressSort))
+    }
+
+    return scope.fork(mkNot(nullish), blockOnFalseState = { throwTypeError() }) != null
 }
