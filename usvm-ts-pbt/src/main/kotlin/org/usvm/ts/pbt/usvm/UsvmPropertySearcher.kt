@@ -24,8 +24,12 @@ import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.CapabilityDiagnostic
 import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.ts.pbt.backend.ProjectionLevel
+import org.usvm.ts.pbt.inference.ScalarRelation
+import org.usvm.ts.pbt.inference.ScalarRelationInference
+import org.usvm.ts.pbt.inference.ScalarRelationTemplate
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.EtsEntryPointTarget
+import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMappingArtifact
 import org.usvm.ts.pbt.model.PropertyId
 
@@ -50,6 +54,28 @@ class UsvmPropertySearcher(
         manifest: PropertyManifest,
         mapping: PropertyEtsMappingArtifact,
         concreteCapability: ProjectionCapability,
+    ): UsvmPropertySearchResult = search(manifest, mapping, concreteCapability, focus = null)
+
+    /** Restricts this query to NOT(sampled input relation), retaining the original precondition and oracle. */
+    fun searchFocusedOnEntryRelation(
+        manifest: PropertyManifest,
+        mapping: PropertyEtsMappingArtifact,
+        concreteCapability: ProjectionCapability,
+        inference: ScalarRelationInference,
+        relation: ScalarRelation,
+    ): UsvmEntryRelationSearchResult {
+        val binding = bindEntryRelation(manifest, mapping, inference, relation)
+        val focus = if (binding.status == EtsMappingStatus.EXACT) binding.targets.single() else null
+        val search = focus?.let { search(manifest, mapping, concreteCapability, focus = it) }
+
+        return UsvmEntryRelationSearchResult(binding, inference, search)
+    }
+
+    private fun search(
+        manifest: PropertyManifest,
+        mapping: PropertyEtsMappingArtifact,
+        concreteCapability: ProjectionCapability,
+        focus: UsvmEntryRelationBinding?,
     ): UsvmPropertySearchResult {
         val capability = capabilityResolver.resolve(
             manifest = manifest,
@@ -83,6 +109,7 @@ class UsvmPropertySearcher(
             predicate = predicate,
             precondition = precondition,
             capability = capability,
+            focus = focus,
         )
     }
 
@@ -91,6 +118,7 @@ class UsvmPropertySearcher(
         predicate: EtsEntryPointTarget,
         precondition: EtsEntryPointTarget?,
         capability: UsvmPropertyProjectionCapability,
+        focus: UsvmEntryRelationBinding?,
     ): UsvmPropertySearchResult {
         lateinit var projection: UsvmDeclaredDomainProjection
         val target = UsvmViolationTsTarget()
@@ -115,6 +143,18 @@ class UsvmPropertySearcher(
                         bindings = predicate.bindings.inputs,
                         generator = manifest.generator,
                     )
+                    if (focus != null) {
+                        with(state.ctx) {
+                            val left = projection.inputs[focus.leftInputIndex].value.asExpr(fp64Sort)
+                            val right = projection.inputs[focus.rightInputIndex].value.asExpr(fp64Sort)
+                            val hypothesis = when (focus.relation.template) {
+                                ScalarRelationTemplate.STRICT_EQUAL -> mkFpEqualExpr(left, right)
+                                ScalarRelationTemplate.LESS_OR_EQUAL -> mkFpLessOrEqualExpr(left, right)
+                            }
+
+                            state.pathConstraints += hypothesis.not()
+                        }
+                    }
                     if (precondition != null) {
                         state.prependBooleanEntryPointGuard(
                             guard = precondition.method,
@@ -141,6 +181,11 @@ class UsvmPropertySearcher(
             )
             if (terminalFailure != null) {
                 return@use terminalFailure.withCandidate(candidate)
+            }
+
+            val focusInfeasible = focus != null && analysis.infeasibleEntryPoints.isNotEmpty()
+            if (focusInfeasible) {
+                return@use result(manifest, UsvmPropertySearchStatus.NO_VIOLATION_REACHED, capability)
             }
 
             candidate

@@ -761,7 +761,7 @@ function validateObservationRequest(value: unknown, manifest: PropertyManifestWi
     const point = requireRecord(value, adapterDiagnostic.protocolRequestInvalid, 'Point must be an object', path);
     if (typeof point.id !== 'string' || typeof point.assertionId !== 'string'
       || typeof point.operandId !== 'string'
-      || !['argument', 'return', 'intermediate', 'pre', 'post'].includes(point.kind as string)) {
+      || !['entry-argument', 'argument', 'return', 'intermediate', 'pre', 'post'].includes(point.kind as string)) {
       throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Invalid point identity', path);
     }
 
@@ -773,7 +773,7 @@ function validateObservationRequest(value: unknown, manifest: PropertyManifestWi
       callSite: validateSourcePoint(point.callSite, `${path}.callSite`),
       kind: point.kind as ObservationPointRequest['kind'],
     };
-    if (point.kind === 'argument') {
+    if (point.kind === 'argument' || point.kind === 'entry-argument') {
       if (!Number.isInteger(point.inputIndex) || (point.inputIndex as number) < 0
         || (point.inputIndex as number) >= manifest.inputs.length) {
         throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Invalid argument index', `${path}.inputIndex`);

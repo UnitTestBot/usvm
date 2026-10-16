@@ -12,7 +12,7 @@ export interface ObservationPointRequest {
   operandId: string;
   source: SourcePoint;
   callSite: SourcePoint;
-  kind: 'argument' | 'return' | 'intermediate' | 'pre' | 'post';
+  kind: 'entry-argument' | 'argument' | 'return' | 'intermediate' | 'pre' | 'post';
   inputIndex?: number;
 }
 
@@ -153,6 +153,12 @@ export class ObservationRecorder {
       return invocation();
     }
 
+    for (const point of this.request.points) {
+      if (point.kind === 'entry-argument') {
+        this.capturePoint(record, point, values[point.inputIndex!]);
+      }
+    }
+
     return contexts.run({ recorder: this, invocation: record }, invocation);
   }
 
@@ -166,7 +172,19 @@ export class ObservationRecorder {
 
   point(record: InvocationRecord, pointId: string, value: unknown): void {
     const point = this.pointsById.get(pointId);
-    if (point === undefined || record.points.length >= this.request.maxPointsPerInvocation) {
+    // Entry snapshots belong to the adapter; user callbacks cannot replace or repeat them.
+    if (point?.kind === 'entry-argument') return;
+    if (point === undefined) {
+      this.artifact.droppedPoints = incrementCounter(this.artifact.droppedPoints);
+
+      return;
+    }
+
+    this.capturePoint(record, point, value);
+  }
+
+  private capturePoint(record: InvocationRecord, point: ObservationPointRequest, value: unknown): void {
+    if (record.points.length >= this.request.maxPointsPerInvocation) {
       this.artifact.droppedPoints = incrementCounter(this.artifact.droppedPoints);
 
       return;

@@ -21,6 +21,10 @@ data class PropertyObservationPoint(
 /** Location and role of a recorded operand value. */
 @Serializable
 enum class ObservationPointKind {
+    /** Captured by the adapter from the original input vector before invoking user code. */
+    @SerialName("entry-argument")
+    ENTRY_ARGUMENT,
+
     @SerialName("argument")
     ARGUMENT,
 

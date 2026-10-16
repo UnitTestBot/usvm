@@ -175,6 +175,34 @@ test('bounded explicit observation preserves special values and refuses proxies,
   assert.equal(recorder.result.invocations.length, 1);
 });
 
+test('entry arguments are adapter snapshots before user code and cannot be replaced through the hook', () => {
+  const source = { module: 'property.ts', line: 1, column: 1 };
+  const recorder = new ObservationRecorder('property', {
+    points: ['left', 'right'].map((id, inputIndex) => ({
+      id, assertionId: 'original', operandId: id, source, callSite: source,
+      kind: 'entry-argument', inputIndex,
+    })),
+    sources: [{ module: 'property.ts', sha256: 'a'.repeat(64) }],
+    maxInvocations: 1, maxPointsPerInvocation: 2, maxArrayElements: 2, maxBytes: 65_536,
+  });
+  installObservationHook();
+  const hook = (globalThis as Record<symbol, unknown>)[Symbol.for('org.usvm.ts.pbt.observe')] as
+    (pointId: string, value: unknown) => unknown;
+  const inputs = [Number.NaN, -0];
+
+  recorder.run(inputs, 'generation', () => {
+    inputs[0] = 7;
+    hook('left', 42);
+    hook('right', Number.POSITIVE_INFINITY);
+  });
+
+  const invocation = recorder.result.invocations[0]!;
+  assert.deepEqual(invocation.points.map((event) => event.value.value), [encodeJsValue(Number.NaN), encodeJsValue(-0)]);
+  assert.deepEqual(invocation.points.map((event) => event.occurrence), [0, 0]);
+  assert.equal(recorder.result.buildStatus, 'unverified');
+  assert.equal(recorder.result.droppedPoints, 0);
+});
+
 test('observation limits report dropped invocations and points without changing returned values', () => {
   const request: ObservationRequest = {
     points: [{
