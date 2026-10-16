@@ -4,8 +4,12 @@ import kotlinx.serialization.decodeFromString
 import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
+import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.model.encodeToUtf8SafeString
+import org.usvm.ts.pbt.observation.ObservationAdmission
+import org.usvm.ts.pbt.observation.ObservationOutcome
+import org.usvm.ts.pbt.observation.ObservationValueStatus
 import java.nio.file.Path
 
 /** Encodes one execution request and validates the private fast-check adapter response. */
@@ -299,6 +303,7 @@ internal class FastCheckProcessClient(
         )
 
         validateResultIdentity(result, request)
+        validateInputExport(result, request)
 
         return result
     }
@@ -322,6 +327,33 @@ internal class FastCheckProcessClient(
         if (result.propertyId.value != request.manifest.propertyId) {
             throw invalidResponse(
                 message = "fast-check result property does not match the request",
+                request = request,
+            )
+        }
+    }
+
+    private fun validateInputExport(result: PropertyRunResult, request: FastCheckExecutionRequest) {
+        val controls = request.inputExportRequest ?: return
+        val export = result.inputExport ?: throw invalidResponse(
+            message = "Requested input export is absent from the response",
+            request = request,
+        )
+        val unsupportedInputs = export.records.count { it.input.status != ObservationValueStatus.CAPTURED }
+        val pendingInvocations = export.records.count {
+            it.admission == ObservationAdmission.PENDING || it.outcome == ObservationOutcome.PENDING
+        }
+        val validInputs = export.records.all { record ->
+            val input = record.input.value
+            record.input.status != ObservationValueStatus.CAPTURED ||
+                (input is JsConcreteValue.Array && input.elements.size == request.manifest.inputs.size)
+        }
+        val bytes = PropertyManifestJson.json.encodeToUtf8SafeString(export).toByteArray(Charsets.UTF_8).size
+        val valid = export.verifiedSources == controls.sources && export.records.size <= controls.maxInvocations &&
+            export.unsupportedInputs == unsupportedInputs && export.pendingInvocations == pendingInvocations &&
+            validInputs && bytes <= controls.maxBytes
+        if (!valid) {
+            throw invalidResponse(
+                message = "Input export violates its declared identity or capture bounds",
                 request = request,
             )
         }

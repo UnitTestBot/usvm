@@ -235,6 +235,11 @@ type CaptureResult =
   | { status: 'captured'; value: TaggedJsValue }
   | { status: 'unsupported' | 'truncated'; reason: string };
 
+/** Reuses the bounded, passive snapshot contract without allocating a point-observation recorder. */
+export function captureObservationValue(value: unknown, maxArrayElements: number, maxBytes: number): ObservationValue {
+  return captureValue(value, maxArrayElements, new WeakSet(), 0, { remaining: maxBytes });
+}
+
 const stringCodeUnit = Function.prototype.call.bind(String.prototype.charCodeAt) as
   (value: string, index: number) => number;
 

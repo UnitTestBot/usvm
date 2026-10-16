@@ -32,6 +32,7 @@ data class PropertyRunConfiguration(
     val observationRequest: PropertyObservationRequest? = null,
     /** Execute the single explicit example, without generation after rejection or shrinking. */
     val exactReplay: Boolean = false,
+    val inputExportRequest: PropertyInputExportRequest? = null,
 ) {
     init {
         require(numRuns > 0) { "Number of runs must be positive" }
@@ -125,6 +126,7 @@ data class PropertyRunResult(
     val observations: PropertyObservationArtifact? = null,
     /** Version reported by the process that actually executed this property, absent when unknown. */
     val runtimeVersion: String? = null,
+    val inputExport: PropertyInputExportArtifact? = null,
 ) {
     init {
         require(numRuns >= 0) { "Run count must not be negative" }
@@ -136,6 +138,9 @@ data class PropertyRunResult(
         }
         require(observations == null || observations.propertyId == propertyId) {
             "Observation property ID must match the run result"
+        }
+        require(inputExport == null || inputExport.propertyId == propertyId) {
+            "Input export property ID must match the run result"
         }
 
         when (status) {
