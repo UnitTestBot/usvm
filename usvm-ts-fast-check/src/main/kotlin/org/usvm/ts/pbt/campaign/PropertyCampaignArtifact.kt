@@ -12,7 +12,8 @@ import java.nio.file.Path
 
 /**
  * The declared property and direct-run controls with the results actually produced.
- * Constructor settings such as machine options, runtime paths and tsconfig are not attested here.
+ * Metadata records selected files and requested runtime settings, with an explicit limited source scope.
+ * Effective machine options and complete project/build identities are not attested here.
  * Existing source and tool identities remain in the property and result provenance; absent identities stay unknown.
  */
 @Serializable
@@ -22,6 +23,7 @@ data class PropertyCampaignArtifact(
     val validationReserveMillis: Long,
     val result: PropertyCampaignResult,
     val targetRole: WitnessRole = WitnessRole.PROPERTY,
+    val metadata: PropertyCampaignMetadata? = null,
 ) {
     init {
         val resultProperties = listOfNotNull(

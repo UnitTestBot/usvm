@@ -33,9 +33,7 @@ import org.usvm.ts.pbt.usvm.UsvmPropertySearcher
 import org.usvm.ts.pbt.validation.requireValid
 import org.usvm.ts.pbt.validation.validatePropertyDefinition
 import java.io.IOException
-import java.nio.file.Files
 import java.nio.file.Path
-import java.security.MessageDigest
 import java.util.concurrent.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -81,22 +79,12 @@ class PropertyCampaignRunner(
         configuration: PropertyRunConfiguration = PropertyRunConfiguration(),
         validationReserveMillis: Long = DEFAULT_VALIDATION_RESERVE_MILLIS,
     ): PropertyCampaignArtifact {
-        val result = run(property, mode, configuration, validationReserveMillis)
-
-        return PropertyCampaignArtifact(property, configuration, validationReserveMillis, result)
-    }
-
-    fun run(
-        property: PropertyDefinition,
-        mode: PropertyCampaignMode,
-        configuration: PropertyRunConfiguration = PropertyRunConfiguration(),
-        validationReserveMillis: Long = DEFAULT_VALIDATION_RESERVE_MILLIS,
-    ): PropertyCampaignResult {
         require(validationReserveMillis > 0) { "Validation reserve must be positive" }
         val startedAt = System.nanoTime()
         val deadline = WitnessReplayDeadline(timeoutMillis = configuration.timeoutMillis)
         requireValid(validatePropertyDefinition(property))
 
+        var metadata: PropertyCampaignMetadata? = null
         var phase = PropertyCampaignPhase.PREPARATION
         var concrete: PropertyRunResult? = null
         var symbolic: UsvmPropertySearchResult? = null
@@ -105,39 +93,46 @@ class PropertyCampaignRunner(
         fun result(
             stop: PropertyCampaignStop = PropertyCampaignStop.COMPLETED,
             diagnostic: String? = null,
-        ) = PropertyCampaignResult(
-            propertyId = property.id,
-            mode = mode,
-            concrete = concrete,
-            symbolic = symbolic,
-            confirmation = confirmation,
-            stop = stop,
-            stoppedAt = phase.takeUnless { stop == PropertyCampaignStop.COMPLETED },
-            elapsedMillis = (System.nanoTime() - startedAt) / NANOS_PER_MILLISECOND,
-            diagnostic = diagnostic,
+        ) = PropertyCampaignArtifact(
+            property = property,
+            configuration = configuration,
+            validationReserveMillis = validationReserveMillis,
+            result = PropertyCampaignResult(
+                propertyId = property.id,
+                mode = mode,
+                concrete = concrete,
+                symbolic = symbolic,
+                confirmation = confirmation,
+                stop = stop,
+                stoppedAt = phase.takeUnless { stop == PropertyCampaignStop.COMPLETED },
+                elapsedMillis = (System.nanoTime() - startedAt) / NANOS_PER_MILLISECOND,
+                diagnostic = diagnostic,
+            ),
+            metadata = metadata,
         )
 
         try {
             val root = sourceRoot.toRealPath()
-            val roots = listOf(root)
-            val backend = FastCheckBackend(sourceRoots = roots, nodeExecutable = nodeExecutable, tsconfig = tsconfig)
+            if (deadline.remainingMillis() <= 0) return result(PropertyCampaignStop.DEADLINE)
+
+            metadata = captureMetadata(property = property, root = root)
+            if (deadline.remainingMillis() <= 0) return result(PropertyCampaignStop.DEADLINE)
+
+            val backend = FastCheckBackend(listOf(root), nodeExecutable = nodeExecutable, tsconfig = tsconfig)
             if (deadline.remainingMillis() <= 0) return result(PropertyCampaignStop.DEADLINE)
 
             if (mode != PropertyCampaignMode.SYMBOLIC_ONLY) {
                 phase = PropertyCampaignPhase.PBT
                 concrete = backend.run(property = property, configuration = configuration, deadline = deadline)
 
-                val coverageTimedOut = concrete.coverage?.diagnostics?.any { diagnostic ->
-                    diagnostic.code == FastCheckDiagnosticCode.COVERAGE_COLLECTION_TIMEOUT
-                } == true
+                val coverageTimedOut = coverageCollectionTimedOut(concrete)
                 if (coverageTimedOut || deadline.remainingMillis() <= 0) {
                     return result(
                         stop = PropertyCampaignStop.DEADLINE,
                         diagnostic = "Concrete result retained after the campaign or coverage collection timed out",
                     )
                 }
-                val concreteViolation = concrete.failure?.kind == PropertyFailureKind.PROPERTY
-                if (concreteViolation) return result()
+                if (concrete.failure?.kind == PropertyFailureKind.PROPERTY) return result()
                 if (concrete.failure?.kind == PropertyFailureKind.TIMEOUT) {
                     return result(PropertyCampaignStop.DEADLINE)
                 }
@@ -216,6 +211,32 @@ class PropertyCampaignRunner(
         }
     }
 
+    fun run(
+        property: PropertyDefinition,
+        mode: PropertyCampaignMode,
+        configuration: PropertyRunConfiguration = PropertyRunConfiguration(),
+        validationReserveMillis: Long = DEFAULT_VALIDATION_RESERVE_MILLIS,
+    ): PropertyCampaignResult = runArtifact(property, mode, configuration, validationReserveMillis).result
+
+    private fun captureMetadata(property: PropertyDefinition, root: Path): PropertyCampaignMetadata {
+        val explicitTsconfig = tsconfig?.toRealPath()
+        val configuration = explicitTsconfig?.let { path ->
+            PropertyCampaignTsconfig(path = path.toString(), sha256 = campaignSourceSha256(path))
+        }
+
+        return PropertyCampaignMetadata(
+            sourceRoot = root.toString(),
+            requestedNodeCommand = nodeExecutable,
+            sources = captureSources(property = property, root = root),
+            explicitConcreteTsconfig = configuration,
+        )
+    }
+
+    private fun coverageCollectionTimedOut(result: PropertyRunResult): Boolean =
+        result.coverage?.diagnostics?.any { diagnostic ->
+            diagnostic.code == FastCheckDiagnosticCode.COVERAGE_COLLECTION_TIMEOUT
+        } == true
+
     private fun loadScene(root: Path, timeoutMillis: Long): EtsScene {
         val directory = generateEtsIR(
             keepPartialOutputOnFailure = false,
@@ -267,17 +288,12 @@ class PropertyCampaignRunner(
             val path = root.resolve(module).toRealPath()
             require(path.startsWith(root)) { "Property module escapes its source root: $module" }
 
-            val hash = MessageDigest.getInstance("SHA-256")
-                .digest(Files.readAllBytes(path))
-                .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and BYTE_MASK) }
-
-            PropertyObservationSource(module = module, sha256 = hash)
+            PropertyObservationSource(module = module, sha256 = campaignSourceSha256(path))
         }
     }
 
     private companion object {
         const val DEFAULT_VALIDATION_RESERVE_MILLIS = 5_000L
         const val NANOS_PER_MILLISECOND = 1_000_000L
-        const val BYTE_MASK = 0xff
     }
 }

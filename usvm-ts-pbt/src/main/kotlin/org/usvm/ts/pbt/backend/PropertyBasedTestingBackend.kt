@@ -118,6 +118,8 @@ data class PropertyRunResult(
     val executionTimeMillis: Long,
     val coverage: PropertyCoverageArtifact? = null,
     val observations: PropertyObservationArtifact? = null,
+    /** Version reported by the process that actually executed this property, absent when unknown. */
+    val runtimeVersion: String? = null,
 ) {
     init {
         require(numRuns >= 0) { "Run count must not be negative" }

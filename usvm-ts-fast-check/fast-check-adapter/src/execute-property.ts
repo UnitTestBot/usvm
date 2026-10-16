@@ -31,6 +31,8 @@ import {
   type ObservationRequest,
 } from './observe-property.js';
 
+const runtimeVersion = process.version;
+
 export interface PropertyManifestInput {
   name: string;
   domain: unknown;
@@ -98,6 +100,7 @@ export interface FastCheckRunResult {
   numShrinks: number;
   failure: FastCheckFailureDetails | null;
   executionTimeMillis: number;
+  runtimeVersion: string;
   observations?: ObservationArtifact;
 }
 
@@ -433,6 +436,7 @@ function toRunResult(
     numShrinks: details.numShrinks,
     failure,
     executionTimeMillis,
+    runtimeVersion,
   };
   if (observations !== undefined) result.observations = observations;
 

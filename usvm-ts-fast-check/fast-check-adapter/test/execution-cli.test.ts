@@ -25,6 +25,7 @@ test('execution CLI emits one successful response document', async () => {
     assert.equal(invocation.stderr, '');
     assert.equal(invocation.stdout.trim().split('\n').length, 1);
     assert.equal(response.status, 'ok');
+    assert.equal((response.result as Record<string, unknown>).runtimeVersion, process.version);
     assert.equal('protocolVersion' in response, false);
   } finally {
     await rm(sourceRoot, { recursive: true, force: true });
@@ -48,6 +49,7 @@ test('execution CLI keeps one JSON response after a predicate adds inherited toJ
     await writeFile(sourceRoot + '/property.ts', `
 export function predicate(value: boolean) {
   Object.prototype.toJSON = () => { throw new Error('sentinel toJSON'); };
+  Object.defineProperty(process, 'version', { value: 'changed-by-property' });
   return value;
 }
 `);
@@ -58,6 +60,7 @@ export function predicate(value: boolean) {
     assert.equal(invocation.exitCode, 0);
     assert.equal(invocation.stdout.trim().split('\n').length, 1);
     assert.equal(response.status, 'ok');
+    assert.equal((response.result as Record<string, unknown>).runtimeVersion, process.version);
   } finally {
     await rm(sourceRoot, { recursive: true, force: true });
   }
