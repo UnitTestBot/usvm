@@ -95,6 +95,17 @@ class TsGapModelsSourceTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `dense searches preserve applicability after own unrelated and boxed writes`() {
+        for (name in listOf("denseSearchAfterWrite", "denseSearchAfterUnrelatedWrite", "denseSearchAfterBoxedWrite")) {
+            discoverProperties<TsTestValue.TsBoolean>(
+                method = method(name),
+                { result -> result.value },
+                invariants = arrayOf({ result -> result.value }),
+            )
+        }
+    }
+
+    @Test
     fun `join preserves composition nullish elements and runtime boolean overrides`() {
         val expectedValues = mapOf(
             "composedMutations" to "cba",
@@ -265,6 +276,7 @@ class TsGapModelsSourceTest : TsMethodTestRunner() {
             "splitCallable" to "split",
             "splitLong" to "split",
             "reduceShrink" to "requireDense",
+            "searchAfterSlotDeletion" to "indexOf",
         )
 
         for ((name, callee) in residualCallees) {
@@ -385,6 +397,7 @@ class TsGapModelsSourceTest : TsMethodTestRunner() {
     fun `generated model witnesses replay in JavaScript`() {
         val methodNames = listOf(
             "splitEdges", "reduceAliases", "reduceEmptyError", "ignoredArguments", "composedMutations",
+            "denseSearchAfterWrite", "denseSearchAfterUnrelatedWrite", "denseSearchAfterBoxedWrite",
             "independentArrays", "joinRuntimeKinds", "joinNumbers", "reduceMutation", "reduceOmitted",
             "reduceUndefined",
             "reduceInitialEmpty", "reduceThrows", "symbolicBooleans", "symbolicNullish",
