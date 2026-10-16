@@ -30,6 +30,7 @@ import {
   type ObservationArtifact,
   type ObservationPointRequest,
   type ObservationRequest,
+  type CompilerNumericLocalBinding,
 } from './observe-property.js';
 
 export interface PropertyManifestInput {
@@ -121,7 +122,14 @@ export async function executeProperty(requestValue: unknown): Promise<FastCheckE
     installObservationHook();
   }
 
-  const predicate = await loadEntryPoint(request.manifest.predicate, request.sourceRoots, 'manifest.predicate', request.tsconfig);
+  const compilerBinding = recorder?.compilerLocalBinding;
+  const compilerCapture = compilerBinding === undefined ? undefined : {
+    binding: compilerBinding,
+    observe: (nodeId: number, localName: string, value: unknown) => recorder!.captureCompilerLocal(nodeId, localName, value),
+  };
+  const predicate = await loadEntryPoint(
+    request.manifest.predicate, request.sourceRoots, 'manifest.predicate', request.tsconfig, compilerCapture,
+  );
   const precondition = request.manifest.precondition === undefined
     ? undefined
     : await loadEntryPoint(request.manifest.precondition, request.sourceRoots, 'manifest.precondition', request.tsconfig);
@@ -791,6 +799,9 @@ function validateObservationRequest(value: unknown, manifest: PropertyManifestWi
     } else if (point.inputIndex !== undefined) {
       throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Only argument points may name an input index', path);
     }
+    if (point.compilerLocal !== undefined) {
+      validatedPoint.compilerLocal = validateCompilerLocal(point.compilerLocal, validatedPoint, manifest, sources, path);
+    }
 
     return validatedPoint;
   });
@@ -802,8 +813,9 @@ function validateObservationRequest(value: unknown, manifest: PropertyManifestWi
     assertion.id === point.assertionId && samePoint(assertion.testedCall, point.callSite)
       && assertion.operands.some((operand) =>
         operand.id === point.operandId && samePoint(operand.source, point.source))) ?? false);
+  const compilerPoints = points.filter((point) => point.compilerLocal !== undefined);
   if (points.length === 0 || uniquePoints.size !== points.length || uniqueSources.size !== sources.length
-    || !allSourcesPresent || !allPointsBound) {
+    || !allSourcesPresent || !allPointsBound || compilerPoints.length > 1) {
     throw protocolError(adapterDiagnostic.protocolRequestInvalid,
       'Observation points must bind to declared assertion operands and selected source hashes', 'observationRequest');
   }
@@ -815,6 +827,39 @@ function validateObservationRequest(value: unknown, manifest: PropertyManifestWi
     maxPointsPerInvocation: request.maxPointsPerInvocation as number,
     maxArrayElements: request.maxArrayElements as number,
     maxBytes: request.maxBytes as number,
+  };
+}
+
+function validateCompilerLocal(
+  value: unknown, point: ObservationPointRequest, manifest: PropertyManifestWire,
+  sources: Array<{ module: string; sha256: string }>, path: string,
+): CompilerNumericLocalBinding {
+  const binding = requireRecord(value, adapterDiagnostic.protocolRequestInvalid,
+    'Compiler local binding must be an object', `${path}.compilerLocal`);
+  const predicateAssignment = validateSourcePoint(binding.predicateAssignment, `${path}.compilerLocal.predicateAssignment`);
+  const companionAssignment = validateSourcePoint(binding.companionAssignment, `${path}.compilerLocal.companionAssignment`);
+  const source = sources.find((source) => source.module === manifest.predicate.module);
+  const valid = binding.producer === 'usvm-kotlin-dsl-v1' && binding.abi === 'numeric-local-callback-v1'
+    && binding.programId === manifest.propertyId && Number.isInteger(binding.nodeId) && (binding.nodeId as number) >= 0
+    && typeof binding.localName === 'string' && /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(binding.localName)
+    && binding.predicateExportName === manifest.predicate.exportName
+    && binding.companionExportName === manifest.predicate.checkResultExportName
+    && manifest.predicate.checkResultExportName !== undefined && manifest.predicate.executionKind === 'sync'
+    && predicateAssignment.module === manifest.predicate.module && companionAssignment.module === manifest.predicate.module
+    && point.source.module === manifest.predicate.module && point.callSite.module === manifest.predicate.module
+    && !samePoint(predicateAssignment, companionAssignment)
+    && typeof binding.sourceSha256 === 'string' && /^[0-9a-f]{64}$/.test(binding.sourceSha256)
+    && source?.sha256 === binding.sourceSha256 && binding.occurrence === 0 && point.kind === 'return';
+  if (!valid) {
+    throw protocolError(adapterDiagnostic.protocolRequestInvalid,
+      'Compiler local identity, callback ABI or selected source does not match', `${path}.compilerLocal`);
+  }
+
+  return {
+    producer: binding.producer as string, abi: binding.abi as string, programId: binding.programId as string,
+    nodeId: binding.nodeId as number, localName: binding.localName as string,
+    predicateExportName: binding.predicateExportName as string, companionExportName: binding.companionExportName as string,
+    predicateAssignment, companionAssignment, sourceSha256: binding.sourceSha256 as string, occurrence: 0,
   };
 }
 

@@ -186,7 +186,8 @@ private fun ScalarObservationPair.isAssertionPair(property: PropertyDefinition):
 
 internal fun PropertyPointEvent.matches(point: PropertyObservationPoint): Boolean =
     assertionId == point.assertionId && operandId == point.operandId && source == point.source &&
-        callSite == point.callSite && kind == point.kind && inputIndex == point.inputIndex && occurrence == 0
+        callSite == point.callSite && kind == point.kind && inputIndex == point.inputIndex && occurrence == 0 &&
+        compilerLocal == point.compilerLocal
 
 private fun PropertyPointEvent.isNumber(): Boolean {
     val number = value.value as? JsConcreteValue.Number ?: return false
