@@ -10,7 +10,7 @@ import org.usvm.machine.TsGraph
 import org.usvm.machine.TsMethodCall
 import org.usvm.machine.state.TsState
 import org.usvm.ps.BfsPathSelector
-import org.usvm.ps.CoverageGuidedPathSelector
+import org.usvm.ps.createClosestToUncoveredRandomPathSelector
 import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
 import org.usvm.ts.pbt.backend.PropertyFailureKind
 import org.usvm.ts.pbt.backend.PropertyRunResult
@@ -24,15 +24,17 @@ import org.usvm.ts.pbt.mapping.PropertyEtsMappingArtifact
 import org.usvm.ts.pbt.model.JsConcreteValue
 import java.nio.file.Path
 import java.util.concurrent.CancellationException
+import kotlin.random.Random
 import kotlin.time.TimeSource
 
-/** Owns only exact concrete edge evidence and a deterministic scheduling hint, never path constraints. */
+/** Owns only exact concrete edge evidence and a seeded NURS scheduling hint, never path constraints. */
 internal class UsvmEdgeGuidance(
     private val scene: EtsScene,
     private val manifest: PropertyManifest,
     mapping: PropertyEtsMappingArtifact,
     private val feedback: UsvmCoverageFeedback,
     val selectionSupported: Boolean,
+    private val random: Random,
 ) {
     private val roots = mapping.provenance.sourceRoots.map(Path::of)
     private val started = TimeSource.Monotonic.markNow()
@@ -50,7 +52,6 @@ internal class UsvmEdgeGuidance(
     private val evidenceStatus: UsvmCoverageEvidenceStatus
     private val initialCovered: Set<UsvmCoverageEdge>
     private val initialGoals: Set<UsvmCoverageEdge>
-    private var activeSelector: EdgePathSelector? = null
 
     init {
         val coverage = feedback.initialCoverage
@@ -128,9 +129,7 @@ internal class UsvmEdgeGuidance(
     }
 
     fun selector(initialStates: Map<EtsMethod, TsState>, graph: TsGraph): UPathSelector<TsState> {
-        val selector = EdgePathSelector(initialStates.values, graph)
-        activeSelector = selector
-        return selector
+        return EdgePathSelector(initialStates.values, graph)
     }
 
     fun confirm(state: TsState, inputs: List<JsConcreteValue>, expectsViolation: Boolean) {
@@ -143,11 +142,6 @@ internal class UsvmEdgeGuidance(
 
         val replayStarted = TimeSource.Monotonic.markNow()
         val decision = replay(inputs, claimed, expectsViolation)
-        activeSelector?.updateCoverage()
-        val exhaustedRetry = claimed.any { attemptsByGoal.getValue(it) == MAX_REPLAY_ATTEMPTS_PER_GOAL }
-        if (exhaustedRetry && decision.status != UsvmEdgeReplayStatus.CONFIRMED) {
-            activeSelector?.refreshPriorities()
-        }
 
         replays += UsvmEdgeReplay(
             inputs = inputs,
@@ -276,16 +270,15 @@ internal class UsvmEdgeGuidance(
         initialStates: Collection<TsState>,
         private val graph: TsGraph,
     ) : UPathSelector<TsState> {
-        private val states = linkedSetOf<TsState>()
+        private val states = hashSetOf<TsState>()
         private val original = BfsPathSelector<TsState>()
-        private val coverage = CoverageGuidedPathSelector<TsState, UsvmCoverageEdge>(
-            targets = targets.keys,
-            distance = { state, goal -> nearestGoal(state, setOf(goal))?.distance?.toUInt() ?: UInt.MAX_VALUE },
+        private val coverage = createClosestToUncoveredRandomPathSelector<TsState>(
+            distance = { state -> nearestGoal(state)?.distance?.toUInt() ?: UInt.MAX_VALUE },
+            random = random,
         )
         private var turn = 0L
 
         init {
-            updateCoverage()
             add(initialStates)
         }
 
@@ -308,15 +301,6 @@ internal class UsvmEdgeGuidance(
                 original.remove(state)
                 yield(state)
             }
-        }
-
-        fun updateCoverage() {
-            coverage.addTargets(targets.keys)
-            coverage.markCovered(covered)
-        }
-
-        fun refreshPriorities() {
-            states.forEach(coverage::update)
         }
 
         override fun peek(): TsState {
@@ -345,11 +329,8 @@ internal class UsvmEdgeGuidance(
             return state
         }
 
-        private fun nearestGoal(
-            state: TsState,
-            candidates: Set<UsvmCoverageEdge> = availableGoals(),
-        ): GoalDistance? {
-            val pending = availableGoals().intersect(candidates)
+        private fun nearestGoal(state: TsState): GoalDistance? {
+            val pending = availableGoals()
             val crossed = traversedGoals(state).firstOrNull { it in pending }
             if (crossed != null) return GoalDistance(goal = crossed, distance = 0)
             if (pending.isEmpty()) return null

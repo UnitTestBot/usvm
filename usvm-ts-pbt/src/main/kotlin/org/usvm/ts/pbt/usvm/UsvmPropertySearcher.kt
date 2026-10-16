@@ -28,6 +28,7 @@ import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.EtsEntryPointTarget
 import org.usvm.ts.pbt.mapping.PropertyEtsMappingArtifact
 import org.usvm.ts.pbt.model.PropertyId
+import kotlin.random.Random
 
 /** Searches mapped TypeScript predicates for concrete property violations with USVM. */
 class UsvmPropertySearcher(
@@ -92,6 +93,7 @@ class UsvmPropertySearcher(
                 mapping = mapping,
                 feedback = feedback,
                 selectionSupported = guidedSelectionSupported,
+                random = Random(seed = machineOptions.randomSeed),
             )
         }
 
