@@ -12,6 +12,7 @@
     "test:compiled": "node --test dist/test/coverage-branches.test.js dist/test/entry-point.test.js dist/test/execute-property.test.js dist/test/execution-cli.test.js dist/test/js-value.test.js dist/test/observe-object.test.js dist/test/process-group-shutdown.test.js dist/test/process-supervisor.test.js dist/test/project-domain.test.js dist/test/projection-cli.test.js dist/test/source-replay.test.js dist/test/source-captures.test.js dist/test/local-source-closure.test.js dist/test/class-coverage-source.test.js dist/test/external-witness.test.js"
   },
   "dependencies": {
+    "@bcoe/v8-coverage": "1.0.2",
     "@jridgewell/trace-mapping": "0.3.31",
     "c8": "10.1.3",
     "fast-check": "4.9.0",

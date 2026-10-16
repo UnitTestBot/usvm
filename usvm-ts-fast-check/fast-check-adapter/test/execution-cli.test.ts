@@ -12,6 +12,129 @@ import { convertV8IfBranches } from '../src/coverage-branches.js';
 const cliPath = fileURLToPath(new URL('../src/execution-cli.js', import.meta.url));
 const coverageLauncher = fileURLToPath(new URL('../src/coverage-launcher.js', import.meta.url));
 
+test('admitted coverage excludes rejected preconditions and keeps sync predicate semantics', async () => {
+  const sourceRoot = await realpath(await mkdtemp(path.join(tmpdir(), 'usvm-admitted-coverage-')));
+  const raw = path.join(sourceRoot, 'raw');
+  try {
+    await writeFile(path.join(sourceRoot, 'helper.ts'), `
+export function helper(value: boolean): number {
+  if (value) { return 1; }
+  else { return 2; }
+}
+`);
+    await writeFile(path.join(sourceRoot, 'property.ts'), `
+import { helper } from './helper';
+let changed = false;
+export function precondition(value: boolean): boolean {
+  helper(!value);
+  queueMicrotask(() => { changed = true; });
+  return value;
+}
+export function predicate(_value: boolean): boolean { return helper(false) === 2 && !changed; }
+`);
+    const request = executionRequest(sourceRoot);
+    const manifest = request.manifest as Record<string, unknown>;
+    manifest.inputs = [{ name: 'value', domain: { kind: 'boolean' } }];
+    manifest.precondition = { module: 'property.ts', exportName: 'precondition', executionKind: 'sync' };
+    request.examples = [[{ kind: 'boolean', value: false }], [{ kind: 'boolean', value: true }]];
+    request.admittedCoverage = true;
+    request.timeoutMillis = 5_000;
+
+    const invocation = await invokeCli(JSON.stringify(request), { coverageDirectory: raw, timeoutMillis: 10_000 });
+    const response = JSON.parse(invocation.stdout) as { status: string; result: { status: string; numSkips: number } };
+    const branches = await convertV8IfBranches(raw, [sourceRoot]);
+
+    assert.equal(invocation.exitCode, 0, invocation.stderr);
+    assert.equal(response.status, 'ok');
+    assert.equal(response.result.status, 'success');
+    assert.equal(response.result.numSkips, 1);
+    assert.deepEqual(branches.files.find(file => file.path.endsWith('/helper.ts'))?.branches
+      .map(branch => branch.arms.map(arm => arm.hits)), [[0, 1]]);
+    assert.equal(await readFile(path.join(raw, 'admitted-count.txt'), 'utf8'), '1');
+  } finally {
+    await rm(sourceRoot, { recursive: true, force: true });
+  }
+});
+
+test('admitted snapshots merge both branch outcomes without counting shrink trials', async () => {
+  const sourceRoot = await realpath(await mkdtemp(path.join(tmpdir(), 'usvm-admitted-merge-')));
+  try {
+    await writeFile(path.join(sourceRoot, 'helper.ts'), `
+export function helper(value: boolean): number {
+  if (value) { return 1; }
+  else { return 2; }
+}
+`);
+    await writeFile(path.join(sourceRoot, 'property.ts'), `
+import { helper } from './helper';
+export function predicate(value: boolean): boolean { helper(value); return true; }
+export function failing(value: number): boolean { helper(value === 0); return value === 0; }
+`);
+    const request = executionRequest(sourceRoot);
+    const manifest = request.manifest as Record<string, unknown>;
+    manifest.inputs = [{ name: 'value', domain: { kind: 'boolean' } }];
+    request.examples = [[{ kind: 'boolean', value: true }], [{ kind: 'boolean', value: false }]];
+    request.admittedCoverage = true;
+    request.numRuns = 2;
+    request.timeoutMillis = 5_000;
+    const raw = path.join(sourceRoot, 'raw');
+
+    const invocation = await invokeCli(JSON.stringify(request), { coverageDirectory: raw, timeoutMillis: 10_000 });
+    const branches = await convertV8IfBranches(raw, [sourceRoot]);
+
+    assert.equal(invocation.exitCode, 0, invocation.stderr);
+    assert.deepEqual(branches.files.find(file => file.path.endsWith('/helper.ts'))?.branches
+      .map(branch => branch.arms.map(arm => arm.hits)), [[1, 1]]);
+    assert.equal(await readFile(path.join(raw, 'admitted-count.txt'), 'utf8'), '2');
+
+    manifest.inputs = [{ name: 'value', domain: { kind: 'integer', min: 0, max: 10 } }];
+    manifest.predicate = { module: 'property.ts', exportName: 'failing', executionKind: 'sync' };
+    request.examples = [[{ kind: 'number', value: 'finite', bits: '4024000000000000' }]];
+    request.numRuns = 1;
+    const shrinkRaw = path.join(sourceRoot, 'shrink-raw');
+    const shrink = await invokeCli(JSON.stringify(request), { coverageDirectory: shrinkRaw, timeoutMillis: 10_000 });
+    const shrinkResponse = JSON.parse(shrink.stdout) as { result: { numShrinks: number } };
+    const shrinkBranches = await convertV8IfBranches(shrinkRaw, [sourceRoot]);
+
+    assert.equal(shrink.exitCode, 0, shrink.stderr);
+    assert.ok(shrinkResponse.result.numShrinks > 0);
+    assert.deepEqual(shrinkBranches.files.find(file => file.path.endsWith('/helper.ts'))?.branches
+      .map(branch => branch.arms.map(arm => arm.hits)), [[0, 1]]);
+    assert.equal(await readFile(path.join(shrinkRaw, 'admitted-count.txt'), 'utf8'), '1');
+  } finally {
+    await rm(sourceRoot, { recursive: true, force: true });
+  }
+});
+
+test('exact replay stops on a rejected example without generated fallback', async () => {
+  const sourceRoot = await realpath(await mkdtemp(path.join(tmpdir(), 'usvm-exact-coverage-')));
+  try {
+    await writeFile(path.join(sourceRoot, 'property.ts'), `
+export function precondition(value: boolean): boolean { return value; }
+export function predicate(_value: boolean): boolean { return false; }
+`);
+    const request = executionRequest(sourceRoot);
+    const manifest = request.manifest as Record<string, unknown>;
+    manifest.inputs = [{ name: 'value', domain: { kind: 'boolean' } }];
+    manifest.precondition = { module: 'property.ts', exportName: 'precondition', executionKind: 'sync' };
+    request.examples = [[{ kind: 'boolean', value: false }]];
+    request.exactReplay = true;
+
+    const invocation = await invokeCli(JSON.stringify(request));
+    const response = JSON.parse(invocation.stdout) as { result: {
+      numRuns: number; numSkips: number; counterexample: unknown; failure: { kind: string };
+    } };
+
+    assert.equal(invocation.exitCode, 0, invocation.stderr);
+    assert.equal(response.result.numRuns, 0);
+    assert.equal(response.result.numSkips, 1);
+    assert.equal(response.result.counterexample, null);
+    assert.equal(response.result.failure.kind, 'precondition-exhausted');
+  } finally {
+    await rm(sourceRoot, { recursive: true, force: true });
+  }
+});
+
 test('execution CLI emits one successful response document', async () => {
   const sourceRoot = await realpath(await mkdtemp(path.join(tmpdir(), 'usvm-execution-cli-')));
   try {

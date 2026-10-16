@@ -25,6 +25,8 @@ internal data class FastCheckExecutionRequest(
     val examples: List<List<JsConcreteValue>> = emptyList(),
     val observationRequest: PropertyObservationRequest? = null,
     val witness: FastCheckWitnessOperation? = null,
+    val admittedCoverage: Boolean = false,
+    val exactReplay: Boolean = false,
     @Transient
     val coverageRequest: PropertyCoverageRequest? = null,
 )

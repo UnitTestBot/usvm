@@ -3,6 +3,7 @@ package org.usvm.ts.pbt.fastcheck
 import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.ExternalWitnessBackend
 import org.usvm.ts.pbt.backend.ExternalWitnessCandidate
+import org.usvm.ts.pbt.backend.CoverageDiagnostic
 import org.usvm.ts.pbt.backend.PropertyBasedTestingBackend
 import org.usvm.ts.pbt.backend.PropertyCoverageCapability
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
@@ -10,6 +11,7 @@ import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.backend.WitnessEvidenceDelta
 import org.usvm.ts.pbt.backend.WitnessReplayConfiguration
 import org.usvm.ts.pbt.backend.WitnessReplayDeadline
+import org.usvm.ts.pbt.coverage.captureCoverageIdentity
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDefinition
@@ -62,6 +64,8 @@ class FastCheckBackend(
         validateConfiguration(property, configuration)
 
         val manifest = property.toManifest()
+        val admittedCoverage = configuration.coverageRequest?.admittedOnly == true
+        val identity = if (admittedCoverage) captureCoverageIdentity(manifest, sourceRoots) else null
         val sourceRootPaths = sourceRoots.map(Path::toString)
         val request = FastCheckExecutionRequest(
             manifest = manifest,
@@ -74,9 +78,24 @@ class FastCheckBackend(
             examples = configuration.examples,
             observationRequest = configuration.observationRequest,
             coverageRequest = configuration.coverageRequest,
+            admittedCoverage = admittedCoverage,
+            exactReplay = configuration.exactReplay,
         )
 
-        return client.check(request, remainingMillis = deadline?.let { it::remainingMillis })
+        val result = client.check(request, remainingMillis = deadline?.let { it::remainingMillis })
+        val coverage = result.coverage
+        if (identity == null || coverage == null) return result
+
+        val unchanged = identity == captureCoverageIdentity(manifest, sourceRoots)
+        val diagnostics = if (unchanged) {
+            coverage.diagnostics
+        } else {
+            coverage.diagnostics + CoverageDiagnostic(
+                code = "coverage.source.stale",
+                message = "TypeScript sources changed during the concrete run",
+            )
+        }
+        return result.copy(coverage = coverage.copy(identity = identity, diagnostics = diagnostics))
     }
 
     override fun confirmWitness(

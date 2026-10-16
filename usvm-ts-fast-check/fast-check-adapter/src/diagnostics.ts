@@ -1,4 +1,4 @@
-export type AdapterDiagnosticKind = 'invalid-request' | 'entry-point';
+export type AdapterDiagnosticKind = 'invalid-request' | 'entry-point' | 'coverage';
 
 export interface AdapterDiagnosticDescriptor {
   readonly kind: AdapterDiagnosticKind;

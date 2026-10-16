@@ -242,7 +242,7 @@ async function replayOnce(
   };
   try {
     const holds = await contexts.run(context, () => invokePropertyOnce(
-      values, predicate, precondition, undefined, 'replay', () => { context.active = true; },
+      values, predicate, precondition, undefined, 'replay', undefined, () => { context.active = true; },
     ));
     if (holds === null) {
       result.admission = 'PRECONDITION_REJECTED';

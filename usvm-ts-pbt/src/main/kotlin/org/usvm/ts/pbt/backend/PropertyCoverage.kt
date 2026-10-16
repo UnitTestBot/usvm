@@ -119,6 +119,8 @@ data class PropertyCoverageRequest(
     val includePatterns: List<String> = emptyList(),
     val excludePatterns: List<String> = emptyList(),
     val includeUnexecutedSources: Boolean = false,
+    /** Collect predicate invocations admitted by the precondition, excluding shrinking trials. */
+    val admittedOnly: Boolean = false,
 ) {
     init {
         require(scopes.isNotEmpty()) { "At least one coverage scope is required" }
@@ -247,8 +249,13 @@ data class PropertyCoverageArtifact(
     val provenance: CoverageProvenance,
     val files: List<SourceFileCoverage>,
     val diagnostics: List<CoverageDiagnostic> = emptyList(),
+    val identity: PropertyCoverageIdentity? = null,
+    val admittedInvocations: Int? = null,
 ) {
     init {
+        require(admittedInvocations == null || admittedInvocations >= 0) {
+            "Admitted invocation count must not be negative"
+        }
         require(backendId.isNotBlank()) { "Coverage backend ID must not be blank" }
         require(backendVersion.isNotBlank()) { "Coverage backend version must not be blank" }
         require(files.map(SourceFileCoverage::path).distinct().size == files.size) {
@@ -256,3 +263,10 @@ data class PropertyCoverageArtifact(
         }
     }
 }
+
+/** Exact property and source snapshot used by an admitted-only concrete run. */
+@Serializable
+data class PropertyCoverageIdentity(
+    val manifestSha256: String,
+    val sourceSha256: Map<String, String>,
+)

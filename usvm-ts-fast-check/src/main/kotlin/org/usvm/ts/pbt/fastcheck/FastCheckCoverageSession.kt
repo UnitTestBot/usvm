@@ -136,9 +136,18 @@ internal class FastCheckCoverageSession private constructor(
                 is FastCheckOperationResult.TimedOut -> return branchReport
             }
 
+            val admittedInvocations = if (coverageRequest.admittedOnly) {
+                Files.readString(workspace.rawDirectory.resolve("admitted-count.txt")).trim().toInt()
+            } else {
+                null
+            }
+
             FastCheckOperationResult.Completed(
                 value = appendExactBranches(
-                    artifact = finalArtifact.copy(diagnostics = diagnostics),
+                    artifact = finalArtifact.copy(
+                        diagnostics = diagnostics,
+                        admittedInvocations = admittedInvocations,
+                    ),
                     report = branches,
                 ),
             )
