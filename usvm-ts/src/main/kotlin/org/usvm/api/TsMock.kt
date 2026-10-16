@@ -16,7 +16,10 @@ import org.jacodb.ets.model.EtsVoidType
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.machine.call.TsUnknownCall
 import org.usvm.machine.expr.TsUnresolvedSort
+import org.usvm.machine.expr.dateModelTimestampLValue
+import org.usvm.machine.expr.intrinsicDateConstructorReceiver
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -44,6 +47,18 @@ internal fun TsState.setMockMethodCallResult(
     result: UExpr<*>,
 ) {
     methodResult = TsMethodResult.Success.MockedCall(result, method)
+}
+
+/** Native Date construction retains its allocated identity even when its timestamp is opaque. */
+internal fun makeFreshUnknownCallResult(scope: TsStepScope, call: TsUnknownCall): UExpr<*> {
+    val date = scope.calcOnState { intrinsicDateConstructorReceiver(call) }
+    if (date == null) return makeFreshUnknownCallResult(scope, call.resultType)
+
+    scope.doWithState {
+        val timestamp = makeSymbolicPrimitive(ctx.fp64Sort)
+        memory.write(ctx.dateModelTimestampLValue(date), timestamp, guard = ctx.trueExpr)
+    }
+    return date
 }
 
 /** Creates a fresh opaque result through [scope], keeping solver models consistent with new constraints. */

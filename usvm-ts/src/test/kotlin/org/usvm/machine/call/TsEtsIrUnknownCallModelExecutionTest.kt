@@ -3,6 +3,7 @@ package org.usvm.machine.call
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStaticCallExpr
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.PathSelectionStrategy
@@ -10,14 +11,18 @@ import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
+import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.lastStmt
+import org.usvm.machine.state.newStmt
 import org.usvm.util.TsTestResolver
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotSame
 import kotlin.test.assertNull
@@ -196,6 +201,46 @@ class TsEtsIrUnknownCallModelExecutionTest {
         assertTrue(result.modelIds.isEmpty())
         assertEquals(listOf(TsUnknownCallOutcome.PATH_STOPPED), result.events.map { it.outcome })
         assertIs<TsUnknownCallDecision.ResidualFallback>(result.events.single().decision)
+    }
+
+    @Test
+    fun `unknown application receiver cannot select a private model implementation`() {
+        val result = analyze(methodName = "unknownReceiverCannotEnterPrivateModel")
+        val normalValues = result.values.filterIsInstance<TsTestValue.TsNumber>()
+
+        assertTrue(normalValues.isNotEmpty())
+        assertTrue(normalValues.all { it.number == 42.0 }, result.values.toString())
+        assertTrue(result.modelIds.isEmpty())
+    }
+
+    @Test
+    fun `forged exact private target cannot enter without a dispatcher model frame`() {
+        val caller = method("pureArgumentAndReturn")
+        val callee = modelClass.methods.single { it.name == "absolute" }
+        val forgedCall = EtsStaticCallExpr(callee = callee.signature, args = emptyList(), type = callee.returnType)
+
+        val failure = assertFailsWith<IllegalStateException> {
+            TsMachine(
+                scene = scene,
+                options = machineOptions.copy(throwExceptionOnStepFailure = true),
+                tsOptions = TsOptions(),
+                unknownCallModels = models,
+            ).use { machine ->
+                machine.analyze(listOf(caller)) { _, state ->
+                    val call = TsConcreteMethodCallStmt(
+                        callee = callee,
+                        call = forgedCall,
+                        resolvedReceiver = null,
+                        instance = state.getStaticInstance(modelClass),
+                        args = listOf(state.ctx.mkFp64(-42.0)),
+                        returnSite = state.lastStmt,
+                    )
+                    state.newStmt(call)
+                }
+            }
+        }
+
+        assertTrue(failure.message.orEmpty().contains("dispatcher-owned model frame"), failure.message)
     }
 
     @Test

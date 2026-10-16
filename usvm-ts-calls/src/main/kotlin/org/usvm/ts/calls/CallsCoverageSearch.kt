@@ -460,6 +460,8 @@ internal class CompletedCoverageCandidateObserver(
             val key = origin.name + ":" + context.entryPointId.orEmpty() +
                 CallsExperimentJson.json.encodeToUtf8SafeString(inputs)
             if (inputKeys.add(key)) {
+                val suspensionReason = state.engineFailureReason?.let { reason -> "ENGINE_FAILURE: $reason" }
+                    ?: state.unsupportedReason
                 CallsCoverageCandidate(
                     emittedAtMillis = elapsedSinceMachineStart(),
                     emittedAtStep = executedSteps,
@@ -474,7 +476,7 @@ internal class CompletedCoverageCandidateObserver(
                     },
                     origin = origin,
                     suspendedAtMachineStop = origin == CallsCoverageCandidateOrigin.SUSPENDED && machineStopped,
-                    suspensionReason = state.unsupportedReason.takeIf {
+                    suspensionReason = suspensionReason.takeIf {
                         origin == CallsCoverageCandidateOrigin.SUSPENDED
                     },
                 )
