@@ -34,6 +34,7 @@ import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
+import org.usvm.machine.state.recordInitialStaticBinding
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.TsUnresolvedValue
@@ -461,6 +462,7 @@ fun TsContext.readStaticField(
 
     // Initialize statics in `clazz` if necessary.
     ensureStaticsInitialized(scope, clazz) ?: return null
+    scope.doWithState { recordInitialStaticBinding(clazz, field, isWrite = false) }
 
     // Get the static instance.
     val instance = scope.calcOnState { getStaticInstance(clazz) }
