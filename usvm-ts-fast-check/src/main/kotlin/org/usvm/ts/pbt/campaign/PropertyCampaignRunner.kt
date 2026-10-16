@@ -223,6 +223,11 @@ class PropertyCampaignRunner(
                 },
                 retainRelationTrace = { relationTrace = it },
             )
+            val relationFault = relationTrace?.confirmedOriginalFault()
+            if (relationFault != null) {
+                confirmation = relationFault
+                return result()
+            }
             if (symbolic == null) return result(PropertyCampaignStop.DEADLINE)
 
             val hasNativeWork = symbolic.target != null || symbolic.completedInputs.isNotEmpty()
@@ -409,6 +414,10 @@ class PropertyCampaignRunner(
         val manifest = property.toManifest()
         val mapping = PropertyEtsMapper(scene = scene, sourceRoots = listOf(root)).map(manifest)
         val relationTrace = relationChallenger?.invoke(scene, mapping)
+        if (relationTrace?.confirmedOriginalFault() != null) {
+            retainRelationTrace(relationTrace)
+            return null
+        }
         val budgetMillis = deadline.remainingMillis() - validationReserveMillis
         relationTrace?.let {
             retainRelationTrace(it.copy(originalAllocatedMillis = budgetMillis.coerceAtLeast(minimumValue = 0)))

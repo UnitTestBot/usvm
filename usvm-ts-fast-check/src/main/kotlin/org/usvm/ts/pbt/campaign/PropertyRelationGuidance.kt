@@ -11,6 +11,7 @@ import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.WitnessEvidenceDelta
 import org.usvm.ts.pbt.backend.WitnessReplayConfiguration
 import org.usvm.ts.pbt.backend.WitnessReplayDeadline
+import org.usvm.ts.pbt.backend.WitnessReplayStatus
 import org.usvm.ts.pbt.backend.captureWitness
 import org.usvm.ts.pbt.dsl.CompiledDslProperty
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
@@ -161,6 +162,7 @@ internal class PropertyRelationChallenger(
 
             val attempt = attempt(property, inference = inference, selected, guidance, relationDeadline, shrinkWitness)
             attempts += attempt
+            if (attempt.confirmedOriginalFault() != null) break
         }
 
         return PropertyRelationGuidanceTrace(
@@ -312,3 +314,12 @@ private data class RelationConfirmation(
     val evidence: WitnessEvidenceDelta?,
     val diagnostic: CapabilityDiagnostic? = null,
 )
+
+internal fun PropertyRelationGuidanceTrace.confirmedOriginalFault(): WitnessEvidenceDelta? =
+    attempts.firstNotNullOfOrNull { it.confirmedOriginalFault() }
+
+private fun PropertyRelationAttempt.confirmedOriginalFault(): WitnessEvidenceDelta? {
+    if (!completedWithinDeadline) return null
+
+    return confirmation?.takeIf { it.status == WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION }
+}

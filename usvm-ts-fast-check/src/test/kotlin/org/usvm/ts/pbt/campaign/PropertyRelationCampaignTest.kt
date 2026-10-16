@@ -34,6 +34,7 @@ import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class PropertyRelationCampaignTest {
@@ -74,14 +75,26 @@ class PropertyRelationCampaignTest {
     @Test
     fun `an original named fault found by a relation query stays a property violation`() {
         val compiled = numericProperty(delta = "+ 1")
+        val guidance = PropertyRelationGuidance.numericLocal(compiled)
+        val pair = guidance.pairs.single()
+        val twoCandidates = guidance.copy(pairs = guidance.pairs + ScalarObservationPair(pair.right, pair.left))
 
-        val artifact = run(compiled, PropertyRelationGuidance.numericLocal(compiled))
+        val artifact = run(compiled, twoCandidates)
 
-        val attempt = assertNotNull(artifact.result.relationGuidance).attempts.single()
+        val trace = assertNotNull(artifact.result.relationGuidance)
+        val attempt = trace.attempts.single()
+        val canonical = assertNotNull(artifact.result.confirmation)
+        assertEquals(2, assertNotNull(trace.selection).candidates.size)
         assertEquals(WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION, attempt.confirmation?.status)
         assertEquals("bound", attempt.confirmation?.originalReplay?.failure?.checkId)
+        assertEquals(attempt.confirmation, canonical)
+        assertEquals(WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION, canonical.status)
+        assertEquals("bound", canonical.originalReplay?.failure?.checkId)
         assertTrue(artifact.result.confirmedViolation)
-        assertNotNull(artifact.result.symbolic)
+        assertEquals(PropertyCampaignStop.COMPLETED, artifact.result.stop)
+        assertNull(artifact.result.symbolic)
+        assertEquals(0, trace.originalAllocatedMillis)
+        assertEquals(0, trace.originalElapsedMillis)
     }
 
     @Test
