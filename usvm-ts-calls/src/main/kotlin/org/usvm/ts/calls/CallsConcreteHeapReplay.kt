@@ -1,5 +1,28 @@
 package org.usvm.ts.calls
 
+/** Input slots have already passed the Kotlin primitive-only journal schema. */
+internal fun callsConcretePrimitiveDecoderSource(): String = """
+    function decodeCallsConcretePrimitive(value: any): any {
+      switch (value.kind) {
+        case 'undefined': return undefined;
+        case 'null': return null;
+        case 'boolean': case 'string': return value.value;
+        case 'number':
+          switch (value.value) {
+            case 'nan': return NaN;
+            case 'positive-infinity': return Infinity;
+            case 'negative-infinity': return -Infinity;
+            case 'finite': {
+              const view = new DataView(new ArrayBuffer(8));
+              view.setBigUint64(0, BigInt('0x' + value.bits), false);
+              return view.getFloat64(0, false);
+            }
+          }
+      }
+      throw Error('Invalid saved input primitive');
+    }
+""".trimIndent()
+
 /** Used inside the existing native replay wrapper with its lossless primitive decoder and exact prototype registry. */
 internal fun callsConcreteHeapRestoreSource(): String = """
     function restoreCallsConcreteHeap(graph: any, prototypes: Map<string, object>, decodePrimitive: (x: any) => any,
