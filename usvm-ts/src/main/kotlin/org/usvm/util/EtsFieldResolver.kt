@@ -31,7 +31,9 @@ fun TsContext.resolveEtsField(
             error("Multiple classes with name ${field.enclosingClass.name}")
         }
         val clazz = classes.single()
-        val fields = clazz.getAllFields(hierarchy).filter { it.name == field.name }
+        val fields = clazz.getAllFields(hierarchy).filter {
+            it.name == field.name && it.signature.wellKnownSymbol == field.wellKnownSymbol
+        }
         if (fields.size == 1) {
             return TsResolutionResult.create(fields.single())
         }
@@ -41,19 +43,21 @@ fun TsContext.resolveEtsField(
     if (instance != null) {
         when (val instanceType = instance.type) {
             is EtsClassType -> {
-                val field = tryGetSingleField(scene, instanceType.signature.name, field.name, hierarchy)
+                val field = tryGetSingleField(scene, instanceType.signature.name, field, hierarchy)
                 if (field != null) return TsResolutionResult.create(field)
             }
 
             is EtsUnclearRefType -> {
-                val field = tryGetSingleField(scene, instanceType.typeName, field.name, hierarchy)
+                val field = tryGetSingleField(scene, instanceType.typeName, field, hierarchy)
                 if (field != null) return TsResolutionResult.create(field)
             }
         }
     }
 
     val fields = scene.projectAndSdkClasses.flatMap { cls ->
-        cls.getAllFields(hierarchy).filter { it.name == field.name }
+        cls.getAllFields(hierarchy).filter {
+            it.name == field.name && it.signature.wellKnownSymbol == field.wellKnownSymbol
+        }
     }
 
     return TsResolutionResult.create(fields)
@@ -62,7 +66,7 @@ fun TsContext.resolveEtsField(
 private fun tryGetSingleField(
     scene: EtsScene,
     className: String,
-    fieldName: String,
+    field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
 ): EtsField? {
     val classes = scene.projectAndSdkClasses.filter { cls ->
@@ -70,19 +74,20 @@ private fun tryGetSingleField(
     }
     if (classes.size == 1) {
         val clazz = classes.single()
-        val fields = clazz.getAllFields(hierarchy).filter { it.name == fieldName }
+        val fields = clazz.getAllFields(hierarchy).filter {
+            it.name == field.name && it.signature.wellKnownSymbol == field.wellKnownSymbol
+        }
         if (fields.isEmpty()) {
-            // logger.warn { "No field with name '$fieldName' in class '${clazz.name}'" }
             return null
         }
         if (fields.size > 1) {
-            logger.warn { "Multiple fields with name '$fieldName' in class '${clazz.name}': $fields" }
+            logger.warn { "Multiple fields with name '${field.name}' in class '${clazz.name}': $fields" }
             return null
         }
         return fields.single()
     }
     val fields = classes.flatMap { cls ->
-        cls.fields.filter { it.name == fieldName }
+        cls.fields.filter { it.name == field.name && it.signature.wellKnownSymbol == field.wellKnownSymbol }
     }
     if (fields.size == 1) {
         return fields.single()
@@ -110,10 +115,13 @@ fun EtsClass.getAllProperties(hierarchy: EtsHierarchy): Pair<Set<EtsFieldName>, 
     val classes = hierarchy.getAncestors(this)
 
     classes.forEach {
-        val fieldNames = it.fields.map<EtsField, EtsFieldName> { it.name }
+        val fieldNames = it.fields.filter { field -> field.signature.wellKnownSymbol == null }
+            .map<EtsField, EtsFieldName> { it.name }
         allFields.addAll(fieldNames)
 
-        val methods = it.methods.filter { it.name != CONSTRUCTOR_NAME }
+        val methods = it.methods.filter { method ->
+            method.signature.wellKnownSymbol == null && method.name != CONSTRUCTOR_NAME
+        }
         val methodNames = methods.map<EtsMethod, EtsFieldName> { it.name }
         allMethods.addAll(methodNames)
     }

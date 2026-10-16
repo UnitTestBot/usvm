@@ -47,10 +47,12 @@ import org.usvm.util.InputPropertyDeclaration
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.arrayStorageType
 import org.usvm.util.createFakeField
+import org.usvm.util.hasStringName
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkStringBackingElementLValue
 import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.mkStringBackingLengthLValue
+import org.usvm.util.requireStringKey
 import org.usvm.util.resolveEtsField
 import org.usvm.util.boxArrayValue as boxRuntimeValue
 
@@ -59,6 +61,8 @@ private val logger = KotlinLogging.logger {}
 internal fun TsExprResolver.handleInstanceFieldRef(
     value: EtsInstanceFieldRef,
 ): UExpr<*>? = with(ctx) {
+    value.field.requireStringKey()
+
     when (val captured = tryCaptureInstanceCall(value)) {
         is TsExprApproximationResult.SuccessfulApproximation -> return captured.expr
         TsExprApproximationResult.ResolveFailure -> return null
@@ -166,7 +170,7 @@ private fun TsContext.resolveDeclaredField(
         return mkUndefinedValue()
     }
 
-    val declaredLiteralField = objectClass?.fields?.singleOrNull { it.name == field.name }
+    val declaredLiteralField = objectClass?.fields?.singleOrNull { it.hasStringName(field.name) }
     val writtenSort = scope.calcOnState { writtenObjectLiteralFieldSorts[instance to field.name] }
     val declaredLiteralSort = declaredLiteralField?.let { typeToSort(it.type) }
     val storageSort = writtenSort ?: declaredLiteralSort ?: resolvedFieldSort(
@@ -440,6 +444,8 @@ private fun TsContext.materializeTypedStringField(
 internal fun TsExprResolver.handleStaticFieldRef(
     value: EtsStaticFieldRef,
 ): UExpr<*>? = with(ctx) {
+    value.field.requireStringKey()
+
     if (value.field.name == "prototype") {
         val constructor = classConstructorRef(value.field.enclosingClass)
         if (!ensureSupportedArrayPrototypeAccess(constructor, value.field.name)) return null
@@ -454,6 +460,8 @@ fun TsContext.readStaticField(
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
 ): UExpr<*>? {
+    field.requireStringKey()
+
     // TODO: handle unresolved class, or multiple classes
     val clazz = scene.projectAndSdkClasses.singleOrNull {
         it.signature == field.enclosingClass

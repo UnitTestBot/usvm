@@ -24,7 +24,7 @@ fun TsContext.resolveEtsMethods(
         val methods = classes.flatMap {
             it.methods
         }.filter {
-            it.name == method.name
+            it.name == method.name && it.signature.wellKnownSymbol == method.wellKnownSymbol
         }
         return methods
     }
@@ -39,7 +39,7 @@ fun TsContext.resolveEtsMethods(
     val methods = classes.flatMap {
         it.methods
     }.filter {
-        it.name == method.name
+        it.name == method.name && it.signature.wellKnownSymbol == method.wellKnownSymbol
     }
     return methods
 }

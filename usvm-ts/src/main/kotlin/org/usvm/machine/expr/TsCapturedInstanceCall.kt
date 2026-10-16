@@ -24,12 +24,14 @@ import org.usvm.machine.call.isBuiltinDateGlobalType
 import org.usvm.machine.call.isBuiltinGlobalType
 import org.usvm.machine.state.lastStmt
 import org.usvm.util.getAllFields
+import org.usvm.util.hasStringName
 import org.usvm.util.mkFieldLValue
 
 /** A method property selected before evaluating call arguments. */
 class TsCapturedInstanceCall(
     val receiver: UExpr<*>,
     val sourceReceiver: EtsLocal,
+    val callee: EtsMethodSignature,
 )
 
 internal fun TsExprResolver.tryCaptureInstanceCall(
@@ -40,13 +42,16 @@ internal fun TsExprResolver.tryCaptureInstanceCall(
         ?: return TsExprApproximationResult.NoApproximation
     val target = assignment.lhv as? EtsLocal ?: return TsExprApproximationResult.NoApproximation
     val call = method.cfg.stmts.asSequence().mapNotNull { it.callExpr as? EtsPtrCallExpr }
-        .firstOrNull { it.ptr == target && it.receiver == field.instance && it.callee.name == field.field.name }
+        .firstOrNull {
+            val matchesNamedOrComputedKey = it.callee.name == field.field.name || it.callee.name == "%call"
+            it.ptr == target && it.receiver == field.instance && matchesNamedOrComputedKey
+        }
         ?: return TsExprApproximationResult.NoApproximation
 
     // Actual callback fields keep their value, including non-callable values.
     val owners = hierarchy.classesForType(EtsClassType(field.field.enclosingClass))
     val hasDeclaredField = owners.any { owner ->
-        owner.getAllFields(hierarchy).any { it.name == field.field.name }
+        owner.getAllFields(hierarchy).any { it.hasStringName(field.field.name) }
     }
 
     if (hasDeclaredField) {
@@ -89,14 +94,17 @@ internal fun TsExprResolver.tryCaptureInstanceCall(
 
     // Logger's compatibility approximation deliberately matches the source variable name.
     val approximationReceiver = if (implicitGlobal || source.name == "Logger") source else field.instance
+    val callee = call.callee.copy(name = field.field.name)
+    val captured = TsCapturedInstanceCall(
+        receiver = receiver,
+        sourceReceiver = approximationReceiver,
+        callee = callee,
+    )
     val pointer = allocateConcreteRef()
     scope.doWithState {
         capturedInstanceCalls = capturedInstanceCalls.put(
             pointer,
-            TsCapturedInstanceCall(
-                receiver = receiver,
-                sourceReceiver = approximationReceiver,
-            ),
+            captured,
             ownership,
         )
     }
@@ -110,7 +118,7 @@ internal fun TsExprResolver.handleCapturedInstanceCall(
     val receiver = requireNotNull(call.receiver)
     val instanceCall = EtsInstanceCallExpr(
         instance = receiver,
-        callee = call.callee,
+        callee = captured.callee,
         args = call.args,
         type = call.type,
     )

@@ -26,6 +26,10 @@ private val logger = KotlinLogging.logger {}
 internal fun TsExprResolver.handleStaticCall(
     expr: EtsStaticCallExpr,
 ): UExpr<*>? = with(ctx) {
+    if (expr.callee.wellKnownSymbol != null) {
+        throw UnsupportedOperationException("Symbol-keyed static method dispatch is not supported")
+    }
+
     // Check if the method was already called and returned a value.
     when (val result = scope.calcOnState { methodResult }) {
         is TsMethodResult.Success -> {
@@ -121,7 +125,7 @@ private fun TsExprResolver.resolveStaticMethod(
 
 private fun EtsMethod.isStaticCallTarget(methodName: String): Boolean {
     val isTopLevelFunction = enclosingClass?.name == DEFAULT_ARK_CLASS_NAME
-    return name == methodName && (isStatic || isTopLevelFunction)
+    return signature.wellKnownSymbol == null && name == methodName && (isStatic || isTopLevelFunction)
 }
 
 private fun TsExprResolver.processAmbiguousStaticMethod(

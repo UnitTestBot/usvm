@@ -563,7 +563,9 @@ open class TsTestStateResolver(
         val tracked = propertyState?.trackedObjectProperties.orEmpty()
             .filter { evaluateInModel(it.instance) == concreteRef }
             .groupBy { it.name }
-        val declaredFields = clazz.fields.filterNot { (it as EtsFieldImpl).modifiers.isStatic }
+        val declaredFields = clazz.fields.filter {
+            !it.isStatic && it.signature.wellKnownSymbol == null
+        }
         declaredFields.forEach { field ->
             if (field.name in tracked) return@forEach
             if ((field as EtsFieldImpl).isOptional && !concreteRef.isAllocated) return@forEach
