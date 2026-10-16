@@ -28,6 +28,7 @@ import org.usvm.ts.pbt.observation.PropertyObservationValue
 import org.usvm.ts.pbt.observation.PropertyPointEvent
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class InferScalarRelationsTest {
@@ -293,6 +294,59 @@ class InferScalarRelationsTest {
         assertFailsWith<IllegalArgumentException> {
             inferScalarRelations(PROPERTY, observations, listOf(PAIR), maxInvocations = 0)
         }
+    }
+
+    @Test
+    fun `guidance selection removes symmetric equality duplicates without merging temporal identities`() {
+        val samples = listOf(invocation(id = 0, left = 0.0, right = 0.0), invocation(id = 1, left = 1.0, right = 1.0))
+        val observations = artifact(samples)
+        val reversed = ScalarObservationPair(RIGHT, LEFT)
+        val inference = inferScalarRelations(PROPERTY, observations, listOf(PAIR, reversed))
+
+        val selected = selectScalarGuidance(inference)
+
+        assertSame(inference, selected.inference)
+        assertEquals(3, selected.candidates.size)
+        assertTrue(selected.candidates.all { it.relevance == ScalarGuidanceRelevance.UNKNOWN })
+        assertEquals(ScalarGuidanceExclusionReason.DUPLICATE, selected.excluded.single().reason)
+        assertEquals(reversed, selected.excluded.single().relation.pair)
+        assertEquals(ScalarRelationTemplate.STRICT_EQUAL, selected.excluded.single().relation.template)
+        val duplicateEvidence = selected.excluded.single().relation.evidence
+        assertEquals(samples, duplicateEvidence.map { it.invocation })
+
+        val equality = selected.candidates.first().relation
+        val later = equality.copy(pair = equality.pair.copy(right = RIGHT.copy(kind = ObservationPointKind.POST)))
+        val differentTimes = inference.copy(relations = listOf(equality, later))
+        assertEquals(2, selectScalarGuidance(differentTimes).candidates.size)
+    }
+
+    @Test
+    fun `empty finite and contradicted evidence gives no guidance without losing the original artifact`() {
+        val samples = listOf(invocation(id = 0, left = 1.0, right = 1.0))
+        val insufficient = infer(samples)
+        val contradicted = infer(samples + invocation(id = 1, left = 1.0, right = 0.0))
+
+        for (inference in listOf(infer(emptyList()), insufficient, contradicted)) {
+            val selected = selectScalarGuidance(inference)
+
+            assertSame(inference, selected.inference)
+            assertTrue(selected.candidates.isEmpty())
+            assertEquals(inference.relations, selected.excluded.map { it.relation })
+            assertTrue(selected.excluded.all { it.reason == ScalarGuidanceExclusionReason.NOT_SAMPLED })
+        }
+    }
+
+    @Test
+    fun `guidance candidates are bounded in original selection order and overflow evidence is retained`() {
+        val samples = listOf(invocation(id = 0, left = 0.0, right = 0.0), invocation(id = 1, left = 1.0, right = 1.0))
+        val inference = infer(samples)
+
+        val selected = selectScalarGuidance(inference, maxCandidates = 1)
+
+        assertEquals(inference.relations.first(), selected.candidates.single().relation)
+        assertEquals(inference.relations.last(), selected.excluded.single().relation)
+        assertEquals(ScalarGuidanceExclusionReason.CANDIDATE_LIMIT, selected.excluded.single().reason)
+        assertFailsWith<IllegalArgumentException> { selectScalarGuidance(inference, maxCandidates = 0) }
     }
 
     private fun infer(samples: List<PropertyInvocationObservation>): ScalarRelationInference =

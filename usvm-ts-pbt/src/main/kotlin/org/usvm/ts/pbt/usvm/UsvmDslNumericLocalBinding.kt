@@ -5,8 +5,7 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNumberType
 import org.usvm.ts.pbt.dsl.CompiledDslProperty
-import org.usvm.ts.pbt.dsl.DslNumericLocalCapture
-import org.usvm.ts.pbt.dsl.PropertyTypeScriptCompiler
+import org.usvm.ts.pbt.dsl.isReproducibleCompilerOutput
 import org.usvm.ts.pbt.inference.ScalarRelation
 import org.usvm.ts.pbt.inference.ScalarRelationInference
 import org.usvm.ts.pbt.inference.ScalarRelationStatus
@@ -209,21 +208,6 @@ private fun CompiledDslProperty.matchesPinnedSources(
 } catch (_: IOException) {
     false
 } catch (_: InvalidPathException) {
-    false
-}
-
-private fun CompiledDslProperty.isReproducibleCompilerOutput(): Boolean = try {
-    val capture = requireNotNull(numericLocalCapture)
-    val regenerated = PropertyTypeScriptCompiler().compile(
-        program,
-        generatedModule = definition.predicate.module,
-        resolveModule = { module -> requireNotNull(resolvedModules[module]) { "Unretained module: $module" } },
-        numericLocalCapture = DslNumericLocalCapture(capture.binding.localName, capture.result.assertionId),
-    )
-
-    definition == regenerated.definition && typeScript == regenerated.typeScript &&
-        numericLocalCapture == regenerated.numericLocalCapture
-} catch (_: IllegalArgumentException) {
     false
 }
 

@@ -10,6 +10,7 @@ import org.usvm.ts.pbt.dsl.CompiledDslProperty
 import org.usvm.ts.pbt.dsl.DslNumericLocalCapture
 import org.usvm.ts.pbt.dsl.PropertyTypeScriptCompiler
 import org.usvm.ts.pbt.dsl.defineProperty
+import org.usvm.ts.pbt.dsl.equalTo
 import org.usvm.ts.pbt.dsl.invoke
 import org.usvm.ts.pbt.dsl.lessOrEqual
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
@@ -31,6 +32,7 @@ import java.nio.file.Path
 import java.security.MessageDigest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class DslNumericLocalRelationTest {
@@ -246,6 +248,72 @@ class DslNumericLocalRelationTest {
         assertTrue(missing.targets.isEmpty())
     }
 
+    @Test
+    fun `native compiler observations keep a stronger equality and exclude the original order only`() {
+        val fixture = prepare()
+
+        val selected = selectScalarGuidance(fixture.inference, fixture.compiled)
+
+        assertSame(fixture.inference, selected.inference)
+        assertEquals(ScalarRelationTemplate.STRICT_EQUAL, selected.candidates.single().relation.template)
+        assertEquals(ScalarGuidanceRelevance.KNOWN_DSL_CHECK, selected.candidates.single().relevance)
+        assertEquals(ScalarRelationTemplate.LESS_OR_EQUAL, selected.excluded.single().relation.template)
+        assertEquals(ScalarGuidanceExclusionReason.ORIGINAL_CHECK, selected.excluded.single().reason)
+        assertEquals(ObservationBuildStatus.UNVERIFIED, selected.inference.buildStatus)
+    }
+
+    @Test
+    fun `an original equality excludes both equality and its weaker orders over the same captured operands`() {
+        val fixture = prepare(originalEquality = true)
+        val relations = fixture.inference.relations
+        val reversed = relations.map { relation ->
+            relation.copy(
+                pair = ScalarObservationPair(relation.pair.right, relation.pair.left),
+                evidence = relation.evidence.map { it.copy(left = it.right, right = it.left) },
+            )
+        }
+        val inference = fixture.inference.copy(relations = relations + reversed)
+
+        val selected = selectScalarGuidance(inference, fixture.compiled)
+
+        assertTrue(selected.candidates.isEmpty())
+        assertEquals(4, selected.excluded.size)
+        assertTrue(selected.excluded.all { it.reason == ScalarGuidanceExclusionReason.ORIGINAL_CHECK })
+        assertTrue(selected.excluded.all { it.relevance == ScalarGuidanceRelevance.KNOWN_DSL_CHECK })
+        assertEquals(inference.relations, selected.excluded.map { it.relation })
+    }
+
+    @Test
+    fun `forged retained program source or point metadata cannot establish original formula relevance`() {
+        val fixture = prepare()
+        val compiled = fixture.compiled
+        val capture = assertNotNull(compiled.numericLocalCapture)
+        val fake = capture.copy(result = capture.result.copy(operandId = "unrelated"))
+        val variants = listOf(
+            compiled.copy(numericLocalCapture = fake),
+            compiled.copy(typeScript = compiled.typeScript + "// changed source"),
+            compiled.copy(resolvedModules = emptyMap()),
+            compiled.copy(program = compiled.program.copy(checks = emptyList())),
+        )
+        for (changed in variants) {
+            val selected = selectScalarGuidance(fixture.inference, changed)
+
+            assertEquals(2, selected.candidates.size)
+            assertTrue(selected.candidates.all { it.relevance == ScalarGuidanceRelevance.UNKNOWN })
+            assertTrue(selected.excluded.isEmpty())
+        }
+        val changedPoints = fixture.inference.relations.map { relation ->
+            relation.copy(pair = relation.pair.copy(left = relation.pair.left.copy(id = "other-result")))
+        }
+        val relabeled = selectScalarGuidance(fixture.inference.copy(relations = changedPoints), compiled)
+        assertTrue(relabeled.candidates.all { it.relevance == ScalarGuidanceRelevance.UNKNOWN })
+        assertTrue(relabeled.excluded.isEmpty())
+
+        val staleSources = fixture.inference.sources.map { it.copy(sha256 = "0".repeat(n = 64)) }
+        val stale = selectScalarGuidance(fixture.inference.copy(sources = staleSources), compiled)
+        assertTrue(stale.candidates.all { it.relevance == ScalarGuidanceRelevance.UNKNOWN })
+    }
+
     private fun ScalarRelation.changedResult(
         change: (PropertyPointEvent) -> PropertyPointEvent,
     ): ScalarRelation {
@@ -259,8 +327,8 @@ class DslNumericLocalRelationTest {
         return copy(evidence = changed)
     }
 
-    private fun prepare(): Fixture {
-        val compiled = compile()
+    private fun prepare(originalEquality: Boolean = false): Fixture {
+        val compiled = compile(originalEquality)
         val capture = assertNotNull(compiled.numericLocalCapture)
         val sources = capture.observationRequest().sources + source(module = "functions.ts")
         val request = capture.observationRequest().copy(sources = sources)
@@ -290,7 +358,7 @@ class DslNumericLocalRelationTest {
         return PropertyObservationSource(module, hash)
     }
 
-    private fun compile(): CompiledDslProperty {
+    private fun compile(originalEquality: Boolean): CompiledDslProperty {
         val source = """
             export function transform(input: number): number {
                 if (input === 417) return input - 1;
@@ -304,7 +372,9 @@ class DslNumericLocalRelationTest {
             val other by int(min = 0, max = 1000)
             val result by value(transform(input))
 
-            check(name = "bound") { result lessOrEqual input }
+            check(name = "bound") {
+                if (originalEquality) result equalTo input else result lessOrEqual input
+            }
             check(name = "other-input") { other lessOrEqual 1000 }
         }
         val compiled = PropertyTypeScriptCompiler().compile(
