@@ -66,6 +66,8 @@ def verify_runtime(frozen):
 def validate_manifest(manifest):
     if manifest["schemaVersion"] != 1 or not manifest["experimentId"]:
         raise ValueError("Experiment identity or schema version is invalid")
+    if manifest.get("comparisonKind") not in ("functional-quota", "equal-budget"):
+        raise ValueError("Declare whether this is a functional quota check or an equal-budget comparison")
     seeds = manifest["seeds"]
     valid_seeds = seeds and len(set(seeds)) == len(seeds) and all(-(2 ** 31) <= seed < 2 ** 31 for seed in seeds)
     if not valid_seeds:
@@ -77,11 +79,11 @@ def validate_manifest(manifest):
         and 0 < manifest["pbtAllocationMillis"] < budget - replay_reserve - validation_reserve
     if not valid_budget:
         raise ValueError("PBT, runner validation and class replay allocations must fit the total budget")
-    valid_limits = 0 < manifest["numRuns"] <= manifest["pbtInputLimit"] <= 64 \
+    valid_limits = manifest["numRuns"] > 0 and 0 < manifest["pbtInputLimit"] <= 100_000 \
         and manifest["symbolicInputLimit"] > 0 and 1 <= manifest["maxArrayElements"] <= 64 \
-        and 1024 <= manifest["maxObservationBytes"] <= 65_536
+        and 1024 <= manifest["maxObservationBytes"] <= 2 * 1024 * 1024
     if not valid_limits:
-        raise ValueError("Frozen limits must fit the adapter's 64-invocation/64-element/65536-byte capture contract")
+        raise ValueError("Frozen limits must fit the compact export's 100000-record/64-element/2MiB contract")
     unique_cases = manifest["cases"] and len({case["id"] for case in manifest["cases"]}) == len(manifest["cases"])
     if not unique_cases:
         raise ValueError("The manifest must contain distinct case identities")
@@ -155,17 +157,59 @@ def freeze(manifest_path, output, distribution, adapter, node):
     return frozen
 
 
+def native_coverage_matches(candidate, native):
+    coverage = native.get("coverage") or {}
+    identity = coverage.get("identity") or {}
+    return native.get("admission") == "ADMITTED" and not native.get("diagnostic") \
+        and coverage.get("propertyId") == candidate.get("propertyId") \
+        and coverage.get("admittedInvocations") == 1 \
+        and coverage.get("provenance", {}).get("request", {}).get("admittedOnly") is True \
+        and bool(identity) and identity.get("manifestSha256") == candidate.get("manifestSha256")
+
+
+def confirmed_symbolic_input(artifact):
+    """Consume the existing original-property confirmation; do not confirm raw faults here."""
+    result = artifact["result"]
+    confirmation = result.get("confirmation") or {}
+    candidate = confirmation.get("candidate") or {}
+    native = confirmation.get("originalReplay") or {}
+    target = candidate.get("target") or {}
+    symbolic = result.get("symbolic") or {}
+    assertions = artifact["property"].get("assertions", [])
+    named_ids = {assertion["id"] for assertion in assertions}
+    target_id = target.get("id")
+    original_check_matches = target_id in named_ids and (native.get("failure") or {}).get("checkId") == target_id \
+        if assertions else target_id == artifact["property"]["predicate"]["exportName"]
+    valid = confirmation.get("status") == "CONFIRMED_PROPERTY_VIOLATION" \
+        and not confirmation.get("diagnostic") and candidate.get("propertyId") == result.get("propertyId") \
+        and target.get("role", "PROPERTY") == "PROPERTY" \
+        and original_check_matches and native.get("outcome") in ("FALSE", "THREW") \
+        and target.get("expectedOutcome") == native.get("outcome") \
+        and native.get("targetMatched") is True and candidate.get("inputs") == symbolic.get("inputs") \
+        and candidate.get("inputs") is not None and native_coverage_matches(candidate, native)
+    if not valid:
+        return None
+    return {"inputs": candidate["inputs"], "admission": "ADMITTED", "outcome": native["outcome"]}
+
+
 def replay_inputs(artifact):
     result = artifact["result"]
     concrete = result.get("concrete")
-    omissions = {"pbtDroppedInvocations": 0, "pbtUnavailableInputs": 0, "symbolicOmittedInputs": 0,
+    omissions = {"pbtDroppedInvocations": 0, "pbtUnavailableInputs": 0, "pbtUnsupportedInputs": 0,
+                 "pbtPendingInvocations": 0, "symbolicOmittedInputs": 0,
                  "symbolicUncheckedInputs": 0}
     batches = []
     if concrete is not None:
+        export = concrete.get("inputExport")
         observation = concrete.get("observations")
-        omissions["pbtDroppedInvocations"] = observation.get("droppedInvocations", 0) if observation else 1
+        capture = export if export is not None else observation
+        omissions["pbtDroppedInvocations"] = capture.get("droppedInvocations", 0) if capture else 1
+        if export is not None:
+            omissions["pbtUnsupportedInputs"] = export["unsupportedInputs"]
+            omissions["pbtPendingInvocations"] = export["pendingInvocations"]
+        records = (export or {}).get("records", []) if export is not None else (observation or {}).get("invocations", [])
         invocations = []
-        for invocation in (observation or {}).get("invocations", []):
+        for invocation in records:
             if invocation["phase"] == "shrink":
                 continue
             value = invocation["input"]
@@ -184,21 +228,38 @@ def replay_inputs(artifact):
     if symbolic is not None:
         omissions["symbolicOmittedInputs"] = symbolic.get("omittedCompletedInputs", 0)
         replays = result.get("symbolicInputReplays", [])
-        omissions["symbolicUncheckedInputs"] = len(symbolic.get("completedInputs", [])) - len(replays)
+        input_key = lambda inputs: json.dumps(inputs, sort_keys=True)
+        completed_keys = {input_key(item["inputs"]) for item in symbolic.get("completedInputs", [])}
+        replay_keys = {input_key(item["candidate"]["inputs"]) for item in replays}
+        omissions["symbolicUncheckedInputs"] = len(completed_keys - replay_keys)
+        confirmed = confirmed_symbolic_input(artifact)
         invocations = []
         for replay in replays:
             native = replay["replay"]
-            matches = replay.get("predictedOutcomes") == [native["outcome"]]
-            eligible = replay["completedWithinDeadline"] and not native.get("diagnostic") and matches
+            inputs = replay["candidate"]["inputs"]
+            if confirmed is not None and inputs == confirmed["inputs"]:
+                continue
+            eligible = replay["completedWithinDeadline"] and replay.get("predictedOutcomes") == ["HOLDS"] \
+                and native["outcome"] == "HOLDS" and native_coverage_matches(replay["candidate"], native)
             if not eligible:
                 omissions["symbolicUncheckedInputs"] += 1
                 continue
             invocations.append({"inputs": replay["candidate"]["inputs"],
                                 "admission": native["admission"], "outcome": native["outcome"]})
+        if confirmed is not None:
+            invocations.append(confirmed)
+        elif symbolic.get("target") is not None and input_key(symbolic.get("inputs")) not in replay_keys:
+            omissions["symbolicUncheckedInputs"] += 1
         batches.append({"id": "symbolic", "inputs": invocations, "isolateInputs": True})
     if concrete is None and result["mode"] != "SYMBOLIC_ONLY":
         omissions["pbtUnavailableInputs"] += 1
     return batches, omissions
+
+
+def full_budget_eligible(summary):
+    quota_stopped_pbt = summary["mode"] == "PBT_ONLY" and summary.get("pbtQuotaReached") \
+        and not summary["confirmedViolation"]
+    return summary["comparisonKind"] == "equal-budget" and summary["primaryEligible"] and not quota_stopped_pbt
 
 
 def run_cell(frozen, case, seed, mode, output):
@@ -211,6 +272,7 @@ def run_cell(frozen, case, seed, mode, output):
     runner_budget = remaining_budget - frozen["classReplayReserveMillis"]
     summary = {"caseId": case["id"], "project": case["project"], "population": case["population"],
                "seed": seed, "mode": mode, "stopCriterion": STOP_CRITERION, "preparationChargedMillis": preparation_cost,
+               "comparisonKind": frozen["comparisonKind"],
                "declaredTotalBudgetMillis": frozen["totalBudgetMillis"], "pbtRunQuota": frozen["numRuns"],
                "totalStatements": case.get("totalStatements"), "universeSha256": case.get("universeSha256"),
                "coveredStatementIds": [], "coverageComplete": False, "confirmedViolation": False}
@@ -222,7 +284,7 @@ def run_cell(frozen, case, seed, mode, output):
         sources = [{"module": relative, "sha256": sha} for relative, sha in case["sourceSha256"].items()]
         configuration = {"seed": seed, "numRuns": frozen["numRuns"], "timeoutMillis": runner_budget,
                          "coverageRequest": {"admittedOnly": True},
-                         "observationRequest": {"points": [], "sources": sources,
+                         "inputExportRequest": {"sources": sources,
                                                 "maxInvocations": frozen["pbtInputLimit"],
                                                 "maxArrayElements": frozen["maxArrayElements"],
                                                 "maxBytes": frozen["maxObservationBytes"]}}
@@ -242,6 +304,7 @@ def run_cell(frozen, case, seed, mode, output):
             raise ValueError("Runner produced no completed artifact; raw process output is retained")
         artifact = read_json(directory / "campaign.json")
         result = artifact["result"]
+        summary["campaignElapsedMillis"] = result["elapsedMillis"]
         confirmation = result.get("confirmation") or {}
         failure = (result.get("concrete") or {}).get("failure") or {}
         summary["confirmedViolation"] = failure.get("kind") == "property" or confirmation.get("status") == "CONFIRMED_PROPERTY_VIOLATION"
@@ -251,6 +314,8 @@ def run_cell(frozen, case, seed, mode, output):
         summary["campaignDiagnostic"] = result.get("diagnostic")
         summary["concreteFailureKind"] = failure.get("kind")
         concrete = result.get("concrete") or {}
+        summary["compactCaptureMillis"] = (concrete.get("inputExport") or {}).get("captureTimeMillis", 0)
+        summary["pointCaptureMillis"] = (concrete.get("observations") or {}).get("captureTimeMillis", 0)
         summary["pbtRuns"] = concrete.get("numRuns")
         summary["pbtSkips"] = concrete.get("numSkips")
         summary["pbtQuotaReached"] = concrete.get("status") == "success" and concrete.get("numRuns") == frozen["numRuns"]
@@ -315,6 +380,8 @@ def run_cell(frozen, case, seed, mode, output):
     if summary["overrunMillis"]:
         summary["primaryEligible"] = False
         summary["coverageComplete"] = False
+    summary["nativeReplayMillis"] = sum(process["elapsedMillis"] for process in summary.get("replayProcesses", []))
+    summary["fullBudgetEligible"] = full_budget_eligible(summary)
     write_json(directory / "cell.json", summary)
     return summary
 

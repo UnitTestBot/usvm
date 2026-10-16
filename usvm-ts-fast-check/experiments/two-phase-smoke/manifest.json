@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "experimentId": "two-phase-functional-smoke-v1",
+  "comparisonKind": "functional-quota",
   "seeds": [
     37
   ],

@@ -287,7 +287,7 @@ class PropertyCampaignRunner(
         val request = configuration.coverageRequest ?: PropertyCoverageRequest()
         return configuration.copy(
             coverageRequest = request.copy(admittedOnly = true),
-            observationRequest = if (guided) {
+            observationRequest = if (guided && configuration.inputExportRequest == null) {
                 configuration.observationRequest ?: PropertyObservationRequest(points = emptyList(), sources = sources)
             } else {
                 configuration.observationRequest
