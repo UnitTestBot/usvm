@@ -56,4 +56,12 @@ export class EtsIrSemanticModelCalls {
     guardedModelBodyCannotBypassDispatcher(): number {
         return guarded(-1);
     }
+
+    instanceIdentity(value: number): number {
+        return 42;
+    }
+
+    unknownReceiverCannotEnterPrivateModel(receiver: any): number {
+        return receiver.instanceIdentity(7);
+    }
 }
