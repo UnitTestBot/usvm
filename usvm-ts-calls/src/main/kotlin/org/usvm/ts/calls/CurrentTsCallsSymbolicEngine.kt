@@ -244,12 +244,16 @@ internal class CurrentTsCallsSymbolicEngine(
                 TsAnalysisStopReason.STOPPED -> {
                     CallsSymbolicStatus.TIMEOUT
                 }
+                TsAnalysisStopReason.FORK_LIMIT -> {
+                    CallsSymbolicStatus.RUNTIME_LIMITATION
+                }
             }
 
             return result(
                 status = status,
                 startedAt = startedAt,
                 diagnostic = buildList {
+                    if (analysis.stopReason == TsAnalysisStopReason.FORK_LIMIT) add("FORK_LIMIT")
                     addAll(analysis.unsupportedPaths)
                     if (interpreterObserver.runtimeLimitations.isNotEmpty()) {
                         add(
