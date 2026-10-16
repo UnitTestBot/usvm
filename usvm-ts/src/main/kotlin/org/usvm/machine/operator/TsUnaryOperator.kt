@@ -70,8 +70,8 @@ sealed interface TsUnaryOperator {
             arg: UExpr<UAddressSort>,
             scope: TsStepScope,
         ): UBoolExpr? {
-            val truthy = mkTruthyExpr(arg, scope)
             scope.ensureTruthinessSupported(arg) ?: return null
+            val truthy = mkTruthyExpr(arg, scope)
 
             return mkNot(truthy)
         }
@@ -80,8 +80,8 @@ sealed interface TsUnaryOperator {
             arg: UConcreteHeapRef,
             scope: TsStepScope,
         ): UBoolExpr? {
-            val truthy = mkTruthyExpr(arg, scope)
             scope.ensureTruthinessSupported(arg) ?: return null
+            val truthy = mkTruthyExpr(arg, scope)
 
             return mkNot(truthy)
         }

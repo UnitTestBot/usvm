@@ -13,7 +13,6 @@ import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
-import org.usvm.util.TsUnsupportedWitnessException
 import org.usvm.util.assertNodeReplay
 import org.usvm.util.getResourcePath
 import org.usvm.util.jsString
@@ -25,14 +24,11 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 
 private const val TRUTHINESS_REPLAY_FAILURE_CONTEXT_LIMIT = 1000
-private const val UNBACKED_STRING_REASON = "Truthiness needs a modeled string backing for dynamic references"
-private const val MISSING_STRING_BACKING_PREFIX = "Symbolic string is missing backing array:"
 
 class TsDynamicTruthinessTest : TsMethodTestRunner() {
     private data class AnalysisWitnesses(
         val analysis: TsAnalysisResult,
         val witnesses: List<TsTest>,
-        val unsupportedWitnesses: List<String>,
     )
 
     @TempDir
@@ -42,14 +38,23 @@ class TsDynamicTruthinessTest : TsMethodTestRunner() {
     override val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
 
     @Test
-    fun `unbacked any strings are unsupported in truthiness without losing object paths`() {
+    fun `dynamic truthiness prepares string backing without losing object paths`() {
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = getMethod(methodName = "objectTruthy", className = "SymbolicStringInput"),
             { _, result -> result.number == 1.0 },
             invariants = arrayOf({ _, result -> result.number == 1.0 }),
         )
 
-        val names = setOf("anyTruthy", "anyNegated", "anyAnd", "anyOr", "anyObjectTruthy", "objectTruthy")
+        val names = setOf(
+            "anyTruthy",
+            "anyNegated",
+            "anyAnd",
+            "anyOr",
+            "anyObjectTruthy",
+            "objectTruthy",
+            "truthinessBeforeKind",
+            "equalsObjectBeforeKind",
+        )
         val methods = scene.projectClasses.single { it.name == "SymbolicStringInput" }.methods
             .filter { it.name in names }
             .associateBy { it.name }
@@ -59,6 +64,7 @@ class TsDynamicTruthinessTest : TsMethodTestRunner() {
             solverTimeout = Duration.INFINITE,
             typeOperationsTimeout = Duration.INFINITE,
             stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = 0,
         )
 
         val results = TsMachine(
@@ -68,38 +74,18 @@ class TsDynamicTruthinessTest : TsMethodTestRunner() {
         ).use { machine ->
             methods.mapValues { (_, method) ->
                 val analysis = machine.analyzeWithOutcome(listOf(method))
-                val unsupportedWitnesses = mutableListOf<String>()
-                val witnesses = analysis.states.mapNotNull { state ->
-                    try {
-                        TsTestResolver().resolve(method, state)
-                    } catch (e: TsUnsupportedWitnessException) {
-                        if (method.name != "anyObjectTruthy" ||
-                            e.message?.startsWith(MISSING_STRING_BACKING_PREFIX) != true
-                        ) {
-                            throw e
-                        }
+                val witnesses = analysis.states.map { state -> TsTestResolver().resolve(method, state) }
 
-                        unsupportedWitnesses += e.message.orEmpty()
-                        null
-                    }
-                }
-
-                AnalysisWitnesses(analysis, witnesses, unsupportedWitnesses)
+                AnalysisWitnesses(analysis, witnesses)
             }
         }
 
         assertEquals(names, methods.keys)
         results.forEach { (name, result) ->
-            val (analysis, witnesses, unsupportedWitnesses) = result
+            val (analysis, witnesses) = result
             assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
-            if (name == "objectTruthy") {
-                assertTrue(analysis.unsupportedPaths.isEmpty(), "$name: ${analysis.unsupportedPaths}")
-            } else if (name == "anyObjectTruthy") {
-                assertTrue(analysis.unsupportedPaths.isEmpty(), "$name: ${analysis.unsupportedPaths}")
-                assertTrue(
-                    unsupportedWitnesses.isEmpty(),
-                    "$name regressed a string witness prepared after type refinement: $unsupportedWitnesses",
-                )
+            assertTrue(analysis.unsupportedPaths.isEmpty(), "$name: ${analysis.unsupportedPaths}")
+            if (name == "anyObjectTruthy") {
                 assertTrue(
                     witnesses.any { witness ->
                         witness.before.parameters.single() is TsTestValue.TsClass &&
@@ -107,8 +93,6 @@ class TsDynamicTruthinessTest : TsMethodTestRunner() {
                     },
                     "$name lost its object path",
                 )
-            } else {
-                assertTrue(UNBACKED_STRING_REASON in analysis.unsupportedPaths, "$name: ${analysis.unsupportedPaths}")
             }
             assertTrue(witnesses.isNotEmpty(), "$name produced no supported witnesses")
         }
@@ -141,6 +125,34 @@ class TsDynamicTruthinessTest : TsMethodTestRunner() {
             name = "any-truthiness",
             timeoutMessage = "any-truthiness replay timed out",
             failureContext = script.take(TRUTHINESS_REPLAY_FAILURE_CONTEXT_LIMIT),
+        )
+    }
+
+    @Test
+    fun `truthiness before type refinement retains empty strings null and undefined`() {
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+            method = getMethod(methodName = "truthinessBeforeKind", className = "SymbolicStringInput"),
+            { input, result -> input is TsTestValue.TsString && input.value.isEmpty() && result.number == 10.0 },
+            { input, result -> input is TsTestValue.TsString && input.value.isNotEmpty() && result.number == 21.0 },
+            { input, result -> input == TsTestValue.TsNull && result.number == 30.0 },
+            { input, result -> input == TsTestValue.TsUndefined && result.number == 40.0 },
+        )
+    }
+
+    @Test
+    fun `object equality before type refinement retains all runtime kinds`() {
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+            method = getMethod(methodName = "equalsObjectBeforeKind", className = "SymbolicStringInput"),
+            { input, result -> input is TsTestValue.TsString && result.number == 10.0 },
+            { input, result -> input == TsTestValue.TsNull && result.number == 20.0 },
+            { input, result -> input == TsTestValue.TsUndefined && result.number == 30.0 },
+            { input, result ->
+                val otherKind = input !is TsTestValue.TsString &&
+                    input != TsTestValue.TsNull && input != TsTestValue.TsUndefined
+
+                otherKind && result.number == 40.0
+            },
+            invariants = arrayOf({ _, result -> result.number < 100.0 }),
         )
     }
 }
