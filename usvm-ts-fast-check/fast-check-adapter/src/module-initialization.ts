@@ -73,6 +73,34 @@ export function unsupportedModuleInitialization(
     return declaredBeforeUse ? initializer(declaration.initializer, seen) : undefined
   }
 
+  const pureComputedName = (name: ts.ComputedPropertyName): boolean => {
+    if (initializer(name.expression) === 'primitive') return true
+
+    const expression = name.expression
+    if (!ts.isPropertyAccessExpression(expression) || expression.name.text !== 'iterator'
+      || !ts.isIdentifier(expression.expression) || expression.expression.text !== 'Symbol') return false
+    // The checked source program has no default library. No source binding means the standard runtime global.
+    return checker.getSymbolAtLocation(expression.expression) === undefined
+  }
+
+  const isStatic = (member: ts.ClassElement): boolean => ts.canHaveModifiers(member)
+    && !!ts.getModifiers(member)?.some(modifier => modifier.kind === ts.SyntaxKind.StaticKeyword)
+
+  const pureStaticField = (member: ts.ClassElement, members: ts.NodeArray<ts.ClassElement>): boolean => {
+    if (!ts.isPropertyDeclaration(member) || !member.initializer || !isStatic(member)) return true
+    if (!ts.isIdentifier(member.name)) return false
+    // Also safe when a TypeScript target emits a strict assignment rather than DefineField.
+    const constructorProperties = ['prototype', '__proto__', 'name', 'length', 'caller', 'arguments']
+    if (constructorProperties.includes(member.name.text)) return false
+    const name = member.name.text
+    const collidesWithStaticMember = members.some(other => {
+      if (other === member || !isStatic(other) || !other.name) return false
+      if (ts.isComputedPropertyName(other.name)) return true
+      return (ts.isIdentifier(other.name) || ts.isStringLiteralLike(other.name)) && other.name.text === name
+    })
+    return !collidesWithStaticMember && initializer(member.initializer) !== undefined
+  }
+
   const supported = (statement: ts.Statement): boolean => {
     if (ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)
       || ts.isFunctionDeclaration(statement) || ts.isInterfaceDeclaration(statement)
@@ -89,10 +117,9 @@ export function unsupportedModuleInitialization(
       const decorated = (ts.getDecorators(statement)?.length ?? 0) > 0
       if (extendsRuntimeBase || decorated) return false
       return statement.members.every(member => !ts.isClassStaticBlockDeclaration(member)
-        && !(member.name && ts.isComputedPropertyName(member.name))
+        && !(member.name && ts.isComputedPropertyName(member.name) && !pureComputedName(member.name))
         && !(ts.canHaveDecorators(member) && ts.getDecorators(member)?.length)
-        && !(ts.isPropertyDeclaration(member) && member.initializer
-          && member.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.StaticKeyword)))
+        && pureStaticField(member, statement.members))
     }
     if (ts.isEnumDeclaration(statement)) {
       return statement.members.every(member => !member.initializer || ts.isLiteralExpression(member.initializer))
