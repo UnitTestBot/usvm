@@ -36,6 +36,15 @@ internal class ArrayComponentTypeTest : JavaMethodTestRunner() {
     }
 
     @Test
+    fun testNullArrayComponentThrowsNullPointerException() {
+        checkDiscoveredPropertiesWithExceptions(
+            ArrayComponentType::nullComponentArray,
+            eq(1),
+            { _, result -> result.exceptionOrNull() is NullPointerException },
+        )
+    }
+
+    @Test
     fun testPrimitiveArrayComponent() {
         checkDiscoveredProperties(
             ArrayComponentType::primitiveArray,

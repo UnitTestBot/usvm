@@ -415,6 +415,8 @@ class JcMethodApproximationResolver(
     private fun approximateArrayReflectionMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         if (method.name == "newInstance" && method.parameters[1].type.isPrimitive) {
             val componentTypeRef = arguments[0].asExpr(ctx.addressSort)
+            exprResolver.checkNullPointer(componentTypeRef) ?: return true
+
             val componentType = resolveRepresentedClassType(componentTypeRef) ?: return false
 
             scope.doWithState {

@@ -11,6 +11,10 @@ public class ArrayComponentType {
         return Array.newInstance(type, 1);
     }
 
+    public Object nullComponentArray() {
+        return Array.newInstance(null, 1);
+    }
+
     public Class<?> primitiveArray() {
         return boolean[].class.getComponentType();
     }
