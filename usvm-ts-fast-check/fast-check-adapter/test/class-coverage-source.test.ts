@@ -99,6 +99,46 @@ test('supports private accessors and expression callable properties', () => {
   assert.equal((Array.from(runtime.sandbox[result.counterGlobalName] as Set<string>)).length, 3)
 })
 
+test('pure static empty caches preserve native state while module loading remains outside class statements', () => {
+  const source = `export class Target {
+    private static cache: number[] = [];
+    value = 1;
+    run() { Target.cache.push(this.value); return Target.cache.length; }
+  }`
+  const result = instrument(source)
+
+  assert.equal(result.reason, null)
+  assert.equal(result.statements.some(statement => statement.memberName === 'cache'), false)
+  assert.deepEqual(new Set(result.statements.map(statement => statement.memberName)), new Set(['value', 'run']))
+  const original = load(source, null)
+  const counted = load(result.source!, result.counterGlobalName)
+  assert.deepEqual(Array.from(counted.sandbox[result.counterGlobalName] as Set<string>), [])
+
+  for (const expected of [1, 2]) {
+    assert.equal(new original.Target()['run']!(), expected)
+    assert.equal(new counted.Target()['run']!(), expected)
+  }
+
+  const hits = new Set(counted.sandbox[result.counterGlobalName] as Set<string>)
+  assert.deepEqual(hits, new Set(result.statements.map(statement => statement.id)))
+})
+
+for (const [name, declaration] of [
+  ['effectful initializer', 'static cache = effect();'],
+  ['spread allocation', 'static cache = [...foreign];'],
+  ['nonempty allocation', 'static cache = [foreign];'],
+  ['static block', 'static { effect(); }'],
+  ['builtin property', 'static name = [];'],
+  ['accessor collision', 'static set cache(value: unknown) { effect(); } static cache = [];'],
+] as const) {
+  test(`static cache admission retains the ${name} boundary`, () => {
+    const result = instrument(`export class Target { ${declaration} run() { return 1; } }`)
+
+    assert.equal(result.source, null)
+    assert.match(result.reason!, /Static/)
+  })
+}
+
 test('retains explicit unsupported dynamic reachability and closure outcomes', () => {
   assert.match(instrument('export class Target { run(name: string) { return this[name]; } }').reason!, /Computed receiver/)
   assert.match(instrument('export class Target { run() { return [1].map(x => x + 1); } }').reason!, /Nested closures/)
