@@ -48,6 +48,7 @@ import org.usvm.jvm.util.name
 import org.usvm.jvm.util.outerClassInstanceField
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
+import org.usvm.machine.JcLambdaMethodCallInst
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcDynamicMethodCallInst
 import org.usvm.machine.JcInterpreterObserver
@@ -263,6 +264,11 @@ class JcInterpreter(
                 scope.doWithState {
                     newStmt(entryPoint)
                 }
+            }
+
+            is JcLambdaMethodCallInst -> {
+                val concreteCall = resolveLambdaInvoke(stmt, scope, exprResolver) ?: return
+                scope.doWithState { newStmt(concreteCall) }
             }
 
             is JcConcreteMethodCallInst -> {

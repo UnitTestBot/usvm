@@ -71,6 +71,7 @@ import org.jacodb.api.jvm.cfg.JcValue
 import org.jacodb.api.jvm.cfg.JcValueVisitor
 import org.jacodb.api.jvm.cfg.JcVirtualCallExpr
 import org.jacodb.api.jvm.cfg.JcXorExpr
+import org.jacodb.api.jvm.ext.autoboxIfNeeded
 import org.jacodb.api.jvm.ext.boolean
 import org.jacodb.api.jvm.ext.byte
 import org.jacodb.api.jvm.ext.char
@@ -978,6 +979,30 @@ class JcExprResolver(
         }
 
         return expr
+    }
+
+    internal fun resolveLambdaArgument(
+        value: UExpr<out USort>,
+        argumentType: JcType,
+        parameterType: JcType,
+    ): UExpr<out USort>? {
+        if (parameterType !is JcPrimitiveType) return value
+        if (argumentType is JcPrimitiveType) return resolvePrimitiveCast(value, argumentType, parameterType)
+
+        val unboxedType = ctx.primitiveTypes.firstOrNull { primitive ->
+            primitive != ctx.cp.void && primitive.autoboxIfNeeded().typeName == argumentType.typeName
+        } ?: error("Lambda unboxing requires a primitive wrapper, got ${argumentType.typeName}")
+        val wrapperType = unboxedType.autoboxIfNeeded() as JcClassType
+        val reference = value.asExpr(ctx.addressSort)
+        checkNullPointer(reference) ?: return null
+        checkClassCast(reference, wrapperType) ?: return null
+
+        // The primitive wrappers are final, and their unboxing methods read this final field.
+        val valueField = wrapperType.declaredFields.single { it.name == "value" }
+        val valueSlot = UFieldLValue(ctx.typeToSort(unboxedType), reference, valueField.field)
+        val unboxed = scope.calcOnState { memory.read(valueSlot) }
+
+        return resolvePrimitiveCast(unboxed, unboxedType, parameterType)
     }
 
     private fun resolvePrimitiveCast(
