@@ -172,7 +172,7 @@ class FastCheckBackend(
         }
         val hashesValid = request.sources.all { source -> source.sha256.matches(SHA256_REGEX) }
 
-        val validRequest = validLimits && request.points.isNotEmpty() && allSourcesPresent &&
+        val validRequest = validLimits && allSourcesPresent &&
             allPointsBound && allInputIndexesValid && hashesValid
 
         if (!validRequest) {

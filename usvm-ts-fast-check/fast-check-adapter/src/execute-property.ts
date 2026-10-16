@@ -833,7 +833,7 @@ function validateObservationRequest(value: unknown, manifest: PropertyManifestWi
     assertion.id === point.assertionId && samePoint(assertion.testedCall, point.callSite)
       && assertion.operands.some((operand) =>
         operand.id === point.operandId && samePoint(operand.source, point.source))) ?? false);
-  if (points.length === 0 || uniquePoints.size !== points.length || uniqueSources.size !== sources.length
+  if (uniquePoints.size !== points.length || uniqueSources.size !== sources.length
     || !allSourcesPresent || !allPointsBound) {
     throw protocolError(adapterDiagnostic.protocolRequestInvalid,
       'Observation points must bind to declared assertion operands and selected source hashes', 'observationRequest');

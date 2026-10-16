@@ -24,6 +24,8 @@ data class PropertyCampaignArtifact(
     val result: PropertyCampaignResult,
     val targetRole: WitnessRole = WitnessRole.PROPERTY,
     val metadata: PropertyCampaignMetadata? = null,
+    val pbtAllocationMillis: Long? = null,
+    val shrinkWitness: Boolean = true,
 ) {
     init {
         val resultProperties = listOfNotNull(
@@ -34,6 +36,7 @@ data class PropertyCampaignArtifact(
         )
         val sameProperty = resultProperties.all { it == property.id }
         require(sameProperty) { "Campaign evidence belongs to another property" }
+        require(pbtAllocationMillis == null || pbtAllocationMillis in 1 until configuration.timeoutMillis)
         require(validationReserveMillis > 0) { "Validation reserve must be positive" }
         require(targetRole == WitnessRole.PROPERTY) { "Direct controls search the original property" }
     }

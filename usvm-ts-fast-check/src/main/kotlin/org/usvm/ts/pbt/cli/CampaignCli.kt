@@ -23,11 +23,14 @@ internal fun executeCampaign(
     val destination = requireNotNull(options.artifactFile)
     val runner = PropertyCampaignRunner(sourceRoot = options.sourceRoots.single())
     val reserve = options.validationReserveMillis
-    val artifact = if (reserve == null) {
-        runner.runArtifact(property, mode, configuration)
-    } else {
-        runner.runArtifact(property, mode, configuration, reserve)
-    }
+    val artifact = runner.runArtifact(
+        property = property,
+        mode = mode,
+        configuration = configuration,
+        validationReserveMillis = reserve ?: PropertyCampaignRunner.DEFAULT_VALIDATION_RESERVE_MILLIS,
+        pbtAllocationMillis = options.pbtAllocationMillis,
+        shrinkWitness = options.shrinkWitness,
+    )
 
     val json = PropertyManifestJson.json.encodeToUtf8SafeString(artifact)
     output.appendLine(json)
@@ -53,7 +56,7 @@ internal fun campaignExitCode(result: PropertyCampaignResult): Int {
     val concreteCompleted = result.concrete?.status != PropertyRunStatus.FAILURE
     val symbolicCompleted = result.symbolic == null ||
         result.symbolic.status == UsvmPropertySearchStatus.NO_VIOLATION_REACHED
-    val completed = result.stop == PropertyCampaignStop.COMPLETED &&
+    val completed = result.stop == PropertyCampaignStop.COMPLETED && result.diagnostic == null &&
         concreteCompleted && symbolicCompleted && result.confirmation == null
 
     return if (completed) EXIT_SUCCESS else EXIT_INCOMPLETE

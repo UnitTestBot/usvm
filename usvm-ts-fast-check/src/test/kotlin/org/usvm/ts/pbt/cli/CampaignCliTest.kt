@@ -41,7 +41,7 @@ class CampaignCliTest {
 
     @Test
     fun `all direct modes use the original oracle and save their actual confirmed violation`() {
-        for (mode in PropertyCampaignMode.entries) {
+        for (mode in PropertyCampaignMode.entries.filter { it != PropertyCampaignMode.COVERAGE_FEEDBACK }) {
             val destination = directory.resolve("$mode.json")
             val example = if (mode == PropertyCampaignMode.SEQUENTIAL) 20.0 else 42.0
             val coverage = if (mode == PropertyCampaignMode.PBT_ONLY) {
@@ -87,6 +87,35 @@ class CampaignCliTest {
     }
 
     @Test
+    fun `guided CLI generates once and prints and saves the same completed native feedback artifact`() {
+        val property = property().copy(
+            inputs = listOf(PropertyInput(name = "value", domain = IntegerDomain(min = -100, max = 100))),
+            predicate = TypeScriptEntryPoint(module = "GuidedProperties.ts", exportName = "branchHolds"),
+            precondition = null,
+        )
+        val destination = directory.resolve("guided.json")
+
+        val run = runCli(
+            arguments(PropertyCampaignMode.COVERAGE_FEEDBACK, destination) + arrayOf(
+                "--pbt-allocation-ms", "15000", "--examples", writeExample(value = 1.0).toString(), "--no-shrinking",
+            ),
+            properties = listOf(property),
+        )
+        val artifact = readArtifact(run, destination)
+
+        assertEquals(0, run.exitCode)
+        assertEquals("", run.errors)
+        assertEquals(1, artifact.result.concrete?.numRuns)
+        val observations = assertNotNull(artifact.result.concrete?.observations)
+        assertEquals(1, observations.invocations.size)
+        assertEquals(15_000L, artifact.pbtAllocationMillis)
+        assertFalse(artifact.shrinkWitness)
+        val trace = assertNotNull(artifact.result.symbolic?.edgeGuidance)
+        assertTrue(trace.replays.isNotEmpty())
+        assertTrue(trace.remainingGoals.isEmpty())
+    }
+
+    @Test
     fun `completed direct controls with no finding return zero`() {
         val admittedSingleton = property().copy(
             inputs = listOf(PropertyInput(name = "value", domain = IntegerDomain(min = 20, max = 20))),
@@ -95,13 +124,20 @@ class CampaignCliTest {
         for (mode in PropertyCampaignMode.entries) {
             val destination = directory.resolve("$mode.json")
 
-            val run = runCli(arguments(mode, destination), properties = listOf(admittedSingleton))
+            val allocation = if (mode == PropertyCampaignMode.COVERAGE_FEEDBACK) {
+                arrayOf("--pbt-allocation-ms", "15000")
+            } else {
+                emptyArray()
+            }
+            val run = runCli(arguments(mode, destination) + allocation, properties = listOf(admittedSingleton))
             val artifact = readArtifact(run, destination)
 
             assertEquals(0, run.exitCode)
             assertEquals("", run.errors)
             assertFalse(artifact.result.confirmedViolation)
             assertEquals(PropertyCampaignStop.COMPLETED, artifact.result.stop)
+            val incompletePbt = artifact.result.copy(concrete = null, diagnostic = "PBT allocation expired")
+            assertEquals(2, campaignExitCode(incompletePbt))
         }
     }
 
