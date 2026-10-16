@@ -37,6 +37,7 @@ import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.util.componentType
+import org.usvm.util.markDenseArrayOwnSlots
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -311,6 +312,8 @@ class UsvmDomainProjector(
 
                 writeArrayElement(array, etsType, index, element, guard)
             }
+
+            state.markDenseArrayOwnSlots(array = array, length = length, capacity = domain.maxLength)
 
             array
         }

@@ -19,6 +19,7 @@ import org.usvm.util.arrayStorageType
 import org.usvm.util.boxArrayValue
 import org.usvm.util.componentType
 import org.usvm.util.initializeTypedArrayOverrides
+import org.usvm.util.invalidateDenseArrayShape
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.typedArrayBoxedLValue
@@ -106,7 +107,7 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     }) ?: return null
 
     val bvIndex = mkFpToUint32AfterValidation(index.value, indexIsSupported).asExpr(sizeSort)
-    extendArrayForIndexAppend(array = array, index = bvIndex, arrayType = storageType) ?: return null
+    extendArrayForIndexWrite(array = array, index = bvIndex, arrayType = storageType) ?: return null
 
     return assignToArrayIndex(
         scope = scope,
@@ -123,27 +124,42 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     )
 }
 
-private fun TsExprResolver.extendArrayForIndexAppend(
+private fun TsExprResolver.extendArrayForIndexWrite(
     array: UHeapRef,
     index: UExpr<TsSizeSort>,
     arrayType: EtsArrayType,
 ): Unit? = with(ctx) {
     val lengthLValue = mkArrayLengthLValue(array, arrayType)
     val length = scope.calcOnState { memory.read(lengthLValue) }
-    val isAppend = mkEq(index, length)
-    val belowCapacity = mkBvSignedLessExpr(length, mkBv(options.maxArraySize))
-    val appendExceedsCapacity = mkAnd(isAppend, mkNot(belowCapacity))
-    if (scope.checkSat(appendExceedsCapacity) != null) {
+    val grows = mkBvUnsignedGreaterOrEqualExpr(index, length)
+    val belowCapacity = mkBvUnsignedLessExpr(index, mkBv(options.maxArraySize))
+    val growthExceedsCapacity = mkAnd(grows, mkNot(belowCapacity))
+    val growthBeyondCapacityIsFeasible = scope.checkSat(growthExceedsCapacity) != null
+    if (growthBeyondCapacityIsFeasible) {
         reportRuntimeFeatureLimitation(
             reason = TsRuntimeFeatureLimitationReason.ARRAY_LENGTH_CAPACITY,
-            detail = "array index append exceeds configured length bound ${options.maxArraySize}",
+            detail = "array index write exceeds configured length bound ${options.maxArraySize}",
         )
     }
-    scope.assert(mkNot(appendExceedsCapacity)) ?: return null
+    scope.assert(mkNot(growthExceedsCapacity)) ?: return null
 
-    // Dense appends have no uninitialized gap. Sparse growth remains unsupported below.
+    val sparseGrowth = mkBvUnsignedGreaterExpr(index, length)
+    val sparseGrowthIsFeasible = scope.checkSat(sparseGrowth) != null
+    val hasKnownOwnSlots = scope.calcOnState { array in knownArrayPropertyPresence }
+    if (sparseGrowthIsFeasible && !hasKnownOwnSlots) {
+        reportRuntimeFeatureLimitation(
+            reason = TsRuntimeFeatureLimitationReason.ARRAY_INDEX_GROWTH,
+            detail = "sparse indexed growth requires known own-slot provenance",
+        )
+        scope.assert(mkNot(sparseGrowth)) ?: return null
+    }
+
+    // Existing presence metadata leaves gaps absent, including slots deleted by earlier shrinking.
     scope.doWithState {
-        memory.write(lengthLValue, mkBvAddExpr(length, mkBv(1)), guard = isAppend)
+        if (sparseGrowthIsFeasible && hasKnownOwnSlots) {
+            invalidateDenseArrayShape(array)
+        }
+        memory.write(lengthLValue, mkBvAddExpr(index, mkBv(1)), guard = grows)
     }
 }
 
@@ -163,8 +179,7 @@ fun TsContext.assignToArrayIndex(
         memory.read(lengthLValue)
     }
 
-    // Callers extend the length for supported dense appends before writing the element.
-    // Skipping indices would create holes, which this storage model does not represent.
+    // Callers establish the new length and any required own-slot provenance before writing.
 
     val indexIsNonNegative = mkBvSignedGreaterOrEqualExpr(index, mkBv(0))
     val indexIsBelowLength = mkBvSignedLessExpr(index, length)

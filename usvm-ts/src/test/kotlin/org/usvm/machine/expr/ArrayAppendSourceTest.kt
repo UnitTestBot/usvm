@@ -29,7 +29,7 @@ class ArrayAppendSourceTest : TsMethodTestRunner() {
 
     @Test
     fun `dense appends preserve length payload kinds and aliases`() {
-        listOf("appendToEmpty", "appendThroughMixedAlias", "overwriteAtCapacity", "appendAfterTruncate")
+        listOf("appendToEmpty", "appendThroughMixedAlias", "overwriteAtCapacity", "appendAfterTruncate", "sparseGrowth")
             .forEach { methodName ->
                 discoverProperties<TsTestValue.TsNumber>(
                     method = getMethod(methodName = methodName, className = "ArrayAppendSource"),
@@ -40,10 +40,9 @@ class ArrayAppendSourceTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `capacity and sparse growth remain explicit limitations`() {
+    fun `capacity remains an explicit limitation`() {
         val boundaries = mapOf(
             "appendBeyondCapacity" to TsRuntimeFeatureLimitationReason.ARRAY_LENGTH_CAPACITY,
-            "sparseGrowth" to TsRuntimeFeatureLimitationReason.ARRAY_INDEX_GROWTH,
         )
 
         for ((methodName, expectedReason) in boundaries) {

@@ -36,6 +36,6 @@ export class ArrayAppendSource {
     static sparseGrowth(): number {
         const values = [1];
         values[2] = 7;
-        return values.length;
+        return values.length === 3 && values[0] === 1 && values[1] === undefined && values[2] === 7 ? 1 : 0;
     }
 }
