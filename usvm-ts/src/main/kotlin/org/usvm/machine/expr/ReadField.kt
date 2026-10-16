@@ -89,6 +89,7 @@ internal fun TsExprResolver.handleInstanceFieldRef(
     checkUndefinedOrNullPropertyRead(scope, rawInstance, propertyName = value.field.name) ?: return null
     val instance = resolveHeapRef(scope, rawInstance) ?: return null
     if (!ensureSupportedArrayPrototypeAccess(instance, value.field.name)) return null
+    ensureSupportedDatePrototypeAccess(instance, value.field.name)
 
     val iteratorField = readBuiltinIteratorField(instance, value.field.name)
     if (iteratorField != null) return iteratorField
@@ -147,6 +148,9 @@ private fun TsContext.resolveDeclaredField(
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
 ): UExpr<*>? {
+    val dateConstructor = readIntrinsicDateConstructor(scope, instance, field.name)
+    if (dateConstructor != null) return dateConstructor
+
     val deleted = scope.calcOnState { memory.read(deletedFieldLValue(instance, field)) }
     if (deleted.isTrue) return mkUndefinedValue()
 
@@ -440,6 +444,7 @@ internal fun TsExprResolver.handleStaticFieldRef(
     if (value.field.name == "prototype") {
         val constructor = classConstructorRef(value.field.enclosingClass)
         if (!ensureSupportedArrayPrototypeAccess(constructor, value.field.name)) return null
+        ensureSupportedDatePrototypeAccess(constructor, value.field.name)
     }
 
     return readStaticField(scope, value.field, hierarchy)
