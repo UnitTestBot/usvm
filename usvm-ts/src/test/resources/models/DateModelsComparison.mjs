@@ -34,6 +34,19 @@ const timestamps = [
     NaN,
 ];
 
+// Sample the complete clipped timestamp range and both sides of unit boundaries.
+let sampleSeed = 0x319621;
+for (let index = 0; index < 10_000; index++) {
+    sampleSeed = (Math.imul(sampleSeed, 1664525) + 1013904223) >>> 0;
+    timestamps.push(Math.trunc((sampleSeed / 0x1_0000_0000 * 2 - 1) * 8_640_000_000_000_000));
+}
+for (const period of [1_000, 60_000, 3_600_000, 86_400_000]) {
+    for (const multiple of [-10_000_000, -1, 0, 1, 10_000_000]) {
+        for (const offset of [-1, -0.1, 0, 0.1, 1]) timestamps.push(multiple * period + offset);
+    }
+}
+timestamps.push(Infinity, -Infinity);
+
 const getters = [
     ["getDate", (date) => date.getUTCDate(), DateModels.getDate],
     ["getDay", (date) => date.getUTCDay(), DateModels.getDay],

@@ -110,7 +110,11 @@ export class DateModels {
     }
 
     static getDay(receiver: DateValue): number {
-        return DateModels.parts(receiver.timestamp).day;
+        const timestamp = receiver.timestamp;
+        if (DateModels.isInvalid(timestamp)) return NaN;
+
+        const days = DateModels.floorDiv(timestamp, DateModels.MS_PER_DAY);
+        return DateModels.mod(days + 4, 7);
     }
 
     static getFullYear(receiver: DateValue): number {
@@ -118,15 +122,23 @@ export class DateModels {
     }
 
     static getHours(receiver: DateValue): number {
-        return DateModels.parts(receiver.timestamp).hours;
+        const timestamp = receiver.timestamp;
+        if (DateModels.isInvalid(timestamp)) return NaN;
+
+        const withinDay = DateModels.mod(timestamp, DateModels.MS_PER_DAY);
+        return DateModels.floorDiv(withinDay, DateModels.MS_PER_HOUR);
     }
 
     static getMilliseconds(receiver: DateValue): number {
-        return DateModels.parts(receiver.timestamp).milliseconds;
+        return DateModels.mod(receiver.timestamp, DateModels.MS_PER_SECOND);
     }
 
     static getMinutes(receiver: DateValue): number {
-        return DateModels.parts(receiver.timestamp).minutes;
+        const timestamp = receiver.timestamp;
+        if (DateModels.isInvalid(timestamp)) return NaN;
+
+        const withinHour = DateModels.mod(timestamp, DateModels.MS_PER_HOUR);
+        return DateModels.floorDiv(withinHour, DateModels.MS_PER_MINUTE);
     }
 
     static getMonth(receiver: DateValue): number {
@@ -134,7 +146,11 @@ export class DateModels {
     }
 
     static getSeconds(receiver: DateValue): number {
-        return DateModels.parts(receiver.timestamp).seconds;
+        const timestamp = receiver.timestamp;
+        if (DateModels.isInvalid(timestamp)) return NaN;
+
+        const withinMinute = DateModels.mod(timestamp, DateModels.MS_PER_MINUTE);
+        return DateModels.floorDiv(withinMinute, DateModels.MS_PER_SECOND);
     }
 
     static getTime(receiver: DateValue): number {
