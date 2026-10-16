@@ -3,6 +3,7 @@ package org.usvm.ts.pbt.dsl
 import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
+import org.usvm.ts.pbt.backend.WitnessReplayStatus
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.testResourcesRoot
 import org.usvm.ts.pbt.usvm.UsvmPropertySearchStatus
@@ -56,8 +57,8 @@ class RuntimeLimitationDslTest {
         assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, symbolic.status)
         assertEquals(listOf(JsConcreteValue.number(0.0)), symbolic.inputs)
         assertTrue(symbolic.diagnostics.any { it.code == "usvm.runtime.array-index-growth" })
-        assertEquals(PropertyRunStatus.FAILURE, run.symbolicReplay?.status)
-        assertEquals("zero", run.symbolicReplay?.failure?.checkId)
+        assertEquals(WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION, run.symbolicReplay?.status)
+        assertEquals("zero", run.symbolicReplay?.originalReplay?.failure?.checkId)
         assertFailsWith<DslPropertyAssertionError> { run.requireSuccess() }
     }
 
