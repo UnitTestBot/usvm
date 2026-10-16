@@ -1,7 +1,9 @@
 package org.usvm.ts.pbt.fastcheck
 
 import org.junit.jupiter.api.Test
+import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
+import org.usvm.ts.pbt.backend.PropertyFailureKind
 import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.model.BooleanDomain
@@ -26,9 +28,45 @@ import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class FastCheckProcessClientTest {
+    @Test
+    fun `coverage deadline expiry retains the native violation with an incomplete artifact`() {
+        val directory = createTempDirectory(prefix = "completed-property-coverage-timeout-")
+        val marker = directory.resolve("completed")
+        directory.resolve("property.ts").writeText(
+            """
+            import { writeFileSync } from 'node:fs';
+            export function predicate(value: boolean): boolean {
+                writeFileSync(${marker.toJavaScriptStringLiteral()}, 'done');
+                return false;
+            }
+            """.trimIndent(),
+        )
+        val client = FastCheckProcessClient(adapterEntryPoint = FastCheckRuntime.executionEntryPoint())
+
+        try {
+            val result = client.check(
+                request = validRequest.copy(
+                    sourceRoots = listOf(directory.toString()),
+                    coverageRequest = PropertyCoverageRequest(),
+                ),
+                remainingMillis = { if (Files.exists(marker)) 0L else 10_000L },
+            )
+
+            assertEquals(PropertyRunStatus.FAILURE, result.status)
+            assertEquals(PropertyFailureKind.PROPERTY, result.failure?.kind)
+            assertNotNull(result.counterexample)
+            val coverage = assertNotNull(result.coverage)
+            assertTrue(coverage.files.isEmpty())
+            assertEquals(FastCheckDiagnosticCode.COVERAGE_COLLECTION_TIMEOUT, coverage.diagnostics.single().code)
+        } finally {
+            directory.toFile().deleteRecursively()
+        }
+    }
+
     @Test
     fun `interrupted coverage version probe terminates its process and preserves interruption`() {
         val runtime = createTempDirectory(prefix = "interrupted-version-probe-")

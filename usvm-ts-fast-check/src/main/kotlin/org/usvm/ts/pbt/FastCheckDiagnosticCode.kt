@@ -3,6 +3,11 @@ package org.usvm.ts.pbt
 /** Stable identifiers for diagnostics created by the FastCheck integration. */
 internal object FastCheckDiagnosticCode {
     const val CLI_ARGUMENT_INVALID = "cli.argument.invalid"
+    const val CLI_CAMPAIGN_ARTIFACT_REQUIRED = "cli.campaign.artifact.required"
+    const val CLI_CAMPAIGN_ARTIFACT_WRITE_FAILED = "cli.campaign.artifact.write-failed"
+    const val CLI_CAMPAIGN_MODE_REQUIRED = "cli.campaign.mode.required"
+    const val CLI_CAMPAIGN_RESERVE_INVALID = "cli.campaign.reserve.invalid"
+    const val CLI_CAMPAIGN_SOURCE_ROOT_INVALID = "cli.campaign.source-root.invalid"
     const val CLI_COVERAGE_REQUIRED = "cli.coverage.required"
     const val CLI_COVERAGE_SCOPE_INVALID = "cli.coverage.scope.invalid"
     const val CLI_EXAMPLES_INVALID = "cli.examples.invalid"
@@ -39,9 +44,11 @@ internal object FastCheckDiagnosticCode {
     const val BACKEND_RUNTIME_NOT_FOUND = "backend.runtime.not-found"
 
     const val COVERAGE_COLLECTOR_NOT_FOUND = "coverage.collector.not-found"
+    const val COVERAGE_COLLECTION_TIMEOUT = "coverage.collection.timeout"
     const val COVERAGE_RUNTIME_UNSUPPORTED = "coverage.runtime.unsupported"
     const val COVERAGE_RUNTIME_VERSION_UNAVAILABLE = "coverage.runtime.version-unavailable"
 
     const val PROTOCOL_REQUEST_INVALID = "protocol.request.invalid"
     const val SOURCE_ROOT_INVALID = "source-root.invalid"
+    const val ENTRY_POINT_SOURCE_HASH_MISMATCH = "entrypoint.source-hash.mismatch"
 }

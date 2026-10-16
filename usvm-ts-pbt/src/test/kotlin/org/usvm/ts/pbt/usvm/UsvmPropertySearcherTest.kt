@@ -340,6 +340,21 @@ class UsvmPropertySearcherTest {
         assertEquals(UsvmPropertySearchStatus.TIMEOUT, result.status)
     }
 
+    @Test
+    fun `a caller deadline stops the machine before its independent timeout`() {
+        val manifest = manifest(predicateExport = "violatedProperty")
+
+        val result = searcher.search(
+            manifest = manifest,
+            mapping = mapper.map(manifest),
+            concreteCapability = ProjectionCapability(level = ProjectionLevel.EXACT),
+            deadlineReached = { true },
+        )
+
+        assertEquals(UsvmPropertySearchStatus.TIMEOUT, result.status)
+        assertNull(result.inputs)
+    }
+
     private fun search(manifest: PropertyManifest): UsvmPropertySearchResult = searcher.search(
         manifest = manifest,
         mapping = mapper.map(manifest),

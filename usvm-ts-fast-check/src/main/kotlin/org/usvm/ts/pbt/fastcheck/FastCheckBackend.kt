@@ -1,10 +1,15 @@
 package org.usvm.ts.pbt.fastcheck
 
 import org.usvm.ts.pbt.FastCheckDiagnosticCode
+import org.usvm.ts.pbt.backend.ExternalWitnessBackend
+import org.usvm.ts.pbt.backend.ExternalWitnessCandidate
 import org.usvm.ts.pbt.backend.PropertyBasedTestingBackend
 import org.usvm.ts.pbt.backend.PropertyCoverageCapability
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunResult
+import org.usvm.ts.pbt.backend.WitnessEvidenceDelta
+import org.usvm.ts.pbt.backend.WitnessReplayConfiguration
+import org.usvm.ts.pbt.backend.WitnessReplayDeadline
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDefinition
@@ -23,7 +28,7 @@ class FastCheckBackend(
     nodeExecutable: String = "node",
     adapterEntryPoint: Path = FastCheckRuntime.executionEntryPoint(),
     private val tsconfig: Path? = null,
-) : PropertyBasedTestingBackend {
+) : PropertyBasedTestingBackend, ExternalWitnessBackend {
     override val coverageCapability: PropertyCoverageCapability = PropertyCoverageCapability.supported(
         backendId = FAST_CHECK_BACKEND_ID,
         backendVersion = FastCheckRuntimeMetadata.fastCheckVersion,
@@ -39,6 +44,19 @@ class FastCheckBackend(
     override fun run(
         property: PropertyDefinition,
         configuration: PropertyRunConfiguration,
+    ): PropertyRunResult = execute(property, configuration, deadline = null)
+
+    /** Charges preparation and the supervised process to the caller's existing deadline. */
+    fun run(
+        property: PropertyDefinition,
+        configuration: PropertyRunConfiguration,
+        deadline: WitnessReplayDeadline,
+    ): PropertyRunResult = execute(property, configuration, deadline)
+
+    private fun execute(
+        property: PropertyDefinition,
+        configuration: PropertyRunConfiguration,
+        deadline: WitnessReplayDeadline?,
     ): PropertyRunResult {
         requireValid(validatePropertyDefinition(property))
         validateConfiguration(property, configuration)
@@ -58,8 +76,24 @@ class FastCheckBackend(
             coverageRequest = configuration.coverageRequest,
         )
 
-        return client.check(request)
+        return client.check(request, remainingMillis = deadline?.let { it::remainingMillis })
     }
+
+    override fun confirmWitness(
+        property: PropertyDefinition,
+        candidate: ExternalWitnessCandidate,
+        configuration: WitnessReplayConfiguration,
+        deadline: WitnessReplayDeadline,
+    ): WitnessEvidenceDelta = FastCheckWitnessCoordinator(
+        client = client,
+        sourceRoots = sourceRoots,
+        tsconfig = tsconfig?.toRealPath()?.toString(),
+    ).confirm(
+        property = property,
+        candidate = candidate,
+        configuration = configuration,
+        deadline = deadline,
+    )
 
     private fun validateConfiguration(
         property: PropertyDefinition,

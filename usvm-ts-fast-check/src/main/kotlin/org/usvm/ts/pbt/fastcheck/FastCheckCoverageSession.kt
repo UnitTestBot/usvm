@@ -5,6 +5,7 @@ import kotlinx.serialization.decodeFromString
 import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.BranchCoverage
 import org.usvm.ts.pbt.backend.CoverageDiagnostic
+import org.usvm.ts.pbt.backend.CoverageProvenance
 import org.usvm.ts.pbt.backend.CoverageScope
 import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
 import org.usvm.ts.pbt.backend.PropertyRunResult
@@ -14,6 +15,7 @@ import org.usvm.ts.pbt.coverage.decodeIstanbulCoverageReport
 import org.usvm.ts.pbt.coverage.inspectRawV8SourceMapDiagnostics
 import org.usvm.ts.pbt.coverage.mergeCoverageDiagnostics
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
+import org.usvm.ts.pbt.model.PropertyId
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -25,6 +27,7 @@ internal class FastCheckCoverageSession private constructor(
     private val request: FastCheckExecutionRequest,
     private val runtimeVersion: String,
     private val workspace: CoverageWorkspace,
+    private val remainingMillis: (() -> Long)?,
 ) : AutoCloseable {
     val adapterCommand: List<String>
         get() = buildList {
@@ -60,14 +63,47 @@ internal class FastCheckCoverageSession private constructor(
         }
 
     fun attachTo(result: PropertyRunResult): PropertyRunResult {
+        check(remainingMillis == null) { "Ordinary property runs require an unbounded coverage session" }
+        val artifact = readArtifact()
+        check(artifact is FastCheckOperationResult.Completed)
+
+        return result.copy(coverage = artifact.value)
+    }
+
+    /** Keeps a completed property result usable when its secondary coverage collection cannot finish. */
+    fun incompleteArtifact(message: String) = PropertyCoverageArtifact(
+        backendId = FastCheckBackend.FAST_CHECK_BACKEND_ID,
+        backendVersion = FastCheckRuntimeMetadata.fastCheckVersion,
+        propertyId = PropertyId(request.manifest.propertyId),
+        provenance = CoverageProvenance(
+            collector = FastCheckRuntimeMetadata.coverageCollector,
+            runtimeId = "node",
+            runtimeVersion = runtimeVersion,
+            sourceRoots = request.sourceRoots,
+            request = requireNotNull(request.coverageRequest),
+        ),
+        files = emptyList(),
+        diagnostics = listOf(
+            CoverageDiagnostic(code = FastCheckDiagnosticCode.COVERAGE_COLLECTION_TIMEOUT, message = message),
+        ),
+    )
+
+    fun readArtifact(): FastCheckOperationResult<PropertyCoverageArtifact> {
+        val remaining = remainingMillis?.invoke()
+        if (remaining != null && remaining <= 0) {
+            return FastCheckOperationResult.TimedOut(
+                message = "External witness deadline expired before reading coverage"
+            )
+        }
+
         val coverageRequest = requireNotNull(request.coverageRequest)
         val entryPointPaths = propertyEntryPointPaths()
 
-        val artifact = try {
+        return try {
             val context = IstanbulCoverageContext(
                 backendId = FastCheckBackend.FAST_CHECK_BACKEND_ID,
                 backendVersion = FastCheckRuntimeMetadata.fastCheckVersion,
-                propertyId = result.propertyId,
+                propertyId = PropertyId(request.manifest.propertyId),
                 sourceRoots = request.sourceRoots,
                 propertyEntryPointPaths = entryPointPaths,
                 adapterRoot = workspace.adapterRoot.toString(),
@@ -89,13 +125,22 @@ internal class FastCheckCoverageSession private constructor(
             )
 
             val branchReport = if (finalArtifact.files.isEmpty()) {
-                RawBranchReport(files = emptyList(), diagnostics = emptyList())
+                FastCheckOperationResult.Completed(
+                    value = RawBranchReport(files = emptyList(), diagnostics = emptyList())
+                )
             } else {
                 convertBranches()
             }
-            appendExactBranches(
-                artifact = finalArtifact.copy(diagnostics = diagnostics),
-                report = branchReport,
+            val branches = when (branchReport) {
+                is FastCheckOperationResult.Completed -> branchReport.value
+                is FastCheckOperationResult.TimedOut -> return branchReport
+            }
+
+            FastCheckOperationResult.Completed(
+                value = appendExactBranches(
+                    artifact = finalArtifact.copy(diagnostics = diagnostics),
+                    report = branches,
+                ),
             )
         } catch (error: CoverageArtifactException) {
             fail(
@@ -105,8 +150,6 @@ internal class FastCheckCoverageSession private constructor(
                 cause = error,
             )
         }
-
-        return result.copy(coverage = artifact)
     }
 
     private fun propertyEntryPointPaths(): Set<String> {
@@ -124,7 +167,14 @@ internal class FastCheckCoverageSession private constructor(
         return paths
     }
 
-    private fun convertBranches(): RawBranchReport {
+    private fun convertBranches(): FastCheckOperationResult<RawBranchReport> {
+        val timeoutMillis = boundedTimeout(BRANCH_CONVERSION_TIMEOUT_MILLIS)
+        if (timeoutMillis <= 0) {
+            return FastCheckOperationResult.TimedOut(
+                message = "External witness deadline expired during coverage collection"
+            )
+        }
+
         val converter = workspace.adapterRoot.resolve("dist/src/coverage-branches.js")
         val transport = FastCheckProcessTransport(
             nodeExecutable = nodeExecutable,
@@ -133,27 +183,43 @@ internal class FastCheckCoverageSession private constructor(
             maxStderrBytes = MAX_BRANCH_ERROR_BYTES,
             shutdownGraceMillis = BRANCH_SHUTDOWN_GRACE_MILLIS,
         )
-        val output = try {
-            transport.invoke(
+        val outputResult = try {
+            transport.invokeWithResult(
                 command = listOf(nodeExecutable, converter.toString(), workspace.rawDirectory.toString()) +
                     request.sourceRoots,
                 request = "",
-                timeoutMillis = BRANCH_CONVERSION_TIMEOUT_MILLIS,
-                reportedTimeoutMillis = BRANCH_CONVERSION_TIMEOUT_MILLIS,
+                timeoutMillis = timeoutMillis,
+                reportedTimeoutMillis = timeoutMillis,
                 description = "TypeScript branch converter",
             )
         } catch (error: FastCheckTransportException) {
-            return unsupportedBranches("Cannot convert TypeScript branches: ${error.message}")
+            return FastCheckOperationResult.Completed(
+                value = unsupportedBranches("Cannot convert TypeScript branches: ${error.message}"),
+            )
+        }
+        val output = when (outputResult) {
+            is FastCheckOperationResult.Completed -> {
+                outputResult.value
+            }
+            is FastCheckOperationResult.TimedOut -> {
+                if (remainingMillis != null) return outputResult
+
+                return FastCheckOperationResult.Completed(value = unsupportedBranches(outputResult.message))
+            }
         }
         if (output.exitCode != 0) {
-            return unsupportedBranches("TypeScript branch conversion failed: ${output.stderr.trim()}")
+            return FastCheckOperationResult.Completed(
+                value = unsupportedBranches("TypeScript branch conversion failed: ${output.stderr.trim()}"),
+            )
         }
 
-        return runCatching {
+        val report = runCatching {
             PropertyManifestJson.json.decodeFromString<RawBranchReport>(output.stdout)
         }.getOrElse { error ->
             unsupportedBranches("Cannot read TypeScript branch coverage: ${error.message}")
         }
+
+        return FastCheckOperationResult.Completed(value = report)
     }
 
     private fun appendExactBranches(
@@ -193,6 +259,11 @@ internal class FastCheckCoverageSession private constructor(
         workspace.root.toFile().deleteRecursively()
     }
 
+    private fun boundedTimeout(limitMillis: Long): Long {
+        val remaining = remainingMillis?.invoke() ?: return limitMillis
+        return minOf(limitMillis, remaining.coerceAtLeast(0))
+    }
+
     private fun canonicalizeExistingEntryPoint(candidate: Path): String =
         if (Files.exists(candidate)) candidate.toRealPath().toString() else candidate.toString()
 
@@ -216,7 +287,53 @@ internal class FastCheckCoverageSession private constructor(
             adapterEntryPoint: Path,
             request: FastCheckExecutionRequest,
         ): FastCheckCoverageSession {
-            val runtimeVersion = readSupportedNodeVersion(nodeExecutable, request)
+            val version = readSupportedNodeVersion(nodeExecutable, request, timeoutMillis = NODE_VERSION_TIMEOUT_MILLIS)
+            val runtimeVersion = when (version) {
+                is FastCheckOperationResult.Completed -> version.value
+                is FastCheckOperationResult.TimedOut -> failPreparation(
+                    request = request,
+                    code = FastCheckDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
+                    message = version.message,
+                )
+            }
+
+            return createSession(nodeExecutable, adapterEntryPoint, request, runtimeVersion, remainingMillis = null)
+        }
+
+        fun prepareWithinBudget(
+            nodeExecutable: String,
+            adapterEntryPoint: Path,
+            request: FastCheckExecutionRequest,
+            remainingMillis: () -> Long,
+        ): FastCheckOperationResult<FastCheckCoverageSession> {
+            val remaining = remainingMillis()
+            if (remaining <= 0) {
+                return FastCheckOperationResult.TimedOut(
+                    message = "External witness deadline expired before the runtime probe"
+                )
+            }
+
+            val version = readSupportedNodeVersion(
+                nodeExecutable = nodeExecutable,
+                request = request,
+                timeoutMillis = minOf(NODE_VERSION_TIMEOUT_MILLIS, remaining),
+            )
+
+            return when (version) {
+                is FastCheckOperationResult.Completed -> FastCheckOperationResult.Completed(
+                    value = createSession(nodeExecutable, adapterEntryPoint, request, version.value, remainingMillis),
+                )
+                is FastCheckOperationResult.TimedOut -> version
+            }
+        }
+
+        private fun createSession(
+            nodeExecutable: String,
+            adapterEntryPoint: Path,
+            request: FastCheckExecutionRequest,
+            runtimeVersion: String,
+            remainingMillis: (() -> Long)?,
+        ): FastCheckCoverageSession {
             val adapterRoot = adapterEntryPoint.parent?.parent?.parent
                 ?: throw IllegalArgumentException("Adapter entry point has no runtime root: $adapterEntryPoint")
             val c8EntryPoint = adapterRoot.resolve("node_modules/c8/bin/c8.js")
@@ -238,6 +355,7 @@ internal class FastCheckCoverageSession private constructor(
                 request = request,
                 runtimeVersion = runtimeVersion,
                 workspace = workspace,
+                remainingMillis = remainingMillis,
             )
         }
 
@@ -264,7 +382,8 @@ internal class FastCheckCoverageSession private constructor(
         private fun readSupportedNodeVersion(
             nodeExecutable: String,
             request: FastCheckExecutionRequest,
-        ): String {
+            timeoutMillis: Long,
+        ): FastCheckOperationResult<String> {
             val transport = FastCheckProcessTransport(
                 nodeExecutable = nodeExecutable,
                 maxRequestBytes = 1,
@@ -273,12 +392,12 @@ internal class FastCheckCoverageSession private constructor(
                 shutdownGraceMillis = VERSION_SHUTDOWN_GRACE_MILLIS,
                 useProcessSupervisor = false,
             )
-            val output = try {
-                transport.invoke(
+            val outputResult = try {
+                transport.invokeWithResult(
                     command = listOf(nodeExecutable, "--version"),
                     request = "",
-                    timeoutMillis = NODE_VERSION_TIMEOUT_MILLIS,
-                    reportedTimeoutMillis = NODE_VERSION_TIMEOUT_MILLIS,
+                    timeoutMillis = timeoutMillis,
+                    reportedTimeoutMillis = timeoutMillis,
                     description = "Node.js version probe",
                 )
             } catch (error: FastCheckTransportException) {
@@ -295,6 +414,10 @@ internal class FastCheckCoverageSession private constructor(
                     cause = error,
                 )
             }
+            val output = when (outputResult) {
+                is FastCheckOperationResult.Completed -> outputResult.value
+                is FastCheckOperationResult.TimedOut -> return outputResult
+            }
             val version = output.stdout.trim()
             if (output.exitCode != 0 || version.isBlank()) {
                 failPreparation(
@@ -304,7 +427,7 @@ internal class FastCheckCoverageSession private constructor(
                 )
             }
 
-            return requireSupportedNodeVersion(version, request)
+            return FastCheckOperationResult.Completed(value = requireSupportedNodeVersion(version, request))
         }
 
         private fun requireSupportedNodeVersion(version: String, request: FastCheckExecutionRequest): String {

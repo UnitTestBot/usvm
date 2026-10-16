@@ -50,6 +50,9 @@ class FastCheckCliTest {
         assertContains(output, "TypeScript source root")
         assertContains(output, "--examples")
         assertContains(output, "--coverage-scope")
+        assertContains(output, "--mode")
+        assertContains(output, "--artifact")
+        assertContains(output, "--validation-reserve-ms")
     }
 
     @Test

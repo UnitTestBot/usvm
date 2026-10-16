@@ -147,6 +147,10 @@ throw `PbtBackendException`.
 Generation, replay, explicit examples, checking, and shrinking use the same invocation path and follow the
 [property execution contract](PROPERTY_EXECUTION_CONTRACT.md).
 
+External symbolic candidates use `ExternalWitnessBackend.confirmWitness` to confirm the original oracle and
+reduce the same target through native FastCheck shrinking. See the [external witness contract](EXTERNAL_WITNESS_REPLAY.md)
+for admission/classification, guarded executable bindings, scheduler evidence, reproduction, and remaining #398 integration.
+
 ## Per-property TypeScript coverage
 
 Coverage is a backend capability, not part of `PropertyDefinition` or `PropertyManifest`.

@@ -24,42 +24,175 @@ internal class FastCheckProcessClient(
     )
 
     /** Executes one request and exposes only a fully validated common result. */
-    fun check(request: FastCheckExecutionRequest): PropertyRunResult {
+    fun check(
+        request: FastCheckExecutionRequest,
+        remainingMillis: (() -> Long)? = null,
+    ): PropertyRunResult {
         val encodedRequest = encodeRequest(request)
         val coverageSession = request.coverageRequest?.let {
-            FastCheckCoverageSession.prepare(
-                nodeExecutable = nodeExecutable,
-                adapterEntryPoint = adapterEntryPoint,
-                request = request,
-            )
+            if (remainingMillis == null) {
+                FastCheckCoverageSession.prepare(
+                    nodeExecutable = nodeExecutable,
+                    adapterEntryPoint = adapterEntryPoint,
+                    request = request,
+                )
+            } else {
+                val prepared = FastCheckCoverageSession.prepareWithinBudget(
+                    nodeExecutable = nodeExecutable,
+                    adapterEntryPoint = adapterEntryPoint,
+                    request = request,
+                    remainingMillis = remainingMillis,
+                )
+                when (prepared) {
+                    is FastCheckOperationResult.Completed -> prepared.value
+                    is FastCheckOperationResult.TimedOut -> throw deadlineExpired(request, prepared.message)
+                }
+            }
         }
 
         try {
+            val phaseLimit = saturatedAdd(request.timeoutMillis, transportGraceMillis)
+            val processBudget = remainingMillis?.invoke()?.coerceAtMost(phaseLimit) ?: phaseLimit
+            if (processBudget <= 0) throw deadlineExpired(request, "Property campaign deadline expired")
+
             val output = invokeAdapter(
                 encodedRequest = encodedRequest,
                 request = request,
                 command = coverageSession?.adapterCommand
                     ?: listOf(nodeExecutable, adapterEntryPoint.toString()),
+                timeoutMillis = processBudget,
             )
             validateProcessOutput(output, request)
             val response = decodeResponse(output.stdout, request)
             val result = decodeSuccessfulResponse(response, request)
 
-            return coverageSession?.attachTo(result) ?: result
+            if (coverageSession == null) return result
+            if (remainingMillis == null) return coverageSession.attachTo(result)
+
+            return when (val artifact = coverageSession.readArtifact()) {
+                is FastCheckOperationResult.Completed -> result.copy(coverage = artifact.value)
+                is FastCheckOperationResult.TimedOut -> result.copy(
+                    coverage = coverageSession.incompleteArtifact(message = artifact.message),
+                )
+            }
         } finally {
             coverageSession?.close()
         }
+    }
+
+    private fun deadlineExpired(
+        request: FastCheckExecutionRequest,
+        message: String,
+    ): PbtBackendException = backendError(
+        kind = BackendErrorKind.TIMEOUT,
+        code = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+        message = message,
+        request = request,
+    )
+
+    /** One external operation, using the same supervised transport and optional original-source collector. */
+    fun witness(
+        request: FastCheckExecutionRequest,
+        remainingMillis: () -> Long,
+    ): FastCheckOperationResult<FastCheckExecutionWireResponse> {
+        val initialBudget = remainingMillis()
+        if (initialBudget <= 0) {
+            return FastCheckOperationResult.TimedOut(message = "External witness deadline expired")
+        }
+
+        val encodedRequest = encodeRequest(request)
+        val coverageSession = request.coverageRequest?.let {
+            val preparation = FastCheckCoverageSession.prepareWithinBudget(
+                nodeExecutable = nodeExecutable,
+                adapterEntryPoint = adapterEntryPoint,
+                request = request,
+                remainingMillis = remainingMillis,
+            )
+            when (preparation) {
+                is FastCheckOperationResult.Completed -> preparation.value
+                is FastCheckOperationResult.TimedOut -> return preparation
+            }
+        }
+
+        try {
+            val remaining = remainingMillis()
+            if (remaining <= 0) {
+                return FastCheckOperationResult.TimedOut(message = "External witness deadline expired")
+            }
+
+            val outputResult = invokeWitnessAdapter(
+                encodedRequest = encodedRequest,
+                request = request,
+                command = coverageSession?.adapterCommand ?: listOf(nodeExecutable, adapterEntryPoint.toString()),
+                timeoutMillis = remaining,
+            )
+            val output = when (outputResult) {
+                is FastCheckOperationResult.Completed -> outputResult.value
+                is FastCheckOperationResult.TimedOut -> return outputResult
+            }
+            validateProcessOutput(output, request)
+            val response = decodeResponse(output.stdout, request)
+            if (response.status == "error") throwNodeDiagnostic(response, request)
+
+            val isReplayResponse = request.witness?.mode == "replay" && response.witnessReplay != null &&
+                response.witnessReduction == null
+            val isReductionResponse = request.witness?.mode == "reduce" && response.witnessReduction != null &&
+                response.witnessReplay == null
+            val validResponse = response.status == "ok" && response.result == null &&
+                response.witnessPropertyId == request.manifest.propertyId &&
+                response.witnessTarget == request.witness?.target && (isReplayResponse || isReductionResponse)
+            if (!validResponse) throw invalidResponse(message = "Invalid witness response", request = request)
+
+            val replay = response.witnessReplay
+            if (replay != null && coverageSession != null) {
+                val artifactResult = coverageSession.readArtifact()
+                return when (artifactResult) {
+                    is FastCheckOperationResult.Completed -> FastCheckOperationResult.Completed(
+                        value = response.copy(witnessReplay = replay.copy(coverage = artifactResult.value)),
+                    )
+                    is FastCheckOperationResult.TimedOut -> artifactResult
+                }
+            }
+
+            return FastCheckOperationResult.Completed(value = response)
+        } finally {
+            coverageSession?.close()
+        }
+    }
+
+    private fun invokeWitnessAdapter(
+        encodedRequest: String,
+        request: FastCheckExecutionRequest,
+        command: List<String>,
+        timeoutMillis: Long,
+    ): FastCheckOperationResult<FastCheckProcessOutput> = try {
+        transport.invokeWithResult(
+            command = command,
+            request = encodedRequest,
+            timeoutMillis = timeoutMillis,
+            reportedTimeoutMillis = timeoutMillis,
+            description = "fast-check adapter",
+        )
+    } catch (error: FastCheckTransportException) {
+        throw backendError(
+            kind = error.backendErrorKind(),
+            code = error.code,
+            message = error.message.orEmpty(),
+            request = request,
+            cause = error,
+        )
     }
 
     private fun invokeAdapter(
         encodedRequest: String,
         request: FastCheckExecutionRequest,
         command: List<String>,
+        timeoutMillis: Long = saturatedAdd(request.timeoutMillis, transportGraceMillis),
     ): FastCheckProcessOutput = try {
         transport.invoke(
             command = command,
             request = encodedRequest,
-            timeoutMillis = saturatedAdd(request.timeoutMillis, transportGraceMillis),
+            timeoutMillis = timeoutMillis,
             reportedTimeoutMillis = request.timeoutMillis,
             description = "fast-check adapter",
         )
