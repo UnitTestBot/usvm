@@ -50,6 +50,7 @@ internal data class CallsClassRawStateSnapshot(
     val resultKind: String,
     val symbolicResultId: Long? = null,
     val unsupportedReason: String? = null,
+    val engineFailureReason: String? = null,
 )
 
 @Serializable
@@ -81,6 +82,7 @@ internal data class CallsClassRawAnalysis(
     val statementUniverseSha256: String,
     val stateSnapshots: CallsClassRawJournalMetadata,
     val symbolicExpressions: CallsClassRawJournalMetadata,
+    val engineFailureStates: Long = 0L,
     val proof: String = "Symbolic source-mapped IR entry only; " +
         "diagnostic state metadata is not a native replay witness",
 )
@@ -88,9 +90,17 @@ internal data class CallsClassRawAnalysis(
 /** Retains raw symbolic outcomes without requiring finite native observation domains. */
 internal class ClassRawAnalysisObserver(
     private val sourceFile: String,
-    private val universe: List<CallsClassRawIrPoint>,
+    universe: List<CallsClassRawIrPoint>,
     private val output: Path,
 ) : UMachineObserver<TsState> {
+    private val universe = universe.toList()
+    private val universePoints = this.universe.toSet()
+    private val universeViolations = linkedSetOf<CallsClassRawIrPoint>()
+
+    init {
+        require(universePoints.size == this.universe.size) { "Class IR universe contains duplicate points" }
+    }
+
     private val entered = linkedSetOf<CallsClassRawIrPoint>()
     private val snapshots = CallsClassRawSnapshotStore(output = output)
     private val snapshotFailures = mutableListOf<String>()
@@ -101,6 +111,7 @@ internal class ClassRawAnalysisObserver(
     private var returnedStates = 0L
     private var exceptionalStates = 0L
     private var unsupportedStates = 0L
+    private var engineFailureStates = 0L
     private var otherStates = 0L
     private var unreachableStates = 0L
     private var stoppedStates = 0L
@@ -111,7 +122,13 @@ internal class ClassRawAnalysisObserver(
     private var quantumOverruns = 0L
 
     fun recordOriginalEntry(stmt: EtsStmt) {
-        entered += stmt.toClassRawIrPoint(sourceFile = sourceFile)
+        val point = stmt.toClassRawIrPoint(sourceFile = sourceFile)
+        if (point !in universePoints) {
+            universeViolations += point
+            error("Original class IR entry is outside its frozen universe: $point")
+        }
+
+        entered += point
         sourceKinds.merge(stmt::class.java.simpleName, 1L, Long::plus)
     }
 
@@ -125,6 +142,12 @@ internal class ClassRawAnalysisObserver(
     }
 
     override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
+        if (state.engineFailureReason != null) {
+            engineFailureStates++
+            saveSnapshot(state = state, outcome = "ENGINE_FAILURE")
+            return
+        }
+
         if (!stateReachable) {
             unreachableStates++
             return
@@ -196,6 +219,7 @@ internal class ClassRawAnalysisObserver(
                         else -> null
                     },
                     unsupportedReason = state.unsupportedReason,
+                    engineFailureReason = state.engineFailureReason,
                 )
             }
         }
@@ -217,6 +241,12 @@ internal class ClassRawAnalysisObserver(
     fun result(manifest: CallsClassStartManifest, analysisElapsedMillis: Long): CallsClassRawAnalysis {
         val encodedUniverse = encodeCallsArtifact(universe).toByteArray(Charsets.UTF_8)
         val journals = snapshots.finish()
+        // Exploratory execution may retain interpreter failures as terminal states.
+        // Such a failure must still invalidate this diagnostic denominator.
+        check(universeViolations.isEmpty()) {
+            "Original class IR entries are outside their frozen universe: $universeViolations"
+        }
+
         return CallsClassRawAnalysis(
             budgetMillis = manifest.budgetMillis,
             analysisElapsedMillis = analysisElapsedMillis,
@@ -245,6 +275,7 @@ internal class ClassRawAnalysisObserver(
             statementUniverseSha256 = callsArtifactSha256(encodedUniverse),
             stateSnapshots = journals.first,
             symbolicExpressions = journals.second,
+            engineFailureStates = engineFailureStates,
         )
     }
 

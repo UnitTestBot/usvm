@@ -114,8 +114,14 @@ class TsMachine(
         }
         ?: scene
     private val runtimeScene = analysisScene.withCoreRuntimeSdk()
+    private val applicationAndSdkClasses = scene.projectClasses + runtimeScene.sdkClasses
     private val graph = TsGraph(runtimeScene)
-    private val typeSystem = TsTypeSystem(runtimeScene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
+    private val typeSystem = TsTypeSystem(
+        scene = runtimeScene,
+        typeOperationsTimeout = 1.seconds,
+        hierarchy = graph.hierarchy,
+        applicationAndSdkClasses = applicationAndSdkClasses,
+    )
     private val components = TsComponents(
         typeSystem = typeSystem,
         options = options,
@@ -125,7 +131,7 @@ class TsMachine(
         scene = runtimeScene,
         components = components,
         // Model bodies are reachable only through their dispatcher and its domain guards.
-        applicationAndSdkClasses = scene.projectClasses + runtimeScene.sdkClasses,
+        applicationAndSdkClasses = applicationAndSdkClasses,
         dateNowMilliseconds = tsOptions.dateNowMilliseconds,
     )
     private val failureTrackingUnknownCallObserver = FailureTrackingUnknownCallObserver(observer)
@@ -301,7 +307,7 @@ class TsMachine(
             interpreter = interpreter,
             pathSelector = pathSelector,
             observer = executionObserver,
-            isStateTerminated = { state -> state.callStack.isEmpty() },
+            isStateTerminated = { state -> state.callStack.isEmpty() || state.engineFailureReason != null },
             stopStrategy = stopStrategy,
         )
 
@@ -448,6 +454,8 @@ private class UnsupportedPathsObserver(
     private val unsupportedPaths: MutableSet<String>,
 ) : UMachineObserver<TsState> by delegate {
     override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
+        if (state.engineFailureReason != null) return
+
         val unsupportedReason = state.unsupportedReason
         if (unsupportedReason != null) {
             if (stateReachable) {

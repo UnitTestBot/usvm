@@ -54,11 +54,32 @@ internal fun TsContext.assignToClosureField(
     val declaredSort = typeToSort(fieldType)
     val sort = if (declaredSort == unresolvedSort) addressSort else declaredSort
     val lValue = mkFieldLValue(sort, instance, fieldName)
-    val fakeObject = if (declaredSort == unresolvedSort) expr.toFakeObject(scope) else null
+    val containsFakeValue = expr.sort == addressSort && expr.asExpr(addressSort).hasFakeValueBranch()
+    val fakeObject = if (declaredSort == unresolvedSort || containsFakeValue) {
+        boxRuntimeValue(scope = scope, value = expr)
+    } else {
+        null
+    }
     val value = fakeObject ?: expr
+
+    if (declaredSort != unresolvedSort) {
+        ensureCompatibleFieldWriteKind(scope, fieldName, sort, value) ?: return null
+    }
+
+    val payload = if (declaredSort != unresolvedSort && value.isFakeObject()) {
+        when (sort) {
+            boolSort -> value.extractBool(scope)
+            fp64Sort -> value.extractFp(scope)
+            addressSort -> value.extractRef(scope)
+            else -> error("Unsupported closure field sort: $sort")
+        }
+    } else {
+        value
+    }
+
     return scope.doWithState {
-        if (fakeObject != null) lValuesToAllocatedFakeObjects += lValue to fakeObject
-        memory.write(lValue, value.asExpr(sort), guard = trueExpr)
+        if (declaredSort == unresolvedSort) lValuesToAllocatedFakeObjects += lValue to requireNotNull(fakeObject)
+        memory.write(lValue, payload.asExpr(sort), guard = trueExpr)
     }
 }
 

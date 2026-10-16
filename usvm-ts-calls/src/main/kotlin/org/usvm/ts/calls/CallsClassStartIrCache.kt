@@ -8,7 +8,6 @@ import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
-import kotlin.time.Duration.Companion.seconds
 
 @Serializable
 internal data class CallsClassStartIrCache(val fingerprint: String, val irSha256: Map<String, String>)
@@ -73,7 +72,6 @@ private fun prepareLockedStartupIr(cache: Path, scope: Path, output: Path, finge
             projectPath = scope,
             isProject = true,
             loadEntrypoints = false,
-            timeout = 30.seconds,
             provider = EtsIrProvider.TS_FRONTEND,
         )
         try {
