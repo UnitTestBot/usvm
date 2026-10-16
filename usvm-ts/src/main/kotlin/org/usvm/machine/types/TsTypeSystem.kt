@@ -59,13 +59,17 @@ class TsTypeSystem(
             "Fake types should not occur in type constraints"
         }
 
-        // Runtime object checks exclude primitive and nullish values, independently of TS assignability.
-        if (unwrappedSupertype == EtsObjectType) return unwrappedType is EtsRefType
+        val runtimeSupertype = (unwrappedSupertype as? EtsNominalType)?.type ?: unwrappedSupertype
+        val runtimeType = (unwrappedType as? EtsNominalType)?.type ?: unwrappedType
 
-        // In JS/TS, any reference type inherits from Object
-        if (unwrappedSupertype is EtsClassType
-            && unwrappedSupertype.signature == EtsHierarchy.OBJECT_CLASS.signature
-            && unwrappedType is EtsRefType
+        // Nominal membership also denotes objects. The wrapper must not hide that fact when
+        // an own-property constraint is added after an instanceof constraint.
+        if (unwrappedSupertype == EtsObjectType) return runtimeType is EtsRefType
+
+        // In JS/TS, any reference type inherits from Object, including the runtime-object constraint.
+        if (runtimeSupertype is EtsClassType
+            && runtimeSupertype.signature == EtsHierarchy.OBJECT_CLASS.signature
+            && runtimeType is EtsRefType
         ) {
             return true
         }
@@ -143,6 +147,9 @@ class TsTypeSystem(
         // independently of TypeScript's structural assignability rules.
         if (unwrappedSupertype is EtsNominalType) {
             val nominalType = when (unwrappedType) {
+                // Object is a broader constraint than membership in a particular class. It can
+                // intersect that membership, but it does not imply it. Object itself was handled above.
+                EtsObjectType -> return false
                 is EtsNominalType -> unwrappedType.type
                 is EtsRefType -> unwrappedType
                 else -> return false
@@ -294,6 +301,7 @@ class TsTypeSystem(
             }
 
             EtsObjectType -> applicationAndSdkClasses.asSequence().map { it.type }
+            is EtsNominalType -> sequenceOf(t.type)
 
             is EtsAuxiliaryType -> {
                 applicationAndSdkClasses
