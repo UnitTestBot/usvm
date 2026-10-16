@@ -1,5 +1,7 @@
 package org.usvm.ts.pbt.inference
 
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
@@ -7,6 +9,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
+import org.usvm.ts.pbt.backend.CapabilityDiagnostic
 import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.ts.pbt.backend.ProjectionLevel
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
@@ -51,6 +54,23 @@ import kotlin.time.Duration
 
 class EntryRelationRefutationTest {
     private val backend = FastCheckBackend(sourceRoots = listOf(testResourcesRoot()))
+
+    @Test
+    fun `unknown call in original admission retains its reason before the auxiliary target`() {
+        val inference = observe(predicate = "reflexive", precondition = "sliceAdmission")
+        val equality = inference.relations.single { it.template == ScalarRelationTemplate.STRICT_EQUAL }
+
+        val refutation = refute(inference, equality)
+        val restored = Json.decodeFromString<List<CapabilityDiagnostic>>(Json.encodeToString(refutation.diagnostics))
+
+        assertEquals(UsvmEntryRefutationStatus.UNSUPPORTED, refutation.status)
+        assertNull(refutation.inputs)
+        val diagnostic = restored.single { it.code == "usvm.unknown-call.path-stopped" }
+        assertTrue("Array::slice" in diagnostic.message, diagnostic.message)
+        assertTrue("reason=PARTIAL_APPROXIMATION" in diagnostic.message, diagnostic.message)
+        assertTrue(diagnostic.path.contains("EntryRelations.ts:39:"), diagnostic.path)
+        assertEquals(refutation.diagnostics, restored)
+    }
 
     @Test
     fun `an auxiliary equality refutation is confirmed while the complete original property holds`() {

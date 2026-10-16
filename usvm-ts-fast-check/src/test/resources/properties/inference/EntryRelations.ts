@@ -33,3 +33,8 @@ export function throwing(left: number, right: number): boolean {
     if (left > right) throw new Error('original fault');
     return true;
 }
+
+export function sliceAdmission(left: number, right: number): boolean {
+    const values = [left, right];
+    return values.slice().length === 2;
+}
