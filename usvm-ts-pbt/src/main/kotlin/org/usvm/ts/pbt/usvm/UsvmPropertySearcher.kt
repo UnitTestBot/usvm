@@ -243,13 +243,8 @@ class UsvmPropertySearcher(
                     projection = projection,
                 )
             }
-            val terminalFailure = classifyTerminalFailure(
-                manifest = manifest,
-                capability = capability,
-                analysis = analysis,
-            )
             val runtimeDiagnostics = runtimeLimitations.diagnostics
-            val searchResult = terminalFailure?.withCandidate(candidate)
+            val searchResult = classifyTerminalFailure(manifest, capability, analysis)?.withCandidate(candidate)
                 ?: candidate
                 ?: infeasibleFocusedEntry(focus, analysis, manifest, capability)
                 ?: noViolationResult(
