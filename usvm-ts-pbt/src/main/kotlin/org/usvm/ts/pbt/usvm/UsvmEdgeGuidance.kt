@@ -18,6 +18,7 @@ import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.coverage.captureCoverageIdentity
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.EtsBranchArmTarget
+import org.usvm.ts.pbt.mapping.EtsCoverageMapping
 import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
 import org.usvm.ts.pbt.mapping.PropertyEtsMappingArtifact
@@ -54,57 +55,57 @@ internal class UsvmEdgeGuidance(
     private val initialGoals: Set<UsvmCoverageEdge>
 
     init {
-        val coverage = feedback.initialCoverage
-        evidenceStatus = evidenceStatus(coverage)
-        val usable = evidenceStatus == UsvmCoverageEvidenceStatus.EXACT ||
-            evidenceStatus == UsvmCoverageEvidenceStatus.PARTIAL
-        if (usable) {
-            val evidence = exactEdges(requireNotNull(coverage))
-            evidence.forEach { (edge, target, hits) ->
-                targets[edge] = target
-                if (hits > 0) covered += edge
-            }
+        val evidence = evaluateEvidence(feedback.initialCoverage)
+        evidenceStatus = evidence.status
+        evidence.edges.forEach { (edge, target, hits) ->
+            targets[edge] = target
+            if (hits > 0) covered += edge
         }
         initialCovered = covered.toSet()
         initialGoals = pendingGoals()
     }
 
-    private fun evidenceStatus(coverage: PropertyCoverageArtifact?): UsvmCoverageEvidenceStatus {
+    private fun evaluateEvidence(coverage: PropertyCoverageArtifact?): CoverageEvidence {
         if (!selectionSupported) {
             diagnostics += "Edge scheduling does not support state merging or selector loop bounds; " +
                 "original selection retained"
-            return UsvmCoverageEvidenceStatus.UNSUPPORTED
+            return CoverageEvidence(status = UsvmCoverageEvidenceStatus.UNSUPPORTED)
         }
-        if (coverage == null) return UsvmCoverageEvidenceStatus.ABSENT
+        if (coverage == null) return CoverageEvidence(status = UsvmCoverageEvidenceStatus.ABSENT)
         if (!coverage.provenance.request.admittedOnly || coverage.identity == null) {
-            return UsvmCoverageEvidenceStatus.UNSUPPORTED
+            return CoverageEvidence(status = UsvmCoverageEvidenceStatus.UNSUPPORTED)
         }
         val stale = coverage.identity != identity || coverage.propertyId.value != manifest.propertyId ||
             coverage.diagnostics.any { it.code == "coverage.source.stale" }
-        if (stale) return UsvmCoverageEvidenceStatus.STALE
-        if (coverage.admittedInvocations == null) return UsvmCoverageEvidenceStatus.UNSUPPORTED
-        if (coverage.admittedInvocations == 0) return UsvmCoverageEvidenceStatus.NO_ADMITTED_INPUTS
+        if (stale) return CoverageEvidence(status = UsvmCoverageEvidenceStatus.STALE)
+        if (coverage.admittedInvocations == null) {
+            return CoverageEvidence(status = UsvmCoverageEvidenceStatus.UNSUPPORTED)
+        }
+        if (coverage.admittedInvocations == 0) {
+            return CoverageEvidence(status = UsvmCoverageEvidenceStatus.NO_ADMITTED_INPUTS)
+        }
 
         val mapped = mapper().map(manifest, coverage).coverage
-        val exact = exactEdges(coverage)
+        val exact = exactEdges(mapped)
         val mappingDiagnostics = mapped.diagnostics + mapped.branches.flatMap { branch ->
             branch.mapping.diagnostics + branch.arms.flatMap { it.mapping.diagnostics }
         }
         diagnostics += mappingDiagnostics.map { "${it.code}: ${it.message}" }.distinct()
-        if (exact.isEmpty()) return UsvmCoverageEvidenceStatus.UNSUPPORTED
+        if (exact.isEmpty()) return CoverageEvidence(status = UsvmCoverageEvidenceStatus.UNSUPPORTED)
 
         val unknownBranches = mapped.branches.any { it.mapping.status != EtsMappingStatus.EXACT }
-        return if (unknownBranches || mapped.diagnostics.isNotEmpty()) {
+        val status = if (unknownBranches || mapped.diagnostics.isNotEmpty()) {
             UsvmCoverageEvidenceStatus.PARTIAL
         } else {
             UsvmCoverageEvidenceStatus.EXACT
         }
+        return CoverageEvidence(status = status, edges = exact)
     }
 
     private fun mapper() = PropertyEtsMapper(scene = scene, sourceRoots = roots)
 
-    private fun exactEdges(coverage: PropertyCoverageArtifact): List<ObservedEdge> {
-        return mapper().map(manifest, coverage).coverage.branches.flatMap { branch ->
+    private fun exactEdges(mapped: EtsCoverageMapping): List<ObservedEdge> {
+        return mapped.branches.flatMap { branch ->
             val sourcePath = branch.location?.path
             if (sourcePath !in identity.sourceSha256) return@flatMap emptyList()
 
@@ -191,7 +192,8 @@ internal class UsvmEdgeGuidance(
             return ReplayDecision(status = UsvmEdgeReplayStatus.REJECTED_OR_INCOMPATIBLE)
         }
 
-        val observed = exactEdges(requireNotNull(coverage))
+        val mapped = mapper().map(manifest, requireNotNull(coverage)).coverage
+        val observed = exactEdges(mapped)
         val confirmed = observed.filter { it.hits > 0 }.mapTo(hashSetOf()) { it.edge }
         if (!confirmed.containsAll(claimed)) return ReplayDecision(status = UsvmEdgeReplayStatus.EDGE_MISMATCH)
 
@@ -257,6 +259,11 @@ internal class UsvmEdgeGuidance(
         replays = replays.toList(),
         diagnostics = diagnostics.toList(),
         elapsedMillis = started.elapsedNow().inWholeMilliseconds,
+    )
+
+    private data class CoverageEvidence(
+        val status: UsvmCoverageEvidenceStatus,
+        val edges: List<ObservedEdge> = emptyList(),
     )
 
     private data class ObservedEdge(val edge: UsvmCoverageEdge, val target: EtsBranchArmTarget, val hits: Long)
