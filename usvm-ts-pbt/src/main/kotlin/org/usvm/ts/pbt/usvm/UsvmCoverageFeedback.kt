@@ -1,5 +1,6 @@
 package org.usvm.ts.pbt.usvm
 
+import kotlinx.serialization.Serializable
 import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.model.JsConcreteValue
@@ -11,6 +12,7 @@ data class UsvmCoverageFeedback(
 )
 
 /** Why a report can or cannot supply exact coverage goals for this property/source snapshot. */
+@Serializable
 enum class UsvmCoverageEvidenceStatus {
     ABSENT,
     STALE,
@@ -21,6 +23,7 @@ enum class UsvmCoverageEvidenceStatus {
 }
 
 /** Distinguishes a CFG edge from either of its endpoint statements. */
+@Serializable
 data class UsvmCoverageEdge(
     val method: String,
     val conditionIndex: Int,
@@ -29,6 +32,7 @@ data class UsvmCoverageEdge(
 )
 
 /** A real queue decision made during the original predicate analysis. */
+@Serializable
 data class UsvmEdgeSelection(
     val evidenceRevision: Int,
     val stateId: UInt,
@@ -41,6 +45,7 @@ data class UsvmEdgeSelection(
 )
 
 /** Concrete confirmation outcomes; none except CONFIRMED can add edges. */
+@Serializable
 enum class UsvmEdgeReplayStatus {
     CONFIRMED,
     EDGE_MISMATCH,
@@ -50,6 +55,7 @@ enum class UsvmEdgeReplayStatus {
 }
 
 /** A bounded exact-input native replay and its effect on the shared edge set. */
+@Serializable
 data class UsvmEdgeReplay(
     val inputs: List<JsConcreteValue>,
     val status: UsvmEdgeReplayStatus,
@@ -59,6 +65,7 @@ data class UsvmEdgeReplay(
 )
 
 /** Bounded history; symbolic reachability never updates [confirmedCovered]. */
+@Serializable
 data class UsvmEdgeGuidanceTrace(
     val evidenceStatus: UsvmCoverageEvidenceStatus,
     val initialCovered: Set<UsvmCoverageEdge>,

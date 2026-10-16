@@ -1,9 +1,9 @@
 package org.usvm.ts.pbt.fastcheck
 
 import org.usvm.ts.pbt.FastCheckDiagnosticCode
+import org.usvm.ts.pbt.backend.CoverageDiagnostic
 import org.usvm.ts.pbt.backend.ExternalWitnessBackend
 import org.usvm.ts.pbt.backend.ExternalWitnessCandidate
-import org.usvm.ts.pbt.backend.CoverageDiagnostic
 import org.usvm.ts.pbt.backend.PropertyBasedTestingBackend
 import org.usvm.ts.pbt.backend.PropertyCoverageCapability
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
