@@ -21,6 +21,11 @@ export interface WitnessTarget {
   role: 'PROPERTY' | 'COVERAGE' | 'HYPOTHESIS';
   binding?: WitnessBinding;
   expectedOutcome?: 'FALSE' | 'THREW';
+  entryRelation?: {
+    leftInputIndex: number;
+    rightInputIndex: number;
+    template: 'STRICT_EQUAL' | 'LESS_OR_EQUAL';
+  };
 }
 
 export interface WitnessEvent {
@@ -247,9 +252,22 @@ async function replayOnce(
   const result: WitnessNativeReplay = {
     admission: 'ADMITTED', outcome: 'HOLDS', targetMatched: false, events: context.events, runtimeVersion: process.version,
   };
+  const relation = target.entryRelation;
+  const left = relation === undefined ? undefined : values[relation.leftInputIndex];
+  const right = relation === undefined ? undefined : values[relation.rightInputIndex];
+  if (relation !== undefined && (typeof left !== 'number' || typeof right !== 'number')) {
+    return { ...result, admission: 'UNKNOWN', outcome: 'UNKNOWN', diagnostic: 'entry-relation-numeric-required' };
+  }
+  const entryEvent: WitnessEvent | undefined = relation === undefined ? undefined : {
+    binding: target.binding!, guard: true,
+    holds: relation.template === 'STRICT_EQUAL' ? left === right : (left as number) <= (right as number),
+  };
   try {
     const holds = await contexts.run(context, () => invokePropertyOnce(
-      values, predicate, precondition, undefined, 'replay', () => { context.active = true; },
+      values, predicate, precondition, undefined, 'replay', () => {
+        context.active = true;
+        if (entryEvent !== undefined) context.events.push(entryEvent);
+      },
     ));
     if (holds === null) {
       result.admission = 'PRECONDITION_REJECTED';
@@ -316,12 +334,19 @@ function validateOperation(value: unknown, arity: number): WitnessOperation {
     && typeof binding.contextId === 'string' && binding.contextId.length > 0
     && typeof binding.revision === 'string' && binding.revision.length > 0
     && Number.isInteger(binding.occurrence) && binding.occurrence >= 0);
+  const relation = target?.entryRelation;
+  const validEntryRelation = relation === undefined || (relation !== null && typeof relation === 'object'
+    && !Array.isArray(relation) && target?.role === 'HYPOTHESIS'
+    && binding?.contextId === 'original-entry' && binding.occurrence === 0
+    && Number.isInteger(relation.leftInputIndex) && relation.leftInputIndex >= 0 && relation.leftInputIndex < arity
+    && Number.isInteger(relation.rightInputIndex) && relation.rightInputIndex >= 0 && relation.rightInputIndex < arity
+    && ['STRICT_EQUAL', 'LESS_OR_EQUAL'].includes(relation.template));
   const valid = operation !== undefined && ['replay', 'reduce'].includes(operation.mode)
     && Array.isArray(operation.inputs) && operation.inputs.length === arity
     && typeof target?.id === 'string' && target.id.length > 0
     && ['PROPERTY', 'COVERAGE', 'HYPOTHESIS'].includes(target.role)
     && (target.expectedOutcome === undefined || ['FALSE', 'THREW'].includes(target.expectedOutcome))
-    && validBinding && (target.role === 'PROPERTY' || binding !== undefined)
+    && validBinding && validEntryRelation && (target.role === 'PROPERTY' || binding !== undefined)
     && Array.isArray(operation.sources) && operation.sources.length > 0
     && operation.sources.every((source) => source !== null && typeof source === 'object' && typeof source.module === 'string'
       && typeof source.sha256 === 'string' && /^[0-9a-f]{64}$/.test(source.sha256));

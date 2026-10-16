@@ -1,5 +1,6 @@
 package org.usvm.ts.pbt.inference
 
+import kotlinx.serialization.Serializable
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
@@ -16,6 +17,7 @@ data class ScalarObservationPair(
 )
 
 /** Numeric JavaScript comparisons; no mathematical-real or coercing comparison is inferred. */
+@Serializable
 enum class ScalarRelationTemplate {
     STRICT_EQUAL,
     LESS_OR_EQUAL,
