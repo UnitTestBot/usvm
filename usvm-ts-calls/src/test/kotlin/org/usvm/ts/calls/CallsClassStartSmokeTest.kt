@@ -202,7 +202,10 @@ class CallsClassStartSmokeTest {
                 numeric<T extends number>(value: T): number { return value > 0 ? 1 : 0; }
                 logical<T extends boolean>(value: T): number { return value ? 1 : 0; }
                 reference<T extends string>(value: T): number { return value.length; }
-                defaulted<T = number>(value: T): boolean { return typeof value === 'number'; }
+                defaulted<T = number>(value: T): boolean {
+                    if (typeof value === 'number') return true;
+                    return false;
+                }
             }
         """.trimIndent()
 
@@ -221,7 +224,8 @@ class CallsClassStartSmokeTest {
         assertTrue(values("logical").all { it is JsConcreteValue.Boolean })
         assertTrue(values("reference").all { it is JsConcreteValue.String })
         val failures = Files.readAllLines(directory.resolve("output/input-extraction-failures.jsonl"))
-        assertTrue(values("defaulted").isNotEmpty())
+        // Distinct return paths force both kinds; one unconstrained return permits an arbitrary solver witness.
+        assertTrue(values("defaulted").any { it is JsConcreteValue.Number })
         assertTrue(values("defaulted").any { it !is JsConcreteValue.Number })
         assertTrue(failures.isEmpty(), failures.toString())
     }
