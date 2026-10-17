@@ -211,6 +211,104 @@ def replay_inputs(artifact):
     return batches, omissions
 
 
+def verify_campaign_identity(request, artifact):
+    expected_property = dict(request["property"], assertions=request["property"].get("assertions", []))
+    for key in ("predicate", "precondition"):
+        entry = expected_property.get(key)
+        if entry is not None:
+            expected_property[key] = dict(entry, executionKind=entry.get("executionKind", "sync"))
+    expected_configuration = {"examples": [], "exactReplay": False, **request["configuration"]}
+    expected_configuration["coverageRequest"] = {
+        "scopes": ["source_under_test"], "includePatterns": [], "excludePatterns": [],
+        "includeUnexecutedSources": False, **request["configuration"]["coverageRequest"],
+    }
+    observation = expected_configuration.get("observationRequest")
+    if observation is not None:
+        expected_configuration["observationRequest"] = {"maxPointsPerInvocation": 8, **observation}
+    same_request = artifact["property"] == expected_property and artifact["configuration"] == expected_configuration \
+        and artifact["metadata"]["sourceRoot"] == request["sourceRoot"] and artifact["result"]["mode"] == request["mode"] \
+        and artifact["metadata"]["requestedNodeCommand"] == request["nodeExecutable"]
+    same_controls = all(artifact.get(key) == request.get(key) for key in (
+        "validationReserveMillis", "pbtAllocationMillis", "completedInputLimit", "shrinkWitness",
+    ))
+    if not same_request or not same_controls:
+        raise ValueError("Campaign artifact does not match the requested property, source or controls")
+
+    result = artifact["result"]
+    property_id = request["property"]["id"]
+    if result["propertyId"] != property_id:
+        raise ValueError("Campaign result belongs to another property")
+    capture_request = request["configuration"].get("inputExportRequest") or observation
+    expected_sources = {source["module"]: source["sha256"] for source in capture_request["sources"]}
+    for part in (result.get("concrete"), result.get("symbolic")):
+        if part is not None and part["propertyId"] != property_id:
+            raise ValueError("Campaign phase belongs to another property")
+    concrete = result.get("concrete")
+    if concrete is not None:
+        capture = concrete.get("inputExport") or concrete.get("observations") or {}
+        captured_sources = {source["module"]: source["sha256"] for source in capture.get("verifiedSources", [])}
+        if concrete["seed"] != request["configuration"]["seed"] or captured_sources != expected_sources:
+            raise ValueError("Captured PBT inputs do not match the requested seed and sources")
+    for replay in result.get("symbolicInputReplays", []):
+        candidate = replay["candidate"]
+        sources = {source["module"]: source["sha256"] for source in candidate["sources"]}
+        if candidate["propertyId"] != property_id or sources != expected_sources:
+            raise ValueError("Native symbolic input belongs to another property or source snapshot")
+
+
+def expected_budget_stop(result):
+    concrete = result.get("concrete")
+    failure_kind = ((concrete or {}).get("failure") or {}).get("kind")
+    concrete_timeout = concrete is not None and concrete.get("status") == "failure" and failure_kind == "timeout"
+    concrete_success = concrete is not None and concrete.get("status") == "success" and failure_kind is None
+    mode = result["mode"]
+    symbolic = result.get("symbolic")
+    if result.get("confirmation") is not None:
+        return False
+    if mode == "PBT_ONLY":
+        return concrete_timeout and symbolic is None and result["stop"] == "DEADLINE" and result.get("stoppedAt") == "PBT"
+    if mode == "SYMBOLIC_ONLY":
+        if concrete is not None:
+            return False
+    elif mode not in ("SEQUENTIAL", "COVERAGE_FEEDBACK") or not (concrete_timeout or concrete_success):
+        return False
+    if symbolic is None or symbolic.get("diagnostics") or symbolic.get("target") is not None:
+        return False
+    if symbolic["status"] == "TIMEOUT":
+        return result["stop"] == "DEADLINE" and result.get("stoppedAt") in ("SYMBOLIC", "CONFIRMATION")
+    return concrete_timeout and result["stop"] == "COMPLETED" and symbolic["status"] == "NO_VIOLATION_REACHED"
+
+
+def budget_prefix_complete(artifact, omissions):
+    if any(omissions.values()):
+        return False
+    if not expected_budget_stop(artifact["result"]):
+        return False
+    result = artifact["result"]
+    concrete = result.get("concrete") or {}
+    capture = concrete.get("inputExport") or concrete.get("observations") or {}
+    if capture.get("pendingInvocations", 0) or capture.get("unsupportedInputs", 0):
+        return False
+    symbolic = result.get("symbolic") or {}
+    input_key = lambda inputs: json.dumps(inputs, sort_keys=True)
+    expected_outcomes = {}
+    for item in symbolic.get("completedInputs", []):
+        expected_outcomes.setdefault(input_key(item["inputs"]), set()).add(item["expectedOutcome"])
+    replays = result.get("symbolicInputReplays", [])
+    replayed = {input_key(item["candidate"]["inputs"]) for item in replays}
+    if set(expected_outcomes) != replayed:
+        return False
+    for replay in replays:
+        predictions = set(replay.get("predictedOutcomes", []))
+        input_predictions = expected_outcomes[input_key(replay["candidate"]["inputs"])]
+        verified = predictions == input_predictions == {"HOLDS"} and replay["completedWithinDeadline"] is True \
+            and replay["replay"]["admission"] == "ADMITTED" and replay["replay"]["outcome"] == "HOLDS" \
+            and not replay["replay"].get("diagnostic")
+        if not verified:
+            return False
+    return True
+
+
 def run_cell(frozen, case, seed, mode, output):
     directory = output / case["id"] / str(seed) / mode
     directory.mkdir(parents=True)
@@ -284,15 +382,17 @@ def run_cell(frozen, case, seed, mode, output):
         stopped_on_pbt_fault = result.get("symbolic") is None and failure.get("kind") == "property"
         summary["analysisSupported"] = (mode == "PBT_ONLY" or symbolic_supported or stopped_on_pbt_fault) \
             and not summary["symbolicDiagnostics"]
+        batches, omissions = replay_inputs(artifact)
+        summary["omissions"] = omissions
+        verify_campaign_identity(request, artifact)
         runner_completed = runner_process["exitCode"] == 0 \
-            or (runner_process["exitCode"] == 1 and summary["confirmedViolation"])
+            or (runner_process["exitCode"] == 1 and summary["confirmedViolation"]) \
+            or (runner_process["exitCode"] == 2 and budget_prefix_complete(artifact, omissions))
         runner_process["creditedWithinDeadline"] = runner_timely and runner_completed
         if summary["confirmedViolation"]:
             summary["findingReturnedByMillis"] = int((time.monotonic() - started) * 1000) + preparation_cost
             summary["confirmedViolationWithinBudget"] = summary["findingReturnedByMillis"] <= frozen["totalBudgetMillis"] \
                 and runner_process["creditedWithinDeadline"]
-        batches, omissions = replay_inputs(artifact)
-        summary["omissions"] = omissions
         if not runner_process["creditedWithinDeadline"]:
             raise ValueError("Runner did not complete successfully within its deadline; raw artifact and output are retained")
         prepared = read_json(output / case["id"] / "prepared.json")
