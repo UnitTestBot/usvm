@@ -16,6 +16,7 @@ import time
 MODES = ("PBT_ONLY", "SYMBOLIC_ONLY", "SEQUENTIAL", "COVERAGE_FEEDBACK")
 STOP_CRITERION = "first original fault, PBT successful-run quota, symbolic exhaustion, or deadline"
 SCRIPT_ROOT = Path(__file__).resolve().parent
+PUBLICATION_RESERVE_MILLIS = 1000
 
 
 def read_json(path):
@@ -30,21 +31,29 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def run_process(command, directory, stem, timeout_seconds):
-    """Retain process failures and overruns; never credit their late native output."""
+def run_process(command, directory, stem, timeout_seconds, *, deadline=None):
+    """Retain failures and overruns; an absolute deadline also charges process creation."""
     started = time.monotonic()
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+    wait_timeout = max(0.001, timeout_seconds) if deadline is None else max(0, deadline - time.monotonic())
     timed_out = False
     try:
-        stdout, stderr = process.communicate(timeout=max(0.001, timeout_seconds))
+        stdout, stderr = process.communicate(timeout=wait_timeout)
     except subprocess.TimeoutExpired:
         timed_out = True
-        os.killpg(process.pid, signal.SIGKILL)
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
         stdout, stderr = process.communicate()
+    completed = time.monotonic()
+    if deadline is not None and completed >= deadline:
+        timed_out = True
     (directory / f"{stem}.stdout").write_bytes(stdout)
     (directory / f"{stem}.stderr").write_bytes(stderr)
     return {"command": [str(part) for part in command], "exitCode": process.returncode,
-            "timedOut": timed_out, "elapsedMillis": int((time.monotonic() - started) * 1000)}
+            "timedOut": timed_out, "elapsedMillis": int((time.monotonic() - started) * 1000),
+            "waitTimeoutMillis": int(wait_timeout * 1000)}
 
 
 def verify_sources(case):
@@ -205,19 +214,27 @@ def run_cell(frozen, case, seed, mode, output):
     directory = output / case["id"] / str(seed) / mode
     directory.mkdir(parents=True)
     started = time.monotonic()
+    started_epoch_millis = int(time.time() * 1000)
     preparation_cost = case["preparation"]["elapsedMillis"]
     remaining_budget = max(0, frozen["totalBudgetMillis"] - preparation_cost)
     deadline = started + remaining_budget / 1000
     runner_budget = remaining_budget - frozen["classReplayReserveMillis"]
+    runner_deadline = deadline - frozen["classReplayReserveMillis"] / 1000
+    runner_deadline_epoch_millis = started_epoch_millis + runner_budget
     summary = {"caseId": case["id"], "project": case["project"], "population": case["population"],
                "seed": seed, "mode": mode, "stopCriterion": STOP_CRITERION, "preparationChargedMillis": preparation_cost,
                "declaredTotalBudgetMillis": frozen["totalBudgetMillis"], "pbtRunQuota": frozen["numRuns"],
+               "runnerDeadlineEpochMillis": runner_deadline_epoch_millis,
+               "classReplayReserveMillis": frozen["classReplayReserveMillis"],
+               "publicationReserveMillis": PUBLICATION_RESERVE_MILLIS,
                "totalStatements": case.get("totalStatements"), "universeSha256": case.get("universeSha256"),
                "coveredStatementIds": [], "coverageComplete": False, "confirmedViolation": False}
     try:
         verify_sources(case)
         verify_runtime(frozen)
-        if runner_budget <= frozen["validationReserveMillis"] + frozen["pbtAllocationMillis"]:
+        required_runner_reserves = frozen["validationReserveMillis"] + frozen["pbtAllocationMillis"] \
+            + PUBLICATION_RESERVE_MILLIS
+        if runner_budget <= required_runner_reserves:
             raise ValueError("Preparation exhausted the fixed campaign allocation")
         sources = [{"module": relative, "sha256": sha} for relative, sha in case["sourceSha256"].items()]
         configuration = {"seed": seed, "numRuns": frozen["numRuns"], "timeoutMillis": runner_budget,
@@ -229,15 +246,20 @@ def run_cell(frozen, case, seed, mode, output):
         request = {"sourceRoot": case["sourceRoot"], "property": case["property"], "mode": mode,
                    "configuration": configuration, "validationReserveMillis": frozen["validationReserveMillis"],
                    "completedInputLimit": 0 if mode == "PBT_ONLY" else frozen["symbolicInputLimit"],
-                   "nodeExecutable": frozen["nodeCommand"], "shrinkWitness": False}
+                   "nodeExecutable": frozen["nodeCommand"], "shrinkWitness": False,
+                   "externalDeadlineEpochMillis": runner_deadline_epoch_millis,
+                   "publicationReserveMillis": PUBLICATION_RESERVE_MILLIS}
         if mode in ("SEQUENTIAL", "COVERAGE_FEEDBACK"):
             request["pbtAllocationMillis"] = frozen["pbtAllocationMillis"]
         write_json(directory / "request.json", request)
         summary["runnerProcess"] = run_process(
             [Path(frozen["distribution"]) / "bin/usvm-ts-fast-check", "campaign-file",
              directory / "request.json", directory / "campaign.json"], directory, "runner",
-            max(0, deadline - time.monotonic() - frozen["classReplayReserveMillis"] / 1000),
+            timeout_seconds=runner_budget / 1000, deadline=runner_deadline,
         )
+        runner_process = summary["runnerProcess"]
+        runner_timely = time.monotonic() < runner_deadline and not runner_process["timedOut"]
+        runner_process["creditedWithinDeadline"] = False
         if not (directory / "campaign.json").exists():
             raise ValueError("Runner produced no completed artifact; raw process output is retained")
         artifact = read_json(directory / "campaign.json")
@@ -260,12 +282,17 @@ def run_cell(frozen, case, seed, mode, output):
         stopped_on_pbt_fault = result.get("symbolic") is None and failure.get("kind") == "property"
         summary["analysisSupported"] = (mode == "PBT_ONLY" or symbolic_supported or stopped_on_pbt_fault) \
             and not summary["symbolicDiagnostics"]
+        runner_completed = runner_process["exitCode"] == 0 \
+            or (runner_process["exitCode"] == 1 and summary["confirmedViolation"])
+        runner_process["creditedWithinDeadline"] = runner_timely and runner_completed
         if summary["confirmedViolation"]:
             summary["findingReturnedByMillis"] = int((time.monotonic() - started) * 1000) + preparation_cost
             summary["confirmedViolationWithinBudget"] = summary["findingReturnedByMillis"] <= frozen["totalBudgetMillis"] \
-                and not summary["runnerProcess"]["timedOut"]
+                and runner_process["creditedWithinDeadline"]
         batches, omissions = replay_inputs(artifact)
         summary["omissions"] = omissions
+        if not runner_process["creditedWithinDeadline"]:
+            raise ValueError("Runner did not complete successfully within its deadline; raw artifact and output are retained")
         prepared = read_json(output / case["id"] / "prepared.json")
         if not prepared.get("supported"):
             raise ValueError("Frozen class universe/preflight is unsupported")
@@ -284,7 +311,7 @@ def run_cell(frozen, case, seed, mode, output):
             process = run_process(
                 [frozen["nodeCommand"], SCRIPT_ROOT / "class-coverage-replay.mjs", "replay", frozen["adapter"],
                  directory / f"{stem}.request.json", directory / f"{stem}.replay.json"],
-                directory, stem, deadline - time.monotonic(),
+                directory, stem, timeout_seconds=remaining_budget / 1000, deadline=deadline,
             )
             timely = time.monotonic() < deadline and not process["timedOut"] and process["exitCode"] == 0
             process["batchId"] = stem
