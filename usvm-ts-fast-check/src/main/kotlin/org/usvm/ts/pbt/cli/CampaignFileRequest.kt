@@ -55,8 +55,11 @@ internal fun runCampaignFile(
     )
 
     val json = PropertyManifestJson.json.encodeToUtf8SafeString(artifact)
-    output.appendLine(json)
-    Files.writeString(Path.of(args[1]), json)
+    try {
+        Files.writeString(Path.of(args[1]), json)
+    } finally {
+        output.appendLine(json)
+    }
 
     campaignExitCode(artifact.result)
 } catch (error: IllegalArgumentException) {
