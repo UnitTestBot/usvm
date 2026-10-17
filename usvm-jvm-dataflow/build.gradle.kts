@@ -18,6 +18,7 @@ dependencies {
     implementation(Libs.jacodb_storage)
     implementation(Libs.jacodb_taint_configuration)
 
+    testImplementation(Libs.logback)
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
 

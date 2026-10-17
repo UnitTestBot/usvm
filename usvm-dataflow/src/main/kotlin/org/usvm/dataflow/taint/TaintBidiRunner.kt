@@ -20,6 +20,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import org.jacodb.api.common.CommonMethod
+import org.jacodb.api.common.cfg.CommonInst
 import org.usvm.dataflow.ifds.ControlEvent
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.IfdsResult
@@ -28,8 +30,6 @@ import org.usvm.dataflow.ifds.QueueEmptinessChanged
 import org.usvm.dataflow.ifds.Reason
 import org.usvm.dataflow.ifds.UnitResolver
 import org.usvm.dataflow.ifds.UnitType
-import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.cfg.CommonInst
 import org.usvm.dataflow.graph.ApplicationGraph
 
 class TaintBidiRunner<Method, Statement>(
@@ -43,10 +43,11 @@ class TaintBidiRunner<Method, Statement>(
     where Method : CommonMethod,
           Statement : CommonInst {
 
-    @Volatile
+    // Queue monitors may enter this aggregate monitor; control handling never calls back into a queue.
+    private val controlMonitor = Any()
+
     private var forwardQueueIsEmpty: Boolean = false
 
-    @Volatile
     private var backwardQueueIsEmpty: Boolean = false
 
     private val forwardManager: Manager<TaintDomainFact, TaintEvent<Statement>, Method, Statement> =
@@ -71,9 +72,12 @@ class TaintBidiRunner<Method, Statement>(
             override fun handleControlEvent(event: ControlEvent) {
                 when (event) {
                     is QueueEmptinessChanged -> {
-                        forwardQueueIsEmpty = event.isEmpty
-                        val newEvent = QueueEmptinessChanged(event.runner, forwardQueueIsEmpty && backwardQueueIsEmpty)
-                        manager.handleControlEvent(newEvent)
+                        synchronized(controlMonitor) {
+                            forwardQueueIsEmpty = event.isEmpty
+                            val bothQueuesEmpty = forwardQueueIsEmpty && backwardQueueIsEmpty
+                            val newEvent = QueueEmptinessChanged(runner = event.runner, isEmpty = bothQueuesEmpty)
+                            manager.handleControlEvent(newEvent)
+                        }
                     }
                 }
             }
@@ -105,9 +109,12 @@ class TaintBidiRunner<Method, Statement>(
             override fun handleControlEvent(event: ControlEvent) {
                 when (event) {
                     is QueueEmptinessChanged -> {
-                        backwardQueueIsEmpty = event.isEmpty
-                        val newEvent = QueueEmptinessChanged(event.runner, forwardQueueIsEmpty && backwardQueueIsEmpty)
-                        manager.handleControlEvent(newEvent)
+                        synchronized(controlMonitor) {
+                            backwardQueueIsEmpty = event.isEmpty
+                            val bothQueuesEmpty = forwardQueueIsEmpty && backwardQueueIsEmpty
+                            val newEvent = QueueEmptinessChanged(runner = event.runner, isEmpty = bothQueuesEmpty)
+                            manager.handleControlEvent(newEvent)
+                        }
                     }
                 }
             }

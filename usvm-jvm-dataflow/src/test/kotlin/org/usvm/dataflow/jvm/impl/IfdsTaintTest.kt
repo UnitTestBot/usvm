@@ -23,7 +23,7 @@ import org.jacodb.api.jvm.ext.findClass
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
-import org.usvm.dataflow.jvm.ifds.SingletonUnitResolver
+import org.usvm.dataflow.jvm.ifds.MethodUnitResolver
 import org.usvm.dataflow.jvm.taint.jcTaintManager
 import org.usvm.dataflow.taint.TaintVulnerability
 import kotlin.test.assertTrue
@@ -40,7 +40,7 @@ class IfdsTaintTest : BaseAnalysisTest() {
     }
 
     private fun findSinks(method: JcMethod): List<TaintVulnerability<JcInst>> {
-        val unitResolver = SingletonUnitResolver
+        val unitResolver = MethodUnitResolver
         val manager = jcTaintManager(graph, unitResolver)
         return manager.analyze(listOf(method), timeout = 3000.seconds)
     }

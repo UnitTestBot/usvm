@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
-import org.usvm.dataflow.jvm.ifds.SingletonUnitResolver
+import org.usvm.dataflow.jvm.ifds.MethodUnitResolver
 import org.usvm.dataflow.jvm.npe.jcNpeManager
 import org.usvm.dataflow.jvm.taint.jcTaintManager
 import org.usvm.dataflow.jvm.unused.UnusedVariableManager
@@ -39,7 +39,7 @@ class JodaDateTimeAnalysisTest : BaseAnalysisTest() {
     fun `test taint analysis`() {
         val clazz = cp.findClass<DateTime>()
         val methods = clazz.declaredMethods
-        val unitResolver = SingletonUnitResolver
+        val unitResolver = MethodUnitResolver
         val manager = jcTaintManager(graph, unitResolver)
         val sinks = manager.analyze(methods, timeout = 60.seconds)
         logger.info { "Vulnerabilities found: ${sinks.size}" }
@@ -49,7 +49,7 @@ class JodaDateTimeAnalysisTest : BaseAnalysisTest() {
     fun `test NPE analysis`() {
         val clazz = cp.findClass<DateTime>()
         val methods = clazz.declaredMethods
-        val unitResolver = SingletonUnitResolver
+        val unitResolver = MethodUnitResolver
         val manager = jcNpeManager(graph, unitResolver)
         val sinks = manager.analyze(methods, timeout = 60.seconds)
         logger.info { "Vulnerabilities found: ${sinks.size}" }
@@ -59,7 +59,7 @@ class JodaDateTimeAnalysisTest : BaseAnalysisTest() {
     fun `test unused variables analysis`() {
         val clazz = cp.findClass<DateTime>()
         val methods = clazz.declaredMethods
-        val unitResolver = SingletonUnitResolver
+        val unitResolver = MethodUnitResolver
         val manager = with(JcTraits(cp)) {
             UnusedVariableManager(traits = this, graph, unitResolver)
         }
