@@ -223,6 +223,46 @@ class PropertyCampaignRunnerTest {
     }
 
     @Test
+    fun `external cutoff does not renew the original campaign timeout`() {
+        val hanging = property().copy(predicate = TypeScriptEntryPoint(module = MODULE, exportName = "hangs"))
+        val original = configuration.copy(timeoutMillis = 100)
+
+        val artifact = runner.runArtifact(
+            property = hanging,
+            mode = PropertyCampaignMode.PBT_ONLY,
+            configuration = original,
+            externalDeadlineEpochMillis = Long.MAX_VALUE,
+        )
+
+        assertEquals(original, artifact.configuration)
+        assertEquals(PropertyCampaignStop.DEADLINE, artifact.result.stop)
+        assertNull(artifact.result.symbolic)
+        assertTrue(artifact.result.elapsedMillis < 5_000, "External cutoff renewed the 100 ms request timeout")
+    }
+
+    @Test
+    fun `external cutoff shortens execution without invalidating the original PBT allocation`() {
+        val hanging = property().copy(predicate = TypeScriptEntryPoint(module = MODULE, exportName = "hangs"))
+        val allocationMillis = 5_000L
+        val cutoffEpochMillis = System.currentTimeMillis() + 500
+
+        val artifact = runner.runArtifact(
+            property = hanging,
+            mode = PropertyCampaignMode.SEQUENTIAL,
+            configuration = configuration,
+            validationReserveMillis = 1,
+            pbtAllocationMillis = allocationMillis,
+            externalDeadlineEpochMillis = cutoffEpochMillis,
+        )
+
+        assertEquals(configuration, artifact.configuration)
+        assertEquals(allocationMillis, artifact.pbtAllocationMillis)
+        assertEquals(PropertyCampaignStop.DEADLINE, artifact.result.stop)
+        assertNull(artifact.result.symbolic)
+        assertTrue(artifact.result.elapsedMillis < 5_000, "Caller cutoff acquired a new full PBT allocation")
+    }
+
+    @Test
     fun `the backend does not reset an already consumed caller deadline`() {
         val deadline = WitnessReplayDeadline(timeoutMillis = 1)
         while (deadline.remainingMillis() > 0) Thread.onSpinWait()
