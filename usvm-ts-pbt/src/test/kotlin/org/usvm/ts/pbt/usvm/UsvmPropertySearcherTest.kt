@@ -10,6 +10,7 @@ import org.usvm.UMachineOptions
 import org.usvm.machine.TsOptions
 import org.usvm.ts.pbt.backend.ProjectionCapability
 import org.usvm.ts.pbt.backend.ProjectionLevel
+import org.usvm.ts.pbt.backend.WitnessOracleOutcome
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
 import org.usvm.ts.pbt.model.ArrayDomain
@@ -353,6 +354,52 @@ class UsvmPropertySearcherTest {
 
         assertEquals(UsvmPropertySearchStatus.TIMEOUT, result.status)
         assertNull(result.inputs)
+    }
+
+    @Test
+    fun `completed input validation can exhaust the caller budget before another path runs`() {
+        val manifest = manifest(predicateExport = "branchingValidProperty")
+        val captured = mutableListOf<UsvmCompletedInput>()
+        var deadlineReached = false
+
+        val result = searcher.search(
+            manifest = manifest,
+            mapping = mapper.map(manifest),
+            concreteCapability = ProjectionCapability(level = ProjectionLevel.EXACT),
+            deadlineReached = { deadlineReached },
+            coverageFeedback = null,
+            completedInputLimit = 8,
+            onCompletedInput = { input ->
+                captured += input
+                deadlineReached = true
+            },
+        )
+
+        assertEquals(UsvmPropertySearchStatus.TIMEOUT, result.status)
+        assertEquals(1, captured.size)
+        assertEquals(captured, result.completedInputs)
+        assertEquals(WitnessOracleOutcome.HOLDS, captured.single().expectedOutcome)
+        assertEquals(0, result.omittedCompletedInputs)
+    }
+
+    @Test
+    fun `disabled completed input capture never invokes validation`() {
+        val manifest = manifest(predicateExport = "branchingValidProperty")
+        val captured = mutableListOf<UsvmCompletedInput>()
+
+        val result = searcher.search(
+            manifest = manifest,
+            mapping = mapper.map(manifest),
+            concreteCapability = ProjectionCapability(level = ProjectionLevel.EXACT),
+            deadlineReached = null,
+            coverageFeedback = null,
+            completedInputLimit = 0,
+            onCompletedInput = { captured += it },
+        )
+
+        assertEquals(UsvmPropertySearchStatus.NO_VIOLATION_REACHED, result.status)
+        assertTrue(captured.isEmpty())
+        assertTrue(result.completedInputs.isEmpty())
     }
 
     private fun search(manifest: PropertyManifest): UsvmPropertySearchResult = searcher.search(

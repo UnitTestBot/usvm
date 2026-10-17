@@ -29,6 +29,7 @@ import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.observation.PropertyObservationRequest
 import org.usvm.ts.pbt.observation.PropertyObservationSource
+import org.usvm.ts.pbt.usvm.UsvmCompletedInput
 import org.usvm.ts.pbt.usvm.UsvmCoverageFeedback
 import org.usvm.ts.pbt.usvm.UsvmPropertySearchResult
 import org.usvm.ts.pbt.usvm.UsvmPropertySearchStatus
@@ -226,6 +227,7 @@ class PropertyCampaignRunner(
                     null
                 },
                 completedInputLimit = completedInputLimit,
+                onCompletedInput = inputReplays?.let { it::captureForValidation },
             )
             if (symbolic == null) return result(PropertyCampaignStop.DEADLINE)
 
@@ -408,6 +410,7 @@ class PropertyCampaignRunner(
         validationReserveMillis: Long,
         feedback: UsvmCoverageFeedback?,
         completedInputLimit: Int,
+        onCompletedInput: ((UsvmCompletedInput) -> Unit)?,
     ): UsvmPropertySearchResult? {
         if (deadline.remainingMillis() <= validationReserveMillis) return null
 
@@ -430,6 +433,7 @@ class PropertyCampaignRunner(
             deadlineReached = { deadline.remainingMillis() <= validationReserveMillis },
             coverageFeedback = feedback,
             completedInputLimit = completedInputLimit,
+            onCompletedInput = onCompletedInput,
         )
     }
 

@@ -2,6 +2,12 @@ export function validProperty(value: number): boolean {
   return value === value;
 }
 
+export function branchingValidProperty(value: number): boolean {
+  if (value < 0) return true;
+
+  return value === value;
+}
+
 export function violatedProperty(value: number): boolean {
   return value !== 2;
 }
