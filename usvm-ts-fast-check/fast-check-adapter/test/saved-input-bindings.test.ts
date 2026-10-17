@@ -19,6 +19,20 @@ test('private overlay bridges exact static data and mutable module bindings', ()
   assert.match(result.source!, /count = __savedBridgeArguments\[2\]/)
 })
 
+test('bridge setter does not shadow module data named value', async () => {
+  const source = 'export let value = 17; export class Target { static marker = 23; read() { return value; } }'
+  const prepared = prepare(source, ['value'])
+  assert.equal(prepared.reason, null)
+  const emitted = ts.transpileModule(prepared.source!, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+  }).outputText
+  const module = await import(`data:text/javascript;base64,${Buffer.from(emitted).toString('base64')}`)
+
+  module.__savedBridge.writeBinding('%dflt', 'value', 5)
+
+  assert.equal(new module.Target().read(), 5)
+})
+
 test('constant, imported and nested bindings are explicit unsupported cases', () => {
   const declarations = [
     'export const count = 17;',

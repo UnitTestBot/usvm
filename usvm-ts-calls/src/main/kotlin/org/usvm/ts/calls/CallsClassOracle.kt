@@ -286,7 +286,10 @@ internal class OriginalTypeScriptClassReplayer(
             require(
                 (sourceOverride == null) == (overrideSourceFile == null)
             ) { "Source override needs a relative target file" }
-            val closure = sourceClosure ?: checkedCallsSourceClosure(root = root, entry = root.resolve(function.sourceFile))
+            val closure = sourceClosure ?: checkedCallsSourceClosure(
+                root = root,
+                entry = root.resolve(function.sourceFile),
+            )
             val closureResolved = closure.reasonCode == null && function.sourceFile in closure.files &&
                 closure.resolution?.runtimeBoundaries.orEmpty().isEmpty()
             require(closureResolved) {

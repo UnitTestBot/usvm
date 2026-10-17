@@ -265,17 +265,29 @@ class CallsClassStartSmokeTest {
         assertEquals(candidate.inputs.arguments[0], candidate.inputs.arguments[1])
 
         val replayPath = directory.resolve("native-input-replay.json")
-        runSavedInputReplay(listOf(
-            directory.resolve("manifest.json").toString(), "target", directory.resolve("output").toString(),
-            candidate.stateId, "20000", replayPath.toString(),
-        ))
-        val replay = CallsExperimentJson.json.decodeFromString<CallsSavedInputReplayResult>(Files.readString(replayPath))
+        runSavedInputReplay(
+            listOf(
+                directory.resolve("manifest.json").toString(),
+                "target",
+                directory.resolve("output").toString(),
+                candidate.stateId,
+                "20000",
+                replayPath.toString(),
+            )
+        )
+        val replay = CallsExperimentJson.json.decodeFromString<CallsSavedInputReplayResult>(
+            Files.readString(replayPath)
+        )
 
         assertSavedInputReturn(replay = replay, expected = 373.0)
 
-        val adjusted = candidate.copy(inputs = candidate.inputs.copy(
-            environmentFields = listOf(marker.copy(value = CallsConcreteHeapValue(primitive = JsConcreteValue.number(19.0)))),
-        ))
+        val adjusted = candidate.copy(
+            inputs = candidate.inputs.copy(
+                environmentFields = listOf(
+                    marker.copy(value = CallsConcreteHeapValue(primitive = JsConcreteValue.number(19.0)))
+                ),
+            )
+        )
         assertSavedInputReturned(result = result, candidate = adjusted, expected = 0.0)
     }
 
@@ -305,20 +317,40 @@ class CallsClassStartSmokeTest {
         assertSavedInputReturned(result = result, candidate = candidate, expected = 108.0)
 
         // A transport control distinguishes the setter from merely re-running the source initializer.
-        val adjusted = candidate.copy(inputs = candidate.inputs.copy(
-            environmentFields = listOf(marker.copy(value = CallsConcreteHeapValue(primitive = JsConcreteValue.number(5.0)))),
-        ))
+        val adjusted = candidate.copy(
+            inputs = candidate.inputs.copy(
+                environmentFields = listOf(
+                    marker.copy(value = CallsConcreteHeapValue(primitive = JsConcreteValue.number(5.0)))
+                ),
+            )
+        )
         assertSavedInputReturned(result = result, candidate = adjusted, expected = 96.0)
 
         val partial = replayCallsSavedInput(
-            sourceRoot = directory, sourceFile = "Target.ts", targetSignature = checkNotNull(result.targetSignature),
-            candidate = candidate.copy(environmentComplete = false, environmentLimitations = listOf("incomplete initializer")),
+            sourceRoot = directory,
+            sourceFile = "Target.ts",
+            targetSignature = checkNotNull(result.targetSignature),
+            candidate = candidate.copy(
+                environmentComplete = false,
+                environmentLimitations = listOf("incomplete initializer")
+            ),
             timeoutMillis = 20_000,
         )
 
         assertEquals(CallsSavedInputReplayStatus.UNSUPPORTED, partial.status)
         assertEquals(null, partial.observation)
         assertFalse(partial.nativeReplayValidated)
+
+        val missingCallable = replayCallsSavedInput(
+            sourceRoot = directory,
+            sourceFile = "Target.ts",
+            targetSignature = checkNotNull(result.targetSignature),
+            candidate = candidate.copy(methodName = "missingCallable"),
+            timeoutMillis = 20_000,
+        )
+
+        assertEquals(CallsSavedInputReplayStatus.HARNESS_FAILURE, missingCallable.status)
+        assertFalse(missingCallable.nativeReplayValidated)
     }
 
     private fun assertSavedInputReturned(
@@ -327,8 +359,11 @@ class CallsClassStartSmokeTest {
         expected: Double,
     ) {
         val replay = replayCallsSavedInput(
-            sourceRoot = directory, sourceFile = "Target.ts", targetSignature = checkNotNull(result.targetSignature),
-            candidate = candidate, timeoutMillis = 20_000,
+            sourceRoot = directory,
+            sourceFile = "Target.ts",
+            targetSignature = checkNotNull(result.targetSignature),
+            candidate = candidate,
+            timeoutMillis = 20_000,
         )
 
         assertSavedInputReturn(replay = replay, expected = expected)

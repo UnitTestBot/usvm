@@ -40,13 +40,24 @@ internal fun runSavedInputReplay(args: List<String>) {
     require(args.size == SAVED_INPUT_REPLAY_ARGUMENT_COUNT) {
         "class-replay-input needs <startup-manifest> <class-id> <probe-directory> <state-id> <timeout-ms> <output.json>"
     }
-    val manifestPath = Path.of(args[0]).toRealPath()
+    val arguments = args.iterator()
+    val manifestArgument = arguments.next()
+    val classId = arguments.next()
+    val probeArgument = arguments.next()
+    val stateId = arguments.next()
+    val timeoutMillis = arguments.next().toLong()
+    val outputArgument = arguments.next()
+    val manifestPath = Path.of(manifestArgument).toRealPath()
     val manifestBytes = Files.readAllBytes(manifestPath)
-    val manifest = CallsExperimentJson.json.decodeFromString<CallsClassStartManifest>(manifestBytes.toString(Charsets.UTF_8))
-    val case = manifest.classes.single { it.classId == args[1] }
+    val manifest = CallsExperimentJson.json.decodeFromString<CallsClassStartManifest>(
+        manifestBytes.toString(Charsets.UTF_8)
+    )
+    val case = manifest.classes.single { it.classId == classId }
     val root = case.verifyInputs()
-    val probe = Path.of(args[2]).toRealPath()
-    val result = CallsExperimentJson.json.decodeFromString<CallsClassStartResult>(Files.readString(probe.resolve("result.json")))
+    val probe = Path.of(probeArgument).toRealPath()
+    val result = CallsExperimentJson.json.decodeFromString<CallsClassStartResult>(
+        Files.readString(probe.resolve("result.json"))
+    )
     require(result.classId == case.classId && result.manifestSha256 == callsArtifactSha256(manifestBytes)) {
         "Saved input probe differs from the supplied class manifest"
     }
@@ -59,7 +70,6 @@ internal fun runSavedInputReplay(args: List<String>) {
     require(Files.size(journal) == metadata.bytes && savedInputFileSha256(journal) == metadata.sha256) {
         "Saved concrete input journal changed"
     }
-    val stateId = args[3]
     val candidate = Files.lines(journal).use { lines ->
         lines.map { CallsExperimentJson.json.decodeFromString<CallsClassInputCandidate>(it) }
             .filter { it.stateId == stateId }.toList().single()
@@ -68,12 +78,15 @@ internal fun runSavedInputReplay(args: List<String>) {
         "Saved candidate differs from the manifest class or profile"
     }
     val replay = replayCallsSavedInput(
-        sourceRoot = root, sourceFile = case.sourceFile, targetSignature = checkNotNull(result.targetSignature),
-        candidate = candidate, timeoutMillis = args[4].toLong(),
+        sourceRoot = root,
+        sourceFile = case.sourceFile,
+        targetSignature = checkNotNull(result.targetSignature),
+        candidate = candidate,
+        timeoutMillis = timeoutMillis,
     )
     case.verifyInputs()
 
-    val output = Path.of(args[5]).toAbsolutePath().normalize()
+    val output = Path.of(outputArgument).toAbsolutePath().normalize()
     output.parent?.let(Files::createDirectories)
     Files.writeString(output, encodeCallsArtifact(replay) + "\n", StandardOpenOption.CREATE_NEW)
 }
@@ -89,12 +102,14 @@ internal fun replayCallsSavedInput(
     require(timeoutMillis > 0)
     if (!candidate.environmentComplete) {
         return unsupportedSavedInput(
-            candidate = candidate, reason = "Incomplete initial environment: ${candidate.environmentLimitations}",
+            candidate = candidate,
+            reason = "Incomplete initial environment: ${candidate.environmentLimitations}",
         )
     }
     if (candidate.methodName.startsWith('%')) {
         return unsupportedSavedInput(
-            candidate = candidate, reason = "Synthetic initializer or lowered entry point is not a native callable",
+            candidate = candidate,
+            reason = "Synthetic initializer or lowered entry point is not a native callable",
         )
     }
 
@@ -105,11 +120,16 @@ internal fun replayCallsSavedInput(
     }
     val hasUnresolvedRuntimeBoundary = closure.resolution?.runtimeBoundaries.orEmpty().isNotEmpty()
     if (hasUnresolvedRuntimeBoundary) {
-        return unsupportedSavedInput(candidate = candidate, reason = "Runtime source closure has unresolved module boundaries")
+        return unsupportedSavedInput(
+            candidate = candidate,
+            reason = "Runtime source closure has unresolved module boundaries"
+        )
     }
     val plan = try {
         savedInputBindingPlan(
-            sourceFile = sourceFile, targetSignature = targetSignature, candidate = candidate,
+            sourceFile = sourceFile,
+            targetSignature = targetSignature,
+            candidate = candidate,
             closureFiles = closure.files.toSet(),
         )
     } catch (unsupported: UnsupportedSavedInputBinding) {
@@ -121,7 +141,10 @@ internal fun replayCallsSavedInput(
         copyCallsSourceClosure(root = root, destination = workspace, closure = closure)
         writeCallsFrozenTsconfig(root = workspace, resolution = closure.resolution)
         for ((file, bindings) in plan.modules) {
-            val prepared = TypeScriptSourceInspector.savedInputBindings(source = root.resolve(file), bindings = bindings)
+            val prepared = TypeScriptSourceInspector.savedInputBindings(
+                source = root.resolve(file),
+                bindings = bindings
+            )
             val preparedSource = prepared.source
             if (preparedSource == null) {
                 return unsupportedSavedInput(candidate = candidate, reason = checkNotNull(prepared.reason))
@@ -139,8 +162,10 @@ internal fun replayCallsSavedInput(
             targets = emptyList(),
         )
         val fields = mapOf(
-            "completion" to StringDomain(), "returnValue" to StringDomain(maxLength = Int.MAX_VALUE),
-            "returnValueRepresentable" to BooleanDomain, "diagnostic" to StringDomain(maxLength = Int.MAX_VALUE),
+            "completion" to StringDomain(),
+            "returnValue" to StringDomain(maxLength = Int.MAX_VALUE),
+            "returnValueRepresentable" to BooleanDomain,
+            "diagnostic" to StringDomain(maxLength = Int.MAX_VALUE),
         )
         val preparedClosure = savedInputSourceClosure(root = workspace, sourceFile = harnessName)
         val preparedClosureResolved = preparedClosure.reasonCode == null &&
@@ -149,7 +174,9 @@ internal fun replayCallsSavedInput(
             "Generated saved input harness has an unresolved native runtime closure"
         }
         val observation = OriginalTypeScriptClassReplayer(
-            sourceRoot = workspace, function = function, observationFields = fields,
+            sourceRoot = workspace,
+            function = function,
+            observationFields = fields,
             sourceClosure = preparedClosure,
         ).use { replayer -> replayer.replay(inputs = emptyList(), timeoutMillis = timeoutMillis) }
         val invoked = observation.observation.completion == CallsCoverageCompletion.RETURNED &&
@@ -172,13 +199,17 @@ private fun savedInputSourceClosure(root: Path, sourceFile: String): TypeScriptL
 
 private fun savedInputFileSha256(path: Path): String {
     val digest = MessageDigest.getInstance("SHA-256")
-    DigestInputStream(Files.newInputStream(path), digest).use { input -> input.transferTo(OutputStream.nullOutputStream()) }
+    DigestInputStream(Files.newInputStream(path), digest).use { input ->
+        input.transferTo(OutputStream.nullOutputStream())
+    }
     return digest.digest().joinToString(separator = "") { "%02x".format(it) }
 }
 
 private fun unsupportedSavedInput(candidate: CallsClassInputCandidate, reason: String): CallsSavedInputReplayResult =
     CallsSavedInputReplayResult(
-        stateId = candidate.stateId, status = CallsSavedInputReplayStatus.UNSUPPORTED, diagnostic = reason,
+        stateId = candidate.stateId,
+        status = CallsSavedInputReplayStatus.UNSUPPORTED,
+        diagnostic = reason,
     )
 
 private class UnsupportedSavedInputBinding(message: String) : IllegalArgumentException(message)
@@ -201,7 +232,10 @@ private fun savedInputBindingPlan(
     val modules = linkedMapOf<String, MutableSet<String>>()
 
     fun classBinding(signature: String, file: String, name: String) {
-        val expected = EtsClassSignature(name = name, file = EtsFileSignature(projectName = projectName, fileName = file))
+        val expected = EtsClassSignature(
+            name = name,
+            file = EtsFileSignature(projectName = projectName, fileName = file)
+        )
         if (signature != expected.toString() || file !in closureFiles) {
             throw UnsupportedSavedInputBinding("Exact top-level source prototype is unavailable: $signature ($file)")
         }
@@ -214,7 +248,9 @@ private fun savedInputBindingPlan(
     for (node in candidate.inputs.objects) {
         val signature = node.classSignature ?: continue
         classBinding(
-            signature = signature, file = checkNotNull(node.classSourceFile), name = checkNotNull(node.className),
+            signature = signature,
+            file = checkNotNull(node.classSourceFile),
+            name = checkNotNull(node.className),
         )
     }
     for (field in candidate.inputs.environmentFields) {
@@ -258,7 +294,9 @@ private fun savedInputHarness(candidate: CallsClassInputCandidate, plan: SavedIn
     }
     val classes = plan.classes.map { (signature, binding) ->
         val (file, name) = binding
-        "[${json.encodeToUtf8SafeString(signature)}, ${aliases.getValue(file)}.classes[${json.encodeToUtf8SafeString(name)}]]"
+        val signatureKey = json.encodeToUtf8SafeString(signature)
+        val classKey = json.encodeToUtf8SafeString(name)
+        "[$signatureKey, ${aliases.getValue(file)}.classes[$classKey]]"
     }
     val environmentSetters = candidate.inputs.environmentFields.map { field ->
         val module = aliases.getValue(field.sourceFile)
@@ -267,11 +305,14 @@ private fun savedInputHarness(candidate: CallsClassInputCandidate, plan: SavedIn
     }.distinct()
     val owner = "classes.get(${json.encodeToUtf8SafeString(plan.targetSignature)})"
     val method = json.encodeToUtf8SafeString(candidate.methodName)
+    val instanceInvocation = candidate.invocationKind == CallsClassInvocationKind.INSTANCE_METHOD
+    val constructorInvocation = candidate.invocationKind == CallsClassInvocationKind.CONSTRUCTOR
+    val receiver = if (instanceInvocation) "restored.receiver" else owner
+    val callable = if (constructorInvocation) "receiver" else "receiver[$method]"
     val invocation = when (candidate.invocationKind) {
-        CallsClassInvocationKind.CONSTRUCTOR -> "Reflect.construct($owner, restored.arguments)"
-        CallsClassInvocationKind.STATIC_METHOD -> "Reflect.apply($owner[$method], $owner, restored.arguments)"
-        CallsClassInvocationKind.INSTANCE_METHOD ->
-            "Reflect.apply(restored.receiver[$method], restored.receiver, restored.arguments)"
+        CallsClassInvocationKind.CONSTRUCTOR -> "Reflect.construct(callable, restored.arguments)"
+        CallsClassInvocationKind.STATIC_METHOD, CallsClassInvocationKind.INSTANCE_METHOD ->
+            "Reflect.apply(callable, receiver, restored.arguments)"
     }
     return """
         ${imports.joinToString("\n")}
@@ -287,6 +328,9 @@ private fun savedInputHarness(candidate: CallsClassInputCandidate, plan: SavedIn
             ${environmentSetters.joinToString("\n")}
             throw Error('Unknown exact saved input environment owner: ' + field.ownerSignature);
           });
+          const receiver = $receiver;
+          const callable = $callable;
+          if (typeof callable !== 'function') throw Error('Saved input native callable is unavailable');
           let returned: any;
           try { returned = $invocation; } catch (error) {
             const diagnostic = error instanceof Error ? error.name + ': ' + error.message : 'Thrown ' + typeof error;
