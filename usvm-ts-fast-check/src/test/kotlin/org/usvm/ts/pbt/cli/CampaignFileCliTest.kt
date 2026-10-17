@@ -1,11 +1,16 @@
 package org.usvm.ts.pbt.cli
 
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.campaign.PropertyCampaignArtifact
 import org.usvm.ts.pbt.campaign.PropertyCampaignMode
+import org.usvm.ts.pbt.campaign.PropertyCampaignPhase
+import org.usvm.ts.pbt.campaign.PropertyCampaignStop
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.PropertyDefinition
@@ -20,6 +25,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CampaignFileCliTest {
@@ -113,6 +119,74 @@ class CampaignFileCliTest {
         assertFalse(Files.exists(destination))
         assertEquals(1, artifact.result.concrete?.numRuns)
         assertEquals(37, artifact.configuration.seed)
+    }
+
+    @Test
+    fun `expired external cutoff retains original controls without starting an engine`() {
+        val request = request(mode = PropertyCampaignMode.SEQUENTIAL).copy(
+            pbtAllocationMillis = 5_000,
+            completedInputLimit = 3,
+            nodeExecutable = directory.resolve("missing-node").toString(),
+        )
+
+        val artifact = runWithExternalDeadline(request, deadlineEpochMillis = 1, publicationReserveMillis = 1_000)
+
+        assertEquals(request.property, artifact.property)
+        assertEquals(request.configuration, artifact.configuration)
+        assertEquals(request.pbtAllocationMillis, artifact.pbtAllocationMillis)
+        assertEquals(request.completedInputLimit, artifact.completedInputLimit)
+        assertEquals(PropertyCampaignStop.DEADLINE, artifact.result.stop)
+        assertEquals(PropertyCampaignPhase.PREPARATION, artifact.result.stoppedAt)
+        assertNull(artifact.result.concrete)
+        assertNull(artifact.result.symbolic)
+        assertNull(artifact.result.confirmation)
+        assertNull(artifact.metadata)
+    }
+
+    @Test
+    fun `publication reserve can consume all remaining time without arithmetic overflow`() {
+        val request = request(mode = PropertyCampaignMode.PBT_ONLY).copy(
+            nodeExecutable = directory.resolve("missing-node").toString(),
+        )
+
+        val artifact = runWithExternalDeadline(
+            request,
+            deadlineEpochMillis = Long.MAX_VALUE,
+            publicationReserveMillis = Long.MAX_VALUE,
+        )
+
+        assertEquals(PropertyCampaignStop.DEADLINE, artifact.result.stop)
+        assertEquals(PropertyCampaignPhase.PREPARATION, artifact.result.stoppedAt)
+        assertNull(artifact.result.concrete)
+        assertNull(artifact.metadata)
+    }
+
+    private fun runWithExternalDeadline(
+        request: CampaignFileRequest,
+        deadlineEpochMillis: Long,
+        publicationReserveMillis: Long,
+    ): PropertyCampaignArtifact {
+        val requestFields = PropertyManifestJson.json.parseToJsonElement(
+            PropertyManifestJson.json.encodeToUtf8SafeString(request),
+        ).jsonObject
+        val json = JsonObject(
+            requestFields + mapOf(
+                "externalDeadlineEpochMillis" to JsonPrimitive(deadlineEpochMillis),
+                "publicationReserveMillis" to JsonPrimitive(publicationReserveMillis),
+            ),
+        )
+        val path = directory.resolve("request.json")
+        val destination = directory.resolve("artifact.json")
+        Files.writeString(path, json.toString())
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        val exit = runCampaignFile(arrayOf(path.toString(), destination.toString()), output, errors)
+
+        assertEquals(2, exit)
+        assertEquals("", errors.toString())
+        assertEquals(Files.readString(destination), output.toString().trim())
+        return PropertyCampaignArtifact.read(destination)
     }
 
     private fun request(mode: PropertyCampaignMode) = CampaignFileRequest(

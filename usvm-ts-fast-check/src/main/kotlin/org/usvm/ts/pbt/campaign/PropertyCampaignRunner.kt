@@ -37,6 +37,8 @@ import org.usvm.ts.pbt.validation.requireValid
 import org.usvm.ts.pbt.validation.validatePropertyDefinition
 import java.io.IOException
 import java.nio.file.Path
+import java.time.Duration
+import java.time.Instant
 import java.util.concurrent.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -77,7 +79,6 @@ class PropertyCampaignRunner(
     private val machineOptions: UMachineOptions = UMachineOptions(solverType = SolverType.YICES),
 ) {
     /** Keeps phase transitions and retained partial results under the same deadline. */
-    @Suppress("LongMethod")
     fun runArtifact(
         property: PropertyDefinition,
         mode: PropertyCampaignMode,
@@ -86,7 +87,34 @@ class PropertyCampaignRunner(
         pbtAllocationMillis: Long? = null,
         shrinkWitness: Boolean = true,
         completedInputLimit: Int = 0,
+    ): PropertyCampaignArtifact = runArtifact(
+        property = property,
+        mode = mode,
+        configuration = configuration,
+        validationReserveMillis = validationReserveMillis,
+        pbtAllocationMillis = pbtAllocationMillis,
+        shrinkWitness = shrinkWitness,
+        completedInputLimit = completedInputLimit,
+        externalDeadlineEpochMillis = null,
+        publicationReserveMillis = 0,
+    )
+
+    @Suppress("LongMethod", "LongParameterList")
+    internal fun runArtifact(
+        property: PropertyDefinition,
+        mode: PropertyCampaignMode,
+        configuration: PropertyRunConfiguration = PropertyRunConfiguration(),
+        validationReserveMillis: Long = DEFAULT_VALIDATION_RESERVE_MILLIS,
+        pbtAllocationMillis: Long? = null,
+        shrinkWitness: Boolean = true,
+        completedInputLimit: Int = 0,
+        externalDeadlineEpochMillis: Long?,
+        publicationReserveMillis: Long = 0,
     ): PropertyCampaignArtifact {
+        require(externalDeadlineEpochMillis == null || externalDeadlineEpochMillis > 0) {
+            "External deadline epoch must be positive"
+        }
+        require(publicationReserveMillis >= 0) { "Publication reserve must not be negative" }
         require(completedInputLimit >= 0) { "Completed input limit must not be negative" }
         require(completedInputLimit == 0 || mode != PropertyCampaignMode.PBT_ONLY) {
             "Completed input capture requires a symbolic campaign mode"
@@ -94,7 +122,8 @@ class PropertyCampaignRunner(
         validateControls(mode, configuration, validationReserveMillis, pbtAllocationMillis)
         val guided = mode == PropertyCampaignMode.COVERAGE_FEEDBACK
         val startedAt = System.nanoTime()
-        val deadline = WitnessReplayDeadline(timeoutMillis = configuration.timeoutMillis)
+        val timeoutMillis = campaignTimeoutMillis(configuration, externalDeadlineEpochMillis, publicationReserveMillis)
+        val deadline = if (timeoutMillis > 0) WitnessReplayDeadline(timeoutMillis = timeoutMillis) else null
         requireValid(validatePropertyDefinition(property))
 
         var usedConfiguration = configuration
@@ -133,6 +162,8 @@ class PropertyCampaignRunner(
         )
 
         try {
+            if (deadline == null) return result(PropertyCampaignStop.DEADLINE)
+
             val root = sourceRoot.toRealPath()
             if (deadline.remainingMillis() <= 0) return result(PropertyCampaignStop.DEADLINE)
 
@@ -259,6 +290,20 @@ class PropertyCampaignRunner(
         completedInputLimit = completedInputLimit,
     ).result
 
+    private fun campaignTimeoutMillis(
+        configuration: PropertyRunConfiguration,
+        externalDeadlineEpochMillis: Long?,
+        publicationReserveMillis: Long,
+    ): Long {
+        if (externalDeadlineEpochMillis == null) return configuration.timeoutMillis
+
+        val remaining = Duration.between(Instant.now(), Instant.ofEpochMilli(externalDeadlineEpochMillis))
+            .minusMillis(publicationReserveMillis)
+        if (remaining.isNegative || remaining.isZero) return 0
+
+        return minOf(remaining, Duration.ofMillis(configuration.timeoutMillis)).toMillis()
+    }
+
     private fun validateControls(
         mode: PropertyCampaignMode,
         configuration: PropertyRunConfiguration,
@@ -303,8 +348,8 @@ class PropertyCampaignRunner(
         pbtAllocationMillis: Long?,
     ): Result<PropertyRunResult> {
         val allocation = pbtAllocationMillis?.coerceAtMost(deadline.remainingMillis())
-        val generationDeadline = allocation?.let { WitnessReplayDeadline(timeoutMillis = it.coerceAtLeast(1)) }
-            ?: deadline
+        val generationDeadline = allocation?.takeIf { it > 0 }
+            ?.let { WitnessReplayDeadline(timeoutMillis = it) } ?: deadline
         val generationConfiguration = configuration.copy(
             timeoutMillis = allocation?.coerceAtLeast(1) ?: configuration.timeoutMillis,
         )

@@ -26,6 +26,8 @@ internal data class CampaignFileRequest(
     val completedInputLimit: Int = 0,
     val shrinkWitness: Boolean = false,
     val nodeExecutable: String = "node",
+    val externalDeadlineEpochMillis: Long? = null,
+    val publicationReserveMillis: Long = 0,
 )
 
 internal fun runCampaignFile(
@@ -52,6 +54,8 @@ internal fun runCampaignFile(
         pbtAllocationMillis = request.pbtAllocationMillis,
         shrinkWitness = request.shrinkWitness,
         completedInputLimit = request.completedInputLimit,
+        externalDeadlineEpochMillis = request.externalDeadlineEpochMillis,
+        publicationReserveMillis = request.publicationReserveMillis,
     )
 
     val json = PropertyManifestJson.json.encodeToUtf8SafeString(artifact)
