@@ -5,6 +5,7 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import random
@@ -214,13 +215,14 @@ def run_cell(frozen, case, seed, mode, output):
     directory = output / case["id"] / str(seed) / mode
     directory.mkdir(parents=True)
     started = time.monotonic()
-    started_epoch_millis = int(time.time() * 1000)
     preparation_cost = case["preparation"]["elapsedMillis"]
     remaining_budget = max(0, frozen["totalBudgetMillis"] - preparation_cost)
     deadline = started + remaining_budget / 1000
     runner_budget = remaining_budget - frozen["classReplayReserveMillis"]
     runner_deadline = deadline - frozen["classReplayReserveMillis"] / 1000
-    runner_deadline_epoch_millis = started_epoch_millis + runner_budget
+    wall_now = time.time()
+    monotonic_now = time.monotonic()
+    runner_deadline_epoch_millis = math.floor((wall_now + runner_deadline - monotonic_now) * 1000)
     summary = {"caseId": case["id"], "project": case["project"], "population": case["population"],
                "seed": seed, "mode": mode, "stopCriterion": STOP_CRITERION, "preparationChargedMillis": preparation_cost,
                "declaredTotalBudgetMillis": frozen["totalBudgetMillis"], "pbtRunQuota": frozen["numRuns"],

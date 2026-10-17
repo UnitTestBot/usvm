@@ -185,7 +185,7 @@ class ExperimentTest(unittest.TestCase):
         return {"exitCode": 0, "timedOut": False}
 
 
-    def invoke_cell(self, process):
+    def invoke_cell(self, process, *, wall_time=None):
         self.cell_count += 1
         output = self.root / f"output-{self.cell_count}"
         prepared = output / "subject" / "prepared.json"
@@ -202,9 +202,10 @@ class ExperimentTest(unittest.TestCase):
                   "maxArrayElements": 64, "maxObservationBytes": 65536, "nodeCommand": "node",
                   "distribution": "/distribution", "adapter": "/adapter", "runtimeSha256": {}}
         self.cell_directory = output / "subject" / "37" / "COVERAGE_FEEDBACK"
+        wall_clock = self.clock.time if wall_time is None else wall_time
 
         with patch.object(driver.time, "monotonic", self.clock.monotonic), \
-                patch.object(driver.time, "time", self.clock.time), \
+                patch.object(driver.time, "time", wall_clock), \
                 patch.object(driver, "run_process", side_effect=process):
             return driver.run_cell(frozen, case, seed=37, mode="COVERAGE_FEEDBACK", output=output)
 
@@ -227,6 +228,21 @@ class ExperimentTest(unittest.TestCase):
         self.assertEqual([call["timeout"] for call in self.process_calls], [20, 28, 28])
         self.assertTrue(summary["primaryEligible"], summary)
         self.assertEqual(summary["coveredStatementIds"], ["pbt", "symbolic"])
+
+
+    def test_clock_sampling_delay_cannot_extend_the_monotonic_cutoff(self):
+        def delayed_wall_time():
+            self.clock.advance(3)
+            sampled_wall = self.clock.time()
+            self.clock.advance(2)
+            return sampled_wall
+
+        summary = self.invoke_cell(self.complete_process, wall_time=delayed_wall_time)
+
+        request = driver.read_json(self.cell_directory / "request.json")
+        self.assertEqual(request["externalDeadlineEpochMillis"], 1_700_000_018_000)
+        self.assertEqual([call["deadline"] for call in self.process_calls], [120, 128, 128])
+        self.assertTrue(summary["primaryEligible"], summary)
 
 
     def test_confirmed_original_fault_exit_one_remains_eligible(self):
