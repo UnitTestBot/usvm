@@ -62,6 +62,24 @@ class UsvmPropertySearcher(
         deadlineReached: (() -> Boolean)? = null,
         coverageFeedback: UsvmCoverageFeedback? = null,
         completedInputLimit: Int = 0,
+    ): UsvmPropertySearchResult = search(
+        manifest = manifest,
+        mapping = mapping,
+        concreteCapability = concreteCapability,
+        deadlineReached = deadlineReached,
+        coverageFeedback = coverageFeedback,
+        completedInputLimit = completedInputLimit,
+        onCompletedInput = null,
+    )
+
+    fun search(
+        manifest: PropertyManifest,
+        mapping: PropertyEtsMappingArtifact,
+        concreteCapability: ProjectionCapability,
+        deadlineReached: (() -> Boolean)?,
+        coverageFeedback: UsvmCoverageFeedback?,
+        completedInputLimit: Int,
+        onCompletedInput: ((UsvmCompletedInput) -> Unit)?,
     ): UsvmPropertySearchResult {
         require(completedInputLimit >= 0) { "Completed input limit must not be negative" }
         val capability = capabilityResolver.resolve(
@@ -111,6 +129,7 @@ class UsvmPropertySearcher(
             deadlineReached = deadlineReached ?: this.deadlineReached,
             guidance = guidance,
             completedInputLimit = completedInputLimit,
+            onCompletedInput = onCompletedInput,
         ).copy(edgeGuidance = guidance?.snapshot())
     }
 
@@ -122,6 +141,7 @@ class UsvmPropertySearcher(
         deadlineReached: (() -> Boolean)?,
         guidance: UsvmEdgeGuidance?,
         completedInputLimit: Int,
+        onCompletedInput: ((UsvmCompletedInput) -> Unit)?,
     ): UsvmPropertySearchResult {
         lateinit var projection: UsvmDeclaredDomainProjection
         val completedInputs = linkedSetOf<UsvmCompletedInput>()
@@ -149,8 +169,9 @@ class UsvmPropertySearcher(
                 }
                 if (inputs != null) {
                     if (capture) {
-                        val expected = completedOutcome(violation)
-                        completedInputs += UsvmCompletedInput(inputs = inputs, expectedOutcome = expected)
+                        val input = UsvmCompletedInput(inputs = inputs, expectedOutcome = completedOutcome(violation))
+                        val added = completedInputs.add(input)
+                        if (added) onCompletedInput?.invoke(input)
                     }
                     guidance?.confirm(replayState, inputs, expectsViolation = violation != null)
                 }

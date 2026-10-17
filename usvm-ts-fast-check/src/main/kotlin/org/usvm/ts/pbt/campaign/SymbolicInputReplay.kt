@@ -78,6 +78,15 @@ internal class SymbolicInputReplayCollector(
     var timedOut: Boolean = false
         private set
 
+    fun captureForValidation(input: UsvmCompletedInput) {
+        // A fault must reach canonical confirmation before optional input coverage consumes its budget.
+        if (input.expectedOutcome != WitnessOracleOutcome.HOLDS) return
+        if (deadline.remainingMillis() <= validationReserveMillis) return
+
+        // The search cutoff already reserves validation time; do not subtract it from this operation again.
+        replay(input.inputs, reserveMillis = 0)
+    }
+
     fun replayForGuidance(inputs: List<JsConcreteValue>): WitnessNativeReplay? {
         val record = replay(inputs, reserveMillis = validationReserveMillis) ?: return null
         return if (record.completedWithinDeadline) {

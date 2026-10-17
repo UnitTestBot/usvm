@@ -91,6 +91,7 @@ class SymbolicInputReplayTest {
         assertTrue(rawFaults.isNotEmpty(), artifact.toString())
         assertTrue(rawFaults.all { it.admittedCoverage == null })
         assertEquals(WitnessReplayStatus.CONFIRMED_PROPERTY_VIOLATION, artifact.result.confirmation?.status)
+        assertEquals(artifact.result.symbolic?.inputs, artifact.result.confirmation?.candidate?.inputs)
         val faultCoverage = assertNotNull(artifact.result.confirmation?.originalReplay?.coverage)
         assertTrue(faultCoverage.files.any { it.path.endsWith("CompletedSubject.ts") })
         assertTrue(artifact.result.confirmedViolation)
@@ -182,6 +183,122 @@ class SymbolicInputReplayTest {
     }
 
     @Test
+    fun `live validation uses the remaining deadline and is reused after the search reserve cutoff`() {
+        val log = directory.resolve("calls.txt")
+        val logLiteral = PropertyManifestJson.json.encodeToUtf8SafeString(log.toString())
+        writePredicate(
+            """
+            import { appendFileSync } from 'node:fs';
+            export function holds(value: number): boolean {
+                appendFileSync($logLiteral, String(value) + '\n');
+                const until = Date.now() + 750;
+                while (Date.now() < until) {}
+                return true;
+            }
+            """.trimIndent(),
+        )
+        val deadline = WitnessReplayDeadline(timeoutMillis = 8_000)
+        val collector = collector(deadline = deadline, validationReserveMillis = 7_000)
+        val input = completion(value = 1.0)
+
+        collector.captureForValidation(input)
+        val guidanceReplay = collector.replayForGuidance(input.inputs)
+        collector.collect(listOf(input, input))
+
+        assertTrue(deadline.remainingMillis() < 7_000)
+        assertEquals(listOf("1", "1"), Files.readAllLines(log))
+        assertEquals(WitnessOracleOutcome.HOLDS, guidanceReplay?.outcome)
+        assertEquals(1, collector.replays.size)
+        assertNotNull(collector.replays.single().admittedCoverage)
+        assertFalse(collector.timedOut)
+    }
+
+    @Test
+    fun `live validation leaves fault inputs to canonical confirmation and preserves grouped predictions`() {
+        val log = directory.resolve("calls.txt")
+        val logLiteral = PropertyManifestJson.json.encodeToUtf8SafeString(log.toString())
+        writePredicate(
+            """
+            import { appendFileSync } from 'node:fs';
+            export function holds(value: number): boolean {
+                appendFileSync($logLiteral, String(value) + '\n');
+                return true;
+            }
+            """.trimIndent(),
+        )
+        val collector = collector()
+        val healthy = completion(value = 1.0)
+        val fault = healthy.copy(expectedOutcome = WitnessOracleOutcome.FALSE)
+
+        collector.captureForValidation(fault)
+
+        assertFalse(Files.exists(log))
+
+        collector.captureForValidation(healthy)
+        collector.collect(listOf(healthy, fault))
+
+        assertEquals(listOf("1", "1"), Files.readAllLines(log))
+        val replay = collector.replays.single()
+        assertEquals(setOf(WitnessOracleOutcome.HOLDS, WitnessOracleOutcome.FALSE), replay.predictedOutcomes)
+        assertEquals("symbolic.native.oracle-mismatch", replay.replay.diagnostic)
+        assertNull(replay.admittedCoverage)
+    }
+
+    @Test
+    fun `a capture after the search cutoff remains available for final validation`() {
+        val log = directory.resolve("calls.txt")
+        val logLiteral = PropertyManifestJson.json.encodeToUtf8SafeString(log.toString())
+        writePredicate(
+            """
+            import { appendFileSync } from 'node:fs';
+            export function holds(value: number): boolean {
+                appendFileSync($logLiteral, String(value) + '\n');
+                return true;
+            }
+            """.trimIndent(),
+        )
+        val collector = collector(validationReserveMillis = 30_000)
+        val input = completion(value = 1.0)
+
+        collector.captureForValidation(input)
+
+        assertFalse(Files.exists(log))
+
+        collector.collect(listOf(input))
+
+        assertEquals(listOf("1", "1"), Files.readAllLines(log))
+        assertNotNull(collector.replays.single().admittedCoverage)
+    }
+
+    @Test
+    fun `live validation preserves unknown native receipts for final collection`() {
+        val log = directory.resolve("calls.txt")
+        val logLiteral = PropertyManifestJson.json.encodeToUtf8SafeString(log.toString())
+        writePredicate(
+            """
+            import { appendFileSync } from 'node:fs';
+            let calls = 0;
+            export function holds(value: number): boolean {
+                appendFileSync($logLiteral, String(value) + '\n');
+                return ++calls === 1;
+            }
+            """.trimIndent(),
+        )
+        val collector = collector()
+        val input = completion(value = 1.0)
+
+        collector.captureForValidation(input)
+        collector.collect(listOf(input))
+
+        val replay = collector.replays.single()
+        assertEquals(listOf("1", "1"), Files.readAllLines(log))
+        assertTrue(replay.replay.diagnostic?.contains("nondeterministic") == true)
+        assertEquals(setOf(WitnessOracleOutcome.HOLDS), replay.predictedOutcomes)
+        assertNull(replay.admittedCoverage)
+        assertNotNull(collector.diagnostic)
+    }
+
+    @Test
     fun `source drift rejects native evidence without replacing its original snapshot`() {
         writePredicate("export function holds(value: number): boolean { return value === value; }")
         val originalHash = campaignSourceSha256(directory.resolve("predicate.ts"))
@@ -234,6 +351,7 @@ class SymbolicInputReplayTest {
 
     private fun collector(
         deadline: WitnessReplayDeadline = WitnessReplayDeadline(timeoutMillis = 30_000),
+        validationReserveMillis: Long = 0,
     ): SymbolicInputReplayCollector {
         val property = property(exportName = "holds").copy(
             predicate = TypeScriptEntryPoint(module = "predicate.ts", exportName = "holds"),
@@ -251,7 +369,7 @@ class SymbolicInputReplayTest {
             sources = sources,
             coverageRequest = PropertyCoverageRequest(admittedOnly = true),
             deadline = deadline,
-            validationReserveMillis = 0,
+            validationReserveMillis = validationReserveMillis,
             limit = 8,
         )
     }
