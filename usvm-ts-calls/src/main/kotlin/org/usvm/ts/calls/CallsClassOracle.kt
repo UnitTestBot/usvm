@@ -22,6 +22,7 @@ import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
 import org.usvm.ts.pbt.fastcheck.FastCheckRuntime
+import org.usvm.ts.pbt.fastcheck.TypeScriptLocalSourceClosure
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ConstantDomain
@@ -269,6 +270,9 @@ internal class OriginalTypeScriptClassReplayer(
     sourceOverride: String? = null,
     overrideSourceFile: String? = null,
     private val counterGlobalName: String? = null,
+    // Saved environments may replay naturally evaluated initializers outside the lifecycle oracle's checked subset.
+    // The supplied graph still passes the normal copy/hash checks and cannot contain unresolved module boundaries.
+    sourceClosure: TypeScriptLocalSourceClosure? = null,
 ) : AutoCloseable {
     private val root = sourceRoot.toRealPath()
     private val workspace = Files.createTempDirectory("usvm-calls-class-replay-")
@@ -282,7 +286,15 @@ internal class OriginalTypeScriptClassReplayer(
             require(
                 (sourceOverride == null) == (overrideSourceFile == null)
             ) { "Source override needs a relative target file" }
-            val closure = checkedCallsSourceClosure(root = root, entry = root.resolve(function.sourceFile))
+            val closure = sourceClosure ?: checkedCallsSourceClosure(
+                root = root,
+                entry = root.resolve(function.sourceFile),
+            )
+            val closureResolved = closure.reasonCode == null && function.sourceFile in closure.files &&
+                closure.resolution?.runtimeBoundaries.orEmpty().isEmpty()
+            require(closureResolved) {
+                "Native replay requires a resolved closure containing its harness"
+            }
             copyCallsSourceClosure(root = root, destination = overlay, closure = closure)
             if (overrideSourceFile != null) {
                 require(overrideSourceFile in closure.files) { "Replay override is outside the frozen runtime closure" }
@@ -452,7 +464,7 @@ ${classReplayThrownValueDiagnosticSource().prependIndent(indent = "        ")}
     """.trimIndent() + "\n"
 }
 
-private fun classReplayValueEncoderSource(): String = """
+internal fun classReplayValueEncoderSource(): String = """
         function encode(value: unknown, seen = new Set<object>()): unknown {
           if (value === undefined) return { kind: 'undefined' };
           if (value === null) return { kind: 'null' };

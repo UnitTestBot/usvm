@@ -17,7 +17,6 @@ import org.usvm.machine.TsOptions
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
-import org.usvm.ts.pbt.fastcheck.FastCheckRuntime
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
@@ -44,6 +43,10 @@ class CallsConcreteHeapTest {
         fields["present"] = TsTestValue.TsUndefined
         fields["negativeZero"] = TsTestValue.TsNumber.TsDouble(-0.0)
         fields["nan"] = TsTestValue.TsNumber.TsDouble(Double.NaN)
+        fields["positiveInfinity"] = TsTestValue.TsNumber.TsDouble(Double.POSITIVE_INFINITY)
+        fields["negativeInfinity"] = TsTestValue.TsNumber.TsDouble(Double.NEGATIVE_INFINITY)
+        fields["nullable"] = TsTestValue.TsNull
+        fields["logical"] = TsTestValue.TsBoolean(value = true)
         val signature = EtsClassSignature(
             name = "Object",
             file = EtsFileSignature(projectName = "fixture", fileName = "Target.ts"),
@@ -97,23 +100,24 @@ class CallsConcreteHeapTest {
     }
 
     private fun replayGraph() {
-        val decoder = FastCheckRuntime.protocolJsonModule().resolveSibling("js-value.js").toUri().toString()
         val source = """
             import { readFileSync } from 'node:fs';
-            import { decodeJsValue } from '$decoder';
             class ObjectTarget {}
+            ${callsConcretePrimitiveDecoderSource()}
             ${callsConcreteHeapRestoreSource()}
             export function checkGraph(_sentinel: boolean): boolean {
               const graph = JSON.parse(readFileSync(new URL('./environment.json', import.meta.url), 'utf8'));
               const prototypes = new Map([[graph.objects[0].classSignature, ObjectTarget.prototype]]);
-              const restored = restoreCallsConcreteHeap(graph, prototypes, decodeJsValue);
+              const restored = restoreCallsConcreteHeap(graph, prototypes, decodeCallsConcretePrimitive);
               const receiver = restored.receiver;
               return Object.getPrototypeOf(receiver) === ObjectTarget.prototype &&
                      receiver.self === receiver && receiver.items === restored.arguments[0] &&
                      receiver === restored.arguments[1] && Object.hasOwn(receiver, 'present') &&
                      receiver.present === undefined && !Object.hasOwn(receiver, 'missing') &&
                      receiver.items[0].charCodeAt(0) === 0xD800 &&
-                     Object.is(receiver.negativeZero, -0) && Number.isNaN(receiver.nan);
+                     Object.is(receiver.negativeZero, -0) && Number.isNaN(receiver.nan) &&
+                     receiver.positiveInfinity === Infinity && receiver.negativeInfinity === -Infinity &&
+                     receiver.nullable === null && receiver.logical === true;
             }
         """.trimIndent()
         Files.writeString(directory.resolve("replay.mts"), source)

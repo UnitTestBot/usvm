@@ -10,6 +10,17 @@ import java.util.concurrent.TimeUnit
 
 /** Uses the native TypeScript AST when lowered source ranges need validation or replay instrumentation. */
 object TypeScriptSourceInspector {
+    /** A private replay overlay may expose only AST-checked source classes and mutable module data. */
+    fun savedInputBindings(source: Path, bindings: TypeScriptSavedInputBindings): TypeScriptReplayInstrumentation {
+        val output = inspect(
+            source = source,
+            operation = "saved-input-bindings",
+            arguments = listOf(PropertyManifestJson.json.encodeToString(bindings)),
+        )
+
+        return PropertyManifestJson.json.decodeFromString(output)
+    }
+
     fun instrumentClassCoverage(source: Path, className: String): TypeScriptClassCoverageInstrumentation {
         val output = inspect(
             source = source,
@@ -140,6 +151,16 @@ object TypeScriptSourceInspector {
 }
 
 @Serializable
+data class TypeScriptSavedInputBindings(
+    val exportName: String,
+    val classes: List<TypeScriptSavedInputClass>,
+    val moduleBindings: List<String>,
+)
+
+@Serializable
+data class TypeScriptSavedInputClass(val name: String, val staticFields: List<String>)
+
+@Serializable
 data class TypeScriptReplayInstrumentation(
     val source: String?,
     val reason: String?,
@@ -240,4 +261,16 @@ data class TypeScriptClassDataClassDescriptor(
 data class TypeScriptFrozenModuleResolution(
     val inputSha256: Map<String, String>,
     val tsconfig: String,
+    val runtimeBoundaries: List<TypeScriptRuntimeModuleBoundary> = emptyList(),
+)
+
+@Serializable
+data class TypeScriptRuntimeModuleBoundary(
+    val sourceFile: String,
+    val specifier: String,
+    val importKind: String,
+    val kind: String,
+    val startOffset: Int? = null,
+    val expression: String? = null,
+    val runtimeFile: String? = null,
 )
