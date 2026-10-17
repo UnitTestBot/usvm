@@ -1,6 +1,7 @@
 package org.usvm.machine.call
 
 import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsLocal
@@ -26,6 +27,7 @@ internal fun hasBuiltinGlobalOwner(
 internal fun EtsType.isBuiltinGlobalType(expectedName: String): Boolean = when (expectedName) {
     "Math" -> this is EtsUnclearRefType && name == expectedName
     "Number" -> this is EtsFunctionType && isBuiltinNumberType()
+    "Array" -> this is EtsFunctionType && isBuiltinArrayType()
     else -> false
 }
 
@@ -37,6 +39,15 @@ private fun EtsFunctionType.isBuiltinNumberType(): Boolean {
         parameter.type == EtsAnyType &&
         parameter.isOptional &&
         !parameter.isRest
+}
+
+private fun EtsFunctionType.isBuiltinArrayType(): Boolean {
+    val parameter = signature.parameters.singleOrNull() ?: return false
+    val arrayType = signature.returnType as? EtsArrayType ?: return false
+    return signature.enclosingClass == EtsClassSignature.UNKNOWN &&
+        signature.name.isEmpty() &&
+        arrayType.elementType == EtsAnyType && arrayType.dimensions == 1 &&
+        parameter.type == EtsNumberType && parameter.isOptional && !parameter.isRest
 }
 
 private fun EtsValue.isLegacyBuiltinGlobal(

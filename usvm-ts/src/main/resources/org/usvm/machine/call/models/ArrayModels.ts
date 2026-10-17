@@ -70,6 +70,32 @@ export class ArrayModels {
         return accumulator;
     }
 
+    static map(receiver: any[], callback: (value: any, index: number, array: any[]) => any): any[] {
+        ArrayModelPrimitives.prepareOwnSlots(receiver);
+        const length = receiver.length;
+        const result = ArrayModelPrimitives.allocate(length);
+        let index = 0;
+        while (index < length) {
+            if (ArrayModelPrimitives.hasOwnSlot(receiver, index)) {
+                result[index] = callback(receiver[index], index, receiver);
+            }
+            index++;
+        }
+        return result;
+    }
+
+    static forEach(receiver: any[], callback: (value: any, index: number, array: any[]) => any): void {
+        ArrayModelPrimitives.prepareOwnSlots(receiver);
+        const length = receiver.length;
+        let index = 0;
+        while (index < length) {
+            if (ArrayModelPrimitives.hasOwnSlot(receiver, index)) {
+                callback(receiver[index], index, receiver);
+            }
+            index++;
+        }
+    }
+
     static fromLength(length: number): any[] {
         return ArrayModelPrimitives.allocate(length);
     }
