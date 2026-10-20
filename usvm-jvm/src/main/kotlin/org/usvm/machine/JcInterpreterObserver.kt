@@ -13,9 +13,15 @@ import org.jacodb.api.jvm.cfg.JcSwitchInst
 import org.jacodb.api.jvm.cfg.JcThrowInst
 import org.usvm.machine.interpreter.JcSimpleValueResolver
 import org.usvm.machine.interpreter.JcStepScope
+import org.usvm.solver.USolverQueryEvent
 import org.usvm.statistics.UInterpreterObserver
 
 interface JcInterpreterObserver : UInterpreterObserver {
+    fun onMethodApproximation(call: JcMethodCall, applied: Boolean, elapsedNanos: Long, failure: String?) {}
+    fun onSolverQuery(event: USolverQueryEvent) {}
+    fun onAnalysisStopped(reason: String, hasPendingStates: Boolean) {}
+    fun onResidualCall(call: JcMethodCall, policy: JcResidualCallPolicy, scope: JcStepScope) {}
+
     fun onAssignStatement(simpleValueResolver: JcSimpleValueResolver, stmt: JcAssignInst, stepScope: JcStepScope) {}
     fun onEntryPoint(simpleValueResolver: JcSimpleValueResolver, stmt: JcMethodEntrypointInst, stepScope: JcStepScope)
     fun onMethodCallWithUnresolvedArguments(simpleValueResolver: JcSimpleValueResolver, stmt: JcCallExpr, stepScope: JcStepScope) {}

@@ -13,12 +13,15 @@ import org.usvm.model.ULazyModelDecoder
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
+import org.usvm.solver.USolverQueryEvent
 import org.usvm.solver.UTypeSolver
+import org.usvm.solver.observeSolverQueries
 
 class JcComponents(
     private val typeSystem: JcTypeSystem,
     // TODO specific JcMachineOptions should be here
     private val options: UMachineOptions,
+    private val solverQueryObserver: ((USolverQueryEvent) -> Unit)? = null,
 ) : UComponents<JcType, USizeSort> {
     private val closeableResources = mutableListOf<AutoCloseable>()
     override val useSolverForForks: Boolean get() = options.useSolverForForks
@@ -46,7 +49,11 @@ class JcComponents(
         closeableResources += smtSolver
         closeableResources += solverFactory
 
-        return USolverBase(ctx, smtSolver, typeSolver, translator, decoder, options.solverTimeout)
+        val observedSolver = solverQueryObserver?.let { observer ->
+            observeSolverQueries(solver = smtSolver, observer = observer)
+        } ?: smtSolver
+
+        return USolverBase(ctx, observedSolver, typeSolver, translator, decoder, options.solverTimeout)
     }
 
     fun close() {

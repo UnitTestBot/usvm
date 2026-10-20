@@ -1,8 +1,11 @@
 package org.usvm.machine
 
-/**
- * JcMachine specific options.
- * */
+enum class JcResidualCallPolicy {
+    STOP,
+    FRESH,
+}
+
+/** JcMachine specific options. */
 data class JcMachineOptions(
     /**
      * During virtual call resolution the machine should consider all possible call implementations.
@@ -19,4 +22,10 @@ data class JcMachineOptions(
      * Hard constraint for maximal array size.
      * */
     val arrayMaxSize: Int = 1_500,
+
+    /** Local experiment toggle for the interpreter's built-in method models. */
+    val enableMethodApproximations: Boolean = true,
+
+    /** Policy for native, bodyless, and unresolved dynamic calls after model attempts. */
+    val residualCallPolicy: JcResidualCallPolicy = JcResidualCallPolicy.FRESH,
 )
