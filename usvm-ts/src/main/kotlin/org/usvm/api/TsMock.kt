@@ -34,7 +34,7 @@ fun mockMethodCall(
     method: EtsMethodSignature,
     resultType: EtsType = method.returnType,
 ) {
-    val result = makeFreshUnknownCallResult(scope, resultType)
+    val result = makeFreshUnknownCallResult(scope, resultType) ?: return
 
     scope.doWithState {
         setMockMethodCallResult(method, result)
@@ -50,7 +50,7 @@ internal fun TsState.setMockMethodCallResult(
 }
 
 /** Native Date construction retains its allocated identity even when its timestamp is opaque. */
-internal fun makeFreshUnknownCallResult(scope: TsStepScope, call: TsUnknownCall): UExpr<*> {
+internal fun makeFreshUnknownCallResult(scope: TsStepScope, call: TsUnknownCall): UExpr<*>? {
     val date = scope.calcOnState { intrinsicDateConstructorReceiver(call) }
     if (date == null) return makeFreshUnknownCallResult(scope, call.resultType)
 
@@ -65,7 +65,7 @@ internal fun makeFreshUnknownCallResult(scope: TsStepScope, call: TsUnknownCall)
 internal fun makeFreshUnknownCallResult(
     scope: TsStepScope,
     resultType: EtsType,
-): UExpr<*> = scope.calcOnState {
+): UExpr<*>? = scope.calcOnState {
     if (resultType is EtsVoidType) return@calcOnState ctx.mkUndefinedValue()
     val literal = makeLiteralResult(resultType)
     if (literal != null) return@calcOnState literal
@@ -120,7 +120,7 @@ private fun TsState.makeLiteralResult(type: EtsType): UExpr<*>? = when (type) {
     else -> null
 }
 
-private fun TsState.makeFiniteLiteralUnion(scope: TsStepScope, variants: List<EtsType>): UExpr<*> {
+private fun TsState.makeFiniteLiteralUnion(scope: TsStepScope, variants: List<EtsType>): UExpr<*>? {
     var result = requireNotNull(makeLiteralResult(variants.first()))
     for (variant in variants.drop(1)) {
         val selected = makeSymbolicPrimitive(ctx.boolSort)
@@ -130,7 +130,7 @@ private fun TsState.makeFiniteLiteralUnion(scope: TsStepScope, variants: List<Et
             condition = selected,
             trueBranchValue = value,
             falseBranchValue = result,
-        )
+        ) ?: return null
     }
 
     return result

@@ -26,7 +26,7 @@ import org.usvm.util.mkFieldLValue
 enum class PromiseState {
     PENDING,
     FULFILLED,
-    REJECTED;
+    REJECTED,
 }
 
 private val intrinsicPromiseInstanceType = EtsClassType(EtsClassSignature.UNKNOWN.copy(name = "Promise"))
@@ -70,11 +70,11 @@ internal fun TsContext.createSettledPromise(
     scope: TsStepScope,
     value: UExpr<*>,
     settlement: PromiseState,
-): UConcreteHeapRef {
+): UConcreteHeapRef? {
     require(settlement != PromiseState.PENDING)
 
     val promise = scope.calcOnState { memory.allocConcrete(intrinsicPromiseInstanceType) }
-    val storedValue = value.toFakeObject(scope)
+    val storedValue = value.toFakeObject(scope) ?: return null
     scope.doWithState {
         markResolved(promise)
         setPromiseState(promise, settlement)

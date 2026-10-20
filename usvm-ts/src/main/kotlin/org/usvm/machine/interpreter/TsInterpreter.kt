@@ -35,6 +35,7 @@ import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.utils.callExpr
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.api.initializeArray
@@ -136,7 +137,7 @@ class TsInterpreter(
                     scope = scope,
                     value = result.value,
                     settlement = PromiseState.REJECTED,
-                )
+                ) ?: return scope.stepResult()
             } else {
                 null
             }
@@ -228,7 +229,6 @@ class TsInterpreter(
     }
 
     private fun visitVirtualMethodCall(scope: TsStepScope, stmt: TsVirtualMethodCallStmt) = with(ctx) {
-
         val instance = stmt.instance
         val callee = stmt.call.callee
 
@@ -424,7 +424,6 @@ class TsInterpreter(
     }
 
     private fun visitConcreteMethodCall(scope: TsStepScope, stmt: TsConcreteMethodCallStmt) {
-
         // NOTE: USE '.callee' INSTEAD OF '.method' !!!
 
         // TODO: observer
@@ -491,8 +490,10 @@ class TsInterpreter(
                 }
 
                 // wrap rest args in array
-                val content = stmt.args.drop(numNormal).map {
-                    with(ctx) { it.toFakeObject(scope) }
+                val content = mutableListOf<UConcreteHeapRef>()
+                for (argument in stmt.args.drop(numNormal)) {
+                    val value = with(ctx) { argument.toFakeObject(scope) } ?: return@doWithState
+                    content += value
                 }
                 val array = scope.calcOnState {
                     // In a common case we cannot determine the type of the array
@@ -604,7 +605,7 @@ class TsInterpreter(
                 scope = scope,
                 value = value,
                 settlement = PromiseState.FULFILLED,
-            )
+            ) ?: return
         } else {
             value
         }

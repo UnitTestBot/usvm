@@ -135,13 +135,13 @@ private fun TsExprResolver.advanceArrayIterator(
     val value = if (done.isTrue) {
         mkUndefinedValue()
     } else {
-        val element = readArrayElement(scope, iterator.array, iterator.index, iterator.arrayType)
+        val element = readArrayElement(scope, iterator.array, iterator.index, iterator.arrayType) ?: return null
         iteWriteIntoFakeObject(
             scope = scope,
             condition = done,
             trueBranchValue = mkUndefinedValue(),
             falseBranchValue = element,
-        )
+        ) ?: return null
     }
 
     scope.calcOnState {

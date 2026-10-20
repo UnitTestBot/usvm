@@ -14,7 +14,7 @@ import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.extractValue
-import org.usvm.machine.types.mkFakeValue
+import org.usvm.machine.types.mkInitialFakeValue
 import org.usvm.sizeSort
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
@@ -147,8 +147,7 @@ private fun TsState.materializeCallsOptional(
         fpTypeExpr = numberKind,
         refTypeExpr = referenceKind,
     )
-    val value = mkFakeValue(
-        scope = null,
+    val value = mkInitialFakeValue(
         boolValue = nestedBool.first ?: falseExpr,
         fpValue = nestedNumber.first ?: mkFp64(0.0),
         refValue = reference,

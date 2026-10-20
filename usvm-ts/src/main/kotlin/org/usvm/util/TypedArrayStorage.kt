@@ -95,7 +95,7 @@ internal fun TsState.initializeTypedArrayOverrides(array: UHeapRef) = with(ctx) 
     initializedTypedArrayOverrides += array
 }
 
-internal fun TsContext.boxArrayValue(scope: TsStepScope, value: UExpr<*>): UConcreteHeapRef {
+internal fun TsContext.boxArrayValue(scope: TsStepScope, value: UExpr<*>): UConcreteHeapRef? {
     val containsFakeValue = value.sort == addressSort && value.asExpr(addressSort).hasFakeValueBranch()
     if (!containsFakeValue) return value.toFakeObject(scope)
 

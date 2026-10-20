@@ -57,7 +57,7 @@ fun EtsType.getClassesForType(
 fun UHeapRef.createFakeField(
     scope: TsStepScope,
     fieldName: String,
-): UConcreteHeapRef = with(tctx) {
+): UConcreteHeapRef? = with(tctx) {
     val lValue = mkFieldLValue(addressSort, this@createFakeField, fieldName)
 
     val boolLValue = mkFieldLValue(boolSort, this@createFakeField, fieldName)
@@ -73,7 +73,7 @@ fun UHeapRef.createFakeField(
     }
 
     scope.calcOnState {
-        val fakeObject = mkFakeValue(scope, bool, fp, ref)
+        val fakeObject = mkFakeValue(scope, bool, fp, ref) ?: return@calcOnState null
         memory.write(lValue, fakeObject.asExpr(ctx.addressSort), guard = ctx.trueExpr)
         fakeObject
     }

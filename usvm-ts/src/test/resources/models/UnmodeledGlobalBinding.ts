@@ -1,7 +1,7 @@
-const nativeMath = Math;
+const nativeReflect = Reflect;
 
 export class UnmodeledGlobalBinding {
     read(): any {
-        return nativeMath;
+        return nativeReflect;
     }
 }
