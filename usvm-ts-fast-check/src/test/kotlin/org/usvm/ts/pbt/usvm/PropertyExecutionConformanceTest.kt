@@ -145,6 +145,28 @@ class PropertyExecutionConformanceTest {
     }
 
     @Test
+    fun `sparse mutation resolves the original dense array and replays its violation`() {
+        val domain = ArrayDomain(element = IntegerDomain(min = 7, max = 7), minLength = 3, maxLength = 3)
+        val property = property(predicateExport = "sparseMutatesAndFails", domain = domain)
+        val manifest = property.toManifest()
+        val expectedInput = JsConcreteValue.Array(elements = List(size = 3) { JsConcreteValue.number(7.0) })
+
+        val search = searcher.search(manifest, mapper.map(manifest), exactCapability)
+        val inputs = assertNotNull(search.inputs, search.toString())
+        val replay = backend.run(
+            property = property,
+            configuration = configuration.copy(numRuns = 1, examples = listOf(inputs), timeoutMillis = 10_000),
+        )
+
+        assertEquals(UsvmPropertySearchStatus.VIOLATION_REACHED, search.status, search.toString())
+        assertEquals(listOf(expectedInput), inputs)
+        assertEquals(PropertyFailureKind.PROPERTY, replay.failure?.kind)
+        assertEquals(inputs, replay.counterexample)
+        assertTrue(inputs.single() in domain)
+        assertTrue(search.diagnostics.none { it.code.startsWith("usvm.runtime.") }, search.toString())
+    }
+
+    @Test
     fun `plain object symbolic candidates replay with their entry values`() {
         val domain = ObjectDomain(mapOf("count" to IntegerDomain(min = 0, max = 2)))
         val property = property(predicateExport = "mutatesObjectAndFails", domain = domain)

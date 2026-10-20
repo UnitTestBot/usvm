@@ -161,6 +161,15 @@ export function mutatesAndFails(value: number[]): boolean {
     return false;
 }
 
+export function sparseMutatesAndFails(value: number[]): boolean {
+    const alias: any[] = value;
+    alias.length = 1;
+    alias[4] = 9;
+
+    return value.length !== 5 || value[0] !== 7 || value[1] !== undefined ||
+        value[2] !== undefined || value[3] !== undefined || value[4] !== 9;
+}
+
 
 class AnnotatedRecord {
     count: number = 0;

@@ -6,13 +6,12 @@ import org.junit.jupiter.api.io.TempDir
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
-import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
-import org.usvm.machine.TsRuntimeFeatureLimitationEvent
-import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.test.util.checkers.eq as exactly
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.TsTestResolver
+import org.usvm.util.TsUnsupportedWitnessException
 import org.usvm.util.assertNodeReplay
 import org.usvm.util.eq
 import org.usvm.util.getResourcePath
@@ -20,6 +19,8 @@ import org.usvm.util.neq
 import java.nio.file.Path
 import kotlin.io.path.readText
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class AllocatedArrays : TsMethodTestRunner() {
@@ -115,7 +116,26 @@ class AllocatedArrays : TsMethodTestRunner() {
 
     @Test
     fun `test allocatedArrayLengthExpansion`() {
-        assertArrayIndexGrowthLimitation("allocatedArrayLengthExpansion")
+        val target = getMethod(methodName = "allocatedArrayLengthExpansion")
+        val result = TsMachine(
+            scene = scene,
+            options = UMachineOptions(solverType = SolverType.YICES),
+            tsOptions = TsOptions(),
+        ).use { machine -> machine.analyzeWithMetadata(methods = listOf(target)) }
+
+        assertEquals(expected = 1, actual = result.states.size)
+        assertFalse(result.runtimeLimited)
+        assertFalse(result.engineFailed)
+        val witnessFailure = assertFailsWith<TsUnsupportedWitnessException> {
+            TsTestResolver().resolve(target, result.states.single())
+        }
+        assertTrue(witnessFailure.message.orEmpty().contains("Sparse array slot 3"))
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod(methodName = "inspectAllocatedArrayLengthExpansion"),
+            { value -> value.number == 5.0 },
+            invariants = arrayOf({ value -> value.number == 5.0 }),
+        )
     }
 
     @Test
@@ -150,29 +170,26 @@ class AllocatedArrays : TsMethodTestRunner() {
         )
     }
 
-    private fun assertArrayIndexGrowthLimitation(methodName: String) {
-        val observer = RecordingObserver()
-        val states = TsMachine(
-            scene = scene,
-            options = UMachineOptions(solverType = SolverType.YICES),
-            tsOptions = TsOptions(),
-            observer = observer,
-        ).use { machine ->
-            machine.analyze(listOf(getMethod(methodName)))
-        }
+    @Test
+    fun `sparse allocated growth preserves values length and holes in native JavaScript`() {
+        val script = getResourcePath(tsPath).readText() + "\n" +
+            getResourcePath("/models/NumericBoundarySemantics.ts").readText() + """
 
-        assertTrue(states.isEmpty())
-        assertEquals(
-            TsRuntimeFeatureLimitationReason.ARRAY_INDEX_GROWTH,
-            observer.limitations.single().reason,
+            const subject = new AllocatedArrays();
+            const values = subject.allocatedArrayLengthExpansion();
+            if (!Array.isArray(values) || values.length !== 6) throw new Error('Sparse length');
+            if (values[0] !== 1 || values[1] !== 2 || values[2] !== 3 || values[5] !== 5) throw new Error('Sparse values');
+            if (3 in values || 4 in values) throw new Error('Sparse holes became own elements');
+            if (values[3] !== undefined || values[4] !== undefined) throw new Error('Sparse hole read');
+            if (subject.inspectAllocatedArrayLengthExpansion() !== 5) throw new Error('Sparse observation');
+            if (new NumericBoundarySemantics().outOfRangeArrayWrite() !== 22) throw new Error('Existing element changed');
+        """.trimIndent()
+
+        assertNodeReplay(
+            source = script,
+            directory = directory,
+            name = "allocated-array-sparse-growth",
+            timeoutMessage = "Allocated sparse growth native replay timed out",
         )
-    }
-
-    private class RecordingObserver : TsInterpreterObserver {
-        val limitations = mutableListOf<TsRuntimeFeatureLimitationEvent>()
-
-        override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
-            limitations += event
-        }
     }
 }

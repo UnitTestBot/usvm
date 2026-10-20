@@ -112,11 +112,10 @@ class NumericBoundarySemanticsTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `unsupported named property and growth writes stop their paths`() {
+    fun `unsupported named property writes stop their paths`() {
         val unsupportedMethods = mapOf(
             "fractionalArrayWrite" to TsRuntimeFeatureLimitationReason.ARRAY_NAMED_PROPERTY_WRITE,
             "negativeArrayWrite" to TsRuntimeFeatureLimitationReason.ARRAY_NAMED_PROPERTY_WRITE,
-            "outOfRangeArrayWrite" to TsRuntimeFeatureLimitationReason.ARRAY_INDEX_GROWTH,
             "chainedMissingArrayWrite" to TsRuntimeFeatureLimitationReason.ARRAY_NAMED_PROPERTY_WRITE,
         )
 
@@ -132,6 +131,17 @@ class NumericBoundarySemanticsTest : TsMethodTestRunner() {
             { result -> result == TsTestValue.TsUndefined },
             invariants = arrayOf({ result -> result == TsTestValue.TsUndefined }),
         )
+    }
+
+    @Test
+    fun `bounded indexed growth preserves existing array elements`() {
+        val observer = RecordingObserver()
+
+        val states = analyze("outOfRangeArrayWrite", observer)
+
+        assertEquals(expected = 1, actual = states.size)
+        assertTrue(observer.limitations.isEmpty())
+        discoverNumber("outOfRangeArrayWrite", expected = 22.0)
     }
 
     @Test

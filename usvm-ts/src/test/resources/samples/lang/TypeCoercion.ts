@@ -79,6 +79,14 @@ class TypeCoercion {
         return 3;
     }
 
+    transitiveCoercionNumbers(a: number, b: number, c: number): number {
+        return this.transitiveCoercionNoTypes(a, b, c);
+    }
+
+    transitiveCoercionBoolean(a: number, b: boolean, c: number): number {
+        return this.transitiveCoercionNoTypes(a, b, c);
+    }
+
     transitiveCoercionNoTypes(a, b, c): number {
         if (a == b) {
             if (c != 0 && c != 1) {
