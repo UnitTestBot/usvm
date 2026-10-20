@@ -71,8 +71,9 @@ internal fun runSavedInputReplay(args: List<String>) {
         "Saved concrete input journal changed"
     }
     val candidate = Files.lines(journal).use { lines ->
-        lines.map { CallsExperimentJson.json.decodeFromString<CallsClassInputCandidate>(it) }
-            .filter { it.stateId == stateId }.toList().single()
+        lines.iterator().asSequence()
+            .map { CallsExperimentJson.json.decodeFromString<CallsClassInputCandidate>(it) }
+            .single { it.stateId == stateId }
     }
     require(candidate.className == case.className && candidate.profile == manifest.profile) {
         "Saved candidate differs from the manifest class or profile"
