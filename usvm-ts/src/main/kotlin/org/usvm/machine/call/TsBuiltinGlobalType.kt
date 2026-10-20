@@ -10,6 +10,8 @@ import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
 import org.usvm.UConcreteHeapRef
@@ -44,10 +46,14 @@ private fun EtsFunctionType.isBuiltinNumberType(): Boolean {
 private fun EtsFunctionType.isBuiltinArrayType(): Boolean {
     val parameter = signature.parameters.singleOrNull() ?: return false
     val arrayType = signature.returnType as? EtsArrayType ?: return false
+    val lengthTypes = (parameter.type as? EtsUnionType)?.types?.toSet()
+    val acceptsNumericLength = parameter.type == EtsNumberType ||
+        lengthTypes == setOf(EtsNumberType, EtsUndefinedType)
+
     return signature.enclosingClass == EtsClassSignature.UNKNOWN &&
         signature.name.isEmpty() &&
         arrayType.elementType == EtsAnyType && arrayType.dimensions == 1 &&
-        parameter.type == EtsNumberType && parameter.isOptional && !parameter.isRest
+        acceptsNumericLength && parameter.isOptional && !parameter.isRest
 }
 
 private fun EtsValue.isLegacyBuiltinGlobal(
