@@ -52,6 +52,10 @@ internal data class CallsClassInputExtractionFailure(
     val outcome: String,
     val diagnostic: String,
     val environmentOnly: Boolean = false,
+    val originalEngineFailureReason: String? = null,
+    val currentMethod: String? = null,
+    val currentSourceFile: String? = null,
+    val statementIndex: Int? = null,
 )
 
 @Serializable
@@ -92,17 +96,19 @@ internal class CallsClassInputCandidates(output: Path, private val profile: Call
 
     fun append(state: TsState, outcome: String, emittedAtMillis: Long, stopped: Boolean) {
         val started = TimeSource.Monotonic.markNow()
+        val location = state.lastStmt.location
+        val currentMethod = location.method.signature
+        val currentSourceFile = currentMethod.enclosingClass.file.toString()
         val extracted = runCatching {
             val method = state.entrypoint
             val environment = resolveOriginalEnvironment(state = state)
             val suspended = outcome != "RETURNED" && outcome != "THREW"
             val reason = if (suspended) state.engineFailureReason ?: state.unsupportedReason ?: outcome else null
-            val currentMethod = state.lastStmt.location.method.signature
             CallsClassInputCandidate(
                 stateId = state.id.toString(),
                 entryMethod = method.signature.toString(),
                 currentMethod = currentMethod.toString(),
-                statementIndex = state.lastStmt.location.index,
+                statementIndex = location.index,
                 className = method.signature.enclosingClass.name,
                 methodName = method.name,
                 invocationKind = when {
@@ -144,6 +150,10 @@ internal class CallsClassInputCandidates(output: Path, private val profile: Call
                             outcome = outcome,
                             diagnostic = environmentFailure,
                             environmentOnly = true,
+                            originalEngineFailureReason = state.engineFailureReason,
+                            currentMethod = currentMethod.toString(),
+                            currentSourceFile = currentSourceFile,
+                            statementIndex = location.index,
                         )
                         failures.append(encodeCallsArtifact(diagnostic))
                     }
@@ -154,6 +164,10 @@ internal class CallsClassInputCandidates(output: Path, private val profile: Call
                         entryMethod = state.entrypoint.signature.toString(),
                         outcome = outcome,
                         diagnostic = "${failure::class.java.name}: ${failure.message}",
+                        originalEngineFailureReason = state.engineFailureReason,
+                        currentMethod = currentMethod.toString(),
+                        currentSourceFile = currentSourceFile,
+                        statementIndex = location.index,
                     )
                     failures.append(encodeCallsArtifact(diagnostic))
                 },

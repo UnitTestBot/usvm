@@ -701,15 +701,17 @@ open class TsTestStateResolver(
                     else -> error("TODO")
                 }
             }
-            if (classes.size == 1) {
-                return classes.single()
+            val runtimeDeclarations = classes.groupBy { it.signature }.values.flatMap(::canonicalClassDeclarations)
+            if (runtimeDeclarations.size == 1) {
+                return runtimeDeclarations.single()
             }
         }
 
         // Sad signature:
         val classes = ctx.scene.projectAndSdkClasses.filter { it.signature.name == name }
-        if (classes.size == 1) {
-            return classes.single()
+        val runtimeDeclarations = classes.groupBy { it.signature }.values.flatMap(::canonicalClassDeclarations)
+        if (runtimeDeclarations.size == 1) {
+            return runtimeDeclarations.single()
         }
 
         throw TsUnsupportedWitnessException("Concrete class identity is unresolved or ambiguous: $name")
