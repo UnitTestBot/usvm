@@ -1,6 +1,7 @@
 package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
@@ -25,18 +26,28 @@ data class TsArrayIterator(
     val arrayType: EtsArrayType,
     val index: UExpr<TsSizeSort>,
     val exhausted: UBoolExpr,
+    val kind: TsIteratorKind = TsIteratorKind.VALUES,
 )
 
 /** The result object's fields are kept separate from the iterator's mutable cursor. */
 data class TsIteratorResult(val done: UBoolExpr, val value: UExpr<*>)
 
-private val iteratorType = EtsClassType(EtsClassSignature.UNKNOWN.copy(name = "%BuiltinArrayIterator"))
+internal val arrayIteratorType = EtsClassType(EtsClassSignature.UNKNOWN.copy(name = "%BuiltinArrayIterator"))
 internal val iteratorResultType = EtsClassType(EtsClassSignature.UNKNOWN.copy(name = "%BuiltinIteratorResult"))
 
 internal fun TsExprResolver.tryApproximateBuiltinIteratorCall(
     stmt: TsVirtualMethodCallStmt,
 ): TsExprApproximationResult = with(ctx) {
+    val collectionResult = tryApproximateCollectionIteratorCall(stmt)
+    if (collectionResult !is TsExprApproximationResult.NoApproximation) return collectionResult
+
     if (stmt.call.wellKnownSymbol == EtsWellKnownSymbol.ITERATOR) {
+        val reference = stmt.instance as? UConcreteHeapRef
+        val nativeIterator = scope.calcOnState {
+            arrayIterators[reference] != null || stringIterators[reference] != null
+        }
+        if (nativeIterator) return TsExprApproximationResult.from(reference)
+
         val string = tryCreateStringIterator(stmt)
         if (string !is TsExprApproximationResult.NoApproximation) return string
 
@@ -77,7 +88,7 @@ private fun TsExprResolver.createArrayIterator(stmt: TsVirtualMethodCallStmt): U
     scope.assert(runtimeArray) ?: return null
 
     scope.calcOnState {
-        val iterator = memory.allocConcrete(iteratorType)
+        val iterator = memory.allocConcrete(arrayIteratorType)
         arrayIterators += iterator to TsArrayIterator(
             array = array,
             arrayType = arrayType,
@@ -135,7 +146,21 @@ private fun TsExprResolver.advanceArrayIterator(
     val value = if (done.isTrue) {
         mkUndefinedValue()
     } else {
-        val element = readArrayElement(scope, iterator.array, iterator.index, iterator.arrayType) ?: return null
+        val indexNumber = mkBvToFpExpr(
+            sort = fp64Sort,
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = iterator.index.cast(),
+            signed = true,
+        )
+        val element = when (iterator.kind) {
+            TsIteratorKind.KEYS -> indexNumber
+            TsIteratorKind.VALUES -> readArrayElement(scope, iterator.array, iterator.index, iterator.arrayType)
+                ?: return null
+            TsIteratorKind.ENTRIES -> {
+                val item = readArrayElement(scope, iterator.array, iterator.index, iterator.arrayType) ?: return null
+                scope.calcOnState { iteratorPair(collectionValue(indexNumber), collectionValue(item)) }
+            }
+        }
         iteWriteIntoFakeObject(
             scope = scope,
             condition = done,
@@ -168,7 +193,10 @@ internal fun TsExprResolver.readBuiltinIteratorField(reference: UHeapRef, name: 
         }
     }
 
-    val isIterator = scope.calcOnState { arrayIterators[reference] != null || stringIterators[reference] != null }
+    val isIterator = scope.calcOnState {
+        arrayIterators[reference] != null || stringIterators[reference] != null ||
+            collectionIterators[reference] != null
+    }
     if (isIterator && name == "return") return mkUndefinedValue()
 
     null

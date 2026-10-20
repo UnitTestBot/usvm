@@ -36,6 +36,7 @@ internal data class TsModeledCollection(
     val kind: TsCollectionKind,
     val storage: UConcreteHeapRef,
     val keys: List<UConcreteHeapRef> = emptyList(),
+    val insertionHistory: List<UConcreteHeapRef> = emptyList(),
 )
 
 internal data class TsCollectionMatch(val key: UConcreteHeapRef, val guard: UBoolExpr)
@@ -105,8 +106,12 @@ internal fun TsState.collectionInsert(
     val zero = mkFp64(0.0)
     val normalizedKey = key.copy(fpValue = mkIte(mkFpEqualExpr(key.fpValue, zero), zero, key.fpValue))
     val identity = allocateCollectionPayload(normalizedKey)
-    collectionPut(collection, identity, value)
-    modeledCollections += receiver to collection.copy(keys = collection.keys + identity)
+    val storedValue = if (collection.kind == TsCollectionKind.SET) normalizedKey else value
+    collectionPut(collection, identity, storedValue)
+    modeledCollections += receiver to collection.copy(
+        keys = collection.keys + identity,
+        insertionHistory = collection.insertionHistory + identity,
+    )
 }
 
 internal fun TsState.collectionRemove(
@@ -117,6 +122,16 @@ internal fun TsState.collectionRemove(
     symbolicObjectMapRemove(collection.storage, key, storageType)
     modeledCollections += receiver to collection.copy(keys = collection.keys - key)
 }
+
+internal fun TsState.collectionClear(receiver: UConcreteHeapRef, collection: TsModeledCollection) {
+    for (key in collection.keys) {
+        symbolicObjectMapRemove(collection.storage, key, storageType)
+    }
+    modeledCollections += receiver to collection.copy(keys = emptyList())
+}
+
+internal fun TsState.collectionPresent(collection: TsModeledCollection, key: UConcreteHeapRef): UBoolExpr =
+    symbolicObjectMapContains(collection.storage, key, storageType)
 
 internal fun TsState.collectionSize(collection: TsModeledCollection): UExpr<*> = with(ctx) {
     val size = symbolicObjectMapSize(collection.storage, storageType)
@@ -149,7 +164,7 @@ private fun TsState.allocateCollectionPayload(value: TsUnresolvedValue): UConcre
     ref
 }
 
-private fun TsState.readCollectionPayload(ref: UHeapRef): TsUnresolvedValue = with(ctx) {
+internal fun TsState.readCollectionPayload(ref: UHeapRef): TsUnresolvedValue = with(ctx) {
     val boolean = memory.read(UFieldLValue(boolSort, ref, CollectionPayload.BOOLEAN))
     val number = memory.read(UFieldLValue(fp64Sort, ref, CollectionPayload.NUMBER))
     val reference = memory.read(UFieldLValue(addressSort, ref, CollectionPayload.REFERENCE))

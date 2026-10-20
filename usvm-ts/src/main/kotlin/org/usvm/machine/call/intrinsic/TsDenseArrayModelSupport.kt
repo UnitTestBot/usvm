@@ -54,6 +54,19 @@ internal object TsDenseArrayModelSupport {
         }
     }
 
+    // A non-undefined thisArg requires the callback invocation machinery to bind `this` explicitly.
+    val callbackAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
+        val receiver = call.receiver?.resolved ?: return@TsEtsIrUnknownCallModelInputAdapter null
+        val arguments = call.arguments.map { it.resolved ?: return@TsEtsIrUnknownCallModelInputAdapter null }
+        val callback = arguments.firstOrNull() as? UConcreteHeapRef
+            ?: return@TsEtsIrUnknownCallModelInputAdapter null
+        if (callback !in state.associatedFunction) return@TsEtsIrUnknownCallModelInputAdapter null
+        val thisArgument = arguments.getOrNull(1) ?: state.ctx.mkUndefinedValue()
+        if (thisArgument != state.ctx.mkUndefinedValue()) return@TsEtsIrUnknownCallModelInputAdapter null
+
+        listOf(receiver, callback)
+    }
+
     val reduceAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
         val inputs = call.resolvedInstanceInputs(maxArgumentCount = 2)
             ?: return@TsEtsIrUnknownCallModelInputAdapter null

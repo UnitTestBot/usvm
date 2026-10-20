@@ -172,8 +172,8 @@ class MapSetModelsTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `unimplemented iterable input and capacity overflow stay explicit residual paths`() {
-        for (name in listOf("iterableConstructor", "capacityBoundary")) {
+    fun `capacity overflow stays an explicit residual path`() {
+        for (name in listOf("capacityBoundary")) {
             val method = getMethod(methodName = name, className = "MapSetModels")
             val outcome = TsMachine(scene = scene, options = options, tsOptions = tsOptions).use { machine ->
                 machine.analyzeWithMetadata(methods = listOf(method))

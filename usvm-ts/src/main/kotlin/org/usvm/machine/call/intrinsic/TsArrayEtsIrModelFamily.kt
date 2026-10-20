@@ -326,6 +326,18 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 domainGuard = TsDenseArrayModelSupport.denseReceiverDomain,
             ),
             sourceModel(
+                id = "ts.array.map",
+                methodName = "map",
+                inputAdapter = TsDenseArrayModelSupport.callbackAdapter,
+                domainGuard = TsArraySlotPrimitives.reverseDomain,
+            ),
+            sourceModel(
+                id = "ts.array.forEach",
+                methodName = "forEach",
+                inputAdapter = TsDenseArrayModelSupport.callbackAdapter,
+                domainGuard = TsArraySlotPrimitives.reverseDomain,
+            ),
+            sourceModel(
                 id = "ts.array.pop",
                 methodName = "pop",
                 inputAdapter = receiverOnlyAdapter,
@@ -438,7 +450,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             domainGuard = domainGuard,
             inputAdapter = inputAdapter,
             requiredModelIds = buildSet {
-                if (methodName in setOf("reverse", "unshift")) {
+                if (methodName in setOf("reverse", "unshift", "map", "forEach")) {
                     add("ts.array.primitive.prepareOwnSlots")
                     add("ts.array.primitive.hasOwnSlot")
                 }
@@ -456,6 +468,9 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 }
                 if (methodName in setOf("push", "unshift")) {
                     add(PRIMITIVE_GROW_ID)
+                }
+                if (methodName == "map") {
+                    add(PRIMITIVE_ALLOCATE_ID)
                 }
                 if (methodName in setOf("slice", "concat")) {
                     add(PRIMITIVE_ALLOCATE_LIKE_ID)
@@ -585,6 +600,8 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     sizeSort = sizeSort,
                     count = length,
                 )
+                // Fresh allocations have known holes until the source algorithm writes each own slot.
+                knownArrayPropertyPresence += result
                 result
             },
         )

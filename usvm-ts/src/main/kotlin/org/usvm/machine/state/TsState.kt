@@ -32,6 +32,7 @@ import org.usvm.machine.TsSizeSort
 import org.usvm.machine.expr.TrackedObjectProperty
 import org.usvm.machine.expr.TsArrayIterator
 import org.usvm.machine.expr.TsCapturedInstanceCall
+import org.usvm.machine.expr.TsCollectionIterator
 import org.usvm.machine.expr.TsIteratorResult
 import org.usvm.machine.expr.TsModeledCollection
 import org.usvm.machine.expr.TsStringIterator
@@ -148,6 +149,8 @@ class TsState(
     targets = targets,
 ) {
     internal var promiseExecutorFunctions: Map<UConcreteHeapRef, TsFunction> = emptyMap()
+
+    internal var collectionIterators: Map<UConcreteHeapRef, TsCollectionIterator> = emptyMap()
 
     internal var modeledCollections: Map<UConcreteHeapRef, TsModeledCollection> = emptyMap()
     internal var initialEnvironmentFailure: String? = null
@@ -419,6 +422,7 @@ class TsState(
             denseInputArrays = denseInputArrays.toMutableMap(),
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         ).also { cloned ->
+            cloned.collectionIterators = collectionIterators
             cloned.modeledCollections = modeledCollections
             cloned.promiseExecutorFunctions = promiseExecutorFunctions
             cloned.initialEnvironmentFailure = initialEnvironmentFailure
