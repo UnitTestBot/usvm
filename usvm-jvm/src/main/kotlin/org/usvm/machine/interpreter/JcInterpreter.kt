@@ -738,7 +738,7 @@ class JcInterpreter(
         scope: JcStepScope,
     ): Unit = resolveVirtualInvoke(ctx, methodCall, scope, typeSelector, options.forkOnRemainingTypes)
 
-    private val approximationResolver = JcMethodApproximationResolver(ctx, applicationGraph)
+    private val approximationResolver = JcMethodApproximationResolver(ctx, applicationGraph, options)
 
     @Suppress("TooGenericExceptionCaught") // Observe and rethrow the original engine error.
     private fun approximateMethod(scope: JcStepScope, methodCall: JcMethodCall): Boolean {
