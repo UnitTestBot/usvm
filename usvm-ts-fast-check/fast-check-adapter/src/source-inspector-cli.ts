@@ -4,6 +4,7 @@ import { instrumentSourceReplay } from './source-replay.js'
 import { inspectSourceCaptures } from './source-captures.js'
 import { inspectLocalSourceClosure, inspectStartupSourceClosure } from './local-source-closure.js'
 import { instrumentClassCoverage } from './class-coverage-source.js'
+import { savedInputBindings } from './saved-input-bindings.js'
 
 const [operation, sourcePath, ...arguments_] = process.argv.slice(2)
 if (sourcePath === undefined) throw new Error('Expected a TypeScript source path')
@@ -22,7 +23,11 @@ if (operation === 'inspect-local-closure' || operation === 'inspect-startup-clos
   }).diagnostics?.filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error) ?? []
   if (diagnostics.length > 0) throw new Error(ts.flattenDiagnosticMessageText(diagnostics[0]?.messageText ?? '', '\n'))
 
-  if (operation === 'instrument-class-coverage') {
+  if (operation === 'saved-input-bindings') {
+    const request = arguments_[0]
+    if (request === undefined) throw new Error('Expected saved input bindings')
+    process.stdout.write(JSON.stringify(savedInputBindings(sourceFile, JSON.parse(request))))
+  } else if (operation === 'instrument-class-coverage') {
     const className = arguments_[0]
     if (className === undefined) throw new Error('Expected a target class name')
     process.stdout.write(JSON.stringify(instrumentClassCoverage(sourceFile, className)))

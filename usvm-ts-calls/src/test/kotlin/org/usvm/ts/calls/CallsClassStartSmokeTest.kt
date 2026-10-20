@@ -10,16 +10,7 @@ import org.jacodb.ets.model.EtsSourceSpan
 import org.jacodb.ets.model.EtsStmtLocation
 import org.jacodb.ets.model.EtsUndefinedType
 import org.junit.jupiter.api.io.TempDir
-import org.usvm.ts.pbt.backend.PropertyRunConfiguration
-import org.usvm.ts.pbt.backend.PropertyRunStatus
-import org.usvm.ts.pbt.fastcheck.FastCheckBackend
-import org.usvm.ts.pbt.fastcheck.FastCheckRuntime
-import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
-import org.usvm.ts.pbt.model.PropertyDefinition
-import org.usvm.ts.pbt.model.PropertyId
-import org.usvm.ts.pbt.model.PropertyInput
-import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -211,7 +202,10 @@ class CallsClassStartSmokeTest {
                 numeric<T extends number>(value: T): number { return value > 0 ? 1 : 0; }
                 logical<T extends boolean>(value: T): number { return value ? 1 : 0; }
                 reference<T extends string>(value: T): number { return value.length; }
-                defaulted<T = number>(value: T): boolean { return typeof value === 'number'; }
+                defaulted<T = number>(value: T): boolean {
+                    if (typeof value === 'number') return true;
+                    return false;
+                }
             }
         """.trimIndent()
 
@@ -230,29 +224,31 @@ class CallsClassStartSmokeTest {
         assertTrue(values("logical").all { it is JsConcreteValue.Boolean })
         assertTrue(values("reference").all { it is JsConcreteValue.String })
         val failures = Files.readAllLines(directory.resolve("output/input-extraction-failures.jsonl"))
-        assertTrue(values("defaulted").isNotEmpty())
+        // Distinct return paths force both kinds; one unconstrained return permits an arbitrary solver witness.
+        assertTrue(values("defaulted").any { it is JsConcreteValue.Number })
         assertTrue(values("defaulted").any { it !is JsConcreteValue.Number })
         assertTrue(failures.isEmpty(), failures.toString())
     }
 
     @Test
-    fun `saved stopped candidate restores original receiver and arguments in native execution`() {
+    fun `saved stopped candidate replays original receiver aliases and static environment`() {
         val source = """
-            declare class External { static stop(): number; }
             export class Box { value: number = 0; }
             export class Target {
                 static marker: number = 17;
                 value: number = 0;
-                run(box: Box, items: number[]): number {
-                    if (this.value !== 11 || box.value !== 12 || items.length !== 1 || items[0] !== 13 ||
+                run(box: Box, alias: Box, items: number[]): number {
+                    if (this.value !== 11 || box.value !== 12 || box !== alias || items.length !== 1 || items[0] !== 13 ||
                         Target.marker !== 17) return 0;
                     this.value = 91;
                     box.value = 92;
                     items[0] = 93;
                     Target.marker = 97;
-                    return this.nested(items, box);
+                    return this.nested(items, alias);
                 }
-                nested(items: number[], box: Box): number { return External.stop(); }
+                nested(items: number[], box: Box): number {
+                    return Math.abs(this.value + box.value + items[0] + Target.marker);
+                }
             }
         """.trimIndent()
 
@@ -262,7 +258,6 @@ class CallsClassStartSmokeTest {
             CallsExperimentJson.json.decodeFromString<CallsClassInputCandidate>(it)
         }
         val candidate = candidates.single { it.methodName == "run" && it.outcome.startsWith("STOPPED_PREFIX") }
-        Files.writeString(directory.resolve("candidate.json"), encodeCallsArtifact(candidate))
 
         assertEquals(CallsCoverageCandidateOrigin.SUSPENDED, candidate.origin)
         assertEquals(null, candidate.completion)
@@ -271,7 +266,122 @@ class CallsClassStartSmokeTest {
         assertFalse(candidate.nativeReplayValidated)
         val marker = candidate.inputs.environmentFields.single { it.name == "marker" }
         assertEquals(JsConcreteValue.number(17.0), marker.value.primitive)
-        replaySavedStoppedCandidate()
+        assertEquals(candidate.inputs.arguments[0], candidate.inputs.arguments[1])
+
+        val replayPath = directory.resolve("native-input-replay.json")
+        runSavedInputReplay(
+            listOf(
+                directory.resolve("manifest.json").toString(),
+                "target",
+                directory.resolve("output").toString(),
+                candidate.stateId,
+                "20000",
+                replayPath.toString(),
+            )
+        )
+        val replay = CallsExperimentJson.json.decodeFromString<CallsSavedInputReplayResult>(
+            Files.readString(replayPath)
+        )
+
+        assertSavedInputReturn(replay = replay, expected = 373.0)
+
+        val adjusted = candidate.copy(
+            inputs = candidate.inputs.copy(
+                environmentFields = listOf(
+                    marker.copy(value = CallsConcreteHeapValue(primitive = JsConcreteValue.number(19.0)))
+                ),
+            )
+        )
+        assertSavedInputReturned(result = result, candidate = adjusted, expected = 0.0)
+    }
+
+    @Test
+    fun `saved stopped candidate restores mutable module binding before native invocation`() {
+        val source = """
+            export let marker: number = 17;
+            export class Target {
+                run(value: number): number {
+                    if (value !== 11) return 0;
+                    marker = marker + 80;
+                    return Math.abs(marker + value);
+                }
+            }
+        """.trimIndent()
+
+        val result = runFixture(sourceText = source, exploratory = true, profile = CallsExperimentProfile.EMPTY_STOP)
+        val candidates = Files.readAllLines(directory.resolve("output/input-candidates.jsonl")).map {
+            CallsExperimentJson.json.decodeFromString<CallsClassInputCandidate>(it)
+        }
+        val candidate = candidates.single { it.methodName == "run" && it.outcome.startsWith("STOPPED_PREFIX") }
+        val marker = candidate.inputs.environmentFields.single { it.name == "marker" }
+
+        assertTrue(candidate.environmentComplete, candidate.environmentLimitations.toString())
+        assertEquals(CallsConcreteEnvironmentFieldKind.MODULE_BINDING, marker.kind)
+        assertEquals(JsConcreteValue.number(17.0), marker.value.primitive)
+        assertSavedInputReturned(result = result, candidate = candidate, expected = 108.0)
+
+        // A transport control distinguishes the setter from merely re-running the source initializer.
+        val adjusted = candidate.copy(
+            inputs = candidate.inputs.copy(
+                environmentFields = listOf(
+                    marker.copy(value = CallsConcreteHeapValue(primitive = JsConcreteValue.number(5.0)))
+                ),
+            )
+        )
+        assertSavedInputReturned(result = result, candidate = adjusted, expected = 96.0)
+
+        val partial = replayCallsSavedInput(
+            sourceRoot = directory,
+            sourceFile = "Target.ts",
+            targetSignature = checkNotNull(result.targetSignature),
+            candidate = candidate.copy(
+                environmentComplete = false,
+                environmentLimitations = listOf("incomplete initializer")
+            ),
+            timeoutMillis = 20_000,
+        )
+
+        assertEquals(CallsSavedInputReplayStatus.UNSUPPORTED, partial.status)
+        assertEquals(null, partial.observation)
+        assertFalse(partial.nativeReplayValidated)
+
+        val missingCallable = replayCallsSavedInput(
+            sourceRoot = directory,
+            sourceFile = "Target.ts",
+            targetSignature = checkNotNull(result.targetSignature),
+            candidate = candidate.copy(methodName = "missingCallable"),
+            timeoutMillis = 20_000,
+        )
+
+        assertEquals(CallsSavedInputReplayStatus.HARNESS_FAILURE, missingCallable.status)
+        assertFalse(missingCallable.nativeReplayValidated)
+    }
+
+    private fun assertSavedInputReturned(
+        result: CallsClassStartResult,
+        candidate: CallsClassInputCandidate,
+        expected: Double,
+    ) {
+        val replay = replayCallsSavedInput(
+            sourceRoot = directory,
+            sourceFile = "Target.ts",
+            targetSignature = checkNotNull(result.targetSignature),
+            candidate = candidate,
+            timeoutMillis = 20_000,
+        )
+
+        assertSavedInputReturn(replay = replay, expected = expected)
+    }
+
+    private fun assertSavedInputReturn(replay: CallsSavedInputReplayResult, expected: Double) {
+        assertEquals(CallsSavedInputReplayStatus.INVOKED, replay.status, replay.toString())
+        val observation = checkNotNull(replay.observation).observation
+        assertEquals(JsConcreteValue.String("RETURNED"), observation.values["completion"])
+        val returnJson = observation.values["returnValue"] as JsConcreteValue.String
+        val returned = CallsExperimentJson.json.decodeFromString<JsConcreteValue>(returnJson.value)
+        assertEquals(JsConcreteValue.number(expected), returned)
+        assertFalse(replay.nativeReplayValidated)
+        assertFalse(replay.nativeCoverageAvailable)
     }
 
     @Test
@@ -304,47 +414,6 @@ class CallsClassStartSmokeTest {
         assertTrue(candidate.environmentLimitations.any { it.contains("sparse", ignoreCase = true) })
         assertTrue(candidate.inputs.environmentFields.isEmpty())
         assertTrue(failures.any { it.stateId == candidate.stateId && it.environmentOnly })
-    }
-
-    private fun replaySavedStoppedCandidate() {
-        val decoder = FastCheckRuntime.protocolJsonModule().resolveSibling("js-value.js").toUri().toString()
-        val replaySource = """
-            import { readFileSync } from 'node:fs';
-            import { Target, Box } from './Target.ts';
-            import { decodeJsValue } from '$decoder';
-            ${callsConcreteHeapRestoreSource()}
-            export function checkCandidate(_sentinel: boolean): boolean {
-              const candidate = JSON.parse(readFileSync(new URL('./candidate.json', import.meta.url), 'utf8'));
-              const prototypes = new Map<string, object>();
-              for (const node of candidate.inputs.objects) {
-                if (node.className === 'Target') prototypes.set(node.classSignature, Target.prototype);
-                if (node.className === 'Box') prototypes.set(node.classSignature, Box.prototype);
-              }
-              Target.marker = 999;
-              const restored = restoreCallsConcreteHeap(candidate.inputs, prototypes, decodeJsValue, (field, value) => {
-                if (field.ownerName !== 'Target' || field.name !== 'marker') throw Error('Unknown environment binding');
-                Target.marker = value;
-              });
-              try { restored.receiver.run(...restored.arguments); } catch (error) {
-                if (!(error instanceof ReferenceError)) throw error;
-              }
-              return restored.receiver.value === 91 && restored.arguments[0].value === 92 &&
-                     restored.arguments[1][0] === 93 && Target.marker === 97;
-            }
-        """.trimIndent()
-        Files.writeString(directory.resolve("replay.mts"), replaySource)
-        val property = PropertyDefinition(
-            id = PropertyId("calls.saved-stopped-inputs"),
-            inputs = listOf(PropertyInput(name = "sentinel", domain = BooleanDomain)),
-            predicate = TypeScriptEntryPoint(module = "replay.mts", exportName = "checkCandidate"),
-        )
-
-        val result = FastCheckBackend(sourceRoots = listOf(directory)).run(
-            property = property,
-            configuration = PropertyRunConfiguration(seed = 17, numRuns = 1, timeoutMillis = 20_000),
-        )
-
-        assertEquals(PropertyRunStatus.SUCCESS, result.status, result.toString())
     }
 
     @Test

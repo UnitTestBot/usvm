@@ -619,7 +619,7 @@ function inspectDataClasses(file: ts.SourceFile): ClassDataClassDescriptor[] {
   return result.sort((left, right) => left.exportName.localeCompare(right.exportName))
 }
 
-function uniqueDirectClassExport(file: ts.SourceFile, candidate: ts.ClassDeclaration, name: string): boolean {
+export function uniqueDirectClassExport(file: ts.SourceFile, candidate: ts.ClassDeclaration, name: string): boolean {
   const bindsName = (binding: ts.BindingName): boolean => ts.isIdentifier(binding) ? binding.text === name
     : binding.elements.some((element) => !ts.isOmittedExpression(element) && bindsName(element.name))
   let declarations = 0
@@ -646,7 +646,7 @@ function uniqueDirectClassExport(file: ts.SourceFile, candidate: ts.ClassDeclara
   return declarations === 1 && candidate.name?.text === name
 }
 
-function classBindingModified(file: ts.SourceFile, name: string): boolean {
+export function classBindingModified(file: ts.SourceFile, name: string): boolean {
   const writesName = (target: ts.Node): boolean => {
     if (ts.isIdentifier(target)) return target.text === name
     if (ts.isParenthesizedExpression(target)) return writesName(target.expression)
