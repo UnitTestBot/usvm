@@ -13,6 +13,7 @@ import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
@@ -474,6 +475,10 @@ private fun TsExprResolver.handlePromiseConstructor(expr: EtsInstanceCallExpr): 
         "Promise constructor should have exactly one argument, but got ${expr.args.size}"
     }
     val executorLocal = expr.args.single()
+    val executorValue = resolve(executorLocal) ?: return null
+    val executorFunction = (executorValue as? UConcreteHeapRef)?.let { ref ->
+        scope.calcOnState { associatedFunction[ref] }
+    }
 
     // Lookup the executor method
     val executors = resolveEtsMethods(
@@ -499,6 +504,9 @@ private fun TsExprResolver.handlePromiseConstructor(expr: EtsInstanceCallExpr): 
     // Save the executor for the promise in the state
     scope.doWithState {
         setPromiseExecutor(promise, executor)
+        if (executorFunction != null) {
+            promiseExecutorFunctions += promise to executorFunction
+        }
     }
 
     promise
@@ -510,10 +518,7 @@ private fun TsExprResolver.handlePromiseResolveReject(expr: EtsInstanceCallExpr)
         "reject" -> PromiseState.REJECTED
         else -> error("Unexpected: $expr")
     }
-    check(expr.args.size == 1) {
-        "Promise.${expr.callee.name}() should have exactly one argument, but got ${expr.args.size}"
-    }
-    val value = resolve(expr.args.single()) ?: return null
+    val value = resolvePromiseSettlementArguments(expr.args) ?: return null
 
     if (newState == PromiseState.FULFILLED) {
         val existingPromise = existingPromiseOrEnsureNonThenable(
@@ -1572,4 +1577,15 @@ private fun TsExprResolver.handleArrayReverse(
         // Return the modified original array
         array
     }
+}
+
+/** Missing settlement values are undefined; extra arguments are evaluated before being ignored. */
+internal fun TsExprResolver.resolvePromiseSettlementArguments(arguments: List<EtsValue>): UExpr<*>? {
+    var first: UExpr<*> = ctx.mkUndefinedValue()
+    for ((index, argument) in arguments.withIndex()) {
+        val value = resolve(argument) ?: return null
+        if (index == 0) first = value
+    }
+
+    return first
 }

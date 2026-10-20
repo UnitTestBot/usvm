@@ -100,19 +100,15 @@ class TsState(
     internal var initializedArrayIndices: Map<UHeapRef, Map<UExpr<TsSizeSort>, UBoolExpr>> = emptyMap(),
     var boundThis: UPersistentHashMap<UConcreteHeapRef, UHeapRef> = persistentHashMapOf(),
     var dfltObject: UPersistentHashMap<EtsFileSignature, UConcreteHeapRef> = persistentHashMapOf(),
-
     /**
      * Maps (file signature, field name) to the sort used for that field in the dflt object.
      * This tracks sorts for global variables that are represented as fields of dflt objects.
      */
     var dfltObjectFieldSorts: UPersistentHashMap<Pair<EtsFileSignature, String>, USort> = persistentHashMapOf(),
-
     /** True while an auxiliary entry-point guard or one of its callees is executing. */
     var entryPointGuardActive: Boolean = false,
-
     /** Terminal guard outcome; [TsEntryPointGuardOutcome.NONE] also covers predicate execution. */
     var entryPointGuardOutcome: TsEntryPointGuardOutcome = TsEntryPointGuardOutcome.NONE,
-
     /**
      * Maps string values to their corresponding heap references that were allocated for string constants.
      * This tracks which string constants have been initialized in this particular state to avoid
@@ -150,6 +146,8 @@ class TsState(
     forkPoints = forkPoints,
     targets = targets,
 ) {
+    internal var promiseExecutorFunctions: Map<UConcreteHeapRef, TsFunction> = emptyMap()
+
     internal var initialEnvironmentFailure: String? = null
     internal var initialEnvironmentHeaps: Map<EtsClass, TsInitialEnvironmentHeap> = emptyMap()
     internal var initialEnvironmentSlots: Map<Pair<EtsClass, String>, TsInitialEnvironmentSlot> = emptyMap()
@@ -419,6 +417,7 @@ class TsState(
             denseInputArrays = denseInputArrays.toMutableMap(),
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         ).also { cloned ->
+            cloned.promiseExecutorFunctions = promiseExecutorFunctions
             cloned.initialEnvironmentFailure = initialEnvironmentFailure
             cloned.initialEnvironmentHeaps = initialEnvironmentHeaps
             cloned.initialEnvironmentSlots = initialEnvironmentSlots
