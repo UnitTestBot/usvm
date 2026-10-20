@@ -1376,7 +1376,7 @@ class TsExprResolver(
                             "Promise settlement callback should have exactly one argument, but got ${expr.args.size}"
                         }
                         val value = resolve(expr.args.single()) ?: return null
-                        val fakeValue = value.toFakeObject(scope)
+                        val fakeValue = value.toFakeObject(scope) ?: return null
                         scope.doWithState {
                             if (!isResolved(callback.promise)) {
                                 markResolved(callback.promise)

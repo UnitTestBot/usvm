@@ -191,12 +191,12 @@ private fun TsContext.resolveDeclaredField(
         scope.assert(fieldExists) ?: return null
     }
 
-    val storedValue = readField(scope, instance, field, storageSort)
+    val storedValue = readField(scope, instance, field, storageSort) ?: return null
     val value = materializeFieldValue(scope, storedValue, storageSort, declaredType) ?: return null
     return applyFieldDeletion(scope, deleted, value)
 }
 
-private fun TsContext.applyFieldDeletion(scope: TsStepScope, deleted: UBoolExpr, value: UExpr<*>): UExpr<*> {
+private fun TsContext.applyFieldDeletion(scope: TsStepScope, deleted: UBoolExpr, value: UExpr<*>): UExpr<*>? {
     if (deleted.isFalse) return value
 
     // Conditional deletion yields undefined on the deleted branch, while preserving the stored runtime kind.
@@ -349,7 +349,7 @@ private fun TsContext.readField(
     instance: UHeapRef,
     field: EtsFieldSignature,
     sort: USort,
-): UExpr<*> {
+): UExpr<*>? {
     if (sort !is TsUnresolvedSort) {
         val lValue = mkFieldLValue(sort, instance, field.name)
         return scope.calcOnState { memory.read(lValue) }
@@ -370,7 +370,7 @@ private fun TsContext.readField(
         if (ref.hasFakeValueBranch()) {
             boxRuntimeValue(scope = scope, value = ref)
         } else {
-            val fakeObj = mkFakeValue(scope, bool, fp, ref)
+            val fakeObj = mkFakeValue(scope, bool, fp, ref) ?: return@calcOnState null
             lValuesToAllocatedFakeObjects += refLValue to fakeObj
             memory.write(refLValue, fakeObj, guard = trueExpr)
             fakeObj

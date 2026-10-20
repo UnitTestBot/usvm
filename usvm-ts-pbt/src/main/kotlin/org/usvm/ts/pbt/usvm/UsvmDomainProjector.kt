@@ -19,7 +19,7 @@ import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.state.TsState
-import org.usvm.machine.types.mkFakeValue
+import org.usvm.machine.types.mkInitialFakeValue
 import org.usvm.sizeSort
 import org.usvm.ts.pbt.backend.ProjectionLevel
 import org.usvm.ts.pbt.mapping.EtsInputBinding
@@ -236,8 +236,7 @@ class UsvmDomainProjector(
                 return@with sameSortIte(chooseValue, nestedValue, nilValue)
             }
 
-            val fakeValue = state.mkFakeValue(
-                scope = null,
+            val fakeValue = state.mkInitialFakeValue(
                 boolValue = nestedValue.asOptionalBool(),
                 fpValue = nestedValue.asOptionalFp(),
                 refValue = (nestedValue.asOptionalRef() ?: nilValue.asOptionalRef()),
@@ -371,8 +370,7 @@ class UsvmDomainProjector(
         private fun box(value: UExpr<out USort>): UConcreteHeapRef = with(state.ctx) {
             if (value is UConcreteHeapRef && value.isFakeObject()) return@with value
 
-            state.mkFakeValue(
-                scope = null,
+            state.mkInitialFakeValue(
                 boolValue = value.asOptionalBool(),
                 fpValue = value.asOptionalFp(),
                 refValue = value.asOptionalRef(),

@@ -112,9 +112,9 @@ internal fun TsContext.writeModeledErrorField(
     instance: UHeapRef,
     field: EtsFieldSignature,
     value: UExpr<*>,
-): Boolean {
+): Boolean? {
     val storageField = resolveErrorStorageField(scope, instance, field) ?: return false
-    val payload = boxArrayValue(scope, value)
+    val payload = boxArrayValue(scope, value) ?: return null
 
     scope.doWithState {
         memory.write(

@@ -12,7 +12,7 @@ import org.usvm.UHeapRef
 import org.usvm.api.allocateConcreteRef
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.state.TsState
-import org.usvm.machine.types.mkFakeValue
+import org.usvm.machine.types.mkInitialFakeValue
 import org.usvm.ts.pbt.fastcheck.TypeScriptCaptureKind
 import org.usvm.ts.pbt.fastcheck.TypeScriptSourceCapture
 import org.usvm.ts.pbt.mapping.EtsLexicalEnvironmentBinding
@@ -165,9 +165,9 @@ private fun TsState.captureStorageValue(payload: UExpr<*>, type: EtsType): UExpr
     if (declaredSort !is TsUnresolvedSort) return payload
 
     when (payload.sort) {
-        boolSort -> mkFakeValue(scope = null, boolValue = payload.asExpr(boolSort))
-        fp64Sort -> mkFakeValue(scope = null, fpValue = payload.asExpr(fp64Sort))
-        addressSort -> mkFakeValue(scope = null, refValue = payload.asExpr(addressSort))
+        boolSort -> mkInitialFakeValue(boolValue = payload.asExpr(boolSort))
+        fp64Sort -> mkInitialFakeValue(fpValue = payload.asExpr(fp64Sort))
+        addressSort -> mkInitialFakeValue(refValue = payload.asExpr(addressSort))
         else -> error("Unsupported captured payload sort: ${payload.sort}")
     }
 }

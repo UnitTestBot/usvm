@@ -24,7 +24,7 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.TsTypeSystem
-import org.usvm.machine.types.mkFakeValue
+import org.usvm.machine.types.mkInitialFakeValue
 import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.copyArrayElements
@@ -35,6 +35,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
@@ -66,7 +67,7 @@ class TsContextFactoryTest {
         state.memory.types.allocate(highOrdinaryRef.address, EtsNumberType)
 
         val payload = mkFp64(7.0)
-        val fakeRef = state.mkFakeValue(scope = null, fpValue = payload)
+        val fakeRef = state.mkInitialFakeValue(fpValue = payload)
         val nextOrdinaryRef = state.memory.allocConcrete(EtsNumberType)
 
         assertFalse(highOrdinaryRef.isFakeObject())
@@ -86,12 +87,12 @@ class TsContextFactoryTest {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
         val trueNumber = mkFp64(7.0)
         val falseNumber = mkFp64(11.0)
-        val trueWrapper = state.mkFakeValue(scope = null, fpValue = trueNumber, valueType = EtsFakeType.mkFp(ctx))
-        val falseWrapper = state.mkFakeValue(scope = null, fpValue = falseNumber, valueType = EtsFakeType.mkFp(ctx))
+        val trueWrapper = state.mkInitialFakeValue(fpValue = trueNumber, valueType = EtsFakeType.mkFp(ctx))
+        val falseWrapper = state.mkInitialFakeValue(fpValue = falseNumber, valueType = EtsFakeType.mkFp(ctx))
         val conditional = mkIte(selected, trueWrapper, falseWrapper)
         assertIs<UIteExpr<*>>(conditional)
 
-        val boxed = conditional.toFakeObject(scope)
+        val boxed = assertNotNull(conditional.toFakeObject(scope))
         val kind = boxed.getFakeType(state.memory)
         val payload = boxed.extractFp(state.memory)
 
@@ -108,15 +109,13 @@ class TsContextFactoryTest {
         val zero = mkFp64(0.0)
         val undefined = mkUndefinedValue()
         val reference = mkTsNullValue()
-        val numberWrapper = state.mkFakeValue(
-            scope = null,
+        val numberWrapper = state.mkInitialFakeValue(
             boolValue = falseExpr,
             fpValue = number,
             refValue = undefined,
             valueType = EtsFakeType.mkFp(ctx),
         )
-        val referenceWrapper = state.mkFakeValue(
-            scope = null,
+        val referenceWrapper = state.mkInitialFakeValue(
             boolValue = falseExpr,
             fpValue = zero,
             refValue = reference,
@@ -125,7 +124,7 @@ class TsContextFactoryTest {
         val conditional = mkIte(selected, numberWrapper, referenceWrapper)
         assertIs<UIteExpr<*>>(conditional)
 
-        val boxed = conditional.toFakeObject(scope)
+        val boxed = assertNotNull(conditional.toFakeObject(scope))
         val kind = boxed.getFakeType(state.memory)
         val numberPayload = boxed.extractFp(state.memory)
         val referencePayload = boxed.extractRef(state.memory)
@@ -146,15 +145,13 @@ class TsContextFactoryTest {
         val zero = mkFp64(0.0)
         val undefined = mkUndefinedValue()
         val reference = mkTsNullValue()
-        val numberWrapper = state.mkFakeValue(
-            scope = null,
+        val numberWrapper = state.mkInitialFakeValue(
             boolValue = falseExpr,
             fpValue = number,
             refValue = undefined,
             valueType = EtsFakeType.mkFp(ctx),
         )
-        val boolWrapper = state.mkFakeValue(
-            scope = null,
+        val boolWrapper = state.mkInitialFakeValue(
             boolValue = trueExpr,
             fpValue = zero,
             refValue = undefined,
@@ -163,7 +160,7 @@ class TsContextFactoryTest {
         val conditional = mkIte(outer, mkIte(inner, numberWrapper, boolWrapper), reference)
         assertIs<UIteExpr<*>>(conditional)
 
-        val boxed = conditional.toFakeObject(scope)
+        val boxed = assertNotNull(conditional.toFakeObject(scope))
         val kind = boxed.getFakeType(state.memory)
         val numberPayload = boxed.extractFp(state.memory)
         val referencePayload = boxed.extractRef(state.memory)
@@ -178,21 +175,19 @@ class TsContextFactoryTest {
 
     @Test
     fun `boxing a direct wrapper preserves its identity`() = with(ctx) {
-        val wrapper = state.mkFakeValue(
-            scope = null,
+        val wrapper = state.mkInitialFakeValue(
             fpValue = mkFp64(7.0),
             valueType = EtsFakeType.mkFp(ctx),
         )
 
-        val boxed = wrapper.toFakeObject(scope)
+        val boxed = assertNotNull(wrapper.toFakeObject(scope))
 
         assertSame(wrapper, boxed)
     }
 
     @Test
     fun `boxing ordinary references ignores wrappers used only in the condition`() = with(ctx) {
-        val wrapper = state.mkFakeValue(
-            scope = null,
+        val wrapper = state.mkInitialFakeValue(
             fpValue = mkFp64(7.0),
             valueType = EtsFakeType.mkFp(ctx),
         )
@@ -202,7 +197,7 @@ class TsContextFactoryTest {
         val conditional = mkIte(selected, mkTsNullValue(), mkUndefinedValue())
         assertIs<UIteExpr<*>>(conditional)
 
-        val boxed = conditional.toFakeObject(scope)
+        val boxed = assertNotNull(conditional.toFakeObject(scope))
         val kind = boxed.getFakeType(state.memory)
         val payload = boxed.extractRef(state.memory)
 

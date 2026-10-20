@@ -74,7 +74,7 @@ class TsModelUnknownCallDispatcher(
             }
 
             TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN -> {
-                val result = makeFreshUnknownCallResult(scope, call)
+                val result = makeFreshUnknownCallResult(scope, call) ?: return TsUnknownCallOutcome.PATH_STOPPED
                 scope.doWithState {
                     setMockMethodCallResult(call.callee, result)
                     newStmt(call.callSite)
@@ -98,7 +98,7 @@ class TsModelUnknownCallDispatcher(
         val freshResidualResult = if (
             residualGuard != null && residualPolicy == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN
         ) {
-            makeFreshUnknownCallResult(scope, call)
+            makeFreshUnknownCallResult(scope, call) ?: return TsUnknownCallOutcome.PATH_STOPPED
         } else {
             null
         }
@@ -117,9 +117,10 @@ class TsModelUnknownCallDispatcher(
             val completion = successor.completion as? TsUnknownCallModelCompletion.Unresolved
                 ?: return@map null
 
-            scope.calcOnState {
+            val result = scope.calcOnState {
                 mkFakeValue(scope = scope, value = completion.value)
-            }
+            } ?: return TsUnknownCallOutcome.PATH_STOPPED
+            result
         }
         val guardedStateChanges = application.execution.successors.mapIndexed { index, successor ->
             successor.guard to modelStateChange(

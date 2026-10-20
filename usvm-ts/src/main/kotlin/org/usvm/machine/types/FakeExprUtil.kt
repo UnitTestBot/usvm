@@ -33,13 +33,13 @@ import org.usvm.memory.ULValue
  * execution a live scope is required so that adding the exactly-one constraint also checks satisfiability and updates
  * the state's models.
  */
-fun TsState.mkFakeValue(
+private fun TsState.createFakeValue(
     scope: TsStepScope?, // pass `null` only in the initial state, where `scope` is not available!
     boolValue: UBoolExpr? = null,
     fpValue: UExpr<KFp64Sort>? = null,
     refValue: UHeapRef? = null,
     valueType: EtsFakeType? = null,
-): UConcreteHeapRef = with(ctx) {
+): UConcreteHeapRef? = with(ctx) {
     require(boolValue != null || fpValue != null || refValue != null) {
         "Fake object should contain at least one value"
     }
@@ -64,13 +64,14 @@ fun TsState.mkFakeValue(
             makeSymbolicPrimitive(boolSort)
         },
     )
-    memory.types.allocate(address, type)
     val constraint = type.mkExactlyOneTypeConstraint(ctx)
     if (scope != null) {
-        scope.assert(constraint)
+        scope.assert(constraint) ?: return@with null
     } else {
         pathConstraints += constraint
     }
+
+    memory.types.allocate(address, type)
 
     if (boolValue != null) {
         val boolLValue = ctx.getIntermediateBoolLValue(address)
@@ -92,16 +93,35 @@ fun TsState.mkFakeValue(
     fakeValueRef
 }
 
+/** Initial construction only adds constraints; no live step scope or solver model exists yet. */
+fun TsState.mkInitialFakeValue(
+    boolValue: UBoolExpr? = null,
+    fpValue: UExpr<KFp64Sort>? = null,
+    refValue: UHeapRef? = null,
+    valueType: EtsFakeType? = null,
+): UConcreteHeapRef = checkNotNull(
+    createFakeValue(scope = null, boolValue = boolValue, fpValue = fpValue, refValue = refValue, valueType = valueType)
+)
+
+/** A failed live exactly-one assertion stops materialization and must propagate to the interpreter. */
+fun TsState.mkFakeValue(
+    scope: TsStepScope,
+    boolValue: UBoolExpr? = null,
+    fpValue: UExpr<KFp64Sort>? = null,
+    refValue: UHeapRef? = null,
+    valueType: EtsFakeType? = null,
+): UConcreteHeapRef? = createFakeValue(scope, boolValue, fpValue, refValue, valueType)
+
 fun TsState.mkFakeValue(
     scope: TsStepScope,
     value: TsUnresolvedValue,
-): UConcreteHeapRef = materializeFakeValue(scope, value, value.refValue)
+): UConcreteHeapRef? = materializeFakeValue(scope, value, value.refValue)
 
 private fun TsState.materializeFakeValue(
     scope: TsStepScope,
     value: TsUnresolvedValue,
     refValue: UHeapRef,
-): UConcreteHeapRef = with(ctx) {
+): UConcreteHeapRef? = with(ctx) {
     when {
         refValue.isFakeObject() -> refValue
 
@@ -115,7 +135,9 @@ private fun TsState.materializeFakeValue(
 
         refValue is UIteExpr<*> -> {
             val trueValue = materializeFakeValue(scope, value, refValue.trueBranch.asExpr(addressSort))
+                ?: return@with null
             val falseValue = materializeFakeValue(scope, value, refValue.falseBranch.asExpr(addressSort))
+                ?: return@with null
 
             iteWriteIntoFakeObject(
                 scope = scope,
@@ -177,7 +199,7 @@ fun TsContext.iteWriteIntoFakeObject(
     condition: UBoolExpr,
     trueBranchValue: UExpr<out USort>,
     falseBranchValue: UExpr<out USort>,
-): UConcreteHeapRef = scope.calcOnState {
+): UConcreteHeapRef? = scope.calcOnState {
     val (boolRValueTrueBranch, boolTrueBranchCondition) = extractValue(
         trueBranchValue,
         ctx.boolSort,
@@ -211,6 +233,13 @@ fun TsContext.iteWriteIntoFakeObject(
         ::getIntermediateRefLValue
     )
 
+    val fakeType = EtsFakeType(
+        boolTypeExpr = mkIte(condition, boolTrueBranchCondition, boolFalseBranchCondition),
+        fpTypeExpr = mkIte(condition, fpValueTrueBranchCondition, fpValueFalseBranchCondition),
+        refTypeExpr = mkIte(condition, refValueTrueBranchCondition, refValueFalseBranchCondition)
+    )
+    scope.assert(fakeType.mkExactlyOneTypeConstraint(ctx)) ?: return@calcOnState null
+
     val fakeObject = createFakeObjectRef()
 
     val boolLValue = getIntermediateBoolLValue(fakeObject.address)
@@ -220,14 +249,6 @@ fun TsContext.iteWriteIntoFakeObject(
     writeValuesWithGuard(boolRValueTrueBranch, boolRValueFalseBranch, boolLValue, condition)
     writeValuesWithGuard(fpRValueTrueBranch, fpRValueFalseBranch, fpLValue, condition)
     writeValuesWithGuard(refRValueTrueBranch, refRValueFalseBranch, refLValue, condition)
-
-    val fakeType = EtsFakeType(
-        boolTypeExpr = mkIte(condition, boolTrueBranchCondition, boolFalseBranchCondition),
-        fpTypeExpr = mkIte(condition, fpValueTrueBranchCondition, fpValueFalseBranchCondition),
-        refTypeExpr = mkIte(condition, refValueTrueBranchCondition, refValueFalseBranchCondition)
-    ).also {
-        scope.assert(it.mkExactlyOneTypeConstraint(ctx))
-    }
 
     memory.types.allocate(fakeObject.address, fakeType)
 

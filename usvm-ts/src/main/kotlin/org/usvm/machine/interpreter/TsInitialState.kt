@@ -26,7 +26,7 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.symbolicStringBackingConstraint
 import org.usvm.machine.types.initialInputType
-import org.usvm.machine.types.mkFakeValue
+import org.usvm.machine.types.mkInitialFakeValue
 import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
 import org.usvm.solver.USatResult
@@ -138,8 +138,7 @@ internal fun createInitialStateOrNull(
             val bool = mkRegisterReading(idx, boolSort)
             val fp = mkRegisterReading(idx, fp64Sort)
             val referenceValue = mkRegisterReading(idx, addressSort)
-            val fakeObject = state.mkFakeValue(
-                scope = null,
+            val fakeObject = state.mkInitialFakeValue(
                 boolValue = bool,
                 fpValue = fp,
                 refValue = referenceValue,

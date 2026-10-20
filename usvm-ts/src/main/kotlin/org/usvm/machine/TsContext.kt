@@ -265,7 +265,7 @@ class TsContext(
         else -> false
     }
 
-    fun UExpr<*>.toFakeObject(scope: TsStepScope): UConcreteHeapRef {
+    fun UExpr<*>.toFakeObject(scope: TsStepScope): UConcreteHeapRef? {
         if (isFakeObject()) {
             return this
         }

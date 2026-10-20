@@ -196,7 +196,7 @@ fun TsContext.assignToArrayIndex(
             }
         }
 
-        val fake = boxArrayValue(scope, expr)
+        val fake = boxArrayValue(scope, expr) ?: return null
         val kind = fake.getFakeType(scope)
         val compatibleKind = when (elementSort) {
             boolSort -> kind.boolTypeExpr
@@ -231,7 +231,7 @@ fun TsContext.assignToArrayIndex(
         index = index.asExpr(sizeSort),
         type = arrayType,
     )
-    val fakeExpr = boxArrayValue(scope, expr)
+    val fakeExpr = boxArrayValue(scope, expr) ?: return null
     return scope.doWithState {
         memory.write(lValue, fakeExpr, guard = trueExpr)
     }

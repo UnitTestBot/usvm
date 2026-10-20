@@ -20,7 +20,7 @@ import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.TsTypeSystem
-import org.usvm.machine.types.mkFakeValue
+import org.usvm.machine.types.mkInitialFakeValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegistersStack
 import org.usvm.solver.USatResult
@@ -95,13 +95,11 @@ class ExprUtilConditionalValueTest {
     fun `nested wrapper results retain truthiness nullish and numeric selection`() = with(ctx) {
         val outer = mkRegisterReading(idx = 0, sort = boolSort)
         val inner = mkRegisterReading(idx = 1, sort = boolSort)
-        val booleanWrapper = state.mkFakeValue(
-            scope = null,
+        val booleanWrapper = state.mkInitialFakeValue(
             boolValue = trueExpr,
             valueType = EtsFakeType.mkBool(ctx),
         )
-        val numberWrapper = state.mkFakeValue(
-            scope = null,
+        val numberWrapper = state.mkInitialFakeValue(
             fpValue = mkFp64(0.0),
             valueType = EtsFakeType.mkFp(ctx),
         )
@@ -121,8 +119,7 @@ class ExprUtilConditionalValueTest {
 
     @Test
     fun `wrappers used only by a guard are not conditional result wrappers`() = with(ctx) {
-        val wrapper = state.mkFakeValue(
-            scope = null,
+        val wrapper = state.mkInitialFakeValue(
             fpValue = mkFp64(7.0),
             valueType = EtsFakeType.mkFp(ctx),
         )
@@ -171,8 +168,7 @@ class ExprUtilConditionalValueTest {
     fun `inactive unmodeled reference payload does not reject a numeric wrapper`() = with(ctx) {
         val number = mkFp64(7.0)
         val unmodeledObject = state.memory.allocConcrete(EtsAnyType)
-        val wrapper = state.mkFakeValue(
-            scope = null,
+        val wrapper = state.mkInitialFakeValue(
             fpValue = number,
             refValue = unmodeledObject,
             valueType = EtsFakeType.mkFp(ctx),
@@ -190,9 +186,8 @@ class ExprUtilConditionalValueTest {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
         val number = mkFp64(7.0)
         val unmodeledObject = state.memory.allocConcrete(EtsAnyType)
-        val numberWrapper = state.mkFakeValue(scope = null, fpValue = number, valueType = EtsFakeType.mkFp(ctx))
-        val referenceWrapper = state.mkFakeValue(
-            scope = null,
+        val numberWrapper = state.mkInitialFakeValue(fpValue = number, valueType = EtsFakeType.mkFp(ctx))
+        val referenceWrapper = state.mkInitialFakeValue(
             refValue = unmodeledObject,
             valueType = EtsFakeType.mkRef(ctx),
         )
@@ -215,8 +210,8 @@ class ExprUtilConditionalValueTest {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
         val number = mkFp64(7.0)
         val string = state.mkInitializedStringConstant(value = "42")
-        val numberWrapper = state.mkFakeValue(scope = null, fpValue = number, valueType = EtsFakeType.mkFp(ctx))
-        val stringWrapper = state.mkFakeValue(scope = null, refValue = string, valueType = EtsFakeType.mkRef(ctx))
+        val numberWrapper = state.mkInitialFakeValue(fpValue = number, valueType = EtsFakeType.mkFp(ctx))
+        val stringWrapper = state.mkInitialFakeValue(refValue = string, valueType = EtsFakeType.mkRef(ctx))
         val conditional = mkIte(selected, numberWrapper, stringWrapper)
 
         val numeric = mkNumericExpr(conditional, scope)
@@ -275,8 +270,7 @@ class ExprUtilConditionalValueTest {
             fpTypeExpr = mkNot(selected),
             refTypeExpr = falseExpr,
         )
-        val wrapper = state.mkFakeValue(
-            scope = null,
+        val wrapper = state.mkInitialFakeValue(
             boolValue = trueExpr,
             fpValue = mkFp64(7.0),
             refValue = unmodeledObject,
@@ -334,8 +328,7 @@ class ExprUtilConditionalValueTest {
             fpTypeExpr = selected,
             refTypeExpr = mkNot(selected),
         )
-        val wrapper = state.mkFakeValue(
-            scope = null,
+        val wrapper = state.mkInitialFakeValue(
             fpValue = mkFp64(7.0),
             refValue = string,
             valueType = kinds,
@@ -366,14 +359,12 @@ class ExprUtilConditionalValueTest {
             fpTypeExpr = leftBooleanSelected,
             refTypeExpr = falseExpr,
         )
-        val left = state.mkFakeValue(
-            scope = null,
+        val left = state.mkInitialFakeValue(
             boolValue = trueExpr,
             fpValue = mkFp64(2.0),
             valueType = leftKinds,
         )
-        val right = state.mkFakeValue(
-            scope = null,
+        val right = state.mkInitialFakeValue(
             boolValue = falseExpr,
             fpValue = mkFp64(1.0),
             valueType = rightKinds,

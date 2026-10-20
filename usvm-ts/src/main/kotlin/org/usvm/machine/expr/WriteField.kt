@@ -231,6 +231,7 @@ fun TsContext.assignToInstanceField(
         field = field,
         value = expr,
     )
+    if (wroteModeledErrorField == null) return null
     if (wroteModeledErrorField) return Unit
 
     val objectLiteralClass = objectLiteralClass(scope, unwrappedInstance, hierarchy)
@@ -273,9 +274,14 @@ fun TsContext.assignToInstanceField(
 
     // If the field type is unknown, we create a fake object for the expr and assign it.
     // Otherwise, assign expr directly.
+    val fakeObject = if (sort is TsUnresolvedSort) {
+        boxRuntimeValue(scope = scope, value = expr) ?: return null
+    } else {
+        null
+    }
+
     return scope.doWithState {
-        if (sort is TsUnresolvedSort) {
-            val fakeObject = boxRuntimeValue(scope = scope, value = expr)
+        if (fakeObject != null) {
             val lValue = mkFieldLValue(addressSort, unwrappedInstance, field)
             lValuesToAllocatedFakeObjects += lValue to fakeObject
             memory.write(lValue, fakeObject, guard = trueExpr)
@@ -375,7 +381,7 @@ fun TsContext.assignToStaticField(
     }
     return if (sort == unresolvedSort) {
         val lValue = mkFieldLValue(addressSort, instance, field.name)
-        val fakeObject = expr.toFakeObject(scope)
+        val fakeObject = expr.toFakeObject(scope) ?: return null
         scope.doWithState {
             lValuesToAllocatedFakeObjects += lValue to fakeObject
             memory.write(lValue, fakeObject, guard = trueExpr)
@@ -385,7 +391,7 @@ fun TsContext.assignToStaticField(
         // A conditional reference can contain a fake value on only one branch.
         val mayContainFakeValue = expr.sort == addressSort && expr.asExpr(addressSort).hasFakeValueBranch()
         val value = if (mayContainFakeValue) {
-            expr.toFakeObject(scope)
+            expr.toFakeObject(scope) ?: return null
         } else {
             expr
         }

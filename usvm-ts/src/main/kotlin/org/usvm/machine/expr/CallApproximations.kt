@@ -668,7 +668,7 @@ private fun TsExprResolver.removeArrayElement(
     scope.calcOnState {
         val newLength = mkBvSubExpr(length, mkBv(1))
         val index = if (first) mkBv(0) else newLength
-        val removed = readArrayElement(scope, array, index, arrayType)
+        val removed = readArrayElement(scope, array, index, arrayType) ?: return@calcOnState null
 
         if (first) {
             copyArrayElements(
@@ -730,10 +730,14 @@ private fun TsExprResolver.handleArrayFill(
     val containsFakeValue = resolvedValue.sort == addressSort &&
         resolvedValue.asExpr(addressSort).hasFakeValueBranch()
     val usesBoxedValue = hasResolvedElementSort && (!valueMatchesElementSort || containsFakeValue)
-    val boxedValue = if (usesBoxedValue) boxArrayValue(scope, resolvedValue) else null
+    val boxedValue = if (usesBoxedValue) {
+        boxArrayValue(scope, resolvedValue) ?: return null
+    } else {
+        null
+    }
 
     val nativeValue = when {
-        !hasResolvedElementSort -> resolvedValue.toFakeObject(scope)
+        !hasResolvedElementSort -> resolvedValue.toFakeObject(scope) ?: return null
         !usesBoxedValue -> resolvedValue
         elementSort == boolSort -> falseExpr
         elementSort == fp64Sort -> mkFp64(0.0)

@@ -127,7 +127,7 @@ private fun TsContext.readArrayProperty(
         return mkUndefinedValue()
     }
 
-    val element = readArrayElement(scope, array, index, arrayType)
+    val element = readArrayElement(scope, array, index, arrayType) ?: return null
     if (elementExists.isTrue) {
         return element
     }
@@ -145,11 +145,11 @@ internal fun TsContext.readArrayElement(
     array: UHeapRef,
     index: UExpr<TsSizeSort>,
     arrayType: EtsArrayType,
-): UExpr<*> {
+): UExpr<*>? {
     val present = scope.calcOnState { knownArrayIndexPresence(array, index) }
     if (present?.isFalse == true) return mkUndefinedValue()
 
-    val element = readArrayElementPayload(scope, array, index, arrayType)
+    val element = readArrayElementPayload(scope, array, index, arrayType) ?: return null
     if (present == null || present.isTrue) return element
 
     return iteWriteIntoFakeObject(
@@ -165,7 +165,7 @@ private fun TsContext.readArrayElementPayload(
     array: UHeapRef,
     index: UExpr<TsSizeSort>,
     arrayType: EtsArrayType,
-): UExpr<*> {
+): UExpr<*>? {
     // Determine the element sort.
     val sort = typeToSort(arrayType.componentType)
 
@@ -183,7 +183,7 @@ private fun TsContext.readArrayElementPayload(
 
     return scope.calcOnState {
         val value = readUnresolvedArrayElement(memory, array, index)
-        val fakeObj = mkFakeValue(scope = scope, value = value)
+        val fakeObj = mkFakeValue(scope = scope, value = value) ?: return@calcOnState null
         if (fakeObj != value.refValue) {
             val refLValue = mkArrayIndexLValue(addressSort, array, index, arrayType)
             memory.write(refLValue, fakeObj, guard = trueExpr)

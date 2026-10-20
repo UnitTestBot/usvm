@@ -9,6 +9,7 @@ import org.usvm.UMachineOptions
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.machine.TsComponents
 import org.usvm.machine.TsContext
+import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.util.EtsHierarchy
 import kotlin.test.assertEquals
@@ -42,13 +43,11 @@ class FakeExprUtilTest {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
         val trueNumber = mkFp64(7.0)
         val falseNumber = mkFp64(11.0)
-        val trueWrapper = state.mkFakeValue(
-            scope = null,
+        val trueWrapper = state.mkInitialFakeValue(
             fpValue = trueNumber,
             valueType = EtsFakeType.mkFp(ctx),
         )
-        val falseWrapper = state.mkFakeValue(
-            scope = null,
+        val falseWrapper = state.mkInitialFakeValue(
             fpValue = falseNumber,
             valueType = EtsFakeType.mkFp(ctx),
         )
@@ -65,14 +64,12 @@ class FakeExprUtilTest {
     @Test
     fun `mixed wrappers retain complementary kinds without wrapper reference payloads`() = with(ctx) {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
-        val numberWrapper = state.mkFakeValue(
-            scope = null,
+        val numberWrapper = state.mkInitialFakeValue(
             fpValue = mkFp64(7.0),
             valueType = EtsFakeType.mkFp(ctx),
         )
         val reference = mkTsNullValue()
-        val referenceWrapper = state.mkFakeValue(
-            scope = null,
+        val referenceWrapper = state.mkInitialFakeValue(
             refValue = reference,
             valueType = EtsFakeType.mkRef(ctx),
         )
@@ -90,8 +87,7 @@ class FakeExprUtilTest {
     fun `one available payload remains protected by the selected branch guard`() = with(ctx) {
         val selected = mkRegisterReading(idx = 0, sort = boolSort)
         val number = mkFp64(7.0)
-        val wrapper = state.mkFakeValue(
-            scope = null,
+        val wrapper = state.mkInitialFakeValue(
             fpValue = number,
             valueType = EtsFakeType.mkFp(ctx),
         )
@@ -115,13 +111,11 @@ class FakeExprUtilTest {
         val outer = mkRegisterReading(idx = 0, sort = boolSort)
         val inner = mkRegisterReading(idx = 1, sort = boolSort)
         val number = mkFp64(7.0)
-        val numberWrapper = state.mkFakeValue(
-            scope = null,
+        val numberWrapper = state.mkInitialFakeValue(
             fpValue = number,
             valueType = EtsFakeType.mkFp(ctx),
         )
-        val boolWrapper = state.mkFakeValue(
-            scope = null,
+        val boolWrapper = state.mkInitialFakeValue(
             boolValue = trueExpr,
             valueType = EtsFakeType.mkBool(ctx),
         )
@@ -140,8 +134,7 @@ class FakeExprUtilTest {
 
     @Test
     fun `ordinary reference alternatives ignore wrappers used only by the guard`() = with(ctx) {
-        val wrapper = state.mkFakeValue(
-            scope = null,
+        val wrapper = state.mkInitialFakeValue(
             fpValue = mkFp64(7.0),
             valueType = EtsFakeType.mkFp(ctx),
         )
@@ -158,5 +151,26 @@ class FakeExprUtilTest {
         assertEquals(trueExpr, referenceKind)
         assertNull(number)
         assertEquals(falseExpr, numberKind)
+    }
+
+    @Test
+    fun `live fake construction stops after rejected exactly one constraint`() = with(ctx) {
+        val scope = TsStepScope(originalState = state, forkBlackList = mockk())
+        val invalidType = EtsFakeType(boolTypeExpr = trueExpr, fpTypeExpr = trueExpr, refTypeExpr = falseExpr)
+
+        val value = state.mkFakeValue(scope = scope, boolValue = trueExpr, valueType = invalidType)
+
+        assertNull(value)
+        assertFalse(scope.stepResult().originalStateAlive)
+    }
+
+    @Test
+    fun `live fake construction retains a satisfiable payload`() = with(ctx) {
+        val scope = TsStepScope(originalState = state, forkBlackList = mockk())
+
+        val value = state.mkFakeValue(scope = scope, fpValue = mkFp64(17.0), valueType = EtsFakeType.mkFp(ctx))
+
+        val wrapper = assertNotNull(value)
+        assertEquals(mkFp64(17.0), state.memory.read(getIntermediateFpLValue(wrapper.address)))
     }
 }

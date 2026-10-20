@@ -55,7 +55,7 @@ class TsMachineFailurePrefixTest {
         assertFalse(result.engineFailed)
         assertTrue(result.runtimeLimited)
         assertTrue(result.states.isEmpty())
-        assertTrue(result.unsupportedPaths.any { "GLOBAL_BINDING_NOT_MODELED" in it && "Math" in it })
+        assertTrue(result.unsupportedPaths.any { "GLOBAL_BINDING_NOT_MODELED" in it && "Reflect" in it })
         assertTrue(prefixes.isNotEmpty())
         assertTrue(prefixes.all { !it.pathConstraints.isFalse && it.models.isNotEmpty() })
         assertTrue(prefixes.all { it.unsupportedReason != null && it.engineFailureReason == null })
