@@ -49,7 +49,7 @@ class JcMachine(
     private val applicationGraph = JcApplicationGraph(cp)
 
     private val typeSystem = JcTypeSystem(cp, options.typeOperationsTimeout)
-    private val components = JcComponents(typeSystem, options)
+    private val components = JcComponents(typeSystem, options, interpreterObserver?.let { it::onSolverQuery })
     private val ctx = JcContext(cp, components)
 
     private val interpreter = JcInterpreter(ctx, applicationGraph, jcMachineOptions, interpreterObserver)
@@ -199,6 +199,10 @@ class JcMachine(
             stopStrategy = stopStrategy,
         )
 
+        val hasPendingStates = !pathSelector.isEmpty()
+        val stopReason = if (hasPendingStates) stopStrategy.stopReason() else "QUEUE_EXHAUSTED"
+        interpreterObserver?.onAnalysisStopped(stopReason, hasPendingStates)
+
         return statesCollector.collectedStates
     }
 
@@ -221,7 +225,7 @@ class JcMachine(
     }
 
     private fun isStateTerminated(state: JcState): Boolean {
-        return state.callStack.isEmpty()
+        return state.callStack.isEmpty() || state.residualCallStop != null
     }
 
     override fun close() {

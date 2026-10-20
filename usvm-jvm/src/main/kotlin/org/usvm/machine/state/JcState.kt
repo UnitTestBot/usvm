@@ -10,6 +10,7 @@ import org.usvm.api.targets.JcTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.JcContext
+import org.usvm.machine.JcMethodCall
 import org.usvm.memory.UMemory
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.model.UModelBase
@@ -27,6 +28,7 @@ class JcState(
     forkPoints: PathNode<PathNode<JcInst>> = PathNode.root(),
     var methodResult: JcMethodResult = JcMethodResult.NoCall,
     targets: UTargetsSet<JcTarget, JcInst> = UTargetsSet.empty(),
+    var residualCallStop: JcMethodCall? = null,
 ) : UState<JcType, JcMethod, JcInst, JcContext, JcTarget, JcState>(
     ctx,
     ownership,
@@ -58,6 +60,7 @@ class JcState(
             forkPoints,
             methodResult,
             targets.clone(),
+            residualCallStop = residualCallStop,
         )
     }
 
@@ -67,6 +70,8 @@ class JcState(
      * @return the merged state. TODO: Now it may reuse some of the internal components of the former states.
      */
     override fun mergeWith(other: JcState, by: Unit): JcState? {
+        if (residualCallStop != null || other.residualCallStop != null) return null
+
         val newThisOwnership = MutabilityOwnership()
         val newOtherOwnership = MutabilityOwnership()
         val mergedOwnership = MutabilityOwnership()

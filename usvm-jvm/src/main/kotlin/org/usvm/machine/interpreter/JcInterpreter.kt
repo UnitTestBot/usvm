@@ -54,6 +54,7 @@ import org.usvm.machine.JcDynamicMethodCallInst
 import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMachineOptions
 import org.usvm.machine.JcMethodApproximationResolver
+import org.usvm.machine.JcResidualCallPolicy
 import org.usvm.machine.JcMethodCall
 import org.usvm.machine.JcMethodCallBaseInst
 import org.usvm.machine.JcMethodEntrypointInst
@@ -77,6 +78,7 @@ import org.usvm.util.write
 import org.usvm.utils.ensureSat
 import org.usvm.utils.logAssertFailure
 import org.usvm.utils.onStateDeath
+import kotlin.time.TimeSource
 
 typealias JcStepScope = StepScope<JcState, JcType, JcInst, JcContext>
 
@@ -280,7 +282,8 @@ class JcInterpreter(
                 val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
 
                 if (method.isNative || entryPoint == null) {
-                    mockMethod(scope, stmt, applicationGraph)
+                    val returnType = with(applicationGraph) { method.typed.returnType }
+                    handleResidualCall(scope, stmt, returnType)
                     return
                 }
 
@@ -330,7 +333,7 @@ class JcInterpreter(
                     return
                 }
 
-                mockMethod(scope, stmt, stmt.dynamicCall.callSiteReturnType)
+                handleResidualCall(scope, stmt, stmt.dynamicCall.callSiteReturnType)
             }
         }
     }
@@ -738,7 +741,29 @@ class JcInterpreter(
     private val approximationResolver = JcMethodApproximationResolver(ctx, applicationGraph)
 
     private fun approximateMethod(scope: JcStepScope, methodCall: JcMethodCall): Boolean {
-        val exprResolver = exprResolverWithScope(scope)
-        return approximationResolver.approximate(scope, exprResolver, methodCall)
+        if (!options.enableMethodApproximations) return false
+
+        val started = TimeSource.Monotonic.markNow()
+        var applied = false
+        var failure: String? = null
+        try {
+            val exprResolver = exprResolverWithScope(scope)
+            applied = approximationResolver.approximate(scope, exprResolver, methodCall)
+            return applied
+        } catch (error: Throwable) {
+            failure = error::class.java.name
+            throw error
+        } finally {
+            observer?.onMethodApproximation(methodCall, applied, started.elapsedNow().inWholeNanoseconds, failure)
+        }
+    }
+
+    private fun handleResidualCall(scope: JcStepScope, call: JcMethodCall, returnType: JcType) {
+        observer?.onResidualCall(call, options.residualCallPolicy, scope)
+
+        when (options.residualCallPolicy) {
+            JcResidualCallPolicy.STOP -> scope.doWithState { residualCallStop = call }
+            JcResidualCallPolicy.FRESH -> mockMethod(scope, call, returnType)
+        }
     }
 }
