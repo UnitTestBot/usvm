@@ -3,6 +3,7 @@ package org.usvm.ts.calls
 import kotlinx.serialization.Serializable
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStmt
+import org.usvm.PathSelectionStrategy
 import org.usvm.UPathSelector
 import org.usvm.machine.TsEntryPointTimeQuantumEvent
 import org.usvm.machine.TsSolverQueryEvent
@@ -70,6 +71,8 @@ internal data class CallsClassRawAnalysis(
     val journalFinalizeMillis: Long = 0,
     val timeQuantumMillis: Long,
     val collectedStatesLimit: Int? = null,
+    val solverLimitMillis: Long = 250,
+    val pathSelectionStrategy: PathSelectionStrategy = PathSelectionStrategy.BFS,
     val profile: CallsExperimentProfile,
     val seed: Long,
     val returnedStates: Long,
@@ -370,6 +373,8 @@ internal class ClassRawAnalysisObserver(
             drainSnapshotElapsedNanos = drainSnapshotNanos,
             journalFinalizeMillis = journalFinalizeMillis,
             timeQuantumMillis = manifest.timeQuantumMillis,
+            solverLimitMillis = manifest.solverLimitMillis,
+            pathSelectionStrategy = manifest.pathSelectionStrategy,
             profile = manifest.profile,
             seed = manifest.seed,
             collectedStatesLimit = manifest.collectedStatesLimit,

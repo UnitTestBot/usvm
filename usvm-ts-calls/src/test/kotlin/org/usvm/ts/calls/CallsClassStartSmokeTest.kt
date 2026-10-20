@@ -10,6 +10,7 @@ import org.jacodb.ets.model.EtsSourceSpan
 import org.jacodb.ets.model.EtsStmtLocation
 import org.jacodb.ets.model.EtsUndefinedType
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.PathSelectionStrategy
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
@@ -226,7 +227,10 @@ class CallsClassStartSmokeTest {
                 numeric<T extends number>(value: T): number { return value > 0 ? 1 : 0; }
                 logical<T extends boolean>(value: T): number { return value ? 1 : 0; }
                 reference<T extends string>(value: T): number { return value.length; }
-                defaulted<T = number>(value: T): boolean { return typeof value === 'number'; }
+                defaulted<T = number>(value: T): boolean {
+                    if (typeof value === 'number') return true;
+                    return false;
+                }
             }
         """.trimIndent()
 
@@ -245,7 +249,8 @@ class CallsClassStartSmokeTest {
         assertTrue(values("logical").all { it is JsConcreteValue.Boolean })
         assertTrue(values("reference").all { it is JsConcreteValue.String })
         val failures = Files.readAllLines(directory.resolve("output/input-extraction-failures.jsonl"))
-        assertTrue(values("defaulted").isNotEmpty())
+        // Distinct return paths force both kinds; one unconstrained return permits an arbitrary solver witness.
+        assertTrue(values("defaulted").any { it is JsConcreteValue.Number })
         assertTrue(values("defaulted").any { it !is JsConcreteValue.Number })
         assertTrue(failures.isEmpty(), failures.toString())
     }
@@ -432,12 +437,68 @@ class CallsClassStartSmokeTest {
         assertTrue(raw.sourceEnteredStatementKinds.getOrDefault("EtsDefineDataPropertyStmt", 0) > 0, raw.toString())
     }
 
+    @Test
+    fun `explicit frozen model IDs preserve an empty catalog`() {
+        val source = "export class Target { run(): number { const map = new Map(); return map.size; } }"
+        val result = runFixture(sourceText = source, frozenModelIds = emptySet(), exploratory = true)
+
+        assertTrue(result.started, result.toString())
+        assertTrue(result.unsupportedCall, result.toString())
+        val calls = result.unknownCalls.filter { it.callee.enclosingClass == "Map" }
+        assertTrue(calls.isNotEmpty())
+        assertTrue(calls.all { it.decision == CallsUnknownCallDecisionKind.RESIDUAL_FALLBACK })
+        assertTrue(calls.all { it.outcome == "PATH_STOPPED" && it.modelId == null })
+    }
+
+    @Test
+    fun `symbolic probe accepts the long class budget and retains its identity`() {
+        val result = runFixture(
+            sourceText = "export class Target { read(value: number): number { return value > 0 ? 1 : -1; } }",
+            exploratory = true,
+            budgetMillis = 120_000,
+            solverLimitMillis = 1_000,
+            timeQuantumMillis = 250,
+            seed = 23,
+            pathSelectionStrategy = PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM,
+        )
+
+        val analysis = checkNotNull(result.rawAnalysis)
+        assertEquals(120_000L, analysis.budgetMillis)
+        assertEquals(1_000L, analysis.solverLimitMillis)
+        assertEquals(250L, analysis.timeQuantumMillis)
+        assertEquals(23L, analysis.seed)
+        assertEquals(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM, analysis.pathSelectionStrategy)
+        assertTrue(result.started, result.toString())
+        assertTrue(analysis.sourceMappedIrEntered.isNotEmpty())
+        assertFalse(analysis.rawStateDiagnosticsEnabled)
+    }
+
+    @Test
+    fun `symbolic probe rejects budgets outside the declared class treatments`() {
+        val failure = assertFailsWith<IllegalArgumentException> {
+            runFixture(
+                sourceText = "export class Target { read(): number { return 1; } }",
+                exploratory = true,
+                budgetMillis = 60_000,
+            )
+        }
+
+        assertEquals("Symbolic probes support exactly 30 and 120 second budgets", failure.message)
+        assertFalse(Files.exists(directory.resolve("output")))
+    }
+
     private fun runFixture(
         sourceText: String,
         profile: CallsExperimentProfile = CallsExperimentProfile.FROZEN_STOP,
         exploratory: Boolean = false,
         retainRawStateDiagnostics: Boolean = false,
         forkLimit: ULong? = null,
+        frozenModelIds: Set<String>? = null,
+        budgetMillis: Long = if (exploratory) 30_000 else 2_000,
+        solverLimitMillis: Long = 250,
+        timeQuantumMillis: Long = 25,
+        seed: Long = 17,
+        pathSelectionStrategy: PathSelectionStrategy = PathSelectionStrategy.BFS,
     ): CallsClassStartResult {
         val source = directory.resolve("Target.ts")
         Files.writeString(source, sourceText)
@@ -461,9 +522,14 @@ class CallsClassStartSmokeTest {
             ledgerSha256 = "b".repeat(64),
             expectedClassCount = 1,
             profile = profile,
-            budgetMillis = if (exploratory) 30_000 else 2_000,
+            budgetMillis = budgetMillis,
+            solverLimitMillis = solverLimitMillis,
+            timeQuantumMillis = timeQuantumMillis,
+            seed = seed,
+            pathSelectionStrategy = pathSelectionStrategy,
             collectedStatesLimit = if (exploratory) null else 10,
             forkLimit = forkLimit,
+            frozenModelIds = frozenModelIds,
             classes = listOf(case),
             retainRawStateDiagnostics = retainRawStateDiagnostics,
         )
