@@ -94,6 +94,9 @@ private typealias Reason = TsUnknownCallFailureReason
 
 typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
 
+private const val MAX_ENGINE_FAILURE_MESSAGE_LENGTH = 1024
+private const val MAX_ENGINE_FAILURE_DIAGNOSTIC_LENGTH = 2048
+
 @Suppress("UNUSED_PARAMETER")
 class TsInterpreter(
     private val ctx: TsContext,
@@ -221,7 +224,12 @@ class TsInterpreter(
 
             // Preserve the failed prefix and any forks whose callbacks already completed.
             // The machine stops this state separately from unsupported or returned paths.
-            state.engineFailureReason = "${e::class.java.name}: ${e.message}"
+            val method = stmt.location.method.signature
+            val sourceFile = method.enclosingClass.file
+            val originalReason = "${e::class.java.name}: ${e.message}".take(MAX_ENGINE_FAILURE_MESSAGE_LENGTH)
+            val frames = e.stackTrace.take(5).joinToString(separator = "\n")
+            val diagnostic = "$originalReason\n$sourceFile::$method statement=${stmt.location.index}\n$frames"
+            state.engineFailureReason = diagnostic.take(MAX_ENGINE_FAILURE_DIAGNOSTIC_LENGTH)
             return scope.stepResult()
         }
 

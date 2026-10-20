@@ -793,7 +793,7 @@ class TsExprResolver(
 
     override fun visit(expr: EtsYieldExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        throw UnsupportedOperationException("Not supported $expr")
     }
 
     // endregion
