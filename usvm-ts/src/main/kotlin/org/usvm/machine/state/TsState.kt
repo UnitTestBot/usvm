@@ -33,6 +33,7 @@ import org.usvm.machine.expr.TrackedObjectProperty
 import org.usvm.machine.expr.TsArrayIterator
 import org.usvm.machine.expr.TsCapturedInstanceCall
 import org.usvm.machine.expr.TsIteratorResult
+import org.usvm.machine.expr.TsModeledCollection
 import org.usvm.machine.expr.TsStringIterator
 import org.usvm.machine.interpreter.PromiseCallback
 import org.usvm.machine.interpreter.PromiseState
@@ -148,6 +149,7 @@ class TsState(
 ) {
     internal var promiseExecutorFunctions: Map<UConcreteHeapRef, TsFunction> = emptyMap()
 
+    internal var modeledCollections: Map<UConcreteHeapRef, TsModeledCollection> = emptyMap()
     internal var initialEnvironmentFailure: String? = null
     internal var initialEnvironmentHeaps: Map<EtsClass, TsInitialEnvironmentHeap> = emptyMap()
     internal var initialEnvironmentSlots: Map<Pair<EtsClass, String>, TsInitialEnvironmentSlot> = emptyMap()
@@ -417,6 +419,7 @@ class TsState(
             denseInputArrays = denseInputArrays.toMutableMap(),
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         ).also { cloned ->
+            cloned.modeledCollections = modeledCollections
             cloned.promiseExecutorFunctions = promiseExecutorFunctions
             cloned.initialEnvironmentFailure = initialEnvironmentFailure
             cloned.initialEnvironmentHeaps = initialEnvironmentHeaps
