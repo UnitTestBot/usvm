@@ -748,14 +748,15 @@ class TsExprResolver(
     ): List<UExpr<*>> = with(ctx) {
         val args: MutableList<UExpr<*>> = mutableListOf()
 
-        // Executor lambda does not have 'this', so we fill it with 'undefined':
-        args += mkUndefinedValue()
+        val function = scope.calcOnState { promiseExecutorFunctions[promise] }
+        args += function?.thisInstance ?: mkUndefinedValue()
 
         val params = executor.parameters.toMutableList()
         if (params.isNotEmpty() && params[0].type is EtsLexicalEnvType) {
             params.removeFirst()
-            // TODO: handle closures
-            args += mkUndefinedValue()
+            val closure = function?.closure
+                ?: throw UnsupportedOperationException("Promise executor closure is unavailable")
+            args += closure
         }
 
         if (params.isNotEmpty()) {
@@ -1372,10 +1373,7 @@ class TsExprResolver(
                 if (isAllocatedConcreteHeapRef(ptr)) {
                     val callback = scope.calcOnState { promiseCallbacks[ptr] }
                     if (callback != null) {
-                        check(expr.args.size == 1) {
-                            "Promise settlement callback should have exactly one argument, but got ${expr.args.size}"
-                        }
-                        val value = resolve(expr.args.single()) ?: return null
+                        val value = resolvePromiseSettlementArguments(expr.args) ?: return null
                         val fakeValue = value.toFakeObject(scope) ?: return null
                         scope.doWithState {
                             if (!isResolved(callback.promise)) {
