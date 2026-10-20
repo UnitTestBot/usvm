@@ -114,6 +114,9 @@ internal fun TsExprResolver.handleAssignToInstanceField(
     if (!ensureSupportedArrayPrototypeAccess(instance, field.name)) return null
     ensureSupportedDatePrototypeAccess(instance, field.name)
 
+    val supportedMutation = ensureSupportedInputCollectionMutation(instance, instanceLocal.type, field.name)
+    if (!supportedMutation) return null
+
     val storageType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) }
     if (storageType == EtsStringType) {
         return handleStringPropertyWrite()

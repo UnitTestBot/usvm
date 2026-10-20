@@ -3,6 +3,7 @@ package org.usvm.machine
 import org.jacodb.ets.model.EtsClassSignature
 import org.usvm.machine.call.TsResidualCallPolicy
 import org.usvm.machine.call.TsUnknownCallModelSelection
+import org.usvm.machine.expr.MAX_MODELED_COLLECTION_ENTRIES
 
 /** Initial own-property assumptions for symbolic input objects; writes and deletes always take precedence. */
 enum class TsInputPropertyPresence {
@@ -23,6 +24,8 @@ data class TsOptions(
     val interproceduralAnalysis: Boolean = true,
     val enableVisualization: Boolean = false,
     val maxArraySize: Int = 1_000,
+    /** Bounded native Map/Set input domain; null retains unsupported symbolic collection inputs. */
+    val maxInputCollectionSize: Int? = null,
     val inputPropertyPresence: TsInputPropertyPresence = TsInputPropertyPresence.DECLARED_FIELDS,
     val unknownCallModelSelection: TsUnknownCallModelSelection = TsUnknownCallModelSelection.All,
     val unknownCallFallback: TsResidualCallPolicy = TsResidualCallPolicy.STOP_PATH,
@@ -34,6 +37,10 @@ data class TsOptions(
     val classCoverageTargets: Set<EtsClassSignature>? = null,
 ) {
     init {
+        require(maxInputCollectionSize == null || maxInputCollectionSize in 1..MAX_MODELED_COLLECTION_ENTRIES) {
+            "Input collection capacity must be between 1 and 16, or disabled"
+        }
+
         val hasCoverageTargets = classCoverageTargets == null || classCoverageTargets.isNotEmpty()
         require(hasCoverageTargets) { "Explicit class coverage targets must not be empty" }
 

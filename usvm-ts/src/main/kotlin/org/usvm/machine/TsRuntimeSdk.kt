@@ -3,6 +3,8 @@ package org.usvm.machine
 import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassImpl
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsLocal
@@ -77,4 +79,21 @@ internal fun EtsScene.runtimeFunctionType(): EtsClassType {
     val functionClass = sdkClasses.singleOrNull { it.name == "Function" }
         ?: throw UnsupportedOperationException("SDK Function identity is ambiguous or unavailable")
     return EtsClassType(functionClass.signature)
+}
+
+/** Native collection input types need real identities in the solver's finite runtime-type universe. */
+internal fun EtsScene.withInputCollectionSdk(): EtsScene {
+    val names = setOf("Map", "Set") - projectAndSdkClasses.map { it.name }.toSet()
+    if (names.isEmpty()) return this
+
+    val classes = names.map { name ->
+        EtsClassImpl(
+            signature = EtsClassSignature.UNKNOWN.copy(name = name),
+            fields = emptyList(),
+            methods = emptyList(),
+            superClass = EtsHierarchy.OBJECT_CLASS.signature,
+        )
+    }
+    val file = EtsFile(signature = EtsClassSignature.UNKNOWN.file, classes = classes, namespaces = emptyList())
+    return EtsScene(projectFiles = projectFiles, sdkFiles = sdkFiles + file, projectName = projectName)
 }

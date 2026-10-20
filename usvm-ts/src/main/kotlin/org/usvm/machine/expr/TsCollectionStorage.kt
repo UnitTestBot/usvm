@@ -18,6 +18,8 @@ import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapRemove
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapSize
 import org.usvm.api.evalTypeEquals
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.collection.map.length.UMapLengthLValue
+import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.machine.call.TsUnknownCall
@@ -25,9 +27,12 @@ import org.usvm.machine.state.TsState
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.TsUnresolvedValue
 import org.usvm.machine.types.extractValue
+import org.usvm.sizeSort
 import org.usvm.util.mkStringBackingElementLValue
 import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.mkStringBackingLengthLValue
+
+internal const val MAX_MODELED_COLLECTION_ENTRIES = 16
 
 internal enum class TsCollectionKind { MAP, SET }
 
@@ -130,6 +135,20 @@ internal fun TsState.collectionClear(receiver: UConcreteHeapRef, collection: TsM
     modeledCollections += receiver to collection.copy(keys = emptyList())
 }
 
+/** Initial bounded slots have symbolic presence; cardinality changes under the identical guard. */
+internal fun TsState.guardInitialCollectionEntry(
+    collection: TsModeledCollection,
+    key: UConcreteHeapRef,
+    present: UBoolExpr,
+) = with(ctx) {
+    val membership = URefSetEntryLValue(collection.storage, key, storageType)
+    val length = UMapLengthLValue(collection.storage, storageType, sizeSort)
+    val currentSize = memory.read(length)
+    val absent = mkNot(present)
+    memory.write(membership, falseExpr, guard = absent)
+    memory.write(length, mkBvSubExpr(currentSize, mkBv(1)), guard = absent)
+}
+
 internal fun TsState.collectionPresent(collection: TsModeledCollection, key: UConcreteHeapRef): UBoolExpr =
     symbolicObjectMapContains(collection.storage, key, storageType)
 
@@ -176,7 +195,7 @@ internal fun TsState.readCollectionPayload(ref: UHeapRef): TsUnresolvedValue = w
     TsUnresolvedValue(boolValue = boolean, fpValue = number, refValue = reference, type = type)
 }
 
-private fun TsState.collectionKeyEquals(left: TsUnresolvedValue, right: TsUnresolvedValue): UBoolExpr? = with(ctx) {
+internal fun TsState.collectionKeyEquals(left: TsUnresolvedValue, right: TsUnresolvedValue): UBoolExpr? = with(ctx) {
     val booleanEqual = mkAnd(left.type.boolTypeExpr, right.type.boolTypeExpr, mkEq(left.boolValue, right.boolValue))
     val leftIsNaN = mkFpIsNaNExpr(left.fpValue)
     val rightIsNaN = mkFpIsNaNExpr(right.fpValue)
@@ -226,7 +245,12 @@ private fun TsState.referenceOrStringKeyEquals(left: UHeapRef, right: UHeapRef):
 
 private fun TsState.modeledStringBound(ref: UHeapRef): Int? = with(ctx) {
     boundedStringBackingRefs[ref]?.let { return it }
-    if (ref is UConcreteHeapRef) return getStringConstantValue(ref)?.length
+    if (ref is UConcreteHeapRef) {
+        val constant = getStringConstantValue(ref)
+        if (constant != null) return constant.length
+        if (memory.types.evalTypeEquals(ref, EtsStringType).isFalse) return 0
+        return null
+    }
     if (ref !is UIteExpr<*>) return null
     val trueBound = modeledStringBound(ref.trueBranch.asExpr(addressSort)) ?: return null
     val falseBound = modeledStringBound(ref.falseBranch.asExpr(addressSort)) ?: return null

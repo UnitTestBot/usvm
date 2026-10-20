@@ -371,6 +371,13 @@ open class TsTestStateResolver(
             return TsTestValue.TsNull
         }
 
+        val inputCollection = propertyState?.inputCollectionReferences?.keys?.any { reference ->
+            evaluateInModel(reference) == concreteRef
+        } == true
+        if (inputCollection) {
+            throw TsUnsupportedWitnessException("Native input collection witness reconstruction is not modeled")
+        }
+
         val type = if (concreteRef.isAllocated) {
             resolutionMemory.typeStreamOf(concreteRef).first()
         } else {

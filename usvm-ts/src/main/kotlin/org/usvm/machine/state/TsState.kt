@@ -152,6 +152,10 @@ class TsState(
 
     internal var collectionIterators: Map<UConcreteHeapRef, TsCollectionIterator> = emptyMap()
 
+    internal var inputCollectionTypes: Map<UHeapRef, EtsType> = emptyMap()
+    internal var inputCollectionReferences: Map<UHeapRef, UConcreteHeapRef> = emptyMap()
+    internal var collectionOriginalReceivers: Map<UConcreteHeapRef, UHeapRef> = emptyMap()
+
     internal var modeledCollections: Map<UConcreteHeapRef, TsModeledCollection> = emptyMap()
     internal var initialEnvironmentFailure: String? = null
     internal var initialEnvironmentHeaps: Map<EtsClass, TsInitialEnvironmentHeap> = emptyMap()
@@ -424,6 +428,9 @@ class TsState(
         ).also { cloned ->
             cloned.collectionIterators = collectionIterators
             cloned.modeledCollections = modeledCollections
+            cloned.inputCollectionTypes = inputCollectionTypes
+            cloned.inputCollectionReferences = inputCollectionReferences
+            cloned.collectionOriginalReceivers = collectionOriginalReceivers
             cloned.promiseExecutorFunctions = promiseExecutorFunctions
             cloned.initialEnvironmentFailure = initialEnvironmentFailure
             cloned.initialEnvironmentHeaps = initialEnvironmentHeaps
