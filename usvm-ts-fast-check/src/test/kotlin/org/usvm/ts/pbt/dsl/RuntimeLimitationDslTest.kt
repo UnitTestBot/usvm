@@ -46,7 +46,10 @@ class RuntimeLimitationDslTest {
     @Test
     fun `supported counterexample and its native replay survive an excluded path`() {
         val program = defineProperty(id = "runtime.mixed-counterexample") {
-            val write = function<(Double) -> Double>(module = "runtime-limitations.ts", exportName = "supportedOrSparse")
+            val write = function<(Double) -> Double>(
+                module = "runtime-limitations.ts",
+                exportName = "supportedOrSparse",
+            )
             val index by int(min = 0, max = capacity)
 
             assume { (index equalTo 0) or (index equalTo capacity) }
@@ -68,7 +71,10 @@ class RuntimeLimitationDslTest {
     @Test
     fun `supported successful paths do not hide excluded model paths`() {
         val program = defineProperty(id = "runtime.mixed-no-violation") {
-            val write = function<(Double) -> Double>(module = "runtime-limitations.ts", exportName = "supportedOrSparse")
+            val write = function<(Double) -> Double>(
+                module = "runtime-limitations.ts",
+                exportName = "supportedOrSparse",
+            )
             val index by int(min = 0, max = capacity)
 
             assume { (index equalTo 0) or (index equalTo capacity) }
