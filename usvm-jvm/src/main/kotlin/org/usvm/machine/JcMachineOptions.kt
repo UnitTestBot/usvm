@@ -26,6 +26,9 @@ data class JcMachineOptions(
     /** Local experiment toggle for the interpreter's built-in method models. */
     val enableMethodApproximations: Boolean = true,
 
+    /** Retain the pinned stdlib model's lazy length <= 50 restriction on symbolic Strings. */
+    val enforceModelStringLengthBound: Boolean = true,
+
     /** Policy for native, bodyless, and unresolved dynamic calls after model attempts. */
     val residualCallPolicy: JcResidualCallPolicy = JcResidualCallPolicy.FRESH,
 )

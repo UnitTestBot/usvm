@@ -108,6 +108,7 @@ import kotlin.reflect.KFunction2
 class JcMethodApproximationResolver(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationGraph,
+    private val options: JcMachineOptions,
 ) {
     private var currentScope: JcStepScope? = null
     private val scope: JcStepScope
@@ -1068,6 +1069,15 @@ class JcMethodApproximationResolver(
                 scope.assert(arg)?.let { ctx.voidValue }
             }
             dispatchUsvmApiMethod(Engine::assumeSymbolic) {
+                val skipStringModelBound = !options.enforceModelStringLengthBound && scope.calcOnState {
+                    val caller = lastEnteredMethod
+                    caller.enclosingClass.name == "java.lang.String" && caller.name == "_assumeInvariants" &&
+                        caller.parameters.singleOrNull()?.type?.typeName == "java.lang.String"
+                }
+                // aa9e358446 has one assumeSymbolic call in this private helper: logical length <= 50.
+                // Its coder, non-null backing and nonnegative-length Engine.assume calls still execute.
+                if (skipStringModelBound) return@dispatchUsvmApiMethod ctx.voidValue
+
                 val instance = it.arguments[0].asExpr(ctx.addressSort)
                 val condition = it.arguments[1].asExpr(ctx.booleanSort)
                 val assumptionConstraint = foldHeapRefWithStaticAsConcrete<UBoolExpr>(
