@@ -6,6 +6,7 @@ import org.usvm.api.makeFreshUnknownCallResult
 import org.usvm.api.setMockMethodCallResult
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.call.intrinsic.TsDateEtsIrModelFamily
+import org.usvm.machine.expr.invalidateCollectionAfterResidual
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -76,6 +77,7 @@ class TsModelUnknownCallDispatcher(
             TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN -> {
                 val result = makeFreshUnknownCallResult(scope, call) ?: return TsUnknownCallOutcome.PATH_STOPPED
                 scope.doWithState {
+                    invalidateCollectionAfterResidual(call)
                     setMockMethodCallResult(call.callee, result)
                     newStmt(call.callSite)
                 }
@@ -134,6 +136,7 @@ class TsModelUnknownCallDispatcher(
 
         if (residualGuard != null && residualPolicy == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN) {
             guardedStateChanges += residualGuard to {
+                invalidateCollectionAfterResidual(call)
                 setMockMethodCallResult(call.callee, requireNotNull(freshResidualResult))
                 newStmt(call.callSite)
                 freshResidualApplied = true

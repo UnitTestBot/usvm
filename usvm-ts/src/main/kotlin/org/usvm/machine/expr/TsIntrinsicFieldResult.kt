@@ -27,6 +27,14 @@ internal fun TsContext.tryReadIntrinsicField(
     instance: UHeapRef,
     field: EtsFieldSignature,
 ): TsIntrinsicFieldResult<UExpr<*>> {
+    val collection = (instance as? UConcreteHeapRef)?.let { ref ->
+        scope.calcOnState { modeledCollections[ref] }
+    }
+    if (collection != null && field.name == "size") {
+        val size = scope.calcOnState { collectionSize(collection) }
+        return TsIntrinsicFieldResult.Handled(size)
+    }
+
     val regularExpression = intrinsicRegExpReference(scope, instance)
     if (regularExpression != null) {
         return TsIntrinsicFieldResult.from(readRegExpField(scope, regularExpression, field.name))
@@ -51,6 +59,14 @@ internal fun TsContext.tryWriteIntrinsicField(
     field: EtsFieldSignature,
     value: UExpr<*>,
 ): TsIntrinsicFieldResult<Unit> {
+    val collection = (instance as? UConcreteHeapRef)?.let { ref ->
+        scope.calcOnState { modeledCollections[ref] }
+    }
+    if (collection != null && field.name == "size") {
+        scope.doWithState { terminateAsUnsupported(reason = "Writing native collection size is not modeled") }
+        return TsIntrinsicFieldResult.Stopped
+    }
+
     val nativeMathConstant = scope.calcOnState { isNativeMathConstant(instance, field.name) }
     if (nativeMathConstant) {
         scope.doWithState {
