@@ -3,6 +3,8 @@ package org.usvm.machine.interpreter
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNullType
@@ -12,14 +14,17 @@ import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
+import org.usvm.UHeapRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsGraph
 import org.usvm.machine.TsOptions
+import org.usvm.machine.expr.TsCollectionKind
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.mkNotNullOrUndefined
+import org.usvm.machine.expr.nativeCollectionKind
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
@@ -83,6 +88,11 @@ internal fun createInitialStateOrNull(
         }
 
         val parameterType = param.type.initialInputType(genericParameters)
+        val nativeCollectionInput = options.maxInputCollectionSize != null &&
+            parameterType.nativeCollectionKind() != null
+        if (nativeCollectionInput) {
+            state.constrainNativeCollectionInput(ref, parameterType, graph)
+        }
         if (parameterType is EtsRefType) {
             run {
                 state.pathConstraints += mkNotNullOrUndefined(ref)
@@ -157,6 +167,18 @@ internal fun createInitialStateOrNull(
     if (!feasible) return@with null
 
     state
+}
+
+private fun TsState.constrainNativeCollectionInput(reference: UHeapRef, parameterType: EtsType, graph: TsGraph) {
+    val kind = parameterType.nativeCollectionKind() ?: return
+    val declaredClasses = if (parameterType is EtsRefType) graph.hierarchy.classesForType(parameterType) else emptySet()
+    val hasProjectDeclaration = declaredClasses.any { it.signature.file != EtsClassSignature.UNKNOWN.file }
+    if (hasProjectDeclaration) return
+
+    val nativeName = if (kind == TsCollectionKind.MAP) "Map" else "Set"
+    val nativeType = EtsClassType(EtsClassSignature.UNKNOWN.copy(name = nativeName))
+    pathConstraints += memory.types.evalTypeEquals(reference, nativeType)
+    inputCollectionTypes += reference to parameterType
 }
 
 private fun TsState.initializeModel(method: EtsMethod): Boolean {

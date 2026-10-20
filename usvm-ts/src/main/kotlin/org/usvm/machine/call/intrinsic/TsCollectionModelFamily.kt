@@ -8,6 +8,7 @@ import org.usvm.machine.call.TsUnknownCallModelCompletion
 import org.usvm.machine.call.TsUnknownCallModelExecution
 import org.usvm.machine.call.TsUnknownCallModelSuccessor
 import org.usvm.machine.call.TsUnknownCallTarget
+import org.usvm.machine.expr.MAX_MODELED_COLLECTION_ENTRIES
 import org.usvm.machine.expr.TsCollectionKind
 import org.usvm.machine.expr.collectionClear
 import org.usvm.machine.expr.collectionGet
@@ -22,7 +23,6 @@ import org.usvm.machine.types.iteUnresolvedValue
 
 /** A bounded coherent subset of native Map/Set operations. */
 internal object TsCollectionModelFamily : TsBuiltInUnknownCallModelFamily {
-    private const val MAX_ENTRIES = 16
 
     override val models: List<TsUnknownCallModel> = listOf(
         OperationModel(operation = "get"),
@@ -40,6 +40,7 @@ internal object TsCollectionModelFamily : TsBuiltInUnknownCallModelFamily {
         override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? = with(state.ctx) {
             val receiver = call.receiver?.resolved as? UConcreteHeapRef ?: return null
             val collection = state.modeledCollections[receiver] ?: return null
+            val originalReceiver = state.collectionOriginalReceivers[receiver] ?: receiver
             val mapOnly = operation == "get" || operation == "set"
             if (mapOnly && collection.kind != TsCollectionKind.MAP) return null
             if (operation == "add" && collection.kind != TsCollectionKind.SET) return null
@@ -97,17 +98,17 @@ internal object TsCollectionModelFamily : TsBuiltInUnknownCallModelFamily {
                     val successors = matches.map { match ->
                         TsUnknownCallModelSuccessor(
                             guard = match.guard,
-                            completion = TsUnknownCallModelCompletion.Normal { receiver },
+                            completion = TsUnknownCallModelCompletion.Normal { originalReceiver },
                             applyStateChanges = {
                                 if (collection.kind == TsCollectionKind.MAP) collectionPut(collection, match.key, value)
                             },
                         )
                     }.toMutableList()
-                    val canInsert = collection.keys.size < MAX_ENTRIES
+                    val canInsert = collection.keys.size < MAX_MODELED_COLLECTION_ENTRIES
                     if (canInsert) {
                         successors += TsUnknownCallModelSuccessor(
                             guard = missing,
-                            completion = TsUnknownCallModelCompletion.Normal { receiver },
+                            completion = TsUnknownCallModelCompletion.Normal { originalReceiver },
                             applyStateChanges = { collectionInsert(receiver, collection, key, value) },
                         )
                     }

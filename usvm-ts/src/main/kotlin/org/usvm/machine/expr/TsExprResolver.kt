@@ -530,6 +530,13 @@ class TsExprResolver(
                 checkUndefinedOrNullPropertyRead(scope, rawInstance, operand.field.name) ?: return null
                 val instance = resolveHeapRef(scope, rawInstance) ?: return null
 
+                val supportedMutation = ensureSupportedInputCollectionMutation(
+                    reference = instance,
+                    declaredType = operand.instance.type,
+                    property = operand.field.name,
+                )
+                if (!supportedMutation) return null
+
                 val nativeMathConstant = scope.calcOnState { isNativeMathConstant(instance, operand.field.name) }
                 if (nativeMathConstant) {
                     scope.doWithState {

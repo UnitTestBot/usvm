@@ -121,7 +121,9 @@ class TsMachine(
             )
         }
         ?: scene
-    private val runtimeScene = analysisScene.withCoreRuntimeSdk()
+    private val runtimeScene = analysisScene.withCoreRuntimeSdk().let { runtime ->
+        if (tsOptions.maxInputCollectionSize == null) runtime else runtime.withInputCollectionSdk()
+    }
     private val applicationAndSdkClasses = scene.projectClasses + runtimeScene.sdkClasses
     private val graph = TsGraph(runtimeScene)
     private val typeSystem = TsTypeSystem(

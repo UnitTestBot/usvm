@@ -116,6 +116,21 @@ internal fun TsExprResolver.handleInstanceFieldRef(
         }
     }
 
+    if (value.field.name == "size") {
+        when (val inputCollection = inputCollectionReference(instance, instanceLocal.type)) {
+            is TsIntrinsicFieldResult.Handled -> {
+                val collection = scope.calcOnState { modeledCollections[inputCollection.value] }
+                if (collection == null) {
+                    scope.doWithState { terminateAsUnsupported(reason = "Input collection backend was invalidated") }
+                    return null
+                }
+                return scope.calcOnState { collectionSize(collection) }
+            }
+            TsIntrinsicFieldResult.Stopped -> return null
+            TsIntrinsicFieldResult.NotApplicable -> {}
+        }
+    }
+
     // Read the field.
     return resolveField(scope, instanceLocal, instance, value.field, hierarchy)
 }
@@ -334,9 +349,29 @@ private fun TsContext.initialReferenceConstraint(
     hierarchy: EtsHierarchy,
 ): UBoolExpr = when (type) {
     is EtsClassType -> scope.calcOnState {
-        val auxiliary = type.toAuxiliaryType(hierarchy)
-        val classConstraint = auxiliary?.let { memory.types.evalIsSubtype(ref, it) } ?: trueExpr
-        mkAnd(mkNotNullOrUndefined(ref), classConstraint)
+        val nativeCollection = type.nativeCollectionKind() != null &&
+            hierarchy.classesForType(type).any { it.signature.file == EtsClassSignature.UNKNOWN.file }
+        if (nativeCollection) {
+            inputCollectionTypes += ref to type
+            val nativeType = memory.types.evalTypeEquals(ref, type)
+            mkAnd(mkNotNullOrUndefined(ref), nativeType)
+        } else {
+            val auxiliary = type.toAuxiliaryType(hierarchy)
+            val classConstraint = auxiliary?.let { memory.types.evalIsSubtype(ref, it) } ?: trueExpr
+            mkAnd(mkNotNullOrUndefined(ref), classConstraint)
+        }
+    }
+    is EtsUnclearRefType -> {
+        val nativeCollection = type.name in setOf("Map", "Set") &&
+            hierarchy.classesForType(type).any { it.signature.file == EtsClassSignature.UNKNOWN.file }
+        if (nativeCollection) {
+            scope.doWithState { inputCollectionTypes += ref to type }
+            val nativeType = EtsClassType(EtsClassSignature.UNKNOWN.copy(name = type.name))
+            val runtimeType = scope.calcOnState { memory.types.evalTypeEquals(ref, nativeType) }
+            mkAnd(mkNotNullOrUndefined(ref), runtimeType)
+        } else {
+            trueExpr
+        }
     }
     is EtsNullType -> mkHeapRefEq(ref, mkTsNullValue())
     is EtsUndefinedType -> mkHeapRefEq(ref, mkUndefinedValue())
