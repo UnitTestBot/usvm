@@ -45,8 +45,13 @@ class URegistersStack(
     fun push(arguments: Array<UExpr<out USort>>, localsCount: Int) =
         frames.add(arguments.copyOf(arguments.size + localsCount))
 
-    private fun <Sort : USort> Array<UExpr<out USort>?>?.read(index: Int, sort: Sort): UExpr<Sort> =
-        this?.get(index)?.asExpr(sort) ?: sort.uctx.mkRegisterReading(index, sort)
+    private fun <Sort : USort> Array<UExpr<out USort>?>?.read(index: Int, sort: Sort): UExpr<Sort> {
+        val value = this?.get(index) ?: return sort.uctx.mkRegisterReading(index, sort)
+        check(value.sort == sort) {
+            "Register sort mismatch: index=$index requested=$sort stored=${value.sort} frames=${frames.size}"
+        }
+        return value.asExpr(sort)
+    }
 
     override fun <Sort : USort> readRegister(index: Int, sort: Sort): UExpr<Sort> =
         frames.lastOrNull().read(index, sort)

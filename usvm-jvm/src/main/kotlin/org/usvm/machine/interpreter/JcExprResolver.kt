@@ -77,6 +77,7 @@ import org.jacodb.api.jvm.ext.byte
 import org.jacodb.api.jvm.ext.char
 import org.jacodb.api.jvm.ext.double
 import org.jacodb.api.jvm.ext.enumValues
+import org.jacodb.api.jvm.ext.findType
 import org.jacodb.api.jvm.ext.float
 import org.jacodb.api.jvm.ext.ifArrayGetElementType
 import org.jacodb.api.jvm.ext.int
@@ -120,6 +121,7 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addConcreteMethodCallStmt
 import org.usvm.machine.state.addDynamicCall
 import org.usvm.machine.state.addVirtualMethodCallStmt
+import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
@@ -479,17 +481,20 @@ class JcExprResolver(
             arguments += resolveJcExpr(expr, type) ?: return null
         }
 
-        return resolveInvokeNoStaticInitializationCheck { onNoCallPresent(arguments) }
+        return resolveInvokeNoStaticInitializationCheck(expectedReturnType = method.returnType) {
+            onNoCallPresent(arguments)
+        }
     }
 
     private inline fun resolveInvokeNoStaticInitializationCheck(
+        expectedReturnType: JcType,
         onNoCallPresent: JcStepScope.() -> Unit,
     ): UExpr<out USort>? {
         val result = scope.calcOnState { methodResult }
         return when (result) {
             is JcMethodResult.Success -> {
                 scope.doWithState { methodResult = JcMethodResult.NoCall }
-                result.value
+                adaptInvocationResult(result, expectedReturnType)
             }
 
             is JcMethodResult.NoCall -> {
@@ -499,6 +504,22 @@ class JcExprResolver(
 
             is JcMethodResult.JcException -> error("Exception should be handled earlier")
         }
+    }
+
+    /** Lambda implementation and functional-interface results may have different JVM representations. */
+    private fun adaptInvocationResult(result: JcMethodResult.Success, expectedType: JcType): UExpr<out USort>? {
+        if (expectedType == ctx.cp.void) return ctx.voidValue
+        val actualType = ctx.cp.findType(result.method.returnType.typeName)
+        val requiresBoxing = actualType is JcPrimitiveType && expectedType !is JcPrimitiveType
+        if (!requiresBoxing) return resolveLambdaArgument(result.value, actualType, expectedType)
+
+        val wrapper = actualType.autoboxIfNeeded() as JcClassType
+        val valueOf = wrapper.declaredMethods.single {
+            it.name == "valueOf" && it.isStatic && it.parameters.singleOrNull()?.type == actualType
+        }
+        // Execute the ordinary boxing method so wrapper caching and its models keep their semantics.
+        scope.doWithState { addConcreteMethodCallStmt(valueOf.method, listOf(result.value)) }
+        return null
     }
 
     // endregion
@@ -1222,7 +1243,15 @@ class JcSimpleValueResolver(
 
     override fun visitJcLocalVar(value: JcLocalVar): UExpr<out USort> = with(ctx) {
         val ref = resolveLocal(value)
-        scope.calcOnState { memory.read(ref) }
+        scope.calcOnState {
+            try {
+                memory.read(ref)
+            } catch (failure: IllegalStateException) {
+                val context = "entry=$entrypoint method=$lastEnteredMethod statement=$lastStmt " +
+                    "local=${value.name} type=${value.type} register=${ref.idx} requested=${ref.sort}"
+                throw IllegalStateException(context, failure)
+            }
+        }
     }
 
     override fun visitJcThis(value: JcThis): UExpr<out USort> = with(ctx) {
