@@ -16,6 +16,7 @@ import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.usvm.CoverageZone
+import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
@@ -91,6 +92,7 @@ internal data class CallsClassStartManifest(
     val expectedClassCount: Int = 200,
     val budgetMillis: Long = 2_000,
     val solverLimitMillis: Long = 250,
+    val pathSelectionStrategy: PathSelectionStrategy = CALLS_PATH_SELECTION_STRATEGY,
     val collectedStatesLimit: Int? = 10,
     val forkLimit: ULong? = null,
     val timeQuantumMillis: Long = 25,
@@ -98,6 +100,8 @@ internal data class CallsClassStartManifest(
     val profile: CallsExperimentProfile = CallsExperimentProfile.FROZEN_STOP,
     val classes: List<CallsClassStartCase>,
     val retainRawStateDiagnostics: Boolean = false,
+    val frozenModelIds: Set<String>? = null,
+    val maxInputCollectionSize: Int? = null,
 ) {
     init {
         require(schemaVersion == 1 && classes.size == expectedClassCount && expectedClassCount > 0)
@@ -408,7 +412,9 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
     val bytes = Files.readAllBytes(manifestPath)
     val manifest = CallsExperimentJson.json.decodeFromString<CallsClassStartManifest>(bytes.toString(Charsets.UTF_8))
     if (exploratory) {
-        require(manifest.budgetMillis == EXPLORATORY_BUDGET_MILLIS && manifest.seed == EXPLORATORY_SEED)
+        require(manifest.budgetMillis in CLASS_SEARCH_BUDGETS_MILLIS) {
+            "Symbolic probes support exactly 30 and 120 second budgets"
+        }
         require(manifest.collectedStatesLimit == null) { "The exploratory probe has no terminal-state cap" }
     }
     require(manifest.toolRevision == CallsBuildIdentity.toolRevision) { "Smoke runtime revision changed" }
@@ -578,7 +584,7 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
         TsMachine(
             scene = scene,
             options = UMachineOptions(
-                pathSelectionStrategies = listOf(CALLS_PATH_SELECTION_STRATEGY),
+                pathSelectionStrategies = listOf(manifest.pathSelectionStrategy),
                 stateCollectionStrategy = StateCollectionStrategy.ALL,
                 randomSeed = manifest.seed,
                 collectedStatesLimit = manifest.collectedStatesLimit,
@@ -594,12 +600,14 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
             ),
             tsOptions = TsOptions(
                 unknownCallModelSelection = if (manifest.profile.usesFrozenModels) {
-                    TsUnknownCallModelSelection.All
+                    manifest.frozenModelIds?.let(TsUnknownCallModelSelection::Only)
+                        ?: TsUnknownCallModelSelection.All
                 } else {
                     TsUnknownCallModelSelection.Only(emptySet())
                 },
                 unknownCallFallback = manifest.profile.fallback,
                 eraseTypeAssertions = true,
+                maxInputCollectionSize = manifest.maxInputCollectionSize,
                 classCoverageTargets = setOf(target.signature),
             ),
             machineObserver = machineObserver,
@@ -696,5 +704,3 @@ private fun runRawClassAnalysis(args: List<String>, exploratory: Boolean) {
 }
 
 private const val CLASS_START_ARGUMENT_COUNT = 3
-private const val EXPLORATORY_BUDGET_MILLIS = 30_000L
-private const val EXPLORATORY_SEED = 17L
