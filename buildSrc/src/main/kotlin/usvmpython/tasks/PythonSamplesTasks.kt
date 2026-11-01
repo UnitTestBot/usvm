@@ -45,7 +45,7 @@ fun Project.registerBuildSamplesTask(): TaskProvider<JavaExec> {
         dependsOn(installMypyRunner)
         inputs.files(fileTree(samplesSourceDir).exclude("**/__pycache__/**"))
         outputs.dir(samplesBuildDir)
-        classpath = extensions.getByType<SourceSetContainer>().getByName("test").runtimeClasspath
+        classpath = project.extensions.getByType<SourceSetContainer>().getByName("test").runtimeClasspath
         args = listOf(samplesSourceDir.canonicalPath, samplesBuildDir.canonicalPath, pythonBinaryPath)
         environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
         environment("PYTHONHOME" to cpythonBuildPath)
