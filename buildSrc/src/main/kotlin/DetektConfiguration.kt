@@ -1,22 +1,24 @@
-import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.detekt
-import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.detektPlugins
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
+import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import io.gitlab.arturbosch.detekt.report.ReportMergeTask
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.assign
+import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
+import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
 
 fun Project.configureDetekt() {
     val usesStrictTsRules = path in STRICT_TS_DETEKT_PROJECT_PATHS
 
+    val detektToolVersion = extensions.getByType<DetektExtension>().toolVersion
     dependencies {
-        detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:${detekt.toolVersion}")
+        add("detektPlugins", "io.gitlab.arturbosch.detekt:detekt-formatting:$detektToolVersion")
         if (usesStrictTsRules) {
-            detektPlugins(project(USVM_DETEKT_RULES_PROJECT_PATH))
+            add("detektPlugins", project(USVM_DETEKT_RULES_PROJECT_PATH))
         }
     }
 
@@ -44,7 +46,7 @@ fun Project.configureDetekt() {
     val reportFile = rootProject.layout.buildDirectory.file("reports/detekt/detekt.sarif")
     val configFiles = if (usesStrictTsRules) listOf(configFile, tsConfigFile) else listOf(configFile)
 
-    detekt {
+    extensions.configure<DetektExtension> {
         buildUponDefaultConfig = true
         ignoreFailures = !usesStrictTsRules
         parallel = true

@@ -1,1 +1,3 @@
 jdk: openjdk11
+install:
+  - ./gradlew clean -Pgroup=com.github.UnitTestBot -Pversion=$VERSION -xtest publishToMavenLocal
