@@ -76,6 +76,8 @@ internal fun UExpr<UFpSort>.castToBv(sizeBits: Int): UExpr<UBvSort> =
     with(ctx) {
         val bvMaxValue = bvMaxValueSigned<KBvSort>(sizeBits.toUInt())
         val bvMinValue = bvMinValueSigned<KBvSort>(sizeBits.toUInt())
+        // A signed maximum may round up to the first out-of-range integer (for example, double 2^63).
+        // Clamp equality as well, before SMT fp.to_sbv becomes underspecified.
         val fpBvMaxValue = mkBvToFpExpr(sort, fpRoundingModeSortDefaultValue(), bvMaxValue, signed = true)
         val fpBvMinValue = mkBvToFpExpr(sort, fpRoundingModeSortDefaultValue(), bvMinValue, signed = true)
 
@@ -83,7 +85,7 @@ internal fun UExpr<UFpSort>.castToBv(sizeBits: Int): UExpr<UBvSort> =
             mkFpIsNaNExpr(this@castToBv),
             mkBv(0, sizeBits.toUInt()),
             mkIte(
-                mkFpLessExpr(fpBvMaxValue, this@castToBv),
+                mkFpLessOrEqualExpr(fpBvMaxValue, this@castToBv),
                 bvMaxValue,
                 mkIte(
                     mkFpLessExpr(this@castToBv, fpBvMinValue),
