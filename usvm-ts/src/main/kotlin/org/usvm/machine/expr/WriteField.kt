@@ -24,8 +24,10 @@ import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.arrayStorageType
+import org.usvm.util.hasStringName
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
+import org.usvm.util.requireStringKey
 import org.usvm.util.resolveEtsField
 import org.usvm.util.truncateKnownArrayIndices
 import org.usvm.util.boxArrayValue as boxRuntimeValue
@@ -209,6 +211,8 @@ fun TsContext.assignToInstanceField(
     expr: UExpr<*>,
     hierarchy: EtsHierarchy,
 ): Unit? {
+    field.requireStringKey()
+
     // Unwrap to get non-fake reference.
     val unwrappedInstance = resolveHeapRef(scope, instance.unwrapRef(scope)) ?: return null
 
@@ -352,6 +356,8 @@ fun TsContext.assignToStaticField(
     field: EtsFieldSignature,
     expr: UExpr<*>,
 ): Unit? {
+    field.requireStringKey()
+
     val clazz = scene.projectAndSdkClasses.singleOrNull {
         it.signature == field.enclosingClass
     } ?: return null
@@ -363,7 +369,7 @@ fun TsContext.assignToStaticField(
     val instance = scope.calcOnState { getStaticInstance(clazz) }
 
     val sort = run {
-        val fields = clazz.fields.filter { it.name == field.name }
+        val fields = clazz.fields.filter { it.hasStringName(field.name) }
         if (fields.size == 1) {
             val field = fields.single()
             val sort = typeToSort(field.type)

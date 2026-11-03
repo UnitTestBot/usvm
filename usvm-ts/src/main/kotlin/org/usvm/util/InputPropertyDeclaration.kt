@@ -30,7 +30,7 @@ fun resolveInstanceProperty(
 
     val declarations = hierarchy.classesForType(type).map { receiver ->
         val fieldOwners = hierarchy.getAncestors(receiver).filter { owner ->
-            owner.fields.any { !it.isStatic && it.name == name }
+            owner.fields.any { !it.isStatic && it.hasStringName(name) }
         }
         // A class field defines the value even when an implemented interface has a weaker contract.
         val classOwners = fieldOwners.filter { it.category != EtsClassCategory.INTERFACE }
@@ -41,7 +41,7 @@ fun resolveInstanceProperty(
             owners.none { descendant -> owner != descendant && owner in hierarchy.getAncestors(descendant) }
         }
         val nearestFields = nearestOwners.flatMap { owner ->
-            owner.fields.filter { field -> !field.isStatic && field.name == name }
+            owner.fields.filter { field -> !field.isStatic && field.hasStringName(name) }
         }
         val nearestDeclarations = nearestFields
             .map { field ->

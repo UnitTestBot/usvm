@@ -4,6 +4,7 @@ import org.junit.jupiter.api.io.TempDir
 import org.usvm.SolverType
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
+import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
@@ -219,28 +220,41 @@ class CallsClassDataRegistryOracleTest {
             constructorInputs = listOf(PropertyInput(name = "flag", domain = BooleanDomain)),
         )
 
-        val result = CurrentTsCallsClassCoverageEngine().search(
-            CallsClassSearchRequest(
-                harness = harness,
-                profile = CallsExperimentProfile.EMPTY_STOP,
-                frozenModelIds = emptySet(),
-                expectedNativeFrontendRevision = CallsBuildIdentity.nativeFrontendRevision,
-                seed = 1,
-                budget = 3.seconds,
-                timeQuantum = 100.milliseconds,
-                solverQueryLimit = 1.seconds,
-                solverType = SolverType.YICES,
-                candidateCap = 20,
-                requireEntryPointWitness = true,
-            ),
-        )
+        // Coverage-directed search need not enumerate every input model for each entry point.
+        val branchInputs = listOf(JsConcreteValue.Boolean(true), JsConcreteValue.Boolean(false))
+        val candidates = branchInputs.flatMap { flag ->
+            val inputs = listOf(PropertyInput(name = "flag", domain = ConstantDomain(flag)))
+            val branchHarness = harness.copy(
+                surface = harness.surface.copy(constructorInputs = inputs),
+                functions = harness.functions.map { it.copy(inputs = inputs) },
+            )
+            val result = CurrentTsCallsClassCoverageEngine().search(
+                CallsClassSearchRequest(
+                    harness = branchHarness,
+                    profile = CallsExperimentProfile.EMPTY_STOP,
+                    frozenModelIds = emptySet(),
+                    expectedNativeFrontendRevision = CallsBuildIdentity.nativeFrontendRevision,
+                    seed = 1,
+                    budget = 3.seconds,
+                    timeQuantum = 100.milliseconds,
+                    solverQueryLimit = 1.seconds,
+                    solverType = SolverType.YICES,
+                    candidateCap = 20,
+                    requireEntryPointWitness = true,
+                ),
+            )
+
+            val scenarioIds = result.search.candidates.map { it.entryPointId }.toSet()
+            assertEquals(harness.scenarios.map { it.id }.toSet(), scenarioIds, "flag=$flag")
+            result.search.candidates.forEach { assertEquals(listOf(flag), it.inputs) }
+            result.search.candidates
+        }
 
         val constructorScenarioId = harness.scenarios.first().id
-        val constructorBranches = result.search.candidates.filter { it.entryPointId == constructorScenarioId }
+        val constructorBranches = candidates.filter { it.entryPointId == constructorScenarioId }
             .map { it.inputs.single() }.toSet()
         assertEquals(setOf(JsConcreteValue.Boolean(true), JsConcreteValue.Boolean(false)), constructorBranches)
-        assertEquals(harness.scenarios.map { it.id }.toSet(), result.search.candidates.map { it.entryPointId }.toSet())
-        for (candidate in result.search.candidates) {
+        for (candidate in candidates) {
             val index = harness.scenarios.indexOfFirst { it.id == candidate.entryPointId }
             val original = OriginalTypeScriptClassReplayer(
                 directory,

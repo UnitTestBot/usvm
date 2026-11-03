@@ -25,6 +25,7 @@ import org.usvm.util.EtsHierarchy
 import org.usvm.util.InputPropertyDeclaration
 import org.usvm.util.declaredInstanceProperty
 import org.usvm.util.getAllMethods
+import org.usvm.util.hasStringName
 import org.usvm.util.mkFieldLValue
 
 private enum class PropertySlot {
@@ -96,7 +97,7 @@ private fun inputPropertyUnsupportedReason(local: EtsLocal?, name: String, hiera
     if (type !is EtsClassType && type !is EtsUnclearRefType) return null
 
     val inheritedMethod = hierarchy.classesForType(type).flatMap { it.getAllMethods(hierarchy) }
-        .any { !it.isStatic && it.name == name }
+        .any { !it.isStatic && it.hasStringName(name) }
     return if (inheritedMethod) "Input property '$name' requires unsupported class prototype lookup" else null
 }
 

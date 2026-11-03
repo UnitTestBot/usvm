@@ -231,6 +231,9 @@ class TsInterpreter(
 
         val instance = stmt.instance
         val callee = stmt.call.callee
+        if (callee.wellKnownSymbol != null) {
+            throw UnsupportedOperationException("Symbol-keyed method dispatch is not supported")
+        }
 
         fun selectedMethod(receiverClass: EtsClass): EtsMethod? = if (stmt.call.isSuperCall) {
             graph.hierarchy.explicitSuperMethod(receiverClass, callee)
@@ -254,6 +257,10 @@ class TsInterpreter(
 
             TsExprApproximationResult.ResolveFailure -> return
             TsExprApproximationResult.NoApproximation -> {}
+        }
+
+        if (stmt.call.wellKnownSymbol != null) {
+            throw UnsupportedOperationException("Symbol-keyed method dispatch requires a supported intrinsic receiver")
         }
 
         if (instance.sort != addressSort) {

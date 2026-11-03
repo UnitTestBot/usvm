@@ -606,7 +606,7 @@ class TsExprResolver(
             .asSequence()
             .filter { clazz -> clazz.category != EtsClassCategory.OBJECT }
             .flatMap { clazz -> clazz.getAllMethods(hierarchy).asSequence() }
-            .any { method -> !method.isStatic && method.name == name }
+            .any { method -> !method.isStatic && method.signature.wellKnownSymbol == null && method.name == name }
         return if (inheritedMethod) "Deleting '$name' requires unsupported class prototype method lookup" else null
     }
 

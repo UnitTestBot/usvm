@@ -117,7 +117,7 @@ class EtsHierarchy(private val scene: EtsScene) {
 
         while (classes.isNotEmpty()) {
             val current = classes.removeFirst()
-            val method = current.methods.firstOrNull { !it.isStatic && it.name == methodName }
+            val method = current.methods.firstOrNull { !it.isStatic && it.hasStringName(methodName) }
             if (method != null) return method
 
             val superClasses = current.superClass?.let(::resolveClassesBySignature).orEmpty()
@@ -131,14 +131,14 @@ class EtsHierarchy(private val scene: EtsScene) {
             .filter { it.name == "Object" }
             .sortedBy { it.signature.toString() }
             .mapNotNull { sdkObject ->
-                sdkObject.methods.firstOrNull { !it.isStatic && it.name == methodName }
+                sdkObject.methods.firstOrNull { !it.isStatic && it.hasStringName(methodName) }
             }
             .firstOrNull()
         if (objectMethod != null) return objectMethod
 
         while (interfaces.isNotEmpty()) {
             val current = interfaces.removeFirst()
-            val method = current.methods.firstOrNull { !it.isStatic && it.name == methodName }
+            val method = current.methods.firstOrNull { !it.isStatic && it.hasStringName(methodName) }
             if (method != null) return method
 
             val parents = current.implementedInterfaces.flatMap(::resolveClassesBySignature)
@@ -150,6 +150,8 @@ class EtsHierarchy(private val scene: EtsScene) {
 
     /** Explicit `super.m()` starts lookup at the declared superclass, not the receiver's override. */
     fun explicitSuperMethod(receiverClass: EtsClass, callee: EtsMethodSignature): EtsMethod? {
+        if (callee.wellKnownSymbol != null) return null
+
         val ancestors = getAncestors(receiverClass) - receiverClass
         val declaredSuperclasses = classesForType(EtsClassType(callee.enclosingClass))
 
